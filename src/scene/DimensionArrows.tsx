@@ -72,7 +72,7 @@ function DimAxis({ axis, half, length, margin }: DimAxisProps) {
       {headLines.map((seg, i) => (
         <Line key={i} points={seg} color={color} lineWidth={1.5} />
       ))}
-      <Html position={labelPos} center occlude zIndexRange={[100, 0]} className="dim-html">
+      <Html position={labelPos} center zIndexRange={[100, 0]} className="dim-html">
         <div className={`dim-label dim-${axis}`}>
           {AXIS_LABEL[axis]} {formatCm(length)}
         </div>
