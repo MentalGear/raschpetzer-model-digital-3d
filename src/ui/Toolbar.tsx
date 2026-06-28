@@ -1,12 +1,14 @@
 import { useStore } from '../state/store'
 import { PresetBar } from './PresetBar'
-import { useTheme } from './theme'
+import { useTheme, WOOD_BRIGHTNESS_MAX, WOOD_BRIGHTNESS_MIN } from './theme'
 
 export function Toolbar() {
   const mode = useStore((s) => s.mode)
   const setMode = useStore((s) => s.setMode)
   const theme = useTheme((s) => s.theme)
   const toggleTheme = useTheme((s) => s.toggle)
+  const woodBrightness = useTheme((s) => s.woodBrightness)
+  const setWoodBrightness = useTheme((s) => s.setWoodBrightness)
 
   return (
     <header className="toolbar">
@@ -34,6 +36,24 @@ export function Toolbar() {
       </div>
 
       <PresetBar />
+
+      <label
+        className="wood-control"
+        title={`Wood brightness — ${theme === 'dark' ? 'lightens the dark wood texture' : 'lightens/darkens the wood'}`}
+      >
+        <span className="wood-icon" aria-hidden>
+          🪵
+        </span>
+        <input
+          type="range"
+          aria-label="Wood brightness"
+          min={WOOD_BRIGHTNESS_MIN}
+          max={WOOD_BRIGHTNESS_MAX}
+          step={0.05}
+          value={woodBrightness}
+          onChange={(e) => setWoodBrightness(parseFloat(e.target.value))}
+        />
+      </label>
 
       <button
         className="theme-toggle"

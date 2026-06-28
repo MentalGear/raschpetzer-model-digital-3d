@@ -1,13 +1,20 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import * as THREE from 'three'
 import { Edges } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Segment as SegmentT } from '../state/types'
 import { useStore } from '../state/store'
+import { useTheme } from '../ui/theme'
 
 const WOOD_COLOR = '#7a4a24'
 const DIVIDER_COLOR = '#946134' // lighter so structural panels read as distinct
 const GLASS_COLOR = '#bcdcea'
 const GLASS_EDGE = '#eaf6ff'
+
+/** Scale a hex colour's brightness, clamped to a displayable range. */
+function scaleColor(hex: string, factor: number): string {
+  return '#' + new THREE.Color(hex).multiplyScalar(factor).getHexString()
+}
 
 interface SegmentProps {
   segment: SegmentT
@@ -23,7 +30,11 @@ export function Segment({ segment }: SegmentProps) {
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected?.kind === 'segment' && s.selected.id === segment.id)
   const select = useStore((s) => s.select)
+  const woodBrightness = useTheme((s) => s.woodBrightness)
   const [hovered, setHovered] = useState(false)
+
+  const woodColor = useMemo(() => scaleColor(WOOD_COLOR, woodBrightness), [woodBrightness])
+  const dividerColor = useMemo(() => scaleColor(DIVIDER_COLOR, woodBrightness), [woodBrightness])
 
   const designable = mode === 'design'
 
@@ -50,7 +61,7 @@ export function Segment({ segment }: SegmentProps) {
   const emissive = selected ? '#caa15a' : hovered ? '#caa15a' : '#000000'
   const emissiveIntensity = selected ? 0.35 : hovered ? 0.18 : 0
 
-  const wood = (color = WOOD_COLOR) => (
+  const wood = (color = woodColor) => (
     <meshStandardMaterial
       color={color}
       emissive={emissive}
@@ -94,7 +105,7 @@ export function Segment({ segment }: SegmentProps) {
         return (
           <mesh key={dv.id} position={[xLocal, h / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[t, Math.max(0.001, h - 2 * t), innerD]} />
-            {wood(DIVIDER_COLOR)}
+            {wood(dividerColor)}
             <Edges threshold={15} color="#caa46a" />
           </mesh>
         )

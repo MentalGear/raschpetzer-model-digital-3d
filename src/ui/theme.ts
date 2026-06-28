@@ -3,26 +3,47 @@ import { create } from 'zustand'
 export type Theme = 'light' | 'dark'
 
 const KEY = 'vitrine:theme'
+const WOOD_KEY = 'vitrine:woodBrightness'
+
+const has = typeof localStorage !== 'undefined'
 
 function initialTheme(): Theme {
-  const saved = (typeof localStorage !== 'undefined' && localStorage.getItem(KEY)) as Theme | null
+  const saved = (has && localStorage.getItem(KEY)) as Theme | null
   if (saved === 'light' || saved === 'dark') return saved
   const prefersDark =
     typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
   return prefersDark ? 'dark' : 'light'
 }
 
+function initialWood(): number {
+  const raw = has ? localStorage.getItem(WOOD_KEY) : null
+  const n = raw ? parseFloat(raw) : NaN
+  return Number.isFinite(n) ? n : 1
+}
+
+export const WOOD_BRIGHTNESS_MIN = 0.4
+export const WOOD_BRIGHTNESS_MAX = 1.6
+
 interface ThemeState {
   theme: Theme
+  /** Multiplier applied to the wood material colour (0.4 = dark, 1.6 = bright). */
+  woodBrightness: number
   toggle: () => void
+  setWoodBrightness: (v: number) => void
 }
 
 export const useTheme = create<ThemeState>((set, get) => ({
   theme: initialTheme(),
+  woodBrightness: initialWood(),
   toggle: () => {
     const next: Theme = get().theme === 'dark' ? 'light' : 'dark'
-    localStorage.setItem(KEY, next)
+    if (has) localStorage.setItem(KEY, next)
     set({ theme: next })
+  },
+  setWoodBrightness: (v) => {
+    const clamped = Math.min(WOOD_BRIGHTNESS_MAX, Math.max(WOOD_BRIGHTNESS_MIN, v))
+    if (has) localStorage.setItem(WOOD_KEY, String(clamped))
+    set({ woodBrightness: clamped })
   },
 }))
 

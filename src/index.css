@@ -205,6 +205,13 @@ input[type='range']::-moz-range-thumb {
   font-size: 15px; line-height: 1; padding: 6px 9px;
 }
 
+.wood-control {
+  display: inline-flex; align-items: center; gap: 7px; padding: 0 10px; min-height: 36px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2);
+}
+.wood-control .wood-icon { font-size: 14px; }
+.wood-control input[type='range'] { width: 84px; }
+
 /* buttons */
 /* comfortable targets inside the side panel */
 .panel input[type='number'], .panel button, .panel select { min-height: 32px; }
