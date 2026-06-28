@@ -15,7 +15,7 @@ interface SegmentProps {
  * coordinates where the footprint centre sits at the origin and the floor is y=0.
  */
 export function Segment({ segment }: SegmentProps) {
-  const { position, width: w, height: h, depth: d, frameThickness: t, shelves } = segment
+  const { position, width: w, height: h, depth: d, frameThickness: t, shelves, dividers } = segment
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected?.kind === 'segment' && s.selected.id === segment.id)
   const select = useStore((s) => s.select)
@@ -57,6 +57,17 @@ export function Segment({ segment }: SegmentProps) {
         <boxGeometry args={[w, h, t]} />
         <meshStandardMaterial color={WOOD_COLOR} emissive={emissive} roughness={0.8} />
       </mesh>
+
+      {/* vertical separation panels (wood) */}
+      {dividers.map((dv) => {
+        const xLocal = -(w / 2) + t + dv.x
+        return (
+          <mesh key={dv.id} position={[xLocal, h / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[t, Math.max(0.001, h - 2 * t), innerD]} />
+            <meshStandardMaterial color={WOOD_COLOR} emissive={emissive} roughness={0.8} />
+          </mesh>
+        )
+      })}
 
       {/* glass shelves */}
       {shelves.map((sh) => (

@@ -33,6 +33,13 @@ export interface Shelf {
   thickness: number
 }
 
+/** A vertical wooden separation panel splitting a segment into compartments. */
+export interface Divider {
+  id: string
+  /** Distance of the panel centre from the left interior wall (metres). */
+  x: number
+}
+
 /** A single wooden cabinet bay. Frame panels are wood; shelves are glass. */
 export interface Segment {
   id: string
@@ -44,6 +51,8 @@ export interface Segment {
   /** Wooden panel thickness (metres). */
   frameThickness: number
   shelves: Shelf[]
+  /** Vertical separation panels, ordered left-to-right. */
+  dividers: Divider[]
 }
 
 export interface Layout {

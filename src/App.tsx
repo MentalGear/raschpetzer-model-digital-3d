@@ -11,12 +11,19 @@ import { snapGrid } from './state/units'
 import { Toolbar } from './ui/Toolbar'
 import { SidePanel } from './ui/SidePanel'
 import { ITEM_DND_MIME, DEFAULT_DROP_HALF_HEIGHT } from './ui/dnd'
+import { canvasBg, useTheme } from './ui/theme'
 
 export default function App() {
   const threeRef = useRef<(() => RootState) | null>(null)
   const addItem = useStore((s) => s.addItem)
   const select = useStore((s) => s.select)
   const mode = useStore((s) => s.mode)
+  const theme = useTheme((s) => s.theme)
+
+  // Apply the theme to the document root so CSS variables switch.
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
 
   // Delete / Backspace removes the current selection (unless typing in a field).
   useEffect(() => {
@@ -88,7 +95,7 @@ export default function App() {
             camera={{ position: [2.6, 2.4, 3.4], fov: 50, near: 0.05, far: 100 }}
             onPointerMissed={() => select(null)}
           >
-            <color attach="background" args={['#eef1f4']} />
+            <color attach="background" args={[canvasBg[theme]]} />
             <SceneBridge getterRef={threeRef} />
             <CameraRig />
             <Showcase />

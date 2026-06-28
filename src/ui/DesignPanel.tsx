@@ -1,5 +1,5 @@
-import { findSegment, useStore } from '../state/store'
-import { mToCm, cmToM } from '../state/units'
+import { findSegment, innerWidth, useStore } from '../state/store'
+import { formatCm, mToCm, cmToM } from '../state/units'
 import { NumberField } from './NumberField'
 
 export function DesignPanel() {
@@ -13,6 +13,9 @@ export function DesignPanel() {
   const addShelf = useStore((s) => s.addShelf)
   const removeShelf = useStore((s) => s.removeShelf)
   const setShelfHeight = useStore((s) => s.setShelfHeight)
+  const addDivider = useStore((s) => s.addDivider)
+  const removeDivider = useStore((s) => s.removeDivider)
+  const setDividerX = useStore((s) => s.setDividerX)
 
   const seg = selected?.kind === 'segment' ? findSegment(layout, selected.id) : undefined
 
@@ -78,6 +81,63 @@ export function DesignPanel() {
           <button className="add" onClick={() => addShelf(seg.id)}>
             + Add shelf
           </button>
+
+          <h3>Separation panels</h3>
+          <p className="hint">Vertical panels split the cabinet into compartments.</p>
+          {(() => {
+            const iw = innerWidth(seg)
+            const bounds = [0, ...seg.dividers.map((d) => d.x), iw]
+            const compartments = bounds.slice(1).map((b, i) => b - bounds[i])
+            return (
+              <>
+                <div className="shelf-list">
+                  {seg.dividers.map((dv, i) => (
+                    <div key={dv.id} className="shelf-row">
+                      <span className="shelf-name">Panel {i + 1}</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={Number(mToCm(iw).toFixed(0))}
+                        step={0.5}
+                        value={Number(mToCm(dv.x).toFixed(1))}
+                        onChange={(e) => setDividerX(seg.id, dv.id, cmToM(parseFloat(e.target.value)))}
+                      />
+                      <input
+                        type="number"
+                        className="shelf-cm"
+                        min={0}
+                        max={Number(mToCm(iw).toFixed(0))}
+                        step={0.5}
+                        value={Number(mToCm(dv.x).toFixed(1))}
+                        onChange={(e) => {
+                          const cm = parseFloat(e.target.value)
+                          if (!Number.isNaN(cm)) setDividerX(seg.id, dv.id, cmToM(cm))
+                        }}
+                      />
+                      <span className="unit">cm</span>
+                      <button
+                        className="icon danger"
+                        title="Remove panel"
+                        onClick={() => removeDivider(seg.id, dv.id)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button className="add" onClick={() => addDivider(seg.id)}>
+                  + Add separation panel
+                </button>
+                <div className="compartments">
+                  {compartments.map((c, i) => (
+                    <span key={i} className="compartment-chip">
+                      C{i + 1}: {formatCm(c)}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )
+          })()}
 
           <button className="danger block" onClick={() => removeSegment(seg.id)}>
             Delete cabinet

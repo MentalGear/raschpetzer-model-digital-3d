@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
+  Divider,
   Item,
   ItemType,
   Layout,
@@ -28,6 +29,12 @@ function makeShelf(height: number): Shelf {
   return { id: uid(), height, thickness: 0.01 }
 }
 
+function makeDivider(x: number): Divider {
+  return { id: uid(), x }
+}
+
+const sortDividers = (ds: Divider[]): Divider[] => [...ds].sort((a, b) => a.x - b.x)
+
 function makeSegment(xCenter: number): Segment {
   return {
     id: uid(),
@@ -37,14 +44,27 @@ function makeSegment(xCenter: number): Segment {
     depth: 0.4,
     frameThickness: 0.03,
     shelves: [makeShelf(0.6), makeShelf(1.2)],
+    dividers: [],
   }
 }
+
+/** Interior width of a segment (between the left/right wood walls). */
+export const innerWidth = (s: Segment): number => Math.max(0.001, s.width - 2 * s.frameThickness)
 
 /** Right edge X of a segment in world space. */
 const segRight = (s: Segment): number => s.position[0] + s.width / 2
 
 function seedLayout(): Layout {
   return { version: 1, segments: [makeSegment(0)], items: [] }
+}
+
+/** Backfill fields that may be missing in older saved/persisted layouts. */
+function normalizeLayout(layout: Layout): Layout {
+  return {
+    version: layout.version ?? 1,
+    segments: (layout.segments ?? []).map((s) => ({ ...s, dividers: s.dividers ?? [] })),
+    items: layout.items ?? [],
+  }
 }
 
 export interface StoreState {
@@ -67,6 +87,11 @@ export interface StoreState {
   addShelf: (segmentId: string) => void
   removeShelf: (segmentId: string, shelfId: string) => void
   setShelfHeight: (segmentId: string, shelfId: string, height: number) => void
+
+  // --- dividers (vertical separation panels) ---
+  addDivider: (segmentId: string) => void
+  removeDivider: (segmentId: string, dividerId: string) => void
+  setDividerX: (segmentId: string, dividerId: string, x: number) => void
 
   // --- items ---
   addItem: (type: ItemType, position: Vec3, shelfId: string | null) => void
@@ -131,12 +156,14 @@ export const useStore = create<StoreState>()(
             const width = clamp(dims.width ?? s.width, 0.1, 5)
             const height = clamp(dims.height ?? s.height, 0.1, 5)
             const depth = clamp(dims.depth ?? s.depth, 0.1, 3)
+            const iw = Math.max(0.001, width - 2 * s.frameThickness)
             return {
               ...s,
               width,
               height,
               depth,
               shelves: s.shelves.map((sh) => ({ ...sh, height: clamp(sh.height, 0, height) })),
+              dividers: s.dividers.map((dv) => ({ ...dv, x: clamp(dv.x, 0, iw) })),
             }
           }),
         })),
@@ -170,6 +197,46 @@ export const useStore = create<StoreState>()(
               sh.id === shelfId ? { ...sh, height: clamp(height, 0, s.height) } : sh,
             ),
           })),
+        })),
+
+      addDivider: (segmentId) =>
+        set((state) => ({
+          layout: updateSegment(state.layout, segmentId, (s) => {
+            const iw = s.width - 2 * s.frameThickness
+            // place the new panel in the middle of the widest existing compartment
+            const bounds = [0, ...sortDividers(s.dividers).map((d) => d.x), iw]
+            let bestMid = iw / 2
+            let bestGap = -1
+            for (let i = 0; i < bounds.length - 1; i++) {
+              const gap = bounds[i + 1] - bounds[i]
+              if (gap > bestGap) {
+                bestGap = gap
+                bestMid = (bounds[i] + bounds[i + 1]) / 2
+              }
+            }
+            return { ...s, dividers: sortDividers([...s.dividers, makeDivider(bestMid)]) }
+          }),
+        })),
+
+      removeDivider: (segmentId, dividerId) =>
+        set((state) => ({
+          layout: updateSegment(state.layout, segmentId, (s) => ({
+            ...s,
+            dividers: s.dividers.filter((d) => d.id !== dividerId),
+          })),
+        })),
+
+      setDividerX: (segmentId, dividerId, x) =>
+        set((state) => ({
+          layout: updateSegment(state.layout, segmentId, (s) => {
+            const iw = s.width - 2 * s.frameThickness
+            return {
+              ...s,
+              dividers: sortDividers(
+                s.dividers.map((d) => (d.id === dividerId ? { ...d, x: clamp(x, 0, iw) } : d)),
+              ),
+            }
+          }),
         })),
 
       addItem: (type, position, shelfId) =>
@@ -242,12 +309,18 @@ export const useStore = create<StoreState>()(
           layout: { ...state.layout, items: state.layout.items.filter((it) => it.id !== id) },
         })),
 
-      loadLayout: (layout) => set({ layout, selected: null }),
+      loadLayout: (layout) => set({ layout: normalizeLayout(layout), selected: null }),
       resetLayout: () => set({ layout: seedLayout(), selected: null }),
     }),
     {
       name: 'vitrine:working',
+      version: 2,
       partialize: (state) => ({ layout: state.layout }),
+      migrate: (persisted) => {
+        const p = persisted as { layout?: Layout } | undefined
+        if (p?.layout) p.layout = normalizeLayout(p.layout)
+        return p as never
+      },
     },
   ),
 )

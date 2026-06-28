@@ -1,9 +1,12 @@
 import { useStore } from '../state/store'
 import { PresetBar } from './PresetBar'
+import { useTheme } from './theme'
 
 export function Toolbar() {
   const mode = useStore((s) => s.mode)
   const setMode = useStore((s) => s.setMode)
+  const theme = useTheme((s) => s.theme)
+  const toggleTheme = useTheme((s) => s.toggle)
 
   return (
     <header className="toolbar">
@@ -29,6 +32,15 @@ export function Toolbar() {
       </div>
 
       <PresetBar />
+
+      <button
+        className="theme-toggle"
+        onClick={toggleTheme}
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label="Toggle colour theme"
+      >
+        {theme === 'dark' ? '☀️' : '🌙'}
+      </button>
     </header>
   )
 }
