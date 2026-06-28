@@ -22,9 +22,18 @@ export function ItemPalette() {
       <p className="hint">Drag a shape onto a shelf, then select it to move, rotate or resize.</p>
       <div className="palette">
         {PRIMITIVE_TYPES.map((type) => (
-          <div key={type} className="palette-item" draggable onDragStart={(e) => onDragStart(e, type)}>
+          <div
+            key={type}
+            className="palette-item"
+            draggable
+            onDragStart={(e) => onDragStart(e, type)}
+            title={`Drag ${PRIMITIVE_LABELS[type]} onto a shelf`}
+          >
+            <span className="palette-grip" aria-hidden>
+              ⠿
+            </span>
             <span className="palette-icon">{ICON[type]}</span>
-            <span>{PRIMITIVE_LABELS[type]}</span>
+            <span className="palette-label">{PRIMITIVE_LABELS[type]}</span>
           </div>
         ))}
       </div>

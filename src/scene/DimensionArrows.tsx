@@ -35,7 +35,8 @@ function DimAxis({ axis, half, length, margin }: DimAxisProps) {
     const z = hz + margin
     a = [-hx, y, z]
     b = [hx, y, z]
-    labelPos = [0, y, z]
+    // push the W label further forward + lower so it can't merge with the D label
+    labelPos = [0, -hy - margin * 1.7, hz + margin * 1.9]
   } else if (axis === 'y') {
     const x = -hx - margin
     const z = hz + margin
@@ -47,7 +48,8 @@ function DimAxis({ axis, half, length, margin }: DimAxisProps) {
     const x = hx + margin
     a = [x, y, -hz]
     b = [x, y, hz]
-    labelPos = [x, y, 0]
+    // push the D label further to the side + higher than the W label
+    labelPos = [hx + margin * 1.9, -hy - margin * 0.6, 0]
   }
 
   // Arrowheads: two short segments at each end, in a plane.
@@ -70,7 +72,7 @@ function DimAxis({ axis, half, length, margin }: DimAxisProps) {
       {headLines.map((seg, i) => (
         <Line key={i} points={seg} color={color} lineWidth={1.5} />
       ))}
-      <Html position={labelPos} center distanceFactor={2} zIndexRange={[100, 0]}>
+      <Html position={labelPos} center occlude zIndexRange={[100, 0]} className="dim-html">
         <div className={`dim-label dim-${axis}`}>
           {AXIS_LABEL[axis]} {formatCm(length)}
         </div>

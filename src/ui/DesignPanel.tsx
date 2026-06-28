@@ -47,12 +47,14 @@ export function DesignPanel() {
           <NumberField label="Depth" value={seg.depth} onChange={(m) => resizeSegment(seg.id, { depth: m })} />
 
           <h3>Glass shelves</h3>
+          <p className="hint">Height of each shelf above the cabinet floor.</p>
           <div className="shelf-list">
             {seg.shelves.map((sh, i) => (
               <div key={sh.id} className="shelf-row">
                 <span className="shelf-name">Shelf {i + 1}</span>
                 <input
                   type="range"
+                  aria-label={`Shelf ${i + 1} height from bottom in cm`}
                   min={0}
                   max={Number(mToCm(seg.height).toFixed(0))}
                   step={0.5}
@@ -62,6 +64,7 @@ export function DesignPanel() {
                 <input
                   type="number"
                   className="shelf-cm"
+                  aria-label={`Shelf ${i + 1} height from bottom in cm`}
                   min={0}
                   max={Number(mToCm(seg.height).toFixed(0))}
                   step={0.5}
@@ -96,6 +99,7 @@ export function DesignPanel() {
                       <span className="shelf-name">Panel {i + 1}</span>
                       <input
                         type="range"
+                        aria-label={`Panel ${i + 1} position from left in cm`}
                         min={0}
                         max={Number(mToCm(iw).toFixed(0))}
                         step={0.5}
@@ -105,6 +109,7 @@ export function DesignPanel() {
                       <input
                         type="number"
                         className="shelf-cm"
+                        aria-label={`Panel ${i + 1} position from left in cm`}
                         min={0}
                         max={Number(mToCm(iw).toFixed(0))}
                         step={0.5}
@@ -139,7 +144,12 @@ export function DesignPanel() {
             )
           })()}
 
-          <button className="danger block" onClick={() => removeSegment(seg.id)}>
+          <button
+            className="danger block"
+            onClick={() => {
+              if (confirm('Delete this cabinet and everything in it?')) removeSegment(seg.id)
+            }}
+          >
             Delete cabinet
           </button>
         </div>

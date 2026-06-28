@@ -19,6 +19,7 @@ export function NumberField({ label, value, onChange, min = 1, max = 500, step =
       <div className="field-input">
         <input
           type="number"
+          aria-label={`${label} in centimetres`}
           value={Number(mToCm(value).toFixed(1))}
           min={min}
           max={max}

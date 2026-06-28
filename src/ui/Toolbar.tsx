@@ -18,6 +18,7 @@ export function Toolbar() {
           aria-selected={mode === 'design'}
           className={mode === 'design' ? 'active' : ''}
           onClick={() => setMode('design')}
+          title="Design mode (shortcut: D)"
         >
           Design shelf
         </button>
@@ -26,6 +27,7 @@ export function Toolbar() {
           aria-selected={mode === 'place'}
           className={mode === 'place' ? 'active' : ''}
           onClick={() => setMode('place')}
+          title="Placement mode (shortcut: P)"
         >
           Place items
         </button>

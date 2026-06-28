@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Canvas } from '@react-three/fiber'
 import type { RootState } from '@react-three/fiber'
@@ -18,24 +18,40 @@ export default function App() {
   const addItem = useStore((s) => s.addItem)
   const select = useStore((s) => s.select)
   const mode = useStore((s) => s.mode)
+  const selected = useStore((s) => s.selected)
   const theme = useTheme((s) => s.theme)
+  const [dropActive, setDropActive] = useState(false)
 
   // Apply the theme to the document root so CSS variables switch.
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
 
-  // Delete / Backspace removes the current selection (unless typing in a field).
+  // Cold start: auto-select the first cabinet so the panel is never an empty mystery.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return
+    const { selected: sel, layout } = useStore.getState()
+    if (!sel && layout.segments[0]) select({ kind: 'segment', id: layout.segments[0].id })
+  }, [select])
+
+  // Keyboard shortcuts: Delete removes selection; D/P switch modes (when not typing).
+  useEffect(() => {
+    const typing = () => {
       const el = document.activeElement
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA')) return
-      const { selected, removeItem, removeSegment } = useStore.getState()
-      if (!selected) return
-      e.preventDefault()
-      if (selected.kind === 'item') removeItem(selected.id)
-      else removeSegment(selected.id)
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA')
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (typing()) return
+      const { selected: sel, removeItem, removeSegment, setMode } = useStore.getState()
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!sel) return
+        e.preventDefault()
+        if (sel.kind === 'item') removeItem(sel.id)
+        else removeSegment(sel.id)
+      } else if (e.key === 'd' || e.key === 'D') {
+        setMode('design')
+      } else if (e.key === 'p' || e.key === 'P') {
+        setMode('place')
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -45,10 +61,12 @@ export default function App() {
     if (e.dataTransfer.types.includes(ITEM_DND_MIME)) {
       e.preventDefault()
       e.dataTransfer.dropEffect = 'copy'
+      if (!dropActive) setDropActive(true)
     }
   }
 
   const onDrop = (e: React.DragEvent) => {
+    setDropActive(false)
     const type = e.dataTransfer.getData(ITEM_DND_MIME) as ItemType
     if (!type || !threeRef.current) return
     e.preventDefault()
@@ -85,14 +103,29 @@ export default function App() {
     addItem(type, position, shelfId)
   }
 
+  // Contextual instruction shown over the canvas.
+  const badge =
+    mode === 'design'
+      ? selected?.kind === 'segment'
+        ? { text: 'Editing cabinet — drag handles or use the panel', cta: false }
+        : { text: 'Click a cabinet to start editing', cta: true }
+      : selected?.kind === 'item'
+        ? { text: 'Editing item — Move · Rotate · Resize in the panel', cta: false }
+        : { text: 'Drag a shape from the palette onto a shelf', cta: true }
+
   return (
     <div className="app">
       <Toolbar />
       <div className="workspace">
-        <div className="canvas-wrap" onDragOver={onDragOver} onDrop={onDrop}>
+        <div
+          className={`canvas-wrap${dropActive ? ' drop-active' : ''}`}
+          onDragOver={onDragOver}
+          onDragLeave={() => setDropActive(false)}
+          onDrop={onDrop}
+        >
           <Canvas
             shadows
-            camera={{ position: [2.6, 2.4, 3.4], fov: 50, near: 0.05, far: 100 }}
+            camera={{ position: [3.0, 2.4, 3.9], fov: 50, near: 0.05, far: 100 }}
             onPointerMissed={() => select(null)}
           >
             <color attach="background" args={[canvasBg[theme]]} />
@@ -100,7 +133,8 @@ export default function App() {
             <CameraRig />
             <Showcase />
           </Canvas>
-          <div className="mode-badge">{mode === 'design' ? 'Design mode' : 'Placement mode'}</div>
+          <div className={`mode-badge${badge.cta ? ' cta' : ''}`}>{badge.text}</div>
+          {dropActive && <div className="drop-hint">Drop onto a shelf</div>}
         </div>
         <SidePanel />
       </div>

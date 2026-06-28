@@ -64,6 +64,7 @@ export function PropertiesPanel() {
         <div className="field-input">
           <input
             type="range"
+            aria-label="Rotation about the Y axis in degrees"
             min={0}
             max={360}
             step={1}
@@ -82,7 +83,12 @@ export function PropertiesPanel() {
         onChange={(e) => setItemColor(item.id, e.target.value)}
       />
 
-      <button className="danger block" onClick={() => removeItem(item.id)}>
+      <button
+        className="danger block"
+        onClick={() => {
+          if (confirm('Delete this item?')) removeItem(item.id)
+        }}
+      >
         Delete item
       </button>
     </div>

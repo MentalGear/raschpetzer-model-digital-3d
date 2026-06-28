@@ -18,6 +18,7 @@ export function PresetBar() {
   const [name, setName] = useState('')
   const [presets, setPresets] = useState<PresetMeta[]>([])
   const [selected, setSelected] = useState('')
+  const [justSaved, setJustSaved] = useState(false)
 
   const refresh = () => setPresets(listPresets())
   useEffect(refresh, [])
@@ -36,6 +37,8 @@ export function PresetBar() {
     setName('')
     setSelected(presetName)
     refresh()
+    setJustSaved(true)
+    setTimeout(() => setJustSaved(false), 1600)
   }
 
   const onLoad = () => {
@@ -55,36 +58,59 @@ export function PresetBar() {
 
   return (
     <div className="preset-bar">
-      <input
-        className="user-input"
-        placeholder="Your name"
-        value={user}
-        onChange={(e) => setUser(e.target.value)}
-        title="Saved with each preset"
-      />
-      <input
-        className="preset-name"
-        placeholder="Preset name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && onSave()}
-      />
-      <button onClick={onSave}>Save</button>
-      <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-        <option value="">— load preset —</option>
-        {presets.map((p) => (
-          <option key={p.name} value={p.name}>
-            {p.name}
-            {p.user ? ` · ${p.user}` : ''}
-          </option>
-        ))}
-      </select>
-      <button onClick={onLoad} disabled={!selected}>
-        Load
-      </button>
-      <button onClick={onDelete} disabled={!selected} className="danger">
-        Delete
-      </button>
+      <label className="name-field" title="Saved with each preset">
+        <span className="name-icon" aria-hidden>
+          👤
+        </span>
+        <input
+          className="user-input"
+          placeholder="Your name"
+          aria-label="Your name (saved with each preset)"
+          value={user}
+          onChange={(e) => setUser(e.target.value)}
+        />
+      </label>
+
+      <span className="sep" />
+
+      <div className="preset-group">
+        <input
+          className="preset-name"
+          placeholder="Preset name"
+          aria-label="Preset name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && onSave()}
+        />
+        <button onClick={onSave} className={justSaved ? 'saved' : ''}>
+          {justSaved ? '✓ Saved' : 'Save'}
+        </button>
+      </div>
+
+      <span className="sep" />
+
+      <div className="preset-group">
+        <select
+          className="select-styled"
+          aria-label="Load a saved preset"
+          value={selected}
+          onChange={(e) => setSelected(e.target.value)}
+        >
+          <option value="">— load preset —</option>
+          {presets.map((p) => (
+            <option key={p.name} value={p.name}>
+              {p.name}
+              {p.user ? ` · ${p.user}` : ''}
+            </option>
+          ))}
+        </select>
+        <button onClick={onLoad} disabled={!selected}>
+          Load
+        </button>
+        <button onClick={onDelete} disabled={!selected} className="danger">
+          Delete
+        </button>
+      </div>
     </div>
   )
 }
