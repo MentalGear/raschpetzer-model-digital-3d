@@ -1,6 +1,6 @@
 import { Html, Line } from '@react-three/drei'
 import type { Vec3 } from '../state/types'
-import { formatCm } from '../state/units'
+import { clamp, formatCm } from '../state/units'
 
 type Axis = 'x' | 'y' | 'z'
 
@@ -94,7 +94,11 @@ interface DimensionArrowsProps {
  */
 export function DimensionArrows({ size, position, rotationY = 0 }: DimensionArrowsProps) {
   const half: Vec3 = [size[0] / 2, size[1] / 2, size[2] / 2]
-  const margin = 0.04
+  // Scale the label/arrow offset to the object: small items get a relatively
+  // larger push (floor) so their W/H/D labels don't cluster; big cabinets get a
+  // proportionally larger margin (capped) so labels still sit just outside.
+  const maxDim = Math.max(size[0], size[1], size[2])
+  const margin = clamp(maxDim * 0.16, 0.06, 0.22)
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <DimAxis axis="x" half={half} length={size[0]} margin={margin} />
