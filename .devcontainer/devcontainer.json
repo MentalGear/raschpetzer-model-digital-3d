@@ -1,0 +1,29 @@
+{
+  "name": "Vitrine Simulator (Bun + React Three Fiber)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  // Put a stable, container-wide Bun install on PATH so it survives rebuilds.
+  "containerEnv": {
+    "BUN_INSTALL": "/usr/local/bun",
+    "PATH": "/usr/local/bun/bin:${containerEnv:PATH}",
+    "PLAYWRIGHT_BROWSERS_PATH": "/opt/pw-browsers"
+  },
+  // Install Bun once when the container is created.
+  "onCreateCommand": "curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local/bun bash",
+  // Install JS deps and (best-effort) the Chromium used for browser verification.
+  "postCreateCommand": "bun install && (bunx playwright install --with-deps chromium || echo 'playwright chromium install skipped')",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite dev server",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}
