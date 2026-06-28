@@ -72,11 +72,14 @@ export interface StoreState {
   mode: Mode
   transformMode: TransformMode
   selected: Selection | null
+  /** True while a palette item is being dragged over the canvas (drop affordance). */
+  placing: boolean
 
   // --- mode / selection ---
   setMode: (mode: Mode) => void
   setTransformMode: (m: TransformMode) => void
   select: (sel: Selection | null) => void
+  setPlacing: (v: boolean) => void
 
   // --- segments ---
   addSegment: () => void
@@ -117,10 +120,27 @@ export const useStore = create<StoreState>()(
       mode: 'design',
       transformMode: 'translate',
       selected: null,
+      placing: false,
 
-      setMode: (mode) => set({ mode, selected: null }),
+      // Preserve a meaningful selection across mode switches: keep a segment
+      // selection (or auto-select the first cabinet) when entering Design; keep
+      // an item selection (else clear) when entering Place.
+      setMode: (mode) =>
+        set((s) => {
+          if (mode === 'design') {
+            const sel =
+              s.selected?.kind === 'segment'
+                ? s.selected
+                : s.layout.segments[0]
+                  ? ({ kind: 'segment', id: s.layout.segments[0].id } as Selection)
+                  : null
+            return { mode, selected: sel }
+          }
+          return { mode, selected: s.selected?.kind === 'item' ? s.selected : null }
+        }),
       setTransformMode: (transformMode) => set({ transformMode }),
       select: (selected) => set({ selected }),
+      setPlacing: (placing) => set({ placing }),
 
       addSegment: () =>
         set((state) => {

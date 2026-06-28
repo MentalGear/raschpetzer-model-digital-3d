@@ -150,7 +150,7 @@ export function DesignPanel() {
               if (confirm('Delete this cabinet and everything in it?')) removeSegment(seg.id)
             }}
           >
-            Delete cabinet
+            🗑 Delete cabinet
           </button>
         </div>
       ) : (

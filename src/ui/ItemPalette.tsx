@@ -1,5 +1,6 @@
 import type { ItemType } from '../state/types'
 import { PRIMITIVE_LABELS, PRIMITIVE_TYPES } from '../scene/primitives'
+import { findItem, useStore } from '../state/store'
 import { ITEM_DND_MIME } from './dnd'
 
 const ICON: Record<ItemType, string> = {
@@ -11,6 +12,11 @@ const ICON: Record<ItemType, string> = {
 }
 
 export function ItemPalette() {
+  // Highlight the palette shape matching the currently selected item (if any).
+  const activeType = useStore((s) =>
+    s.selected?.kind === 'item' ? findItem(s.layout, s.selected.id)?.type : undefined,
+  )
+
   const onDragStart = (e: React.DragEvent, type: ItemType) => {
     e.dataTransfer.setData(ITEM_DND_MIME, type)
     e.dataTransfer.effectAllowed = 'copy'
@@ -24,7 +30,7 @@ export function ItemPalette() {
         {PRIMITIVE_TYPES.map((type) => (
           <div
             key={type}
-            className="palette-item"
+            className={`palette-item${activeType === type ? ' active' : ''}`}
             draggable
             onDragStart={(e) => onDragStart(e, type)}
             title={`Drag ${PRIMITIVE_LABELS[type]} onto a shelf`}

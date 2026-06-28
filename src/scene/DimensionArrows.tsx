@@ -36,7 +36,7 @@ function DimAxis({ axis, half, length, margin }: DimAxisProps) {
     a = [-hx, y, z]
     b = [hx, y, z]
     // push the W label further forward + lower so it can't merge with the D label
-    labelPos = [0, -hy - margin * 1.7, hz + margin * 1.9]
+    labelPos = [0, -hy - margin * 1.9, hz + margin * 2.2]
   } else if (axis === 'y') {
     const x = -hx - margin
     const z = hz + margin
@@ -49,7 +49,7 @@ function DimAxis({ axis, half, length, margin }: DimAxisProps) {
     a = [x, y, -hz]
     b = [x, y, hz]
     // push the D label further to the side + higher than the W label
-    labelPos = [hx + margin * 1.9, -hy - margin * 0.6, 0]
+    labelPos = [hx + margin * 2.2, -hy - margin * 0.5, 0]
   }
 
   // Arrowheads: two short segments at each end, in a plane.
@@ -98,7 +98,7 @@ export function DimensionArrows({ size, position, rotationY = 0 }: DimensionArro
   // larger push (floor) so their W/H/D labels don't cluster; big cabinets get a
   // proportionally larger margin (capped) so labels still sit just outside.
   const maxDim = Math.max(size[0], size[1], size[2])
-  const margin = clamp(maxDim * 0.16, 0.06, 0.22)
+  const margin = clamp(maxDim * 0.18, 0.085, 0.24)
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <DimAxis axis="x" half={half} length={size[0]} margin={margin} />

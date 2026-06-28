@@ -30,6 +30,7 @@ export function Segment({ segment }: SegmentProps) {
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected?.kind === 'segment' && s.selected.id === segment.id)
   const select = useStore((s) => s.select)
+  const placing = useStore((s) => s.placing)
   const woodBrightness = useTheme((s) => s.woodBrightness)
   const [hovered, setHovered] = useState(false)
 
@@ -121,13 +122,15 @@ export function Segment({ segment }: SegmentProps) {
         >
           <boxGeometry args={[innerW, sh.thickness, innerD]} />
           <meshStandardMaterial
-            color={GLASS_COLOR}
+            color={placing ? '#7fc4ff' : GLASS_COLOR}
             transparent
-            opacity={0.45}
+            opacity={placing ? 0.7 : 0.45}
             roughness={0.04}
             metalness={0.1}
+            emissive={placing ? '#2b7fff' : '#000000'}
+            emissiveIntensity={placing ? 0.5 : 0}
           />
-          <Edges threshold={15} color={GLASS_EDGE} />
+          <Edges threshold={15} color={placing ? '#2b7fff' : GLASS_EDGE} />
         </mesh>
       ))}
     </group>

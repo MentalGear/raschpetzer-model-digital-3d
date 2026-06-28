@@ -37,13 +37,11 @@ export function Toolbar() {
 
       <PresetBar />
 
-      <label
-        className="wood-control"
-        title={`Wood brightness — ${theme === 'dark' ? 'lightens the dark wood texture' : 'lightens/darkens the wood'}`}
-      >
+      <label className="wood-control" title="Wood brightness — lightens or darkens the cabinet wood">
         <span className="wood-icon" aria-hidden>
           🪵
         </span>
+        <span className="wood-text">Wood</span>
         <input
           type="range"
           aria-label="Wood brightness"
@@ -53,6 +51,7 @@ export function Toolbar() {
           value={woodBrightness}
           onChange={(e) => setWoodBrightness(parseFloat(e.target.value))}
         />
+        <output className="wood-value">{Math.round(woodBrightness * 100)}%</output>
       </label>
 
       <button

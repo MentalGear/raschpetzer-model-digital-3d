@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { Canvas } from '@react-three/fiber'
 import type { RootState } from '@react-three/fiber'
@@ -19,8 +19,9 @@ export default function App() {
   const select = useStore((s) => s.select)
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected)
+  const dropActive = useStore((s) => s.placing)
+  const setDropActive = useStore((s) => s.setPlacing)
   const theme = useTheme((s) => s.theme)
-  const [dropActive, setDropActive] = useState(false)
 
   // Apply the theme to the document root so CSS variables switch.
   useEffect(() => {

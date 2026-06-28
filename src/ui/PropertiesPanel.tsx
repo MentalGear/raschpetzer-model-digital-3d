@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { findItem, useStore } from '../state/store'
 import type { TransformMode, Vec3 } from '../state/types'
 import { PRIMITIVE_LABELS } from '../scene/primitives'
@@ -8,6 +9,57 @@ const MODES: { key: TransformMode; label: string }[] = [
   { key: 'rotate', label: 'Rotate' },
   { key: 'scale', label: 'Resize' },
 ]
+
+const COLOR_PRESETS = ['#ffffff', '#222222', '#c9a14a', '#b5532a', '#2e6f4e', '#3a6ea5']
+
+/** Colour swatch + editable hex field + preset chips. Local draft keeps the hex
+ *  input editable while only committing valid #rrggbb values. */
+function ColorControl({ color, onChange }: { color: string; onChange: (c: string) => void }) {
+  const [draft, setDraft] = useState(color)
+  return (
+    <>
+      <div className="color-row">
+        <input
+          type="color"
+          className="color-input"
+          aria-label="Item colour swatch"
+          value={color}
+          onChange={(e) => {
+            setDraft(e.target.value)
+            onChange(e.target.value)
+          }}
+        />
+        <input
+          type="text"
+          className="color-hex"
+          aria-label="Item colour hex value"
+          spellCheck={false}
+          value={draft}
+          onChange={(e) => {
+            const v = e.target.value
+            setDraft(v)
+            if (/^#[0-9a-fA-F]{6}$/.test(v)) onChange(v)
+          }}
+        />
+      </div>
+      <div className="color-presets">
+        {COLOR_PRESETS.map((c) => (
+          <button
+            key={c}
+            className={`color-chip${color.toLowerCase() === c ? ' active' : ''}`}
+            style={{ background: c }}
+            title={c}
+            aria-label={`Set colour ${c}`}
+            onClick={() => {
+              setDraft(c)
+              onChange(c)
+            }}
+          />
+        ))}
+      </div>
+    </>
+  )
+}
 
 export function PropertiesPanel() {
   const selected = useStore((s) => s.selected)
@@ -75,13 +127,8 @@ export function PropertiesPanel() {
         </div>
       </label>
 
-      <h3>Colour</h3>
-      <input
-        type="color"
-        className="color-input"
-        value={item.color}
-        onChange={(e) => setItemColor(item.id, e.target.value)}
-      />
+      <h3>Item colour</h3>
+      <ColorControl key={item.id} color={item.color} onChange={(c) => setItemColor(item.id, c)} />
 
       <button
         className="danger block"
@@ -89,7 +136,7 @@ export function PropertiesPanel() {
           if (confirm('Delete this item?')) removeItem(item.id)
         }}
       >
-        Delete item
+        🗑 Delete item
       </button>
     </div>
   )

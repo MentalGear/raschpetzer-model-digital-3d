@@ -34,11 +34,12 @@ export function PresetBar() {
       return
     }
     savePreset(presetName, user, layout)
-    setName('')
+    // Keep the name populated so the user can re-save a new version without retyping.
+    setName(presetName)
     setSelected(presetName)
     refresh()
     setJustSaved(true)
-    setTimeout(() => setJustSaved(false), 1600)
+    setTimeout(() => setJustSaved(false), 2200)
   }
 
   const onLoad = () => {
@@ -58,10 +59,8 @@ export function PresetBar() {
 
   return (
     <div className="preset-bar">
-      <label className="name-field" title="Saved with each preset">
-        <span className="name-icon" aria-hidden>
-          👤
-        </span>
+      <label className="name-field" title="Author name, stored with each preset">
+        <span className="name-label">By</span>
         <input
           className="user-input"
           placeholder="Your name"
