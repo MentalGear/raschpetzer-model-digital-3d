@@ -1,6 +1,8 @@
 import { ContactShadows, Grid, OrbitControls, OrthographicCamera } from '@react-three/drei'
 import { useTheme } from '../ui/theme'
 import { useStore } from '../state/store'
+import { useViewStore } from '../state/viewStore'
+import type { Vec3 } from '../state/types'
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
@@ -41,6 +43,30 @@ export function CameraRig() {
       }
     }
   }, [frontView, camera, controls])
+
+  const pendingLoad = useViewStore((s) => s.pendingLoad)
+  const clearLoad = useViewStore((s) => s.clearLoad)
+  const pendingCaptureName = useViewStore((s) => s.pendingCaptureName)
+  const clearCapture = useViewStore((s) => s.clearCapture)
+  const saveView = useViewStore((s) => s.saveView)
+
+  useEffect(() => {
+    if (!pendingLoad) return
+    camera.position.set(...pendingLoad.position)
+    if (controls && 'target' in controls) {
+      ;(controls as any).target.set(...pendingLoad.target)
+      ;(controls as any).update()
+    }
+    clearLoad()
+  }, [pendingLoad, camera, controls, clearLoad])
+
+  useEffect(() => {
+    if (!pendingCaptureName) return
+    const pos: Vec3 = [camera.position.x, camera.position.y, camera.position.z]
+    const tgt = (controls as any)?.target ?? new THREE.Vector3(0, 1, 0)
+    saveView(pendingCaptureName, pos, [tgt.x, tgt.y, tgt.z])
+    clearCapture()
+  }, [pendingCaptureName, camera, controls, saveView, clearCapture])
 
   return (
     <>

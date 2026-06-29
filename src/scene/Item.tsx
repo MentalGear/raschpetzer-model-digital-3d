@@ -40,9 +40,10 @@ export function Item({ item }: ItemProps) {
     ctx.lineWidth = 4
     ctx.strokeRect(8, 8, W - 16, H - 16)
     const text = item.labelText ?? ''
+    const fontSize = item.labelFontSize ?? 30
     if (text) {
       ctx.fillStyle = '#1a1005'
-      ctx.font = 'bold 30px sans-serif'
+      ctx.font = `bold ${fontSize}px sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       const words = text.split(' ')
@@ -55,7 +56,7 @@ export function Item({ item }: ItemProps) {
         else cur = test
       }
       if (cur) lines.push(cur)
-      const lineH = 38
+      const lineH = fontSize * 1.25
       const startY = H / 2 - ((lines.length - 1) * lineH) / 2
       for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], W / 2, startY + i * lineH)
     } else {
@@ -68,7 +69,7 @@ export function Item({ item }: ItemProps) {
     const tex = new THREE.CanvasTexture(canvas)
     tex.colorSpace = THREE.SRGBColorSpace
     return tex
-  }, [item.type, item.labelText])
+  }, [item.type, item.labelText, item.labelFontSize])
 
   const isItemSelected = useStore((s) => s.selected?.kind === 'item' && s.selected.id === item.id)
   const isInSelectedGroup = useStore((s) =>

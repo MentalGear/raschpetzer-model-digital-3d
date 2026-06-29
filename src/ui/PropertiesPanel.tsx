@@ -111,6 +111,9 @@ export function PropertiesPanel() {
   const groupItems = useStore((s) => s.groupItems)
   const removeItemFromGroup = useStore((s) => s.removeItemFromGroup)
   const clearMultiSelect = useStore((s) => s.clearMultiSelect)
+  const duplicateItem = useStore((s) => s.duplicateItem)
+  const alignItems = useStore((s) => s.alignItems)
+  const patchItem = useStore((s) => s.patchItem)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
 
   if (multiSelected.length >= 2) {
@@ -118,14 +121,37 @@ export function PropertiesPanel() {
       multiSelected.map(id => layout.items.find(it => it.id === id)?.groupId).filter(Boolean)
     )]
     const label = involvedGroups.length > 0 ? `Group / Merge (${multiSelected.length} items)` : `Group ${multiSelected.length} items`
+    type AlignAxis = 'left' | 'centerX' | 'right' | 'front' | 'centerZ' | 'back' | 'bottom' | 'middleY' | 'top'
+    const align = (axis: AlignAxis) => alignItems(multiSelected, axis)
     return (
       <div className="panel">
         <h2>Multi-select</h2>
-        <p className="hint">{multiSelected.length} items selected. Group them so they always move together.</p>
+        <p className="hint">{multiSelected.length} items selected.</p>
         <button className="add" style={{ marginTop: 8 }} onClick={() => groupItems(multiSelected)}>
           🔗 {label}
         </button>
-        <button className="mini" style={{ marginTop: 8, display: 'block' }} onClick={clearMultiSelect}>
+
+        <h3>Align</h3>
+        <p className="hint muted" style={{ marginBottom: 4 }}>Horizontal (X axis)</p>
+        <div className="btn-row">
+          <button className="mini" title="Align left edges" onClick={() => align('left')}>⊢ Left</button>
+          <button className="mini" title="Centre on X axis" onClick={() => align('centerX')}>⊣⊢ Mid</button>
+          <button className="mini" title="Align right edges" onClick={() => align('right')}>⊣ Right</button>
+        </div>
+        <p className="hint muted" style={{ marginBottom: 4 }}>Depth (Z axis)</p>
+        <div className="btn-row">
+          <button className="mini" title="Align front edges" onClick={() => align('front')}>Front</button>
+          <button className="mini" title="Centre on Z axis" onClick={() => align('centerZ')}>Mid</button>
+          <button className="mini" title="Align back edges" onClick={() => align('back')}>Back</button>
+        </div>
+        <p className="hint muted" style={{ marginBottom: 4 }}>Vertical (Y axis)</p>
+        <div className="btn-row">
+          <button className="mini" title="Align bottom edges" onClick={() => align('bottom')}>Bottom</button>
+          <button className="mini" title="Centre vertically" onClick={() => align('middleY')}>Mid</button>
+          <button className="mini" title="Align top edges" onClick={() => align('top')}>Top</button>
+        </div>
+
+        <button className="mini" style={{ marginTop: 12, display: 'block' }} onClick={clearMultiSelect}>
           Cancel
         </button>
       </div>
@@ -284,6 +310,21 @@ export function PropertiesPanel() {
             value={item.labelText ?? ''}
             onChange={(e) => setItemLabel(item.id, e.target.value)}
           />
+          <label className="field" style={{ marginTop: 8 }}>
+            <span>Font size</span>
+            <div className="field-input">
+              <input
+                type="range"
+                aria-label="Label font size"
+                min={10}
+                max={72}
+                step={1}
+                value={item.labelFontSize ?? 30}
+                onChange={(e) => patchItem(item.id, { labelFontSize: parseInt(e.target.value) })}
+              />
+              <span className="unit">{item.labelFontSize ?? 30}px</span>
+            </div>
+          </label>
         </>
       )}
 
@@ -294,9 +335,14 @@ export function PropertiesPanel() {
         </>
       )}
 
-      <button className="block" style={{ marginBottom: 8, color: 'var(--text)' }} onClick={() => openItemEditor(item.id)}>
-        ✏️ Edit in detail…
-      </button>
+      <div className="btn-row" style={{ marginBottom: 8 }}>
+        <button className="block" style={{ color: 'var(--text)', flex: 1 }} onClick={() => openItemEditor(item.id)}>
+          ✏️ Edit in detail…
+        </button>
+        <button className="mini" title="Duplicate item (Ctrl+D)" onClick={() => duplicateItem(item.id)}>
+          ⧉ Duplicate
+        </button>
+      </div>
 
       {pendingDelete === item.id ? (
         <div className="inline-confirm">

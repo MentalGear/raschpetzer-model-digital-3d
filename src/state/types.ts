@@ -26,6 +26,8 @@ export interface Item {
   imageId?: string
   /** For 'label' items: text content of the museum card. */
   labelText?: string
+  /** For 'label' items: font size in canvas pixels (default 30). */
+  labelFontSize?: number
   /** Shelf the item currently rests on, if any. */
   shelfId: string | null
   /**

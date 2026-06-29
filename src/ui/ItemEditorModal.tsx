@@ -140,9 +140,10 @@ function ItemPreviewScene({ item }: { item: Item }) {
     ctx.lineWidth = 4
     ctx.strokeRect(8, 8, W - 16, H - 16)
     const text = item.labelText ?? ''
+    const fontSize = item.labelFontSize ?? 30
     if (text) {
       ctx.fillStyle = '#1a1005'
-      ctx.font = 'bold 30px sans-serif'
+      ctx.font = `bold ${fontSize}px sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       const words = text.split(' ')
@@ -155,7 +156,7 @@ function ItemPreviewScene({ item }: { item: Item }) {
         else cur = test
       }
       if (cur) lines.push(cur)
-      const lineH = 38
+      const lineH = fontSize * 1.25
       const startY = H / 2 - ((lines.length - 1) * lineH) / 2
       for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], W / 2, startY + i * lineH)
     } else {
@@ -169,7 +170,7 @@ function ItemPreviewScene({ item }: { item: Item }) {
     tex.colorSpace = THREE.SRGBColorSpace
     setLabelTexture(tex)
     return () => { tex.dispose() }
-  }, [item.type, item.labelText])
+  }, [item.type, item.labelText, item.labelFontSize])
 
   const imageDataUrl = useImageStore((s) =>
     item.type === 'image' ? (s.images[item.imageId ?? ''] ?? null) : null,
@@ -294,6 +295,7 @@ export function ItemEditorModal() {
       rotationX: draft.rotationX,
       color: draft.color,
       labelText: draft.labelText,
+      labelFontSize: draft.labelFontSize,
     })
     closeItemEditor()
   }
@@ -471,6 +473,26 @@ export function ItemEditorModal() {
                   }
                   onBlur={(e) => commit({ labelText: e.target.value })}
                 />
+                <label className="field" style={{ marginTop: 8 }}>
+                  <span>Font size</span>
+                  <div className="field-input">
+                    <input
+                      type="range"
+                      aria-label="Label font size"
+                      min={10}
+                      max={72}
+                      step={1}
+                      value={draft.labelFontSize ?? 30}
+                      onChange={(e) =>
+                        dispatch({ type: 'PREVIEW', item: { ...draft, labelFontSize: parseInt(e.target.value) } })
+                      }
+                      onMouseUp={(e) =>
+                        commit({ labelFontSize: parseInt((e.target as HTMLInputElement).value) })
+                      }
+                    />
+                    <span className="unit">{draft.labelFontSize ?? 30}px</span>
+                  </div>
+                </label>
               </>
             )}
 

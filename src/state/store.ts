@@ -207,7 +207,9 @@ export interface StoreState {
   clearMultiSelect: () => void
   openItemEditor: (id: string) => void
   closeItemEditor: () => void
-  patchItem: (id: string, patch: Partial<Pick<Item, 'size' | 'rotationY' | 'rotationX' | 'color' | 'labelText'>>) => void
+  patchItem: (id: string, patch: Partial<Pick<Item, 'size' | 'rotationY' | 'rotationX' | 'color' | 'labelText' | 'labelFontSize'>>) => void
+  duplicateItem: (id: string) => void
+  alignItems: (ids: string[], axis: 'left' | 'centerX' | 'right' | 'front' | 'centerZ' | 'back' | 'bottom' | 'middleY' | 'top') => void
 
   // --- segments ---
   addSegment: () => void
@@ -619,6 +621,7 @@ export const useStore = create<StoreState>()(
             color: type === 'image' || type === 'label' ? '#ffffff' : defaultItemColor,
             imageId,
             labelText: type === 'label' ? '' : undefined,
+            labelFontSize: type === 'label' ? 30 : undefined,
             shelfId,
             attached: shelfId !== null,
           }
@@ -754,6 +757,68 @@ export const useStore = create<StoreState>()(
                 .map((it) =>
                   dissolveGroup && it.groupId === groupId ? { ...it, groupId: undefined } : it,
                 ),
+            },
+          }
+        }),
+
+      duplicateItem: (id) =>
+        set((state) => {
+          const item = state.layout.items.find((it) => it.id === id)
+          if (!item) return state
+          const newItem: Item = {
+            ...item,
+            id: uid(),
+            groupId: undefined,
+            position: [item.position[0] + 0.05, item.position[1], item.position[2] + 0.05] as Vec3,
+          }
+          return {
+            layout: { ...state.layout, items: [...state.layout.items, newItem] },
+            selected: { kind: 'item', id: newItem.id },
+          }
+        }),
+
+      alignItems: (ids, axis) =>
+        set((state) => {
+          const sel = ids
+            .map((id) => state.layout.items.find((it) => it.id === id))
+            .filter((it): it is Item => !!it)
+          if (sel.length < 2) return state
+
+          const newPos = (it: Item): Vec3 => {
+            const [x, y, z] = it.position
+            const [w, h, d] = it.size
+            switch (axis) {
+              case 'left': return [Math.min(...sel.map((i) => i.position[0] - i.size[0] / 2)) + w / 2, y, z]
+              case 'centerX': {
+                const lo = Math.min(...sel.map((i) => i.position[0] - i.size[0] / 2))
+                const hi = Math.max(...sel.map((i) => i.position[0] + i.size[0] / 2))
+                return [(lo + hi) / 2, y, z]
+              }
+              case 'right': return [Math.max(...sel.map((i) => i.position[0] + i.size[0] / 2)) - w / 2, y, z]
+              case 'front': return [x, y, Math.min(...sel.map((i) => i.position[2] - i.size[2] / 2)) + d / 2]
+              case 'centerZ': {
+                const lo = Math.min(...sel.map((i) => i.position[2] - i.size[2] / 2))
+                const hi = Math.max(...sel.map((i) => i.position[2] + i.size[2] / 2))
+                return [x, y, (lo + hi) / 2]
+              }
+              case 'back': return [x, y, Math.max(...sel.map((i) => i.position[2] + i.size[2] / 2)) - d / 2]
+              case 'bottom': return [x, Math.min(...sel.map((i) => i.position[1] - i.size[1] / 2)) + h / 2, z]
+              case 'middleY': {
+                const lo = Math.min(...sel.map((i) => i.position[1] - i.size[1] / 2))
+                const hi = Math.max(...sel.map((i) => i.position[1] + i.size[1] / 2))
+                return [x, (lo + hi) / 2, z]
+              }
+              case 'top': return [x, Math.max(...sel.map((i) => i.position[1] + i.size[1] / 2)) - h / 2, z]
+            }
+          }
+
+          const idSet = new Set(ids)
+          return {
+            layout: {
+              ...state.layout,
+              items: state.layout.items.map((it) =>
+                idSet.has(it.id) ? { ...it, position: newPos(it) } : it,
+              ),
             },
           }
         }),

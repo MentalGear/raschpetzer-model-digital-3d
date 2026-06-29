@@ -55,6 +55,12 @@ export default function App() {
         redo()
         return
       }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault()
+        const { selected: sel } = useStore.getState()
+        if (sel?.kind === 'item') useStore.getState().duplicateItem(sel.id)
+        return
+      }
       if (typing()) return
       const { selected: sel, removeItem, removeSegment, setMode, layout, moveItem } = useStore.getState()
       if (e.key === 'Delete' || e.key === 'Backspace') {

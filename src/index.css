@@ -234,6 +234,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .grid-option:hover { background: var(--border); }
 .grid-option.active { background: var(--accent); color: #fff; }
 
+/* Named views popover */
+.views-popover { min-width: 220px; padding: 8px; }
+.views-save-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.views-name-input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--canvas-bg, var(--surface));
+  color: var(--text);
+  font-size: 13px;
+}
+.views-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-top: 1px solid var(--border);
+}
+.views-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Group feature */
 .group-member-tag { background: rgba(100, 80, 220, 0.15); color: var(--accent); border-color: var(--accent); }
 .multi-select-tag { background: rgba(0, 150, 80, 0.15); color: #22aa66; border-color: #22aa66; }

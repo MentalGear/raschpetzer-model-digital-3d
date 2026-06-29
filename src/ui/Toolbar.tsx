@@ -3,6 +3,7 @@ import { useStore } from '../state/store'
 import type { Mode } from '../state/types'
 import { GRID_PRESETS, useTheme } from './theme'
 import { undo, redo, useHistoryStore } from '../state/historyStore'
+import { useViewStore } from '../state/viewStore'
 
 const MODES: { key: Mode; label: string; title: string; kbd?: string }[] = [
   { key: 'design', label: 'Design shelf', title: 'Design mode (shortcut: D)', kbd: 'D' },
@@ -27,6 +28,12 @@ export function Toolbar() {
   const canRedo = useHistoryStore((s) => s.canRedo)
   const [gridOpen, setGridOpen] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
+  const views = useViewStore((s) => s.views)
+  const requestCapture = useViewStore((s) => s.requestCapture)
+  const requestLoad = useViewStore((s) => s.requestLoad)
+  const deleteView = useViewStore((s) => s.deleteView)
+  const [viewsOpen, setViewsOpen] = useState(false)
+  const [newViewName, setNewViewName] = useState('')
 
   return (
     <header className="toolbar">
@@ -94,6 +101,58 @@ export function Toolbar() {
         >
           🖼 Front
         </button>
+        <div className="grid-picker">
+          <button
+            className={`people-toggle${viewsOpen ? ' active' : ''}`}
+            onClick={() => setViewsOpen((o) => !o)}
+            title="Named camera views"
+            aria-haspopup="true"
+            aria-expanded={viewsOpen}
+          >
+            🎥 Views
+          </button>
+          {viewsOpen && (
+            <div className="grid-popover views-popover" role="dialog" aria-label="Named camera views">
+              <div className="views-save-row">
+                <input
+                  className="views-name-input"
+                  type="text"
+                  placeholder="View name…"
+                  value={newViewName}
+                  onChange={(e) => setNewViewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newViewName.trim()) {
+                      requestCapture(newViewName.trim())
+                      setNewViewName('')
+                    }
+                  }}
+                />
+                <button
+                  className="mini"
+                  disabled={!newViewName.trim()}
+                  onClick={() => {
+                    if (newViewName.trim()) {
+                      requestCapture(newViewName.trim())
+                      setNewViewName('')
+                    }
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+              {views.length === 0 && (
+                <p className="hint muted" style={{ padding: '4px 0', margin: 0 }}>No views saved yet.</p>
+              )}
+              {views.map((v) => (
+                <div key={v.name} className="views-row">
+                  <span className="views-name">{v.name}</span>
+                  <button className="mini" onClick={() => { requestLoad(v.name); setViewsOpen(false) }}>Go</button>
+                  <button className="mini danger" onClick={() => deleteView(v.name)} title="Delete view" aria-label={`Delete view ${v.name}`}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="grid-picker" ref={gridRef}>
           <button
             className={`people-toggle${gridOpen ? ' active' : ''}`}
