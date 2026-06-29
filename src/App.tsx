@@ -10,7 +10,7 @@ import type { ItemType, Vec3 } from './state/types'
 import { snapGrid } from './state/units'
 import { Toolbar } from './ui/Toolbar'
 import { SidePanel } from './ui/SidePanel'
-import { ITEM_DND_MIME, DEFAULT_DROP_HALF_HEIGHT } from './ui/dnd'
+import { ITEM_DND_MIME, DEFAULT_DROP_HALF_HEIGHT, decodeDnd } from './ui/dnd'
 import { canvasBg, useTheme } from './ui/theme'
 
 export default function App() {
@@ -42,7 +42,7 @@ export default function App() {
     }
     const onKey = (e: KeyboardEvent) => {
       if (typing()) return
-      const { selected: sel, removeItem, removeSegment, setMode } = useStore.getState()
+      const { selected: sel, removeItem, removeSegment, setMode, layout, moveItem } = useStore.getState()
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (!sel) return
         e.preventDefault()
@@ -52,6 +52,21 @@ export default function App() {
         setMode('design')
       } else if (e.key === 'p' || e.key === 'P') {
         setMode('place')
+      } else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'].includes(e.key)) {
+        if (sel?.kind !== 'item') return
+        const it = layout.items.find((i) => i.id === sel.id)
+        if (!it) return
+        e.preventDefault()
+        const step = e.shiftKey ? 0.1 : 0.01
+        const [x, y, z] = it.position
+        switch (e.key) {
+          case 'ArrowLeft':  moveItem(sel.id, [x - step, y, z] as Vec3); break
+          case 'ArrowRight': moveItem(sel.id, [x + step, y, z] as Vec3); break
+          case 'ArrowUp':    moveItem(sel.id, [x, y, z - step] as Vec3); break
+          case 'ArrowDown':  moveItem(sel.id, [x, y, z + step] as Vec3); break
+          case 'PageUp':     moveItem(sel.id, [x, y + step, z] as Vec3); break
+          case 'PageDown':   moveItem(sel.id, [x, y - step, z] as Vec3); break
+        }
       }
     }
     window.addEventListener('keydown', onKey)
@@ -68,9 +83,11 @@ export default function App() {
 
   const onDrop = (e: React.DragEvent) => {
     setDropActive(false)
-    const type = e.dataTransfer.getData(ITEM_DND_MIME) as ItemType
-    if (!type || !threeRef.current) return
+    const raw = e.dataTransfer.getData(ITEM_DND_MIME)
+    if (!raw || !threeRef.current) return
     e.preventDefault()
+    const { type: itemType, imageId } = decodeDnd(raw)
+    const type = itemType as ItemType
     const { camera, scene, raycaster, gl } = threeRef.current()
     const rect = gl.domElement.getBoundingClientRect()
     const ndc = new THREE.Vector2(
@@ -101,7 +118,7 @@ export default function App() {
       position = [snapGrid(target.x), halfH, snapGrid(target.z)]
       shelfId = null
     }
-    addItem(type, position, shelfId)
+    addItem(type, position, shelfId, imageId)
   }
 
   // Contextual instruction shown over the canvas.

@@ -176,8 +176,12 @@ export function PropertiesPanel() {
         </button>
       </div>
 
-      <h3>Item colour</h3>
-      <ColorControl key={item.id} color={item.color} onChange={(c) => setItemColor(item.id, c)} />
+      {item.type !== 'image' && (
+        <>
+          <h3>Item colour</h3>
+          <ColorControl key={item.id} color={item.color} onChange={(c) => setItemColor(item.id, c)} />
+        </>
+      )}
 
       <button
         className="danger block"

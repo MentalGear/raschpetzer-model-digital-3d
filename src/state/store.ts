@@ -215,7 +215,7 @@ export interface StoreState {
   setPanelMaterial: (segmentId: string, material: Divider['material']) => void
 
   // --- items ---
-  addItem: (type: ItemType, position: Vec3, shelfId: string | null) => void
+  addItem: (type: ItemType, position: Vec3, shelfId: string | null, imageId?: string) => void
   moveItem: (id: string, position: Vec3, shelfId?: string | null) => void
   resizeItem: (id: string, size: Vec3) => void
   rotateItem: (id: string, rotationY: number) => void
@@ -458,7 +458,7 @@ export const useStore = create<StoreState>()(
           })),
         })),
 
-      addItem: (type, position, shelfId) =>
+      addItem: (type, position, shelfId, imageId) =>
         set((state) => {
           const item: Item = {
             id: uid(),
@@ -466,8 +466,9 @@ export const useStore = create<StoreState>()(
             position,
             rotationY: 0,
             rotationX: 0,
-            size: [...DEFAULT_ITEM_SIZE] as Vec3,
-            color: defaultItemColor,
+            size: type === 'image' ? ([0.3, 0.2, 0.01] as Vec3) : ([...DEFAULT_ITEM_SIZE] as Vec3),
+            color: type === 'image' ? '#ffffff' : defaultItemColor,
+            imageId,
             shelfId,
             attached: shelfId !== null,
           }

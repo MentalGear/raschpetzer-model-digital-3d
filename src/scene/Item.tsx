@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { Html, TransformControls } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Item as ItemT, Vec3 } from '../state/types'
 import { seatedY, shelfSurfaces, useStore } from '../state/store'
+import { useImageStore } from '../state/imageStore'
 import { snapGrid } from '../state/units'
 import { PrimitiveGeometry } from './primitives'
 import { DimensionArrows } from './DimensionArrows'
@@ -24,6 +25,15 @@ export function Item({ item }: ItemProps) {
   const [obj, setObj] = useState<THREE.Group | null>(null)
   const mode = useStore((s) => s.mode)
   const transformMode = useStore((s) => s.transformMode)
+
+  // Image texture — only populated for 'image' type items whose data URL is in the session store.
+  const imageDataUrl = useImageStore((s) => (item.type === 'image' ? (s.images[item.imageId ?? ''] ?? null) : null))
+  const imageTexture = useMemo(() => {
+    if (!imageDataUrl) return null
+    const tex = new THREE.TextureLoader().load(imageDataUrl)
+    tex.colorSpace = THREE.SRGBColorSpace
+    return tex
+  }, [imageDataUrl])
   const selected = useStore((s) => s.selected?.kind === 'item' && s.selected.id === item.id)
   const select = useStore((s) => s.select)
   const moveItem = useStore((s) => s.moveItem)
@@ -85,7 +95,16 @@ export function Item({ item }: ItemProps) {
     >
       <mesh castShadow receiveShadow>
         <PrimitiveGeometry type={item.type} />
-        <meshStandardMaterial color={item.color} roughness={0.5} metalness={0.1} />
+        {item.type === 'image' ? (
+          <meshStandardMaterial
+            map={imageTexture ?? undefined}
+            color={imageTexture ? '#ffffff' : '#888888'}
+            roughness={0.3}
+            metalness={0}
+          />
+        ) : (
+          <meshStandardMaterial color={item.color} roughness={0.5} metalness={0.1} />
+        )}
       </mesh>
     </group>
   )

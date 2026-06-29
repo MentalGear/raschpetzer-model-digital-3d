@@ -8,6 +8,7 @@ export const PRIMITIVE_LABELS: Record<ItemType, string> = {
   sphere: 'Sphere',
   cone: 'Cone',
   torus: 'Torus',
+  image: 'Image',
 }
 
 /**
@@ -28,5 +29,8 @@ export function PrimitiveGeometry({ type }: { type: ItemType }) {
     case 'torus':
       // outer radius 0.5 so the XZ bounding box is ~1 unit
       return <torusGeometry args={[0.35, 0.15, 24, 48]} />
+    case 'image':
+      // flat panel — texture applied by Item.tsx; depth is driven by item.size[2]
+      return <boxGeometry args={[1, 1, 1]} />
   }
 }
