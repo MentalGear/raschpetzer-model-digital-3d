@@ -3,7 +3,7 @@
 
 export type Vec3 = [number, number, number]
 
-export type ItemType = 'box' | 'cylinder' | 'sphere' | 'cone' | 'torus' | 'image'
+export type ItemType = 'box' | 'cylinder' | 'sphere' | 'cone' | 'torus' | 'image' | 'label'
 
 export type Mode = 'design' | 'place' | 'presets'
 
@@ -22,8 +22,10 @@ export interface Item {
   /** Bounding dimensions in metres [width, height, depth] = the object's scale. */
   size: Vec3
   color: string
-  /** For 'image' items: key into the session image store (data URL). */
+  /** For 'image' items: key into the IndexedDB image store. */
   imageId?: string
+  /** For 'label' items: text content of the museum card. */
+  labelText?: string
   /** Shelf the item currently rests on, if any. */
   shelfId: string | null
   /**

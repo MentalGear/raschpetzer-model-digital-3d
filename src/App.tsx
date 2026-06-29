@@ -6,6 +6,7 @@ import { CameraRig } from './scene/CameraRig'
 import { Showcase } from './scene/Showcase'
 import { SceneBridge } from './scene/SceneBridge'
 import { shelfSurfaces, useStore } from './state/store'
+import { undo, redo } from './state/historyStore'
 import type { ItemType, Vec3 } from './state/types'
 import { snapGrid } from './state/units'
 import { Toolbar } from './ui/Toolbar'
@@ -41,6 +42,16 @@ export default function App() {
       return !!el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA')
     }
     const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        undo()
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        redo()
+        return
+      }
       if (typing()) return
       const { selected: sel, removeItem, removeSegment, setMode, layout, moveItem } = useStore.getState()
       if (e.key === 'Delete' || e.key === 'Backspace') {

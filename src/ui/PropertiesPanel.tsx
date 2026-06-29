@@ -72,6 +72,7 @@ export function PropertiesPanel() {
   const tiltItem = useStore((s) => s.tiltItem)
   const setItemAttached = useStore((s) => s.setItemAttached)
   const setItemColor = useStore((s) => s.setItemColor)
+  const setItemLabel = useStore((s) => s.setItemLabel)
   const removeItem = useStore((s) => s.removeItem)
 
   if (selected?.kind === 'shelf') {
@@ -149,9 +150,35 @@ export function PropertiesPanel() {
             value={(deg + 360) % 360}
             onChange={(e) => rotateItem(item.id, (parseFloat(e.target.value) * Math.PI) / 180)}
           />
-          <span className="unit">{(deg + 360) % 360}°</span>
+          <input
+            type="number"
+            className="deg-input"
+            aria-label="Spin angle in degrees"
+            min={0}
+            max={360}
+            step={1}
+            value={(deg + 360) % 360}
+            onChange={(e) => rotateItem(item.id, (parseFloat(e.target.value) * Math.PI) / 180)}
+          />
+          <span className="unit">°</span>
         </div>
       </label>
+      <div className="btn-row">
+        <button
+          className="mini"
+          onClick={() => rotateItem(item.id, item.rotationY - Math.PI / 2)}
+          title="Rotate 90° counterclockwise"
+        >
+          ↺ 90°
+        </button>
+        <button
+          className="mini"
+          onClick={() => rotateItem(item.id, item.rotationY + Math.PI / 2)}
+          title="Rotate 90° clockwise"
+        >
+          ↻ 90°
+        </button>
+      </div>
       <label className="field">
         <span>Tilt (X)</span>
         <div className="field-input">
@@ -176,7 +203,20 @@ export function PropertiesPanel() {
         </button>
       </div>
 
-      {item.type !== 'image' && (
+      {item.type === 'label' && (
+        <>
+          <h3>Label text</h3>
+          <textarea
+            className="label-textarea"
+            rows={3}
+            placeholder="Museum card text…"
+            value={item.labelText ?? ''}
+            onChange={(e) => setItemLabel(item.id, e.target.value)}
+          />
+        </>
+      )}
+
+      {item.type !== 'image' && item.type !== 'label' && (
         <>
           <h3>Item colour</h3>
           <ColorControl key={item.id} color={item.color} onChange={(c) => setItemColor(item.id, c)} />

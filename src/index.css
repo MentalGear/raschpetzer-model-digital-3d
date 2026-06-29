@@ -404,3 +404,17 @@ button.block:hover { text-decoration: underline; }
 .dim-x { background: #e5484d; }
 .dim-y { background: #30a46c; }
 .dim-z { background: #0091ff; }
+
+/* degree number input in rotation section */
+.deg-input {
+  width: 56px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--input-bg); color: var(--text); font-size: 12px; text-align: right;
+}
+
+/* label text textarea */
+.label-textarea {
+  width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--input-bg); color: var(--text); font-size: 13px; line-height: 1.5;
+  resize: vertical; min-height: 72px; font-family: inherit;
+}
+.label-textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }

@@ -1,6 +1,6 @@
 import type { ItemType } from '../state/types'
 
-export const PRIMITIVE_TYPES: ItemType[] = ['box', 'cylinder', 'sphere', 'cone', 'torus']
+export const PRIMITIVE_TYPES: ItemType[] = ['box', 'cylinder', 'sphere', 'cone', 'torus', 'label']
 
 export const PRIMITIVE_LABELS: Record<ItemType, string> = {
   box: 'Box',
@@ -9,6 +9,7 @@ export const PRIMITIVE_LABELS: Record<ItemType, string> = {
   cone: 'Cone',
   torus: 'Torus',
   image: 'Image',
+  label: 'Label',
 }
 
 /**
@@ -30,6 +31,7 @@ export function PrimitiveGeometry({ type }: { type: ItemType }) {
       // outer radius 0.5 so the XZ bounding box is ~1 unit
       return <torusGeometry args={[0.35, 0.15, 24, 48]} />
     case 'image':
+    case 'label':
       // flat panel — texture applied by Item.tsx; depth is driven by item.size[2]
       return <boxGeometry args={[1, 1, 1]} />
   }

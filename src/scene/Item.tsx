@@ -34,6 +34,50 @@ export function Item({ item }: ItemProps) {
     tex.colorSpace = THREE.SRGBColorSpace
     return tex
   }, [imageDataUrl])
+
+  // Label canvas texture — redrawn whenever the text changes.
+  const labelTexture = useMemo(() => {
+    if (item.type !== 'label') return null
+    const W = 512, H = 256
+    const canvas = document.createElement('canvas')
+    canvas.width = W
+    canvas.height = H
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#f8f5ec'
+    ctx.fillRect(0, 0, W, H)
+    ctx.strokeStyle = '#c8b99a'
+    ctx.lineWidth = 4
+    ctx.strokeRect(8, 8, W - 16, H - 16)
+    const text = item.labelText ?? ''
+    if (text) {
+      ctx.fillStyle = '#1a1005'
+      ctx.font = 'bold 30px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const words = text.split(' ')
+      const lines: string[] = []
+      let cur = ''
+      const maxW = W - 56
+      for (const word of words) {
+        const test = cur ? `${cur} ${word}` : word
+        if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = word }
+        else cur = test
+      }
+      if (cur) lines.push(cur)
+      const lineH = 38
+      const startY = H / 2 - ((lines.length - 1) * lineH) / 2
+      for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], W / 2, startY + i * lineH)
+    } else {
+      ctx.fillStyle = '#b0a080'
+      ctx.font = 'italic 26px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('Label text…', W / 2, H / 2)
+    }
+    const tex = new THREE.CanvasTexture(canvas)
+    tex.colorSpace = THREE.SRGBColorSpace
+    return tex
+  }, [item.type, item.labelText])
   const selected = useStore((s) => s.selected?.kind === 'item' && s.selected.id === item.id)
   const select = useStore((s) => s.select)
   const moveItem = useStore((s) => s.moveItem)
@@ -100,6 +144,13 @@ export function Item({ item }: ItemProps) {
             map={imageTexture ?? undefined}
             color={imageTexture ? '#ffffff' : '#888888'}
             roughness={0.3}
+            metalness={0}
+          />
+        ) : item.type === 'label' ? (
+          <meshStandardMaterial
+            map={labelTexture ?? undefined}
+            color="#ffffff"
+            roughness={0.4}
             metalness={0}
           />
         ) : (

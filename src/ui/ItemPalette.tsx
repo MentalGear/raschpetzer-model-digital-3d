@@ -11,6 +11,7 @@ const ICON: Record<string, string> = {
   sphere: '●',
   cone: '▲',
   torus: '◯',
+  label: 'Aa',
 }
 
 export function ItemPalette() {

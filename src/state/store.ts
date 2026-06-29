@@ -222,6 +222,7 @@ export interface StoreState {
   tiltItem: (id: string, rotationX: number) => void
   setItemAttached: (id: string, attached: boolean) => void
   setItemColor: (id: string, color: string) => void
+  setItemLabel: (id: string, text: string) => void
   removeItem: (id: string) => void
 
   // --- glass appearance (global) ---
@@ -466,9 +467,15 @@ export const useStore = create<StoreState>()(
             position,
             rotationY: 0,
             rotationX: 0,
-            size: type === 'image' ? ([0.3, 0.2, 0.01] as Vec3) : ([...DEFAULT_ITEM_SIZE] as Vec3),
-            color: type === 'image' ? '#ffffff' : defaultItemColor,
+            size:
+              type === 'image'
+                ? ([0.3, 0.2, 0.01] as Vec3)
+                : type === 'label'
+                  ? ([0.2, 0.1, 0.005] as Vec3)
+                  : ([...DEFAULT_ITEM_SIZE] as Vec3),
+            color: type === 'image' || type === 'label' ? '#ffffff' : defaultItemColor,
             imageId,
+            labelText: type === 'label' ? '' : undefined,
             shelfId,
             attached: shelfId !== null,
           }
@@ -567,6 +574,14 @@ export const useStore = create<StoreState>()(
           layout: {
             ...state.layout,
             items: state.layout.items.map((it) => (it.id === id ? { ...it, color } : it)),
+          },
+        })),
+
+      setItemLabel: (id, text) =>
+        set((state) => ({
+          layout: {
+            ...state.layout,
+            items: state.layout.items.map((it) => (it.id === id ? { ...it, labelText: text } : it)),
           },
         })),
 
