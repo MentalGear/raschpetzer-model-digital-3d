@@ -25,12 +25,14 @@ const defaultItemColor = '#c9a14a'
 
 const DEFAULT_ITEM_SIZE: Vec3 = [0.2, 0.2, 0.2]
 
-function makeShelf(height: number, movable = true): Shelf {
-  return { id: uid(), height, thickness: 0.01, movable }
+const DEFAULT_PANEL_THICKNESS = 0.03
+
+function makeShelf(height: number, movable = true, compartment = 0): Shelf {
+  return { id: uid(), height, thickness: 0.01, movable, compartment }
 }
 
-function makeDivider(x: number): Divider {
-  return { id: uid(), x }
+function makeDivider(x: number, thickness = DEFAULT_PANEL_THICKNESS): Divider {
+  return { id: uid(), x, thickness }
 }
 
 const sortDividers = (ds: Divider[]): Divider[] => [...ds].sort((a, b) => a.x - b.x)
@@ -50,6 +52,36 @@ function makeSegment(xCenter: number): Segment {
 
 /** Interior width of a segment (between the left/right wood walls). */
 export const innerWidth = (s: Segment): number => Math.max(0.001, s.width - 2 * s.frameThickness)
+
+export interface Compartment {
+  index: number
+  /** from-left-wall coordinates (metres) */
+  loFx: number
+  hiFx: number
+  centerFx: number
+  width: number
+}
+
+/** The compartments a segment's separation panels divide it into, left → right. */
+export function compartments(seg: Segment): Compartment[] {
+  const iw = innerWidth(seg)
+  const sorted = [...seg.dividers].sort((a, b) => a.x - b.x)
+  const out: Compartment[] = []
+  const push = (lo: number, hi: number) => {
+    const width = Math.max(0.001, hi - lo)
+    out.push({ index: out.length, loFx: lo, hiFx: hi, centerFx: (lo + hi) / 2, width })
+  }
+  let start = 0
+  for (const d of sorted) {
+    push(start, Math.max(start, d.x - d.thickness / 2))
+    start = d.x + d.thickness / 2
+  }
+  push(start, iw)
+  return out
+}
+
+/** Local X (segment space) of a from-left-wall coordinate. */
+const localX = (seg: Segment, fx: number): number => -(seg.width / 2) + seg.frameThickness + fx
 
 /** Right edge X of a segment in world space. */
 const segRight = (s: Segment): number => s.position[0] + s.width / 2
@@ -88,27 +120,28 @@ function cabinetByInner(
 }
 
 /**
- * Default: two cabinets side by side, sized by the sketch's inner dimensions
- * (interpreted in mm → a realistic ~1.9 m-tall vitrine): inner widths 82 cm and
- * 178.6 cm, inner height 191.5 cm.
- *  - Cabinet 1: two shelves placed low.
- *  - Cabinet 2: three shelves, the highest at 1 m (fixed); the two lower ones movable.
+ * Default: ONE combined cabinet split by a vertical separation panel into two
+ * sections (sketch inner dims interpreted in mm → a realistic ~1.9 m vitrine):
+ *  - Left section: inner 82 cm, two shelves placed low.
+ *  - Right section: inner 178.6 cm, three shelves — highest at 1 m (fixed),
+ *    the two lower ones movable.
+ *  - Separation panel: 3 cm thick, between the two sections.
  */
 function seedLayout(): Layout {
-  const t = 0.03
-  const w1 = 0.82 + 2 * t
-  const w2 = 1.786 + 2 * t
-  const gap = 0.04
-  const total = w1 + gap + w2
-  const x1 = -total / 2 + w1 / 2
-  const x2 = x1 + w1 / 2 + gap + w2 / 2
-  const cab1 = cabinetByInner(x1, 0.82, 1.915, [makeShelf(0.3), makeShelf(0.6)])
-  const cab2 = cabinetByInner(x2, 1.786, 1.915, [
-    makeShelf(0.35, true),
-    makeShelf(0.65, true),
-    makeShelf(1.0, false),
+  const panel = DEFAULT_PANEL_THICKNESS
+  const left = 0.82
+  const right = 1.786
+  const innerW = left + panel + right
+  const dividerX = left + panel / 2 // panel centre, so left section inner = 82 cm
+  const cabinet = cabinetByInner(0, innerW, 1.915, [
+    makeShelf(0.3, true, 0),
+    makeShelf(0.6, true, 0),
+    makeShelf(0.35, true, 1),
+    makeShelf(0.65, true, 1),
+    makeShelf(1.0, false, 1),
   ])
-  return { version: 1, segments: [cab1, cab2], items: [], woodBrightness: 1 }
+  cabinet.dividers = [makeDivider(dividerX, panel)]
+  return { version: 1, segments: [cabinet], items: [], woodBrightness: 1 }
 }
 
 /** Backfill fields that may be missing in older saved/persisted layouts. */
@@ -117,8 +150,15 @@ function normalizeLayout(layout: Layout): Layout {
     version: layout.version ?? 1,
     segments: (layout.segments ?? []).map((s) => ({
       ...s,
-      dividers: s.dividers ?? [],
-      shelves: (s.shelves ?? []).map((sh) => ({ ...sh, movable: sh.movable ?? true })),
+      dividers: (s.dividers ?? []).map((dv) => ({
+        ...dv,
+        thickness: dv.thickness ?? s.frameThickness ?? DEFAULT_PANEL_THICKNESS,
+      })),
+      shelves: (s.shelves ?? []).map((sh) => ({
+        ...sh,
+        movable: sh.movable ?? true,
+        compartment: sh.compartment ?? 0,
+      })),
     })),
     items: (layout.items ?? []).map((it) => ({
       ...it,
@@ -155,7 +195,7 @@ export interface StoreState {
   setFrameThickness: (id: string, t: number) => void
 
   // --- shelves ---
-  addShelf: (segmentId: string) => void
+  addShelf: (segmentId: string, compartment?: number) => void
   removeShelf: (segmentId: string, shelfId: string) => void
   setShelfHeight: (segmentId: string, shelfId: string, height: number) => void
   setShelfMovable: (segmentId: string, shelfId: string, movable: boolean) => void
@@ -164,6 +204,7 @@ export interface StoreState {
   addDivider: (segmentId: string) => void
   removeDivider: (segmentId: string, dividerId: string) => void
   setDividerX: (segmentId: string, dividerId: string, x: number) => void
+  setPanelThickness: (segmentId: string, thickness: number) => void
 
   // --- items ---
   addItem: (type: ItemType, position: Vec3, shelfId: string | null) => void
@@ -283,11 +324,11 @@ export const useStore = create<StoreState>()(
           }),
         })),
 
-      addShelf: (segmentId) =>
+      addShelf: (segmentId, compartment = 0) =>
         set((state) => ({
           layout: updateSegment(state.layout, segmentId, (s) => ({
             ...s,
-            shelves: [...s.shelves, makeShelf(clamp(s.height / 2, 0, s.height))],
+            shelves: [...s.shelves, makeShelf(clamp(s.height / 2, 0, s.height), true, compartment)],
           })),
         })),
 
@@ -358,7 +399,8 @@ export const useStore = create<StoreState>()(
                 bestMid = (bounds[i] + bounds[i + 1]) / 2
               }
             }
-            return { ...s, dividers: sortDividers([...s.dividers, makeDivider(bestMid)]) }
+            const thickness = s.dividers[0]?.thickness ?? DEFAULT_PANEL_THICKNESS
+            return { ...s, dividers: sortDividers([...s.dividers, makeDivider(bestMid, thickness)]) }
           }),
         })),
 
@@ -380,6 +422,15 @@ export const useStore = create<StoreState>()(
                 s.dividers.map((d) => (d.id === dividerId ? { ...d, x: clamp(x, 0, iw) } : d)),
               ),
             }
+          }),
+        })),
+
+      setPanelThickness: (segmentId, thickness) =>
+        set((state) => ({
+          layout: updateSegment(state.layout, segmentId, (s) => {
+            const iw = innerWidth(s)
+            const tk = clamp(thickness, 0.005, Math.max(0.005, iw / 2))
+            return { ...s, dividers: s.dividers.map((d) => ({ ...d, thickness: tk })) }
           }),
         })),
 
@@ -559,17 +610,25 @@ export interface ShelfSurface {
   shelfId: string
   /** World Y of the shelf's top surface. */
   topY: number
+  /** World X extent of the shelf (its compartment), used to keep moves in-section. */
+  xMin: number
+  xMax: number
 }
 
 /** All shelf top surfaces across the layout, used for drop / move snapping. */
 export function shelfSurfaces(layout: Layout): ShelfSurface[] {
   const out: ShelfSurface[] = []
   for (const seg of layout.segments) {
+    const comps = compartments(seg)
     for (const sh of seg.shelves) {
+      const comp = comps[Math.min(sh.compartment ?? 0, comps.length - 1)]
+      const worldX = seg.position[0] + localX(seg, comp.centerFx)
       out.push({
         segmentId: seg.id,
         shelfId: sh.id,
         topY: seg.position[1] + sh.height + sh.thickness / 2,
+        xMin: worldX - comp.width / 2,
+        xMax: worldX + comp.width / 2,
       })
     }
   }

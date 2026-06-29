@@ -234,6 +234,11 @@ input[type='range']::-moz-range-thumb {
 .add { color: var(--accent); }
 
 /* shelves */
+.compartment-group { margin-bottom: 12px; }
+.compartment-head {
+  font-size: 11px; font-weight: 700; color: var(--accent); margin: 8px 0 5px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
 .shelf-list { display: flex; flex-direction: column; gap: 6px; }
 .shelf-row { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .shelf-name { width: 56px; color: var(--muted); }

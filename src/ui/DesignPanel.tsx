@@ -1,4 +1,4 @@
-import { findSegment, innerWidth, useStore } from '../state/store'
+import { compartments as getCompartments, findSegment, innerWidth, useStore } from '../state/store'
 import { formatCm, mToCm, cmToM } from '../state/units'
 import { WOOD_BRIGHTNESS_MAX, WOOD_BRIGHTNESS_MIN } from './theme'
 import { NumberField } from './NumberField'
@@ -19,6 +19,7 @@ export function DesignPanel() {
   const addDivider = useStore((s) => s.addDivider)
   const removeDivider = useStore((s) => s.removeDivider)
   const setDividerX = useStore((s) => s.setDividerX)
+  const setPanelThickness = useStore((s) => s.setPanelThickness)
   const setSyncedWoodBrightness = useStore((s) => s.setSyncedWoodBrightness)
   const setSegmentWoodBrightness = useStore((s) => s.setSegmentWoodBrightness)
   const setSegmentWoodLinked = useStore((s) => s.setSegmentWoodLinked)
@@ -115,58 +116,77 @@ export function DesignPanel() {
 
           <h3>Glass shelves</h3>
           <p className="hint">Height of each shelf above the cabinet floor.</p>
-          <div className="shelf-list">
-            {seg.shelves.map((sh, i) => (
-              <div key={sh.id} className="shelf-row">
-                <span className="shelf-name">Shelf {i + 1}</span>
-                <input
-                  type="range"
-                  aria-label={`Shelf ${i + 1} height from bottom in cm`}
-                  min={0}
-                  max={Number(mToCm(seg.height).toFixed(0))}
-                  step={0.5}
-                  value={Number(mToCm(sh.height).toFixed(1))}
-                  onChange={(e) => setShelfHeight(seg.id, sh.id, cmToM(parseFloat(e.target.value)))}
-                />
-                <input
-                  type="number"
-                  className="shelf-cm"
-                  aria-label={`Shelf ${i + 1} height from bottom in cm`}
-                  min={0}
-                  max={Number(mToCm(seg.height).toFixed(0))}
-                  step={0.5}
-                  value={Number(mToCm(sh.height).toFixed(1))}
-                  onChange={(e) => {
-                    const cm = parseFloat(e.target.value)
-                    if (!Number.isNaN(cm)) setShelfHeight(seg.id, sh.id, cmToM(cm))
-                  }}
-                />
-                <span className="unit">cm</span>
-                <button
-                  className={`icon toggle${sh.movable ? ' on' : ''}`}
-                  title={sh.movable ? 'Movable in placement mode (click to lock)' : 'Locked (click to allow moving in placement mode)'}
-                  aria-pressed={sh.movable}
-                  onClick={() => setShelfMovable(seg.id, sh.id, !sh.movable)}
-                >
-                  {sh.movable ? '🔓↕' : '🔒'}
-                </button>
-                <button className="icon danger" title="Remove shelf" onClick={() => removeShelf(seg.id, sh.id)}>
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
+          {(() => {
+            const comps = getCompartments(seg)
+            const multi = comps.length > 1
+            const maxCm = Number(mToCm(seg.height).toFixed(0))
+            return comps.map((comp) => {
+              const compShelves = seg.shelves.filter((sh) => (sh.compartment ?? 0) === comp.index)
+              return (
+                <div key={comp.index} className="compartment-group">
+                  {multi && (
+                    <div className="compartment-head">
+                      Section {comp.index + 1} · {formatCm(comp.width)}
+                    </div>
+                  )}
+                  <div className="shelf-list">
+                    {compShelves.map((sh, n) => {
+                      const label = multi ? `Section ${comp.index + 1} shelf ${n + 1}` : `Shelf ${n + 1}`
+                      return (
+                        <div key={sh.id} className="shelf-row">
+                          <span className="shelf-name">Shelf {n + 1}</span>
+                          <input
+                            type="range"
+                            aria-label={`${label} height in cm`}
+                            min={0}
+                            max={maxCm}
+                            step={0.5}
+                            value={Number(mToCm(sh.height).toFixed(1))}
+                            onChange={(e) => setShelfHeight(seg.id, sh.id, cmToM(parseFloat(e.target.value)))}
+                          />
+                          <input
+                            type="number"
+                            className="shelf-cm"
+                            aria-label={`${label} height in cm`}
+                            min={0}
+                            max={maxCm}
+                            step={0.5}
+                            value={Number(mToCm(sh.height).toFixed(1))}
+                            onChange={(e) => {
+                              const cm = parseFloat(e.target.value)
+                              if (!Number.isNaN(cm)) setShelfHeight(seg.id, sh.id, cmToM(cm))
+                            }}
+                          />
+                          <span className="unit">cm</span>
+                          <button
+                            className={`icon toggle${sh.movable ? ' on' : ''}`}
+                            title={sh.movable ? 'Movable in placement mode (click to lock)' : 'Locked (click to allow moving in placement mode)'}
+                            aria-pressed={sh.movable}
+                            onClick={() => setShelfMovable(seg.id, sh.id, !sh.movable)}
+                          >
+                            {sh.movable ? '🔓↕' : '🔒'}
+                          </button>
+                          <button className="icon danger" title="Remove shelf" onClick={() => removeShelf(seg.id, sh.id)}>
+                            ✕
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <button className="add" onClick={() => addShelf(seg.id, comp.index)}>
+                    + Add shelf{multi ? ` to section ${comp.index + 1}` : ''}
+                  </button>
+                </div>
+              )
+            })
+          })()}
           <p className="hint muted">🔓↕ = movable along Y in placement mode.</p>
-          <button className="add" onClick={() => addShelf(seg.id)}>
-            + Add shelf
-          </button>
 
           <h3>Separation panels</h3>
           <p className="hint">Vertical panels split the cabinet into compartments.</p>
           {(() => {
             const iw = innerWidth(seg)
-            const bounds = [0, ...seg.dividers.map((d) => d.x), iw]
-            const compartments = bounds.slice(1).map((b, i) => b - bounds[i])
+            const compartments = getCompartments(seg).map((c) => c.width)
             return (
               <>
                 <div className="shelf-list">
@@ -209,6 +229,15 @@ export function DesignPanel() {
                 <button className="add" onClick={() => addDivider(seg.id)}>
                   + Add separation panel
                 </button>
+                {seg.dividers.length > 0 && (
+                  <NumberField
+                    label="Panel thickness"
+                    value={seg.dividers[0].thickness}
+                    min={0.5}
+                    max={20}
+                    onChange={(m) => setPanelThickness(seg.id, m)}
+                  />
+                )}
                 <div className="compartments">
                   {compartments.map((c, i) => (
                     <span key={i} className="compartment-chip">

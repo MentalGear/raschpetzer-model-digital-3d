@@ -45,13 +45,18 @@ export function Item({ item }: ItemProps) {
     } else if (transformMode === 'rotate') {
       rotateItem(item.id, obj.rotation.y)
     } else if (item.attached) {
-      // attached: snap to the nearest shelf surface (X/Z free, Y seated)
+      // attached: snap to the nearest shelf surface within the same compartment
+      // (X/Z free, Y seated). Prefer shelves whose X-extent contains the item.
       const surfaces = shelfSurfaces(useStore.getState().layout)
       let pos: Vec3 = [snapGrid(obj.position.x), obj.position.y, snapGrid(obj.position.z)]
       let shelfId = item.shelfId
-      if (surfaces.length) {
+      const inSection = surfaces.filter(
+        (s) => obj.position.x >= s.xMin && obj.position.x <= s.xMax,
+      )
+      const pool = inSection.length ? inSection : surfaces
+      if (pool.length) {
         const seatFor = (topY: number) => seatedY(item.size, item.rotationX, topY)
-        const nearest = surfaces.reduce((best, s) =>
+        const nearest = pool.reduce((best, s) =>
           Math.abs(seatFor(s.topY) - obj.position.y) < Math.abs(seatFor(best.topY) - obj.position.y)
             ? s
             : best,

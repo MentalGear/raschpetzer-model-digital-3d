@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { Edges } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Segment as SegmentT, Shelf } from '../state/types'
-import { useStore } from '../state/store'
+import { compartments, useStore } from '../state/store'
 
 const WOOD_COLOR = '#7a4a24'
 const DIVIDER_COLOR = '#946134' // lighter so structural panels read as distinct
@@ -56,7 +56,7 @@ export function Segment({ segment }: SegmentProps) {
     document.body.style.cursor = ''
   }
 
-  const innerW = Math.max(0.001, w - 2 * t)
+  const comps = compartments(segment)
   const innerD = Math.max(0.001, d - 2 * t)
   // Selection = warm glow; hover (design mode) = subtle lift.
   const emissive = selected ? '#caa15a' : hovered ? '#caa15a' : '#000000'
@@ -105,17 +105,29 @@ export function Segment({ segment }: SegmentProps) {
         const xLocal = -(w / 2) + t + dv.x
         return (
           <mesh key={dv.id} position={[xLocal, h / 2, 0]} castShadow receiveShadow>
-            <boxGeometry args={[t, Math.max(0.001, h - 2 * t), innerD]} />
+            <boxGeometry args={[dv.thickness, Math.max(0.001, h - 2 * t), innerD]} />
             {wood(dividerColor)}
             <Edges threshold={15} color="#caa46a" />
           </mesh>
         )
       })}
 
-      {/* glass shelves */}
-      {shelves.map((sh) => (
-        <ShelfMesh key={sh.id} segmentId={segment.id} shelf={sh} innerW={innerW} innerD={innerD} placing={placing} />
-      ))}
+      {/* glass shelves, each spanning its compartment */}
+      {shelves.map((sh) => {
+        const comp = comps[Math.min(sh.compartment ?? 0, comps.length - 1)]
+        const centerX = -(w / 2) + t + comp.centerFx
+        return (
+          <ShelfMesh
+            key={sh.id}
+            segmentId={segment.id}
+            shelf={sh}
+            width={comp.width}
+            centerX={centerX}
+            innerD={innerD}
+            placing={placing}
+          />
+        )
+      })}
     </group>
   )
 }
@@ -123,7 +135,10 @@ export function Segment({ segment }: SegmentProps) {
 interface ShelfMeshProps {
   segmentId: string
   shelf: Shelf
-  innerW: number
+  /** width of the shelf's compartment (metres) */
+  width: number
+  /** local X of the compartment centre (metres) */
+  centerX: number
   innerD: number
   placing: boolean
 }
@@ -131,7 +146,7 @@ interface ShelfMeshProps {
 /** A glass shelf. Selectable in placement mode (its vertical move gizmo lives in
  *  Showcase so it isn't double-offset by the segment group). Highlights blue when
  *  selected or while an item is being dragged (valid drop target). */
-function ShelfMesh({ segmentId, shelf, innerW, innerD, placing }: ShelfMeshProps) {
+function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing }: ShelfMeshProps) {
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected?.kind === 'shelf' && s.selected.id === shelf.id)
   const select = useStore((s) => s.select)
@@ -147,12 +162,12 @@ function ShelfMesh({ segmentId, shelf, innerW, innerD, placing }: ShelfMeshProps
   const hot = selected || placing
   return (
     <mesh
-      position={[0, shelf.height, 0]}
+      position={[centerX, shelf.height, 0]}
       userData={{ shelfId: shelf.id, segmentId }}
       name={`shelf:${shelf.id}`}
       onPointerDown={onDown}
     >
-      <boxGeometry args={[innerW, shelf.thickness, innerD]} />
+      <boxGeometry args={[width, shelf.thickness, innerD]} />
       <meshStandardMaterial
         color={hot ? '#7fc4ff' : GLASS_COLOR}
         transparent

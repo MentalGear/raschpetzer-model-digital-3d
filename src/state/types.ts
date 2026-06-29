@@ -40,6 +40,8 @@ export interface Shelf {
   thickness: number
   /** Whether this shelf can be moved along Y while in placement mode. Set in Design. */
   movable: boolean
+  /** Index of the compartment (between separation panels) this shelf belongs to. */
+  compartment: number
 }
 
 /** A vertical wooden separation panel splitting a segment into compartments. */
@@ -47,6 +49,8 @@ export interface Divider {
   id: string
   /** Distance of the panel centre from the left interior wall (metres). */
   x: number
+  /** Panel thickness (metres). */
+  thickness: number
 }
 
 /** A single wooden cabinet bay. Frame panels are wood; shelves are glass. */
