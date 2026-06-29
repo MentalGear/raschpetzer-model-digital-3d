@@ -11,6 +11,7 @@ import type { ItemType, Vec3 } from './state/types'
 import { snapGrid } from './state/units'
 import { Toolbar } from './ui/Toolbar'
 import { SidePanel } from './ui/SidePanel'
+import { ItemEditorModal } from './ui/ItemEditorModal'
 import { ITEM_DND_MIME, DEFAULT_DROP_HALF_HEIGHT, decodeDnd } from './ui/dnd'
 import { canvasBg, useTheme } from './ui/theme'
 
@@ -154,6 +155,7 @@ export default function App() {
   return (
     <div className="app">
       <Toolbar />
+      <ItemEditorModal />
       <div className="workspace">
         <div
           className={`canvas-wrap${dropActive ? ' drop-active' : ''}`}

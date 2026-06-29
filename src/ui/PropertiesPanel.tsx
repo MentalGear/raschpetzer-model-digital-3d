@@ -106,6 +106,7 @@ export function PropertiesPanel() {
   const setItemColor = useStore((s) => s.setItemColor)
   const setItemLabel = useStore((s) => s.setItemLabel)
   const removeItem = useStore((s) => s.removeItem)
+  const openItemEditor = useStore((s) => s.openItemEditor)
   const multiSelected = useStore((s) => s.multiSelected)
   const groupItems = useStore((s) => s.groupItems)
   const removeItemFromGroup = useStore((s) => s.removeItemFromGroup)
@@ -292,6 +293,10 @@ export function PropertiesPanel() {
           <ColorControl key={item.id} color={item.color} onChange={(c) => setItemColor(item.id, c)} />
         </>
       )}
+
+      <button className="block" style={{ marginBottom: 8, color: 'var(--text)' }} onClick={() => openItemEditor(item.id)}>
+        ✏️ Edit in detail…
+      </button>
 
       {pendingDelete === item.id ? (
         <div className="inline-confirm">

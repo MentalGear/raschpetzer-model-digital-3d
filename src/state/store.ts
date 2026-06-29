@@ -192,6 +192,8 @@ export interface StoreState {
   placing: boolean
   /** Item IDs accumulated by Shift+click for pending group creation. */
   multiSelected: string[]
+  /** ID of the item currently open in the detail editor modal (null = closed). */
+  editingItemId: string | null
 
   // --- mode / selection ---
   setMode: (mode: Mode) => void
@@ -203,6 +205,9 @@ export interface StoreState {
   removeItemFromGroup: (itemId: string) => void
   toggleMultiSelect: (itemId: string) => void
   clearMultiSelect: () => void
+  openItemEditor: (id: string) => void
+  closeItemEditor: () => void
+  patchItem: (id: string, patch: Partial<Pick<Item, 'size' | 'rotationY' | 'rotationX' | 'color' | 'labelText'>>) => void
 
   // --- segments ---
   addSegment: () => void
@@ -266,6 +271,7 @@ export const useStore = create<StoreState>()(
       selected: null,
       placing: false,
       multiSelected: [],
+      editingItemId: null,
 
       // Preserve a meaningful selection across mode switches: keep a segment
       // selection (or auto-select the first cabinet) when entering Design; keep
@@ -377,6 +383,28 @@ export const useStore = create<StoreState>()(
         }),
 
       clearMultiSelect: () => set({ multiSelected: [] }),
+
+      openItemEditor: (id) => set({ editingItemId: id }),
+      closeItemEditor: () => set({ editingItemId: null }),
+      patchItem: (id, patch) =>
+        set((state) => ({
+          layout: {
+            ...state.layout,
+            items: state.layout.items.map((it) => {
+              if (it.id !== id) return it
+              const size: Vec3 = patch.size
+                ? [clamp(patch.size[0], 0.01, 3), clamp(patch.size[1], 0.01, 3), clamp(patch.size[2], 0.01, 3)]
+                : it.size
+              const rotationX = patch.rotationX ?? it.rotationX
+              const top = shelfTopForItem(state.layout, it.shelfId)
+              const position: Vec3 =
+                it.attached && top !== null
+                  ? [it.position[0], seatedY(size, rotationX, top), it.position[2]]
+                  : it.position
+              return { ...it, ...patch, size, rotationX, position }
+            }),
+          },
+        })),
 
       addSegment: () =>
         set((state) => {

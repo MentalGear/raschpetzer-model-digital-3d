@@ -94,6 +94,7 @@ export function Item({ item }: ItemProps) {
   const rotateItem = useStore((s) => s.rotateItem)
   const toggleMultiSelect = useStore((s) => s.toggleMultiSelect)
   const clearMultiSelect = useStore((s) => s.clearMultiSelect)
+  const openItemEditor = useStore((s) => s.openItemEditor)
 
   if (shelfHidden) return null
 
@@ -159,6 +160,11 @@ export function Item({ item }: ItemProps) {
       rotation={[item.rotationX, item.rotationY, 0]}
       scale={item.size}
       onPointerDown={onSelect}
+      onDoubleClick={(e) => {
+        if (!interactive) return
+        e.stopPropagation()
+        openItemEditor(item.id)
+      }}
     >
       <mesh castShadow receiveShadow>
         <PrimitiveGeometry type={item.type} />
