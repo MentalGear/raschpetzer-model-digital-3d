@@ -128,7 +128,7 @@ export default function App() {
         >
           <Canvas
             shadows
-            camera={{ position: [3.0, 2.4, 3.9], fov: 50, near: 0.05, far: 100 }}
+            camera={{ position: [4.6, 3.0, 6.2], fov: 50, near: 0.05, far: 100 }}
             onPointerMissed={() => select(null)}
           >
             <color attach="background" args={[canvasBg[theme]]} />

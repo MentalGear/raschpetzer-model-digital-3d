@@ -9,6 +9,8 @@ export function Toolbar() {
   const toggleTheme = useTheme((s) => s.toggle)
   const woodBrightness = useTheme((s) => s.woodBrightness)
   const setWoodBrightness = useTheme((s) => s.setWoodBrightness)
+  const showPeople = useTheme((s) => s.showPeople)
+  const togglePeople = useTheme((s) => s.togglePeople)
 
   return (
     <header className="toolbar">
@@ -53,6 +55,15 @@ export function Toolbar() {
         />
         <output className="wood-value">{Math.round(woodBrightness * 100)}%</output>
       </label>
+
+      <button
+        className={`people-toggle${showPeople ? ' active' : ''}`}
+        onClick={togglePeople}
+        aria-pressed={showPeople}
+        title="Show human cutouts in front of the showcase for real-life scale"
+      >
+        🧍 People
+      </button>
 
       <button
         className="theme-toggle"

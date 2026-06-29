@@ -67,8 +67,39 @@ export function seatedY(size: Vec3, rotationX: number, topY: number): number {
   return topY + tiltedHalfHeight(size, rotationX)
 }
 
+/** A cabinet sized by INNER dimensions (wall thickness added to get the outer box). */
+function cabinetByInner(xCenter: number, innerW: number, innerH: number, t = 0.03): Segment {
+  const height = innerH + 2 * t
+  return {
+    id: uid(),
+    position: [xCenter, 0, 0],
+    width: innerW + 2 * t,
+    height,
+    depth: 0.4,
+    frameThickness: t,
+    shelves: [makeShelf(height * 0.34), makeShelf(height * 0.67)],
+    dividers: [],
+  }
+}
+
+/**
+ * Default: two cabinets side by side, sized by the sketch's inner dimensions
+ * (interpreted in mm → a realistic ~1.9 m-tall vitrine): inner widths 82 cm and
+ * 178.6 cm, inner height 191.5 cm.
+ */
 function seedLayout(): Layout {
-  return { version: 1, segments: [makeSegment(0)], items: [] }
+  const t = 0.03
+  const w1 = 0.82 + 2 * t
+  const w2 = 1.786 + 2 * t
+  const gap = 0.04
+  const total = w1 + gap + w2
+  const x1 = -total / 2 + w1 / 2
+  const x2 = x1 + w1 / 2 + gap + w2 / 2
+  return {
+    version: 1,
+    segments: [cabinetByInner(x1, 0.82, 1.915), cabinetByInner(x2, 1.786, 1.915)],
+    items: [],
+  }
 }
 
 /** Backfill fields that may be missing in older saved/persisted layouts. */

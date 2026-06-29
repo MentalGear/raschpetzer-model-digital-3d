@@ -6,6 +6,7 @@ import { findSegment, findShelf, useStore } from '../state/store'
 import type { Vec3 } from '../state/types'
 import { Segment } from './Segment'
 import { Item } from './Item'
+import { People } from './People'
 import { DimensionArrows } from './DimensionArrows'
 
 /** Vertical move gizmo for a selected shelf. Rendered at the (identity) Showcase
@@ -62,6 +63,7 @@ export function Showcase() {
         <DimensionArrows size={[seg.width, seg.height, seg.depth]} position={segCenter} />
       )}
       <ShelfGizmo />
+      <People />
     </group>
   )
 }

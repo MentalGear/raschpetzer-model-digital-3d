@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import * as THREE from 'three'
-import { TransformControls } from '@react-three/drei'
+import { Html, TransformControls } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Item as ItemT, Vec3 } from '../state/types'
 import { seatedY, shelfSurfaces, useStore } from '../state/store'
@@ -99,7 +99,22 @@ export function Item({ item }: ItemProps) {
       ) : null}
       {content}
       {selected && (
-        <DimensionArrows size={item.size} position={item.position} rotationY={item.rotationY} />
+        <>
+          <DimensionArrows size={item.size} position={item.position} rotationY={item.rotationY} />
+          <Html
+            position={[
+              item.position[0],
+              item.position[1] + item.size[1] / 2 + 0.07,
+              item.position[2],
+            ]}
+            center
+            className="item-tag-html"
+          >
+            <div className={`item-tag ${item.attached ? 'attached' : 'fixed'}`}>
+              {item.attached ? '📌 On surface' : '✣ Fixed'} · tilt {Math.round((item.rotationX * 180) / Math.PI)}°
+            </div>
+          </Html>
+        </>
       )}
     </>
   )

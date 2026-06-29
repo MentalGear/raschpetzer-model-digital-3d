@@ -4,6 +4,7 @@ export type Theme = 'light' | 'dark'
 
 const KEY = 'vitrine:theme'
 const WOOD_KEY = 'vitrine:woodBrightness'
+const PEOPLE_KEY = 'vitrine:people'
 
 const has = typeof localStorage !== 'undefined'
 
@@ -28,13 +29,17 @@ interface ThemeState {
   theme: Theme
   /** Multiplier applied to the wood material colour (0.4 = dark, 1.6 = bright). */
   woodBrightness: number
+  /** Show human silhouette cutouts in front of the showcase for real-life scale. */
+  showPeople: boolean
   toggle: () => void
   setWoodBrightness: (v: number) => void
+  togglePeople: () => void
 }
 
 export const useTheme = create<ThemeState>((set, get) => ({
   theme: initialTheme(),
   woodBrightness: initialWood(),
+  showPeople: has ? localStorage.getItem(PEOPLE_KEY) === '1' : false,
   toggle: () => {
     const next: Theme = get().theme === 'dark' ? 'light' : 'dark'
     if (has) localStorage.setItem(KEY, next)
@@ -44,6 +49,11 @@ export const useTheme = create<ThemeState>((set, get) => ({
     const clamped = Math.min(WOOD_BRIGHTNESS_MAX, Math.max(WOOD_BRIGHTNESS_MIN, v))
     if (has) localStorage.setItem(WOOD_KEY, String(clamped))
     set({ woodBrightness: clamped })
+  },
+  togglePeople: () => {
+    const next = !get().showPeople
+    if (has) localStorage.setItem(PEOPLE_KEY, next ? '1' : '0')
+    set({ showPeople: next })
   },
 }))
 

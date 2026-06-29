@@ -223,6 +223,27 @@ input[type='range']::-moz-range-thumb {
   font-size: 15px; line-height: 1; padding: 6px 9px;
 }
 
+.people-toggle {
+  border: 1px solid var(--border); background: var(--panel-2); color: var(--text); border-radius: 8px;
+  cursor: pointer; font-size: 13px; padding: 7px 11px; white-space: nowrap;
+}
+.people-toggle.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.item-tag-html { pointer-events: none; }
+.item-tag {
+  font: 600 11px/1 system-ui, sans-serif; padding: 3px 7px; border-radius: 5px; white-space: nowrap;
+  color: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); user-select: none;
+}
+.item-tag.attached { background: #2e8b57; }
+.item-tag.fixed { background: #8a5cd0; }
+
+.people-tag { pointer-events: none; }
+.person-label {
+  font: 600 11px/1 system-ui, sans-serif; color: var(--text); background: var(--badge-bg);
+  border: 1px solid var(--border); padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+  pointer-events: none; user-select: none;
+}
+
 .wood-control {
   display: inline-flex; align-items: center; gap: 7px; padding: 0 10px; min-height: 36px;
   border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2);

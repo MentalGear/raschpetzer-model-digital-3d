@@ -50,7 +50,7 @@ export function CameraRig() {
         enableDamping
         dampingFactor={0.1}
         maxPolarAngle={Math.PI / 2}
-        target={[0, 0.9, 0]}
+        target={[0, 1.0, 0]}
       />
     </>
   )
