@@ -100,14 +100,19 @@ export function Segment({ segment }: SegmentProps) {
         {wood()}
       </mesh>
 
-      {/* vertical separation panels (wood, lighter tone + edges to read as distinct) */}
+      {/* vertical separation panels — wood or glass */}
       {dividers.map((dv) => {
         const xLocal = -(w / 2) + t + dv.x
+        const isGlass = dv.material === 'glass'
         return (
-          <mesh key={dv.id} position={[xLocal, h / 2, 0]} castShadow receiveShadow>
+          <mesh key={dv.id} position={[xLocal, h / 2, 0]} castShadow={!isGlass} receiveShadow>
             <boxGeometry args={[dv.thickness, Math.max(0.001, h - 2 * t), innerD]} />
-            {wood(dividerColor)}
-            <Edges threshold={15} color="#caa46a" />
+            {isGlass ? (
+              <meshStandardMaterial color={GLASS_COLOR} transparent opacity={0.4} roughness={0.04} metalness={0.1} />
+            ) : (
+              wood(dividerColor)
+            )}
+            <Edges threshold={15} color={isGlass ? GLASS_EDGE : '#caa46a'} />
           </mesh>
         )
       })}

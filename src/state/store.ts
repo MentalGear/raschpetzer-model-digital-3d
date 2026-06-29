@@ -31,8 +31,12 @@ function makeShelf(height: number, movable = true, compartment = 0): Shelf {
   return { id: uid(), height, thickness: 0.01, movable, compartment }
 }
 
-function makeDivider(x: number, thickness = DEFAULT_PANEL_THICKNESS): Divider {
-  return { id: uid(), x, thickness }
+function makeDivider(
+  x: number,
+  thickness = DEFAULT_PANEL_THICKNESS,
+  material: Divider['material'] = 'wood',
+): Divider {
+  return { id: uid(), x, thickness, material }
 }
 
 const sortDividers = (ds: Divider[]): Divider[] => [...ds].sort((a, b) => a.x - b.x)
@@ -153,6 +157,7 @@ function normalizeLayout(layout: Layout): Layout {
       dividers: (s.dividers ?? []).map((dv) => ({
         ...dv,
         thickness: dv.thickness ?? s.frameThickness ?? DEFAULT_PANEL_THICKNESS,
+        material: dv.material ?? 'wood',
       })),
       shelves: (s.shelves ?? []).map((sh) => ({
         ...sh,
@@ -205,6 +210,7 @@ export interface StoreState {
   removeDivider: (segmentId: string, dividerId: string) => void
   setDividerX: (segmentId: string, dividerId: string, x: number) => void
   setPanelThickness: (segmentId: string, thickness: number) => void
+  setPanelMaterial: (segmentId: string, material: Divider['material']) => void
 
   // --- items ---
   addItem: (type: ItemType, position: Vec3, shelfId: string | null) => void
@@ -400,7 +406,11 @@ export const useStore = create<StoreState>()(
               }
             }
             const thickness = s.dividers[0]?.thickness ?? DEFAULT_PANEL_THICKNESS
-            return { ...s, dividers: sortDividers([...s.dividers, makeDivider(bestMid, thickness)]) }
+            const material = s.dividers[0]?.material ?? 'wood'
+            return {
+              ...s,
+              dividers: sortDividers([...s.dividers, makeDivider(bestMid, thickness, material)]),
+            }
           }),
         })),
 
@@ -432,6 +442,14 @@ export const useStore = create<StoreState>()(
             const tk = clamp(thickness, 0.005, Math.max(0.005, iw / 2))
             return { ...s, dividers: s.dividers.map((d) => ({ ...d, thickness: tk })) }
           }),
+        })),
+
+      setPanelMaterial: (segmentId, material) =>
+        set((state) => ({
+          layout: updateSegment(state.layout, segmentId, (s) => ({
+            ...s,
+            dividers: s.dividers.map((d) => ({ ...d, material })),
+          })),
         })),
 
       addItem: (type, position, shelfId) =>

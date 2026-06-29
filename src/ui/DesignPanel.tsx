@@ -20,6 +20,7 @@ export function DesignPanel() {
   const removeDivider = useStore((s) => s.removeDivider)
   const setDividerX = useStore((s) => s.setDividerX)
   const setPanelThickness = useStore((s) => s.setPanelThickness)
+  const setPanelMaterial = useStore((s) => s.setPanelMaterial)
   const setSyncedWoodBrightness = useStore((s) => s.setSyncedWoodBrightness)
   const setSegmentWoodBrightness = useStore((s) => s.setSegmentWoodBrightness)
   const setSegmentWoodLinked = useStore((s) => s.setSegmentWoodLinked)
@@ -59,7 +60,7 @@ export function DesignPanel() {
           <NumberField label="Height" value={seg.height} onChange={(m) => resizeSegment(seg.id, { height: m })} />
           <NumberField label="Depth" value={seg.depth} onChange={(m) => resizeSegment(seg.id, { depth: m })} />
           <NumberField
-            label="Wall thickness"
+            label="Outer wall thickness"
             value={seg.frameThickness}
             min={0.5}
             max={20}
@@ -230,13 +231,32 @@ export function DesignPanel() {
                   + Add separation panel
                 </button>
                 {seg.dividers.length > 0 && (
-                  <NumberField
-                    label="Panel thickness"
-                    value={seg.dividers[0].thickness}
-                    min={0.5}
-                    max={20}
-                    onChange={(m) => setPanelThickness(seg.id, m)}
-                  />
+                  <>
+                    <NumberField
+                      label="Panel thickness"
+                      value={seg.dividers[0].thickness}
+                      min={0.5}
+                      max={20}
+                      onChange={(m) => setPanelThickness(seg.id, m)}
+                    />
+                    <label className="field">
+                      <span>Panel material</span>
+                      <div className="mode-toggle small" role="group" aria-label="Panel material">
+                        <button
+                          className={seg.dividers[0].material === 'wood' ? 'active' : ''}
+                          onClick={() => setPanelMaterial(seg.id, 'wood')}
+                        >
+                          Wood
+                        </button>
+                        <button
+                          className={seg.dividers[0].material === 'glass' ? 'active' : ''}
+                          onClick={() => setPanelMaterial(seg.id, 'glass')}
+                        >
+                          Glass
+                        </button>
+                      </div>
+                    </label>
+                  </>
                 )}
                 <div className="compartments">
                   {compartments.map((c, i) => (
