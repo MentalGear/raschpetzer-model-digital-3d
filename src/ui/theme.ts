@@ -5,6 +5,7 @@ export type Theme = 'light' | 'dark'
 const KEY = 'vitrine:theme'
 const PEOPLE_KEY = 'vitrine:people'
 const PLANVIEW_KEY = 'vitrine:planview'
+const FRONTVIEW_KEY = 'vitrine:frontview'
 
 const has = typeof localStorage !== 'undefined'
 
@@ -27,15 +28,19 @@ interface ThemeState {
   showPeople: boolean
   /** Orthographic top-down plan view mode. */
   planView: boolean
+  /** Orthographic front elevation view mode. */
+  frontView: boolean
   toggle: () => void
   togglePeople: () => void
   togglePlanView: () => void
+  toggleFrontView: () => void
 }
 
 export const useTheme = create<ThemeState>((set, get) => ({
   theme: initialTheme(),
   showPeople: has ? localStorage.getItem(PEOPLE_KEY) === '1' : false,
   planView: has ? localStorage.getItem(PLANVIEW_KEY) === '1' : false,
+  frontView: has ? localStorage.getItem(FRONTVIEW_KEY) === '1' : false,
   toggle: () => {
     const next: Theme = get().theme === 'dark' ? 'light' : 'dark'
     if (has) localStorage.setItem(KEY, next)
@@ -47,9 +52,24 @@ export const useTheme = create<ThemeState>((set, get) => ({
     set({ showPeople: next })
   },
   togglePlanView: () => {
-    const next = !get().planView
-    if (has) localStorage.setItem(PLANVIEW_KEY, next ? '1' : '0')
-    set({ planView: next })
+    const enabling = !get().planView
+    if (has) localStorage.setItem(PLANVIEW_KEY, enabling ? '1' : '0')
+    if (enabling) {
+      if (has) localStorage.setItem(FRONTVIEW_KEY, '0')
+      set({ planView: true, frontView: false })
+    } else {
+      set({ planView: false })
+    }
+  },
+  toggleFrontView: () => {
+    const enabling = !get().frontView
+    if (has) localStorage.setItem(FRONTVIEW_KEY, enabling ? '1' : '0')
+    if (enabling) {
+      if (has) localStorage.setItem(PLANVIEW_KEY, '0')
+      set({ frontView: true, planView: false })
+    } else {
+      set({ frontView: false })
+    }
   },
 }))
 

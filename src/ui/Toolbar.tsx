@@ -18,6 +18,8 @@ export function Toolbar() {
   const togglePeople = useTheme((s) => s.togglePeople)
   const planView = useTheme((s) => s.planView)
   const togglePlanView = useTheme((s) => s.togglePlanView)
+  const frontView = useTheme((s) => s.frontView)
+  const toggleFrontView = useTheme((s) => s.toggleFrontView)
   const canUndo = useHistoryStore((s) => s.canUndo)
   const canRedo = useHistoryStore((s) => s.canRedo)
 
@@ -78,6 +80,14 @@ export function Toolbar() {
           title="Top-down plan view"
         >
           📐 Plan
+        </button>
+        <button
+          className={`people-toggle${frontView ? ' active' : ''}`}
+          onClick={toggleFrontView}
+          aria-pressed={frontView}
+          title="Front elevation view"
+        >
+          🖼 Front
         </button>
         <button
           className="theme-toggle"

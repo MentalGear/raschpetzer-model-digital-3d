@@ -9,6 +9,7 @@ export function CameraRig() {
   const dark = useTheme((s) => s.theme === 'dark')
   const itemSelected = useStore((s) => s.selected?.kind === 'item')
   const planView = useTheme((s) => s.planView)
+  const frontView = useTheme((s) => s.frontView)
 
   return (
     <>
@@ -55,6 +56,27 @@ export function CameraRig() {
             makeDefault
             position={[0, 12, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
+            zoom={80}
+            near={0.01}
+            far={200}
+          />
+          <OrbitControls
+            makeDefault
+            enableRotate={false}
+            screenSpacePanning={true}
+            mouseButtons={{
+              LEFT: THREE.MOUSE.PAN,
+              MIDDLE: THREE.MOUSE.DOLLY,
+              RIGHT: THREE.MOUSE.PAN,
+            }}
+          />
+        </>
+      ) : frontView ? (
+        <>
+          <OrthographicCamera
+            makeDefault
+            position={[0, 1.2, 16]}
+            rotation={[0, 0, 0]}
             zoom={80}
             near={0.01}
             far={200}
