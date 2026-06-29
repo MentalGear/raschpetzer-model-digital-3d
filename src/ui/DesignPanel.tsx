@@ -26,6 +26,7 @@ export function DesignPanel() {
   const removeShelf = useStore((s) => s.removeShelf)
   const setShelfHeight = useStore((s) => s.setShelfHeight)
   const setShelfMovable = useStore((s) => s.setShelfMovable)
+  const setShelfHidden = useStore((s) => s.setShelfHidden)
   const addDivider = useStore((s) => s.addDivider)
   const removeDivider = useStore((s) => s.removeDivider)
   const setDividerX = useStore((s) => s.setDividerX)
@@ -209,6 +210,15 @@ export function DesignPanel() {
                             onClick={() => setShelfMovable(seg.id, sh.id, !sh.movable)}
                           >
                             {sh.movable ? '🔓↕' : '🔒'}
+                          </button>
+                          <button
+                            className="mini icon"
+                            title={sh.hidden ? 'Show shelf' : 'Hide shelf'}
+                            onClick={() => setShelfHidden(seg.id, sh.id, !sh.hidden)}
+                            aria-pressed={sh.hidden}
+                            style={{ opacity: sh.hidden ? 0.4 : 1 }}
+                          >
+                            {sh.hidden ? '🙈' : '👁'}
                           </button>
                           <button className="icon danger" title="Remove shelf" onClick={() => removeShelf(seg.id, sh.id)}>
                             ✕

@@ -86,13 +86,15 @@ interface DimensionArrowsProps {
   size: Vec3
   position: Vec3
   rotationY?: number
+  /** When true, hides the Y (height) axis arrow — useful in top-down plan view. */
+  hideY?: boolean
 }
 
 /**
  * Renders three live metric dimension arrows (W/H/D in cm) around a box.
  * Used for both resized items and selected segments.
  */
-export function DimensionArrows({ size, position, rotationY = 0 }: DimensionArrowsProps) {
+export function DimensionArrows({ size, position, rotationY = 0, hideY = false }: DimensionArrowsProps) {
   const half: Vec3 = [size[0] / 2, size[1] / 2, size[2] / 2]
   // Scale the label/arrow offset to the object: small items get a relatively
   // larger push (floor) so their W/H/D labels don't cluster; big cabinets get a
@@ -102,7 +104,7 @@ export function DimensionArrows({ size, position, rotationY = 0 }: DimensionArro
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <DimAxis axis="x" half={half} length={size[0]} margin={margin} />
-      <DimAxis axis="y" half={half} length={size[1]} margin={margin} />
+      {!hideY && <DimAxis axis="y" half={half} length={size[1]} margin={margin} />}
       <DimAxis axis="z" half={half} length={size[2]} margin={margin} />
     </group>
   )

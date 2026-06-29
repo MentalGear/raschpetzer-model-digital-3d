@@ -8,6 +8,7 @@ import { useImageStore } from '../state/imageStore'
 import { snapGrid } from '../state/units'
 import { PrimitiveGeometry } from './primitives'
 import { DimensionArrows } from './DimensionArrows'
+import { useTheme } from '../ui/theme'
 
 interface ItemProps {
   item: ItemT
@@ -79,10 +80,25 @@ export function Item({ item }: ItemProps) {
     return tex
   }, [item.type, item.labelText])
   const selected = useStore((s) => s.selected?.kind === 'item' && s.selected.id === item.id)
+
+  // Hide items attached to a hidden shelf
+  const shelfHidden = useStore((s) => {
+    if (!item.shelfId) return false
+    for (const seg of s.layout.segments) {
+      const sh = seg.shelves.find((sh) => sh.id === item.shelfId)
+      if (sh) return sh.hidden ?? false
+    }
+    return false
+  })
+
+  const planView = useTheme((s) => s.planView)
+
   const select = useStore((s) => s.select)
   const moveItem = useStore((s) => s.moveItem)
   const resizeItem = useStore((s) => s.resizeItem)
   const rotateItem = useStore((s) => s.rotateItem)
+
+  if (shelfHidden) return null
 
   const interactive = mode === 'place'
   const dragTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -180,7 +196,7 @@ export function Item({ item }: ItemProps) {
       {content}
       {selected && (
         <>
-          <DimensionArrows size={item.size} position={item.position} rotationY={item.rotationY} />
+          <DimensionArrows size={item.size} position={item.position} rotationY={item.rotationY} hideY={planView} />
           <Html
             position={[
               item.position[0],

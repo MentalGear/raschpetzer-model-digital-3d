@@ -4,6 +4,7 @@ import { Edges } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Segment as SegmentT, Shelf } from '../state/types'
 import { compartments, useStore } from '../state/store'
+import { useTheme } from '../ui/theme'
 
 const WOOD_COLOR = '#7a4a24'
 const DIVIDER_COLOR = '#946134' // lighter so structural panels read as distinct
@@ -42,6 +43,7 @@ export function Segment({ segment }: SegmentProps) {
   const woodBrightness = segment.woodBrightness ?? syncedBrightness
   const glassTint = useStore((s) => s.layout.glassTint)
   const glassOpacity = useStore((s) => s.layout.glassOpacity)
+  const planView = useTheme((s) => s.planView)
   const [hovered, setHovered] = useState(false)
 
   const woodColor = useMemo(() => scaleColor(WOOD_COLOR, woodBrightness), [woodBrightness])
@@ -89,11 +91,13 @@ export function Segment({ segment }: SegmentProps) {
         <boxGeometry args={[w, t, d]} />
         {wood()}
       </mesh>
-      {/* top */}
-      <mesh position={[0, h - t / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[w, t, d]} />
-        {wood()}
-      </mesh>
+      {/* top — hidden in plan view so the interior is visible from above */}
+      {!planView && (
+        <mesh position={[0, h - t / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[w, t, d]} />
+          {wood()}
+        </mesh>
+      )}
       {/* left */}
       <mesh position={[-(w / 2 - t / 2), h / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[t, h, d]} />
@@ -142,6 +146,7 @@ export function Segment({ segment }: SegmentProps) {
             placing={placing}
             glassTint={glassTint}
             glassOpacity={glassOpacity}
+            hidden={sh.hidden}
           />
         )
       })}
@@ -160,12 +165,14 @@ interface ShelfMeshProps {
   placing: boolean
   glassTint: string
   glassOpacity: number
+  hidden?: boolean
 }
 
 /** A glass shelf. Selectable in placement mode (its vertical move gizmo lives in
  *  Showcase so it isn't double-offset by the segment group). Highlights blue when
  *  selected or while an item is being dragged (valid drop target). */
-function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing, glassTint, glassOpacity }: ShelfMeshProps) {
+function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing, glassTint, glassOpacity, hidden }: ShelfMeshProps) {
+  if (hidden) return null
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected?.kind === 'shelf' && s.selected.id === shelf.id)
   const select = useStore((s) => s.select)

@@ -206,6 +206,7 @@ export interface StoreState {
   removeShelf: (segmentId: string, shelfId: string) => void
   setShelfHeight: (segmentId: string, shelfId: string, height: number) => void
   setShelfMovable: (segmentId: string, shelfId: string, movable: boolean) => void
+  setShelfHidden: (segmentId: string, shelfId: string, hidden: boolean) => void
 
   // --- dividers (vertical separation panels) ---
   addDivider: (segmentId: string) => void
@@ -395,6 +396,19 @@ export const useStore = create<StoreState>()(
             ...s,
             shelves: s.shelves.map((sh) => (sh.id === shelfId ? { ...sh, movable } : sh)),
           })),
+        })),
+
+      setShelfHidden: (segmentId, shelfId, hidden) =>
+        set((state) => ({
+          layout: {
+            ...state.layout,
+            segments: state.layout.segments.map((seg) =>
+              seg.id !== segmentId ? seg : {
+                ...seg,
+                shelves: seg.shelves.map((sh) => sh.id !== shelfId ? sh : { ...sh, hidden }),
+              }
+            ),
+          },
         })),
 
       addDivider: (segmentId) =>

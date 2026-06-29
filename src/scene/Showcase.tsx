@@ -8,6 +8,7 @@ import { Segment } from './Segment'
 import { Item } from './Item'
 import { People } from './People'
 import { DimensionArrows } from './DimensionArrows'
+import { useTheme } from '../ui/theme'
 
 /** Vertical move gizmo for a selected shelf. Rendered at the (identity) Showcase
  *  level — not inside the segment group — so it is not double-offset. Moving it
@@ -45,6 +46,7 @@ export function Showcase() {
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected)
   const layout = useStore((s) => s.layout)
+  const planView = useTheme((s) => s.planView)
 
   const seg = mode === 'design' && selected?.kind === 'segment' ? findSegment(layout, selected.id) : undefined
   const segCenter: Vec3 | null = seg
@@ -60,7 +62,7 @@ export function Showcase() {
         <Item key={it.id} item={it} />
       ))}
       {seg && segCenter && (
-        <DimensionArrows size={[seg.width, seg.height, seg.depth]} position={segCenter} />
+        <DimensionArrows size={[seg.width, seg.height, seg.depth]} position={segCenter} hideY={planView} />
       )}
       <ShelfGizmo />
       <People />

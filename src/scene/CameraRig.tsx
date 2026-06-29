@@ -2,6 +2,8 @@ import { ContactShadows, Grid, OrbitControls, OrthographicCamera } from '@react-
 import { useTheme } from '../ui/theme'
 import { useStore } from '../state/store'
 import * as THREE from 'three'
+import { useThree } from '@react-three/fiber'
+import { useEffect, useRef } from 'react'
 
 /** Lights, ground grid, contact shadow and orbit camera. OrbitControls is the
  *  default controls so drei's TransformControls auto-pauses it while dragging. */
@@ -10,6 +12,34 @@ export function CameraRig() {
   const itemSelected = useStore((s) => s.selected?.kind === 'item')
   const planView = useTheme((s) => s.planView)
   const frontView = useTheme((s) => s.frontView)
+
+  const { camera, controls } = useThree()
+
+  const prevPlanView = useRef(planView)
+  useEffect(() => {
+    const wasActive = prevPlanView.current
+    prevPlanView.current = planView
+    if (wasActive && !planView) {
+      camera.position.set(4.6, 3.0, 6.2)
+      if (controls && 'target' in controls) {
+        ;(controls as any).target.set(0, 1.0, 0)
+        ;(controls as any).update()
+      }
+    }
+  }, [planView, camera, controls])
+
+  const prevFrontView = useRef(frontView)
+  useEffect(() => {
+    const wasActive = prevFrontView.current
+    prevFrontView.current = frontView
+    if (wasActive && !frontView) {
+      camera.position.set(4.6, 3.0, 6.2)
+      if (controls && 'target' in controls) {
+        ;(controls as any).target.set(0, 1.0, 0)
+        ;(controls as any).update()
+      }
+    }
+  }, [frontView, camera, controls])
 
   return (
     <>
@@ -64,6 +94,8 @@ export function CameraRig() {
             makeDefault
             enableRotate={false}
             screenSpacePanning={true}
+            minZoom={10}
+            maxZoom={400}
             mouseButtons={{
               LEFT: THREE.MOUSE.PAN,
               MIDDLE: THREE.MOUSE.DOLLY,
@@ -85,6 +117,8 @@ export function CameraRig() {
             makeDefault
             enableRotate={false}
             screenSpacePanning={true}
+            minZoom={10}
+            maxZoom={400}
             mouseButtons={{
               LEFT: THREE.MOUSE.PAN,
               MIDDLE: THREE.MOUSE.DOLLY,

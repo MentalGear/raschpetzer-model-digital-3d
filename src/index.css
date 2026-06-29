@@ -200,6 +200,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
   font-size: 12px;
   pointer-events: none;
   opacity: 0.9;
+  z-index: 10;
 }
 
 /* ---- side panel ---- */

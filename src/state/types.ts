@@ -46,6 +46,8 @@ export interface Shelf {
   movable: boolean
   /** Index of the compartment (between separation panels) this shelf belongs to. */
   compartment: number
+  /** When true, the shelf (and items attached to it) is hidden in the scene. */
+  hidden?: boolean
 }
 
 export type PanelMaterial = 'wood' | 'glass'

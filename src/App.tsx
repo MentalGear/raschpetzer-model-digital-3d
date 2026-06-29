@@ -65,6 +65,8 @@ export default function App() {
         setMode('design')
       } else if (e.key === 'p' || e.key === 'P') {
         setMode('place')
+      } else if (e.key === 'v' || e.key === 'V') {
+        useTheme.getState().togglePlanView()
       } else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'].includes(e.key)) {
         if (sel?.kind !== 'item') return
         const it = layout.items.find((i) => i.id === sel.id)
