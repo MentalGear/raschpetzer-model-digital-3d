@@ -737,6 +737,7 @@ export const useStore = create<StoreState>()(
             : []
           const dissolveGroup = groupId !== undefined && remaining.length <= 1
           return {
+            editingItemId: state.editingItemId === id ? null : state.editingItemId,
             selected:
               state.selected?.id === id
                 ? null

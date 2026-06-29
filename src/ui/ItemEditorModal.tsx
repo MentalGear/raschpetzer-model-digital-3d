@@ -1,5 +1,5 @@
-import { useReducer, useEffect, useMemo, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { useReducer, useEffect, useState } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, Grid } from '@react-three/drei'
 import * as THREE from 'three'
 import { useStore, findItem } from '../state/store'
@@ -18,6 +18,7 @@ type History = { past: Item[]; present: Item; future: Item[] }
 
 type HistAction =
   | { type: 'EDIT'; item: Item }
+  | { type: 'PREVIEW'; item: Item }
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'RESET'; item: Item }
@@ -43,6 +44,8 @@ function histReducer(state: History, action: HistAction): History {
         present: state.future[0],
         future: state.future.slice(1),
       }
+    case 'PREVIEW':
+      return { ...state, present: action.item }
   }
 }
 
@@ -102,12 +105,30 @@ function ColorControl({ color, onChange }: { color: string; onChange: (c: string
 }
 
 // ---------------------------------------------------------------------------
+// CameraUpdater — imperatively moves the camera whenever item size changes.
+// R3F reads the <Canvas camera> prop only at mount, so we need this to keep
+// the framing correct when the user resizes the item inside the modal.
+// ---------------------------------------------------------------------------
+
+function CameraUpdater({ camDist }: { camDist: number }) {
+  const { camera } = useThree()
+  useEffect(() => {
+    camera.position.set(camDist * 0.7, camDist * 0.5, camDist)
+    camera.near = 0.01
+    camera.far = 50
+    camera.updateProjectionMatrix()
+  }, [camera, camDist])
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // ItemPreviewScene (rendered inside the mini Canvas)
 // ---------------------------------------------------------------------------
 
 function ItemPreviewScene({ item }: { item: Item }) {
-  const labelTexture = useMemo(() => {
-    if (item.type !== 'label') return null
+  const [labelTexture, setLabelTexture] = useState<THREE.CanvasTexture | null>(null)
+  useEffect(() => {
+    if (item.type !== 'label') { setLabelTexture(null); return }
     const W = 512, H = 256
     const canvas = document.createElement('canvas')
     canvas.width = W
@@ -146,17 +167,20 @@ function ItemPreviewScene({ item }: { item: Item }) {
     }
     const tex = new THREE.CanvasTexture(canvas)
     tex.colorSpace = THREE.SRGBColorSpace
-    return tex
+    setLabelTexture(tex)
+    return () => { tex.dispose() }
   }, [item.type, item.labelText])
 
   const imageDataUrl = useImageStore((s) =>
     item.type === 'image' ? (s.images[item.imageId ?? ''] ?? null) : null,
   )
-  const imageTexture = useMemo(() => {
-    if (!imageDataUrl) return null
+  const [imageTexture, setImageTexture] = useState<THREE.Texture | null>(null)
+  useEffect(() => {
+    if (!imageDataUrl) { setImageTexture(null); return }
     const tex = new THREE.TextureLoader().load(imageDataUrl)
     tex.colorSpace = THREE.SRGBColorSpace
-    return tex
+    setImageTexture(tex)
+    return () => { tex.dispose() }
   }, [imageDataUrl])
 
   const floorY = -item.size[1] / 2
@@ -230,9 +254,13 @@ export function ItemEditorModal() {
   // Keyboard shortcuts
   useEffect(() => {
     if (!editingItemId) return
+    const typing = () => {
+      const el = document.activeElement
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA')
+    }
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey
-      if (e.key === 'Escape') { handleCancel(); return }
+      if (e.key === 'Escape' && !typing()) { handleCancel(); return }
       if (mod && e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault()
         dispatch({ type: 'REDO' })
@@ -319,6 +347,7 @@ export function ItemEditorModal() {
               }}
               shadows
             >
+              <CameraUpdater camDist={camDist} />
               <ItemPreviewScene item={draft} />
             </Canvas>
           </div>
@@ -366,7 +395,7 @@ export function ItemEditorModal() {
                   value={(deg + 360) % 360}
                   onChange={(e) => {
                     dispatch({
-                      type: 'EDIT',
+                      type: 'PREVIEW',
                       item: { ...draft, rotationY: (parseFloat(e.target.value) * Math.PI) / 180 },
                     })
                   }}
@@ -406,7 +435,7 @@ export function ItemEditorModal() {
                   value={tiltDeg}
                   onChange={(e) =>
                     dispatch({
-                      type: 'EDIT',
+                      type: 'PREVIEW',
                       item: {
                         ...draft,
                         rotationX: (parseFloat(e.target.value) * Math.PI) / 180,

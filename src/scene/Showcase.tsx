@@ -63,13 +63,15 @@ function GroupGizmo() {
 
   if (!selectedGroupId || !anchorItemId || !anchorMesh) return null
 
-  const anyAttached = groupItems.some((it) => it.attached)
+  // Hide Y only when ALL members are shelf-attached (moving them vertically
+  // would corrupt seating). Show Y if any member floats freely.
+  const allAttached = groupItems.every((it) => it.attached)
 
   return (
     <TransformControls
       object={anchorMesh}
       mode="translate"
-      showY={!anyAttached}
+      showY={!allAttached}
       onMouseDown={() => {
         const items = useStore.getState().layout.items.filter((it) => it.groupId === selectedGroupId)
         items.forEach((it) => startPositions.current.set(it.id, [...it.position] as Vec3))
@@ -82,7 +84,9 @@ function GroupGizmo() {
         items.forEach((it) => {
           const start = startPositions.current.get(it.id)
           if (!start) return
-          moveItem(it.id, [start[0] + delta.x, start[1] + delta.y, start[2] + delta.z])
+          // Attached items keep their Y so shelf-seating isn't corrupted.
+          const dy = it.attached ? 0 : delta.y
+          moveItem(it.id, [start[0] + delta.x, start[1] + dy, start[2] + delta.z])
         })
       }}
     />

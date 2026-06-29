@@ -163,6 +163,8 @@ export function Item({ item }: ItemProps) {
       onDoubleClick={(e) => {
         if (!interactive) return
         e.stopPropagation()
+        clearMultiSelect()
+        select({ kind: 'item', id: item.id })
         openItemEditor(item.id)
       }}
     >
