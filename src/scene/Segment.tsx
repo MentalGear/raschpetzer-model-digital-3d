@@ -4,7 +4,6 @@ import { Edges } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Segment as SegmentT, Shelf } from '../state/types'
 import { useStore } from '../state/store'
-import { useTheme } from '../ui/theme'
 
 const WOOD_COLOR = '#7a4a24'
 const DIVIDER_COLOR = '#946134' // lighter so structural panels read as distinct
@@ -31,7 +30,8 @@ export function Segment({ segment }: SegmentProps) {
   const selected = useStore((s) => s.selected?.kind === 'segment' && s.selected.id === segment.id)
   const select = useStore((s) => s.select)
   const placing = useStore((s) => s.placing)
-  const woodBrightness = useTheme((s) => s.woodBrightness)
+  const syncedBrightness = useStore((s) => s.layout.woodBrightness)
+  const woodBrightness = segment.woodBrightness ?? syncedBrightness
   const [hovered, setHovered] = useState(false)
 
   const woodColor = useMemo(() => scaleColor(WOOD_COLOR, woodBrightness), [woodBrightness])

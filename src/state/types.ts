@@ -5,7 +5,7 @@ export type Vec3 = [number, number, number]
 
 export type ItemType = 'box' | 'cylinder' | 'sphere' | 'cone' | 'torus'
 
-export type Mode = 'design' | 'place'
+export type Mode = 'design' | 'place' | 'presets'
 
 export type TransformMode = 'translate' | 'rotate' | 'scale'
 
@@ -62,12 +62,19 @@ export interface Segment {
   shelves: Shelf[]
   /** Vertical separation panels, ordered left-to-right. */
   dividers: Divider[]
+  /**
+   * Per-cabinet wood brightness override. `undefined` = linked to the layout's
+   * shared `woodBrightness` (synced); a number = independent.
+   */
+  woodBrightness?: number
 }
 
 export interface Layout {
   version: number
   segments: Segment[]
   items: Item[]
+  /** Shared wood-brightness value used by all cabinets that are "linked" (synced). */
+  woodBrightness: number
 }
 
 export type SelectedKind = 'segment' | 'item' | 'shelf'

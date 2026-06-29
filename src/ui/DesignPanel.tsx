@@ -1,5 +1,6 @@
 import { findSegment, innerWidth, useStore } from '../state/store'
 import { formatCm, mToCm, cmToM } from '../state/units'
+import { WOOD_BRIGHTNESS_MAX, WOOD_BRIGHTNESS_MIN } from './theme'
 import { NumberField } from './NumberField'
 
 export function DesignPanel() {
@@ -18,26 +19,35 @@ export function DesignPanel() {
   const addDivider = useStore((s) => s.addDivider)
   const removeDivider = useStore((s) => s.removeDivider)
   const setDividerX = useStore((s) => s.setDividerX)
+  const setSyncedWoodBrightness = useStore((s) => s.setSyncedWoodBrightness)
+  const setSegmentWoodBrightness = useStore((s) => s.setSegmentWoodBrightness)
+  const setSegmentWoodLinked = useStore((s) => s.setSegmentWoodLinked)
+  const syncAllWood = useStore((s) => s.syncAllWood)
 
   const seg = selected?.kind === 'segment' ? findSegment(layout, selected.id) : undefined
+  const anyUnlinked = segments.some((s) => s.woodBrightness !== undefined)
 
   return (
     <div className="panel">
       <h2>Cabinet design</h2>
       <p className="hint">Click a cabinet in the scene to edit it. Resize values update the live dimension arrows.</p>
 
-      <div className="seg-list">
-        {segments.map((s, i) => (
-          <button
-            key={s.id}
-            className={`seg-chip ${selected?.id === s.id ? 'active' : ''}`}
-            onClick={() => select({ kind: 'segment', id: s.id })}
-          >
-            Cabinet {i + 1}
-          </button>
-        ))}
-        <button className="add" onClick={addSegment}>
-          + Add cabinet
+      <div className="seg-control-row">
+        <div className="seg-control" role="tablist" aria-label="Cabinet">
+          {segments.map((s, i) => (
+            <button
+              key={s.id}
+              role="tab"
+              aria-selected={selected?.id === s.id}
+              className={`seg-tab${selected?.id === s.id ? ' active' : ''}`}
+              onClick={() => select({ kind: 'segment', id: s.id })}
+            >
+              Cabinet {i + 1}
+            </button>
+          ))}
+        </div>
+        <button className="seg-add" onClick={addSegment} title="Add a new cabinet" aria-label="Add cabinet">
+          +
         </button>
       </div>
 
@@ -57,6 +67,51 @@ export function DesignPanel() {
           <p className="hint muted">
             Inner space: {formatCm(innerWidth(seg))} W × {formatCm(seg.depth - 2 * seg.frameThickness)} D
           </p>
+
+          <h3>Wood</h3>
+          {(() => {
+            const linked = seg.woodBrightness === undefined
+            const effective = seg.woodBrightness ?? layout.woodBrightness
+            return (
+              <>
+                <div className="wood-row">
+                  <button
+                    className={`link-btn${linked ? ' on' : ''}`}
+                    aria-pressed={linked}
+                    title={linked ? 'Synced with all cabinets (click to set independently)' : 'Independent (click to sync with all cabinets)'}
+                    onClick={() => setSegmentWoodLinked(seg.id, !linked)}
+                  >
+                    🔗
+                  </button>
+                  <input
+                    type="range"
+                    aria-label="Wood brightness"
+                    min={WOOD_BRIGHTNESS_MIN}
+                    max={WOOD_BRIGHTNESS_MAX}
+                    step={0.05}
+                    value={effective}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value)
+                      if (linked) setSyncedWoodBrightness(v)
+                      else setSegmentWoodBrightness(seg.id, v)
+                    }}
+                  />
+                  <span className="unit">{Math.round(effective * 100)}%</span>
+                </div>
+                <p className="hint muted">
+                  {linked ? 'Synced across all cabinets.' : 'This cabinet is independent.'}
+                  {anyUnlinked && (
+                    <>
+                      {' '}
+                      <button className="text-link" onClick={() => syncAllWood(effective)}>
+                        Sync all to {Math.round(effective * 100)}%
+                      </button>
+                    </>
+                  )}
+                </p>
+              </>
+            )
+          })()}
 
           <h3>Glass shelves</h3>
           <p className="hint">Height of each shelf above the cabinet floor.</p>

@@ -108,7 +108,7 @@ function seedLayout(): Layout {
     makeShelf(0.65, true),
     makeShelf(1.0, false),
   ])
-  return { version: 1, segments: [cab1, cab2], items: [] }
+  return { version: 1, segments: [cab1, cab2], items: [], woodBrightness: 1 }
 }
 
 /** Backfill fields that may be missing in older saved/persisted layouts. */
@@ -125,7 +125,13 @@ function normalizeLayout(layout: Layout): Layout {
       rotationX: it.rotationX ?? 0,
       attached: it.attached ?? true,
     })),
+    woodBrightness: layout.woodBrightness ?? 1,
   }
+}
+
+/** Effective wood brightness for a segment: its own override, else the synced value. */
+export function segmentBrightness(layout: Layout, seg: Segment): number {
+  return seg.woodBrightness ?? layout.woodBrightness
 }
 
 export interface StoreState {
@@ -169,6 +175,12 @@ export interface StoreState {
   setItemColor: (id: string, color: string) => void
   removeItem: (id: string) => void
 
+  // --- wood brightness (synced / per-cabinet) ---
+  setSyncedWoodBrightness: (v: number) => void
+  setSegmentWoodBrightness: (id: string, v: number) => void
+  setSegmentWoodLinked: (id: string, linked: boolean) => void
+  syncAllWood: (v: number) => void
+
   // --- whole-layout (presets) ---
   loadLayout: (layout: Layout) => void
   resetLayout: () => void
@@ -201,7 +213,10 @@ export const useStore = create<StoreState>()(
                   : null
             return { mode, selected: sel }
           }
-          return { mode, selected: s.selected?.kind === 'item' ? s.selected : null }
+          if (mode === 'place') {
+            return { mode, selected: s.selected?.kind === 'item' ? s.selected : null }
+          }
+          return { mode } // presets — leave selection untouched
         }),
       setTransformMode: (transformMode) => set({ transformMode }),
       select: (selected) => set({ selected }),
@@ -483,6 +498,37 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           selected: state.selected?.id === id ? null : state.selected,
           layout: { ...state.layout, items: state.layout.items.filter((it) => it.id !== id) },
+        })),
+
+      setSyncedWoodBrightness: (v) =>
+        set((state) => ({
+          layout: { ...state.layout, woodBrightness: clamp(v, 0.4, 1.6) },
+        })),
+
+      setSegmentWoodBrightness: (id, v) =>
+        set((state) => ({
+          layout: updateSegment(state.layout, id, (s) => ({
+            ...s,
+            woodBrightness: clamp(v, 0.4, 1.6),
+          })),
+        })),
+
+      setSegmentWoodLinked: (id, linked) =>
+        set((state) => ({
+          layout: updateSegment(state.layout, id, (s) => ({
+            ...s,
+            // linked → drop the override (use synced); unlinked → freeze current value
+            woodBrightness: linked ? undefined : (s.woodBrightness ?? state.layout.woodBrightness),
+          })),
+        })),
+
+      syncAllWood: (v) =>
+        set((state) => ({
+          layout: {
+            ...state.layout,
+            woodBrightness: clamp(v, 0.4, 1.6),
+            segments: state.layout.segments.map((s) => ({ ...s, woodBrightness: undefined })),
+          },
         })),
 
       loadLayout: (layout) => set({ layout: normalizeLayout(layout), selected: null }),
