@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { TransformControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
@@ -39,6 +39,52 @@ function ShelfGizmo() {
   )
 }
 
+/** When a group is selected, attaches TransformControls to the anchor item's mesh
+ *  and translates all group members by the same delta on every drag frame. */
+function GroupGizmo() {
+  const selectedGroupId = useStore((s) => (s.selected?.kind === 'group' ? s.selected.id : null))
+  const layout = useStore((s) => s.layout)
+  const moveItem = useStore((s) => s.moveItem)
+  const scene = useThree((s) => s.scene)
+  const [anchorMesh, setAnchorMesh] = useState<THREE.Object3D | null>(null)
+
+  const groupItems = selectedGroupId
+    ? layout.items.filter((it) => it.groupId === selectedGroupId)
+    : []
+  const anchorItemId = groupItems[0]?.id ?? null
+
+  useEffect(() => {
+    if (!anchorItemId) { setAnchorMesh(null); return }
+    setAnchorMesh(scene.getObjectByName(`item:${anchorItemId}`) ?? null)
+  }, [anchorItemId, scene, layout.items.length])
+
+  const startPositions = useRef<Map<string, Vec3>>(new Map())
+  const anchorStartPos = useRef<THREE.Vector3>(new THREE.Vector3())
+
+  if (!selectedGroupId || !anchorItemId || !anchorMesh) return null
+
+  return (
+    <TransformControls
+      object={anchorMesh}
+      mode="translate"
+      onMouseDown={() => {
+        const items = useStore.getState().layout.items.filter((it) => it.groupId === selectedGroupId)
+        items.forEach((it) => startPositions.current.set(it.id, [...it.position] as Vec3))
+        anchorStartPos.current.set(...(groupItems[0].position as [number, number, number]))
+      }}
+      onObjectChange={() => {
+        const delta = new THREE.Vector3().subVectors(anchorMesh.position, anchorStartPos.current)
+        const items = useStore.getState().layout.items.filter((it) => it.groupId === selectedGroupId)
+        items.forEach((it) => {
+          const start = startPositions.current.get(it.id)
+          if (!start) return
+          moveItem(it.id, [start[0] + delta.x, start[1] + delta.y, start[2] + delta.z])
+        })
+      }}
+    />
+  )
+}
+
 /** Renders every segment and placed item from layout state. */
 export function Showcase() {
   const segments = useStore((s) => s.layout.segments)
@@ -71,6 +117,7 @@ export function Showcase() {
           <DimensionArrows size={[seg.width, seg.height, seg.depth]} position={segCenter} hideY={planView} hideZ={frontView} />
         )}
         <ShelfGizmo />
+        <GroupGizmo />
       </group>
     </>
   )

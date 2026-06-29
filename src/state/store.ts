@@ -145,7 +145,7 @@ function seedLayout(): Layout {
     makeShelf(1.0, false, 1),
   ])
   cabinet.dividers = [makeDivider(dividerX, panel)]
-  return { version: 1, segments: [cabinet], items: [], woodBrightness: 1, glassOpacity: 0.45, glassTint: '#bcdcea', groundOffset: 0 }
+  return { version: 1, segments: [cabinet], items: [], woodBrightness: 1, glassOpacity: 0.45, glassTint: '#bcdcea', groundOffset: 0, groups: [] }
 }
 
 /** Backfill fields that may be missing in older saved/persisted layouts. */
@@ -174,6 +174,7 @@ function normalizeLayout(layout: Layout): Layout {
     glassOpacity: layout.glassOpacity ?? 0.45,
     glassTint: layout.glassTint ?? '#bcdcea',
     groundOffset: layout.groundOffset ?? 0,
+    groups: layout.groups ?? [],
   }
 }
 
@@ -189,12 +190,19 @@ export interface StoreState {
   selected: Selection | null
   /** True while a palette item is being dragged over the canvas (drop affordance). */
   placing: boolean
+  /** Item IDs accumulated by Shift+click for pending group creation. */
+  multiSelected: string[]
 
   // --- mode / selection ---
   setMode: (mode: Mode) => void
   setTransformMode: (m: TransformMode) => void
   select: (sel: Selection | null) => void
   setPlacing: (v: boolean) => void
+  groupItems: (ids: string[]) => void
+  ungroupItems: (groupId: string) => void
+  removeItemFromGroup: (itemId: string) => void
+  toggleMultiSelect: (itemId: string) => void
+  clearMultiSelect: () => void
 
   // --- segments ---
   addSegment: () => void
@@ -257,6 +265,7 @@ export const useStore = create<StoreState>()(
       transformMode: 'translate',
       selected: null,
       placing: false,
+      multiSelected: [],
 
       // Preserve a meaningful selection across mode switches: keep a segment
       // selection (or auto-select the first cabinet) when entering Design; keep
@@ -270,16 +279,104 @@ export const useStore = create<StoreState>()(
                 : s.layout.segments[0]
                   ? ({ kind: 'segment', id: s.layout.segments[0].id } as Selection)
                   : null
-            return { mode, selected: sel }
+            return { mode, selected: sel, multiSelected: [] }
           }
           if (mode === 'place') {
-            return { mode, selected: s.selected?.kind === 'item' ? s.selected : null }
+            return { mode, selected: s.selected?.kind === 'item' ? s.selected : null, multiSelected: [] }
           }
-          return { mode } // presets — leave selection untouched
+          return { mode, multiSelected: [] } // presets — leave selection untouched
         }),
       setTransformMode: (transformMode) => set({ transformMode }),
       select: (selected) => set({ selected }),
       setPlacing: (placing) => set({ placing }),
+
+      groupItems: (ids) =>
+        set((state) => {
+          if (ids.length < 2) return state
+          const allItems = state.layout.items
+          const existingGroupIds = [...new Set(
+            ids.map(id => allItems.find(it => it.id === id)?.groupId).filter((g): g is string => !!g)
+          )]
+          const affectedIds = new Set([
+            ...ids,
+            ...allItems.filter(it => it.groupId && existingGroupIds.includes(it.groupId)).map(it => it.id),
+          ])
+          if (existingGroupIds.length === 1) {
+            const groupMembers = allItems.filter(it => it.groupId === existingGroupIds[0])
+            if (groupMembers.every(it => affectedIds.has(it.id)) && groupMembers.length === affectedIds.size) {
+              return { multiSelected: [], selected: { kind: 'group', id: existingGroupIds[0] } }
+            }
+          }
+          const survivorId = existingGroupIds[0] ?? uid()
+          const toDissolve = new Set(existingGroupIds.slice(1))
+          return {
+            multiSelected: [],
+            selected: { kind: 'group', id: survivorId },
+            layout: {
+              ...state.layout,
+              groups: [
+                ...state.layout.groups.filter(g => g.id !== survivorId && !toDissolve.has(g.id)),
+                { id: survivorId },
+              ],
+              items: allItems.map(it => ({
+                ...it,
+                groupId: affectedIds.has(it.id) ? survivorId
+                  : (it.groupId && toDissolve.has(it.groupId) ? survivorId : it.groupId),
+              })),
+            },
+          }
+        }),
+
+      ungroupItems: (groupId) =>
+        set((state) => ({
+          selected: state.selected?.kind === 'group' && state.selected.id === groupId ? null : state.selected,
+          layout: {
+            ...state.layout,
+            groups: state.layout.groups.filter(g => g.id !== groupId),
+            items: state.layout.items.map(it => it.groupId === groupId ? { ...it, groupId: undefined } : it),
+          },
+        })),
+
+      removeItemFromGroup: (itemId) =>
+        set((state) => {
+          const item = state.layout.items.find(it => it.id === itemId)
+          if (!item?.groupId) return state
+          const groupId = item.groupId
+          const remaining = state.layout.items.filter(it => it.groupId === groupId && it.id !== itemId)
+          if (remaining.length <= 1) {
+            return {
+              selected: state.selected?.kind === 'group' && state.selected.id === groupId ? null : state.selected,
+              layout: {
+                ...state.layout,
+                groups: state.layout.groups.filter(g => g.id !== groupId),
+                items: state.layout.items.map(it => it.groupId === groupId ? { ...it, groupId: undefined } : it),
+              },
+            }
+          }
+          return {
+            layout: {
+              ...state.layout,
+              items: state.layout.items.map(it => it.id === itemId ? { ...it, groupId: undefined } : it),
+            },
+          }
+        }),
+
+      toggleMultiSelect: (itemId) =>
+        set((state) => {
+          const item = state.layout.items.find(it => it.id === itemId)
+          if (!item) return state
+          const idsToToggle = item.groupId
+            ? state.layout.items.filter(it => it.groupId === item.groupId).map(it => it.id)
+            : [itemId]
+          const allIn = idsToToggle.every(id => state.multiSelected.includes(id))
+          return {
+            multiSelected: allIn
+              ? state.multiSelected.filter(id => !idsToToggle.includes(id))
+              : [...state.multiSelected, ...idsToToggle.filter(id => !state.multiSelected.includes(id))],
+          }
+        }),
+
+      clearMultiSelect: () => set({ multiSelected: [] }),
 
       addSegment: () =>
         set((state) => {

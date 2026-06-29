@@ -33,6 +33,8 @@ export interface Item {
    * false = fixed in space; free to move on all axes and ignores the shelf.
    */
   attached: boolean
+  /** Group this item belongs to — items in the same group translate together. */
+  groupId?: string
 }
 
 /** A horizontal glass panel inside a segment. */
@@ -61,6 +63,11 @@ export interface Divider {
   thickness: number
   /** Panel material — solid wood or translucent glass. */
   material: PanelMaterial
+}
+
+/** A group of items that move together. */
+export interface Group {
+  id: string
 }
 
 /** A single wooden cabinet bay. Frame panels are wood; shelves are glass. */
@@ -95,9 +102,11 @@ export interface Layout {
   glassTint: string
   /** Height of the display above the real floor, e.g. on a plinth (metres). People stay at Y=0. */
   groundOffset: number
+  /** Item groups — members share a groupId and move together. */
+  groups: Group[]
 }
 
-export type SelectedKind = 'segment' | 'item' | 'shelf'
+export type SelectedKind = 'segment' | 'item' | 'shelf' | 'group'
 
 export interface Selection {
   kind: SelectedKind

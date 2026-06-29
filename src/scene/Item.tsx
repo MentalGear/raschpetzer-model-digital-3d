@@ -14,20 +14,11 @@ interface ItemProps {
   item: ItemT
 }
 
-/**
- * A placed primitive. The group's `scale` IS the item's size in metres (unit
- * geometry), so the scale gizmo writes straight back to state. When selected in
- * placement mode it gets a TransformControls gizmo + live dimension arrows.
- *
- * Attached items stay seated on their shelf surface (free X/Z, Y derived). Fixed
- * items float freely on all three axes.
- */
 export function Item({ item }: ItemProps) {
   const [obj, setObj] = useState<THREE.Group | null>(null)
   const mode = useStore((s) => s.mode)
   const transformMode = useStore((s) => s.transformMode)
 
-  // Image texture — only populated for 'image' type items whose data URL is in the session store.
   const imageDataUrl = useImageStore((s) => (item.type === 'image' ? (s.images[item.imageId ?? ''] ?? null) : null))
   const imageTexture = useMemo(() => {
     if (!imageDataUrl) return null
@@ -36,7 +27,6 @@ export function Item({ item }: ItemProps) {
     return tex
   }, [imageDataUrl])
 
-  // Label canvas texture — redrawn whenever the text changes.
   const labelTexture = useMemo(() => {
     if (item.type !== 'label') return null
     const W = 512, H = 256
@@ -79,9 +69,13 @@ export function Item({ item }: ItemProps) {
     tex.colorSpace = THREE.SRGBColorSpace
     return tex
   }, [item.type, item.labelText])
-  const selected = useStore((s) => s.selected?.kind === 'item' && s.selected.id === item.id)
 
-  // Hide items attached to a hidden shelf
+  const isItemSelected = useStore((s) => s.selected?.kind === 'item' && s.selected.id === item.id)
+  const isInSelectedGroup = useStore((s) =>
+    !!item.groupId && s.selected?.kind === 'group' && s.selected.id === item.groupId
+  )
+  const isMultiSelected = useStore((s) => s.multiSelected.includes(item.id))
+
   const shelfHidden = useStore((s) => {
     if (!item.shelfId) return false
     for (const seg of s.layout.segments) {
@@ -98,6 +92,8 @@ export function Item({ item }: ItemProps) {
   const moveItem = useStore((s) => s.moveItem)
   const resizeItem = useStore((s) => s.resizeItem)
   const rotateItem = useStore((s) => s.rotateItem)
+  const toggleMultiSelect = useStore((s) => s.toggleMultiSelect)
+  const clearMultiSelect = useStore((s) => s.clearMultiSelect)
 
   if (shelfHidden) return null
 
@@ -107,53 +103,58 @@ export function Item({ item }: ItemProps) {
   const onSelect = (e: ThreeEvent<PointerEvent>) => {
     if (!interactive) return
     e.stopPropagation()
-    select({ kind: 'item', id: item.id })
+    if (e.nativeEvent.shiftKey) {
+      toggleMultiSelect(item.id)
+      return
+    }
+    clearMultiSelect()
+    if (item.groupId) {
+      select({ kind: 'group', id: item.groupId })
+    } else {
+      select({ kind: 'item', id: item.id })
+    }
   }
 
   const handleChange = () => {
     if (!obj) return
     if (dragTimer.current) clearTimeout(dragTimer.current)
     dragTimer.current = setTimeout(() => {
-    if (!obj) return
-    if (transformMode === 'scale') {
-      resizeItem(item.id, [obj.scale.x, obj.scale.y, obj.scale.z])
-    } else if (transformMode === 'rotate') {
-      rotateItem(item.id, obj.rotation.y)
-    } else if (item.attached) {
-      // attached: snap to the nearest shelf surface within the same compartment
-      // (X/Z free, Y seated). Prefer shelves whose X-extent contains the item.
-      const surfaces = shelfSurfaces(useStore.getState().layout)
-      let pos: Vec3 = [snapGrid(obj.position.x), obj.position.y, snapGrid(obj.position.z)]
-      let shelfId = item.shelfId
-      const inSection = surfaces.filter(
-        (s) => obj.position.x >= s.xMin && obj.position.x <= s.xMax,
-      )
-      const pool = inSection.length ? inSection : surfaces
-      if (pool.length) {
-        const seatFor = (topY: number) => seatedY(item.size, item.rotationX, topY)
-        const nearest = pool.reduce((best, s) =>
-          Math.abs(seatFor(s.topY) - obj.position.y) < Math.abs(seatFor(best.topY) - obj.position.y)
-            ? s
-            : best,
+      if (!obj) return
+      if (transformMode === 'scale') {
+        resizeItem(item.id, [obj.scale.x, obj.scale.y, obj.scale.z])
+      } else if (transformMode === 'rotate') {
+        rotateItem(item.id, obj.rotation.y)
+      } else if (item.attached) {
+        const surfaces = shelfSurfaces(useStore.getState().layout)
+        let pos: Vec3 = [snapGrid(obj.position.x), obj.position.y, snapGrid(obj.position.z)]
+        let shelfId = item.shelfId
+        const inSection = surfaces.filter(
+          (s) => obj.position.x >= s.xMin && obj.position.x <= s.xMax,
         )
-        pos = [pos[0], seatFor(nearest.topY), pos[2]]
-        shelfId = nearest.shelfId
+        const pool = inSection.length ? inSection : surfaces
+        if (pool.length) {
+          const seatFor = (topY: number) => seatedY(item.size, item.rotationX, topY)
+          const nearest = pool.reduce((best, s) =>
+            Math.abs(seatFor(s.topY) - obj.position.y) < Math.abs(seatFor(best.topY) - obj.position.y)
+              ? s
+              : best,
+          )
+          pos = [pos[0], seatFor(nearest.topY), pos[2]]
+          shelfId = nearest.shelfId
+        }
+        moveItem(item.id, pos, shelfId)
+      } else {
+        moveItem(item.id, [snapGrid(obj.position.x), obj.position.y, snapGrid(obj.position.z)], null)
       }
-      moveItem(item.id, pos, shelfId)
-    } else {
-      // fixed in space: free move on all axes, no shelf
-      moveItem(item.id, [snapGrid(obj.position.x), obj.position.y, snapGrid(obj.position.z)], null)
-    }
     }, 16)
   }
 
-  // In translate mode, attached items lock the Y handle (they ride the shelf);
-  // fixed items expose all three handles.
   const showY = transformMode === 'scale' || (transformMode === 'translate' && !item.attached)
 
   const content = (
     <group
       ref={setObj}
+      name={`item:${item.id}`}
       position={item.position}
       rotation={[item.rotationX, item.rotationY, 0]}
       scale={item.size}
@@ -182,9 +183,11 @@ export function Item({ item }: ItemProps) {
     </group>
   )
 
+  const tagY = item.position[1] + item.size[1] / 2 + 0.07
+
   return (
     <>
-      {selected && obj ? (
+      {isItemSelected && obj ? (
         <TransformControls
           object={obj}
           mode={transformMode}
@@ -195,23 +198,25 @@ export function Item({ item }: ItemProps) {
         />
       ) : null}
       {content}
-      {selected && (
+      {isItemSelected && (
         <>
           <DimensionArrows size={item.size} position={item.position} rotationY={item.rotationY} hideY={planView} hideZ={frontView} />
-          <Html
-            position={[
-              item.position[0],
-              item.position[1] + item.size[1] / 2 + 0.07,
-              item.position[2],
-            ]}
-            center
-            className="item-tag-html"
-          >
+          <Html position={[item.position[0], tagY, item.position[2]]} center className="item-tag-html">
             <div className={`item-tag ${item.attached ? 'attached' : 'fixed'}`}>
               {item.attached ? '📌 On surface' : '✣ Fixed'} · tilt {Math.round((item.rotationX * 180) / Math.PI)}°
             </div>
           </Html>
         </>
+      )}
+      {isInSelectedGroup && !isItemSelected && (
+        <Html position={[item.position[0], tagY, item.position[2]]} center className="item-tag-html">
+          <div className="item-tag group-member-tag">🔗 Grouped</div>
+        </Html>
+      )}
+      {isMultiSelected && !isItemSelected && !isInSelectedGroup && (
+        <Html position={[item.position[0], tagY, item.position[2]]} center className="item-tag-html">
+          <div className="item-tag multi-select-tag">✓ Selected</div>
+        </Html>
       )}
     </>
   )

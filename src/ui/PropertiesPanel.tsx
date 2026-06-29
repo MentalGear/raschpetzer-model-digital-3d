@@ -62,6 +62,38 @@ function ColorControl({ color, onChange }: { color: string; onChange: (c: string
   )
 }
 
+function GroupProperties({ groupId }: { groupId: string }) {
+  const layout = useStore((s) => s.layout)
+  const ungroupItems = useStore((s) => s.ungroupItems)
+  const removeItemFromGroup = useStore((s) => s.removeItemFromGroup)
+  const members = layout.items.filter((it) => it.groupId === groupId)
+
+  return (
+    <div className="panel">
+      <h2>Group · {members.length} items</h2>
+      <p className="hint">Move any member with the gizmo — all items in the group translate together. Rotate and resize affect individual items only.</p>
+      <h3>Members</h3>
+      <div className="group-member-list">
+        {members.map((it, i) => (
+          <div key={it.id} className="group-member-row">
+            <span className="group-member-name">{PRIMITIVE_LABELS[it.type]} {i + 1}</span>
+            <button
+              className="mini"
+              title="Remove from group"
+              onClick={() => removeItemFromGroup(it.id)}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+      <button className="danger block" style={{ marginTop: 16 }} onClick={() => ungroupItems(groupId)}>
+        Ungroup all
+      </button>
+    </div>
+  )
+}
+
 export function PropertiesPanel() {
   const selected = useStore((s) => s.selected)
   const layout = useStore((s) => s.layout)
@@ -74,7 +106,34 @@ export function PropertiesPanel() {
   const setItemColor = useStore((s) => s.setItemColor)
   const setItemLabel = useStore((s) => s.setItemLabel)
   const removeItem = useStore((s) => s.removeItem)
+  const multiSelected = useStore((s) => s.multiSelected)
+  const groupItems = useStore((s) => s.groupItems)
+  const removeItemFromGroup = useStore((s) => s.removeItemFromGroup)
+  const clearMultiSelect = useStore((s) => s.clearMultiSelect)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+
+  if (multiSelected.length >= 2) {
+    const involvedGroups = [...new Set(
+      multiSelected.map(id => layout.items.find(it => it.id === id)?.groupId).filter(Boolean)
+    )]
+    const label = involvedGroups.length > 0 ? `Group / Merge (${multiSelected.length} items)` : `Group ${multiSelected.length} items`
+    return (
+      <div className="panel">
+        <h2>Multi-select</h2>
+        <p className="hint">{multiSelected.length} items selected. Group them so they always move together.</p>
+        <button className="add" style={{ marginTop: 8 }} onClick={() => groupItems(multiSelected)}>
+          🔗 {label}
+        </button>
+        <button className="mini" style={{ marginTop: 8, display: 'block' }} onClick={clearMultiSelect}>
+          Cancel
+        </button>
+      </div>
+    )
+  }
+
+  if (selected?.kind === 'group') {
+    return <GroupProperties groupId={selected.id} />
+  }
 
   if (selected?.kind === 'shelf') {
     return <ShelfProperties shelfId={selected.id} />
@@ -101,6 +160,13 @@ export function PropertiesPanel() {
   return (
     <div className="panel">
       <h2>{PRIMITIVE_LABELS[item.type]}</h2>
+
+      {item.groupId && (
+        <div className="group-badge">
+          <span>🔗 Part of a group ({layout.items.filter(it => it.groupId === item.groupId).length} items)</span>
+          <button className="mini" onClick={() => removeItemFromGroup(item.id)}>Remove from group</button>
+        </div>
+      )}
 
       <h3>Tool</h3>
       <div className="mode-toggle small">

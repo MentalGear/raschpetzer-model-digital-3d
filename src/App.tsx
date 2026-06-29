@@ -163,7 +163,7 @@ export default function App() {
           <Canvas
             shadows
             camera={{ position: [4.6, 3.0, 6.2], fov: 50, near: 0.05, far: 100 }}
-            onPointerMissed={() => select(null)}
+            onPointerMissed={() => { select(null); useStore.getState().clearMultiSelect() }}
           >
             <color attach="background" args={[canvasBg[theme]]} />
             <SceneBridge getterRef={threeRef} />
