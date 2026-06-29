@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { compartments as getCompartments, findSegment, innerWidth, useStore } from '../state/store'
 import { formatCm, mToCm, cmToM } from '../state/units'
 import { WOOD_BRIGHTNESS_MAX, WOOD_BRIGHTNESS_MIN } from './theme'
@@ -12,6 +13,7 @@ const GLASS_PRESETS = [
 ]
 
 export function DesignPanel() {
+  const [pendingDeleteSeg, setPendingDeleteSeg] = useState<string | null>(null)
   const segments = useStore((s) => s.layout.segments)
   const selected = useStore((s) => s.selected)
   const select = useStore((s) => s.select)
@@ -45,6 +47,35 @@ export function DesignPanel() {
     <div className="panel">
       <h2>Cabinet design</h2>
       <p className="hint">Click a cabinet in the scene to edit it. Resize values update the live dimension arrows.</p>
+
+      <h3>Glass</h3>
+      <p className="hint">Tint and opacity for all glass shelves and panels.</p>
+      <div className="glass-tints">
+        {GLASS_PRESETS.map((p) => (
+          <button
+            key={p.value}
+            className={`tint-swatch${glassTint === p.value ? ' active' : ''}`}
+            style={{ background: p.value }}
+            title={p.name}
+            aria-label={`Glass tint: ${p.name}`}
+            aria-pressed={glassTint === p.value}
+            onClick={() => setGlassTint(p.value)}
+          />
+        ))}
+      </div>
+      <div className="wood-row" style={{ marginTop: 8 }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 48 }}>Opacity</span>
+        <input
+          type="range"
+          aria-label="Glass opacity"
+          min={5}
+          max={85}
+          step={5}
+          value={Math.round(glassOpacity * 100)}
+          onChange={(e) => setGlassOpacity(parseFloat(e.target.value) / 100)}
+        />
+        <span className="unit">{Math.round(glassOpacity * 100)}%</span>
+      </div>
 
       <div className="seg-control-row">
         <div className="seg-control" role="tablist" aria-label="Cabinet">
@@ -200,17 +231,24 @@ export function DesignPanel() {
           {(() => {
             const iw = innerWidth(seg)
             const compartments = getCompartments(seg).map((c) => c.width)
+            const sorted = [...seg.dividers].sort((a, b) => a.x - b.x)
             return (
               <>
                 <div className="shelf-list">
-                  {seg.dividers.map((dv, i) => (
+                  {sorted.map((dv, i) => {
+                    const half = dv.thickness / 2
+                    const prevEdge = i === 0 ? 0 : sorted[i - 1].x + sorted[i - 1].thickness / 2
+                    const nextEdge = i === sorted.length - 1 ? iw : sorted[i + 1].x - sorted[i + 1].thickness / 2
+                    const sliderMin = Number(mToCm(prevEdge + half).toFixed(1))
+                    const sliderMax = Number(mToCm(nextEdge - half).toFixed(1))
+                    return (
                     <div key={dv.id} className="shelf-row">
                       <span className="shelf-name">Panel {i + 1}</span>
                       <input
                         type="range"
                         aria-label={`Panel ${i + 1} position from left in cm`}
-                        min={0}
-                        max={Number(mToCm(iw).toFixed(0))}
+                        min={sliderMin}
+                        max={sliderMax}
                         step={0.5}
                         value={Number(mToCm(dv.x).toFixed(1))}
                         onChange={(e) => setDividerX(seg.id, dv.id, cmToM(parseFloat(e.target.value)))}
@@ -219,8 +257,8 @@ export function DesignPanel() {
                         type="number"
                         className="shelf-cm"
                         aria-label={`Panel ${i + 1} position from left in cm`}
-                        min={0}
-                        max={Number(mToCm(iw).toFixed(0))}
+                        min={sliderMin}
+                        max={sliderMax}
                         step={0.5}
                         value={Number(mToCm(dv.x).toFixed(1))}
                         onChange={(e) => {
@@ -237,7 +275,8 @@ export function DesignPanel() {
                         ✕
                       </button>
                     </div>
-                  ))}
+                  )
+                  })}
                 </div>
                 <button className="add" onClick={() => addDivider(seg.id)}>
                   + Add separation panel
@@ -281,49 +320,23 @@ export function DesignPanel() {
             )
           })()}
 
-          <button
-            className="danger block"
-            onClick={() => {
-              if (confirm('Delete this cabinet and everything in it?')) removeSegment(seg.id)
-            }}
-          >
-            🗑 Delete cabinet
-          </button>
+          {pendingDeleteSeg === seg.id ? (
+            <div className="inline-confirm" style={{ marginTop: 24 }}>
+              <span>Delete this cabinet and all its items?</span>
+              <div className="preset-actions">
+                <button className="mini" onClick={() => setPendingDeleteSeg(null)}>Cancel</button>
+                <button className="mini danger-fill" onClick={() => { removeSegment(seg.id); setPendingDeleteSeg(null) }}>Delete</button>
+              </div>
+            </div>
+          ) : (
+            <button className="danger block" onClick={() => setPendingDeleteSeg(seg.id)}>
+              🗑 Delete cabinet
+            </button>
+          )}
         </div>
       ) : (
         <p className="hint muted">No cabinet selected.</p>
       )}
-
-      <div>
-        <h3>Glass</h3>
-        <p className="hint">Tint and opacity for all glass shelves and panels.</p>
-        <div className="glass-tints">
-          {GLASS_PRESETS.map((p) => (
-            <button
-              key={p.value}
-              className={`tint-swatch${glassTint === p.value ? ' active' : ''}`}
-              style={{ background: p.value }}
-              title={p.name}
-              aria-label={`Glass tint: ${p.name}`}
-              aria-pressed={glassTint === p.value}
-              onClick={() => setGlassTint(p.value)}
-            />
-          ))}
-        </div>
-        <div className="wood-row" style={{ marginTop: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 48 }}>Opacity</span>
-          <input
-            type="range"
-            aria-label="Glass opacity"
-            min={5}
-            max={85}
-            step={5}
-            value={Math.round(glassOpacity * 100)}
-            onChange={(e) => setGlassOpacity(parseFloat(e.target.value) / 100)}
-          />
-          <span className="unit">{Math.round(glassOpacity * 100)}%</span>
-        </div>
-      </div>
     </div>
   )
 }

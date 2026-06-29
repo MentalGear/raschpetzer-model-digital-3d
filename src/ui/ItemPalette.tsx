@@ -1,9 +1,15 @@
 import { useRef } from 'react'
-import type { ItemType } from '../state/types'
+import type { ItemType, Vec3 } from '../state/types'
 import { PRIMITIVE_LABELS, PRIMITIVE_TYPES } from '../scene/primitives'
-import { findItem, useStore } from '../state/store'
+import { findItem, seatedY, shelfSurfaces, useStore } from '../state/store'
 import { useImageStore } from '../state/imageStore'
 import { ITEM_DND_MIME, encodeDnd } from './dnd'
+
+const DEFAULT_SIZES: Record<string, Vec3> = {
+  image: [0.3, 0.2, 0.01],
+  label: [0.2, 0.1, 0.005],
+  default: [0.2, 0.2, 0.2],
+}
 
 const ICON: Record<string, string> = {
   box: '◼',
@@ -18,10 +24,25 @@ export function ItemPalette() {
   const activeType = useStore((s) =>
     s.selected?.kind === 'item' ? findItem(s.layout, s.selected.id)?.type : undefined,
   )
+  const addItem = useStore((s) => s.addItem)
+  const layout = useStore((s) => s.layout)
   const images = useImageStore((s) => s.images)
   const addImage = useImageStore((s) => s.addImage)
   const removeImage = useImageStore((s) => s.removeImage)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const clickPlace = (type: ItemType, imageId?: string) => {
+    const size = DEFAULT_SIZES[type] ?? DEFAULT_SIZES.default
+    const surfaces = shelfSurfaces(layout)
+    if (surfaces.length > 0) {
+      const surf = surfaces[0]
+      const cx = (surf.xMin + surf.xMax) / 2
+      const y = seatedY(size, 0, surf.topY)
+      addItem(type, [cx, y, 0] as Vec3, surf.shelfId, imageId)
+    } else {
+      addItem(type, [0, size[1] / 2, 0] as Vec3, null, imageId)
+    }
+  }
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -52,7 +73,11 @@ export function ItemPalette() {
             className={`palette-tile${activeType === type ? ' active' : ''}`}
             draggable
             onDragStart={(e) => onDragStart(e, type)}
-            title={`Drag ${PRIMITIVE_LABELS[type]} onto a shelf`}
+            onClick={() => clickPlace(type)}
+            title={`Click or drag ${PRIMITIVE_LABELS[type]} onto a shelf`}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && clickPlace(type)}
           >
             <span className="palette-tile-icon">{ICON[type]}</span>
             <span className="palette-tile-label">{PRIMITIVE_LABELS[type]}</span>
@@ -65,7 +90,11 @@ export function ItemPalette() {
             className={`palette-tile palette-img-tile${activeType === 'image' ? ' active' : ''}`}
             draggable
             onDragStart={(e) => onDragStart(e, 'image', id)}
-            title="Drag image onto a shelf"
+            onClick={() => clickPlace('image', id)}
+            title="Click or drag image onto a shelf"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && clickPlace('image', id)}
           >
             <img src={url} alt="uploaded" draggable={false} />
             <button

@@ -54,3 +54,11 @@ export function redo() {
   isUndoRedo = false
   sync()
 }
+
+/** Reset history after a preset load so undo can't reach the previous session. */
+export function clearHistory() {
+  past.length = 0
+  future.length = 0
+  prevLayout = useStore.getState().layout
+  sync()
+}

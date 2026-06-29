@@ -1,10 +1,12 @@
 import { ContactShadows, Grid, OrbitControls } from '@react-three/drei'
 import { useTheme } from '../ui/theme'
+import { useStore } from '../state/store'
 
 /** Lights, ground grid, contact shadow and orbit camera. OrbitControls is the
  *  default controls so drei's TransformControls auto-pauses it while dragging. */
 export function CameraRig() {
   const dark = useTheme((s) => s.theme === 'dark')
+  const itemSelected = useStore((s) => s.selected?.kind === 'item')
 
   return (
     <>
@@ -51,6 +53,7 @@ export function CameraRig() {
         dampingFactor={0.1}
         maxPolarAngle={Math.PI / 2}
         target={[0, 1.0, 0]}
+        keys={itemSelected ? { LEFT: '', UP: '', RIGHT: '', BOTTOM: '' } as never : undefined}
       />
     </>
   )

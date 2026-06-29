@@ -3,9 +3,9 @@ import type { Mode } from '../state/types'
 import { useTheme } from './theme'
 import { undo, redo, useHistoryStore } from '../state/historyStore'
 
-const MODES: { key: Mode; label: string; title: string }[] = [
-  { key: 'design', label: 'Design shelf', title: 'Design mode (shortcut: D)' },
-  { key: 'place', label: 'Place items', title: 'Placement mode (shortcut: P)' },
+const MODES: { key: Mode; label: string; title: string; kbd?: string }[] = [
+  { key: 'design', label: 'Design shelf', title: 'Design mode (shortcut: D)', kbd: 'D' },
+  { key: 'place', label: 'Place items', title: 'Placement mode (shortcut: P)', kbd: 'P' },
   { key: 'presets', label: 'Presets', title: 'Saved layouts' },
 ]
 
@@ -34,6 +34,7 @@ export function Toolbar() {
             title={m.title}
           >
             {m.label}
+            {m.kbd && <kbd className="mode-kbd">{m.kbd}</kbd>}
           </button>
         ))}
       </div>

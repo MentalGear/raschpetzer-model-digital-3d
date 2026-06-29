@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
+import { clearHistory } from '../state/historyStore'
 import {
   deletePreset,
   listPresets,
@@ -111,7 +112,7 @@ export function PresetsPanel() {
                       className="mini"
                       onClick={() => {
                         const l = loadPreset(p.name)
-                        if (l) loadLayout(l)
+                        if (l) { loadLayout(l); clearHistory() }
                       }}
                     >
                       Load

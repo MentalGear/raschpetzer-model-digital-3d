@@ -74,6 +74,7 @@ export function PropertiesPanel() {
   const setItemColor = useStore((s) => s.setItemColor)
   const setItemLabel = useStore((s) => s.setItemLabel)
   const removeItem = useStore((s) => s.removeItem)
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
 
   if (selected?.kind === 'shelf') {
     return <ShelfProperties shelfId={selected.id} />
@@ -124,18 +125,21 @@ export function PropertiesPanel() {
         <button
           className={item.attached ? 'active' : ''}
           onClick={() => setItemAttached(item.id, true)}
-          title="Rests on its shelf; follows the shelf and re-seats when tilted"
+          title="Rests on its shelf surface; follows the shelf and re-seats when tilted"
         >
           On surface
         </button>
         <button
           className={!item.attached ? 'active' : ''}
           onClick={() => setItemAttached(item.id, false)}
-          title="Floats freely in space on all axes"
+          title="Floats freely — not constrained to any shelf surface"
         >
-          Fixed in space
+          Float freely
         </button>
       </div>
+      {!item.attached && (
+        <p className="hint muted" style={{ marginTop: 4 }}>Not constrained to any shelf — won't follow shelf movements.</p>
+      )}
 
       <h3>Rotation</h3>
       <label className="field">
@@ -223,14 +227,19 @@ export function PropertiesPanel() {
         </>
       )}
 
-      <button
-        className="danger block"
-        onClick={() => {
-          if (confirm('Delete this item?')) removeItem(item.id)
-        }}
-      >
-        🗑 Delete item
-      </button>
+      {pendingDelete === item.id ? (
+        <div className="inline-confirm">
+          <span>Delete this item?</span>
+          <div className="preset-actions">
+            <button className="mini" onClick={() => setPendingDelete(null)}>Cancel</button>
+            <button className="mini danger-fill" onClick={() => { removeItem(item.id); setPendingDelete(null) }}>Delete</button>
+          </div>
+        </div>
+      ) : (
+        <button className="danger block" onClick={() => setPendingDelete(item.id)}>
+          🗑 Delete item
+        </button>
+      )}
     </div>
   )
 }

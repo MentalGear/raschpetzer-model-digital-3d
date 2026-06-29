@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Html, TransformControls } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
@@ -85,6 +85,7 @@ export function Item({ item }: ItemProps) {
   const rotateItem = useStore((s) => s.rotateItem)
 
   const interactive = mode === 'place'
+  const dragTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const onSelect = (e: ThreeEvent<PointerEvent>) => {
     if (!interactive) return
@@ -93,6 +94,9 @@ export function Item({ item }: ItemProps) {
   }
 
   const handleChange = () => {
+    if (!obj) return
+    if (dragTimer.current) clearTimeout(dragTimer.current)
+    dragTimer.current = setTimeout(() => {
     if (!obj) return
     if (transformMode === 'scale') {
       resizeItem(item.id, [obj.scale.x, obj.scale.y, obj.scale.z])
@@ -123,6 +127,7 @@ export function Item({ item }: ItemProps) {
       // fixed in space: free move on all axes, no shelf
       moveItem(item.id, [snapGrid(obj.position.x), obj.position.y, snapGrid(obj.position.z)], null)
     }
+    }, 16)
   }
 
   // In translate mode, attached items lock the Y handle (they ride the shelf);
