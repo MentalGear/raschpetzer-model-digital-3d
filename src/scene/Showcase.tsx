@@ -43,6 +43,7 @@ function ShelfGizmo() {
 export function Showcase() {
   const segments = useStore((s) => s.layout.segments)
   const items = useStore((s) => s.layout.items)
+  const groundOffset = useStore((s) => s.layout.groundOffset)
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected)
   const layout = useStore((s) => s.layout)
@@ -55,18 +56,22 @@ export function Showcase() {
     : null
 
   return (
-    <group>
-      {segments.map((s) => (
-        <Segment key={s.id} segment={s} />
-      ))}
-      {items.map((it) => (
-        <Item key={it.id} item={it} />
-      ))}
-      {seg && segCenter && (
-        <DimensionArrows size={[seg.width, seg.height, seg.depth]} position={segCenter} hideY={planView} hideZ={frontView} />
-      )}
-      <ShelfGizmo />
+    <>
+      {/* People stand on the real floor regardless of groundOffset */}
       <People />
-    </group>
+      {/* The showcase and all items lift by groundOffset (e.g. on a plinth) */}
+      <group position={[0, groundOffset, 0]}>
+        {segments.map((s) => (
+          <Segment key={s.id} segment={s} />
+        ))}
+        {items.map((it) => (
+          <Item key={it.id} item={it} />
+        ))}
+        {seg && segCenter && (
+          <DimensionArrows size={[seg.width, seg.height, seg.depth]} position={segCenter} hideY={planView} hideZ={frontView} />
+        )}
+        <ShelfGizmo />
+      </group>
+    </>
   )
 }

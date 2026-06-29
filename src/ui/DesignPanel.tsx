@@ -40,6 +40,8 @@ export function DesignPanel() {
   const glassTint = useStore((s) => s.layout.glassTint)
   const setGlassOpacity = useStore((s) => s.setGlassOpacity)
   const setGlassTint = useStore((s) => s.setGlassTint)
+  const groundOffset = useStore((s) => s.layout.groundOffset)
+  const setGroundOffset = useStore((s) => s.setGroundOffset)
 
   const seg = selected?.kind === 'segment' ? findSegment(layout, selected.id) : undefined
   const anyUnlinked = segments.some((s) => s.woodBrightness !== undefined)
@@ -48,6 +50,16 @@ export function DesignPanel() {
     <div className="panel">
       <h2>Cabinet design</h2>
       <p className="hint">Click a cabinet in the scene to edit it. Resize values update the live dimension arrows.</p>
+
+      <h3>Scene</h3>
+      <NumberField
+        label="Display height off floor"
+        value={groundOffset}
+        min={0}
+        max={200}
+        onChange={setGroundOffset}
+      />
+      <p className="hint muted">Raises the whole showcase off the ground (e.g. on a plinth). People cutouts stay on the real floor.</p>
 
       <h3>Glass</h3>
       <p className="hint">Tint and opacity for all glass shelves and panels.</p>

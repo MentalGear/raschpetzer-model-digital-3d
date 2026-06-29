@@ -145,7 +145,7 @@ function seedLayout(): Layout {
     makeShelf(1.0, false, 1),
   ])
   cabinet.dividers = [makeDivider(dividerX, panel)]
-  return { version: 1, segments: [cabinet], items: [], woodBrightness: 1, glassOpacity: 0.45, glassTint: '#bcdcea' }
+  return { version: 1, segments: [cabinet], items: [], woodBrightness: 1, glassOpacity: 0.45, glassTint: '#bcdcea', groundOffset: 0 }
 }
 
 /** Backfill fields that may be missing in older saved/persisted layouts. */
@@ -173,6 +173,7 @@ function normalizeLayout(layout: Layout): Layout {
     woodBrightness: layout.woodBrightness ?? 1,
     glassOpacity: layout.glassOpacity ?? 0.45,
     glassTint: layout.glassTint ?? '#bcdcea',
+    groundOffset: layout.groundOffset ?? 0,
   }
 }
 
@@ -229,6 +230,9 @@ export interface StoreState {
   // --- glass appearance (global) ---
   setGlassOpacity: (v: number) => void
   setGlassTint: (color: string) => void
+
+  // --- scene ---
+  setGroundOffset: (v: number) => void
 
   // --- wood brightness (synced / per-cabinet) ---
   setSyncedWoodBrightness: (v: number) => void
@@ -613,6 +617,11 @@ export const useStore = create<StoreState>()(
       setGlassTint: (color) =>
         set((state) => ({
           layout: { ...state.layout, glassTint: color },
+        })),
+
+      setGroundOffset: (v) =>
+        set((state) => ({
+          layout: { ...state.layout, groundOffset: clamp(v, 0, 2) },
         })),
 
       setSyncedWoodBrightness: (v) =>

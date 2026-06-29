@@ -93,6 +93,8 @@ export interface Layout {
   glassOpacity: number
   /** Tint hex colour applied to all glass surfaces. */
   glassTint: string
+  /** Height of the display above the real floor, e.g. on a plinth (metres). People stay at Y=0. */
+  groundOffset: number
 }
 
 export type SelectedKind = 'segment' | 'item' | 'shelf'
