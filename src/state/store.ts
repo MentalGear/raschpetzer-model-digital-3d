@@ -145,7 +145,7 @@ function seedLayout(): Layout {
     makeShelf(1.0, false, 1),
   ])
   cabinet.dividers = [makeDivider(dividerX, panel)]
-  return { version: 1, segments: [cabinet], items: [], woodBrightness: 1 }
+  return { version: 1, segments: [cabinet], items: [], woodBrightness: 1, glassOpacity: 0.45, glassTint: '#bcdcea' }
 }
 
 /** Backfill fields that may be missing in older saved/persisted layouts. */
@@ -171,6 +171,8 @@ function normalizeLayout(layout: Layout): Layout {
       attached: it.attached ?? true,
     })),
     woodBrightness: layout.woodBrightness ?? 1,
+    glassOpacity: layout.glassOpacity ?? 0.45,
+    glassTint: layout.glassTint ?? '#bcdcea',
   }
 }
 
@@ -221,6 +223,10 @@ export interface StoreState {
   setItemAttached: (id: string, attached: boolean) => void
   setItemColor: (id: string, color: string) => void
   removeItem: (id: string) => void
+
+  // --- glass appearance (global) ---
+  setGlassOpacity: (v: number) => void
+  setGlassTint: (color: string) => void
 
   // --- wood brightness (synced / per-cabinet) ---
   setSyncedWoodBrightness: (v: number) => void
@@ -567,6 +573,16 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           selected: state.selected?.id === id ? null : state.selected,
           layout: { ...state.layout, items: state.layout.items.filter((it) => it.id !== id) },
+        })),
+
+      setGlassOpacity: (v) =>
+        set((state) => ({
+          layout: { ...state.layout, glassOpacity: clamp(v, 0.05, 0.9) },
+        })),
+
+      setGlassTint: (color) =>
+        set((state) => ({
+          layout: { ...state.layout, glassTint: color },
         })),
 
       setSyncedWoodBrightness: (v) =>

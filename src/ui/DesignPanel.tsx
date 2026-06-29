@@ -3,6 +3,14 @@ import { formatCm, mToCm, cmToM } from '../state/units'
 import { WOOD_BRIGHTNESS_MAX, WOOD_BRIGHTNESS_MIN } from './theme'
 import { NumberField } from './NumberField'
 
+const GLASS_PRESETS = [
+  { name: 'Clear', value: '#d4eaf5' },
+  { name: 'Blue', value: '#bcdcea' },
+  { name: 'Green', value: '#b8e0c0' },
+  { name: 'Bronze', value: '#d4c4a4' },
+  { name: 'Smoke', value: '#c0c4cc' },
+]
+
 export function DesignPanel() {
   const segments = useStore((s) => s.layout.segments)
   const selected = useStore((s) => s.selected)
@@ -25,6 +33,10 @@ export function DesignPanel() {
   const setSegmentWoodBrightness = useStore((s) => s.setSegmentWoodBrightness)
   const setSegmentWoodLinked = useStore((s) => s.setSegmentWoodLinked)
   const syncAllWood = useStore((s) => s.syncAllWood)
+  const glassOpacity = useStore((s) => s.layout.glassOpacity)
+  const glassTint = useStore((s) => s.layout.glassTint)
+  const setGlassOpacity = useStore((s) => s.setGlassOpacity)
+  const setGlassTint = useStore((s) => s.setGlassTint)
 
   const seg = selected?.kind === 'segment' ? findSegment(layout, selected.id) : undefined
   const anyUnlinked = segments.some((s) => s.woodBrightness !== undefined)
@@ -281,6 +293,37 @@ export function DesignPanel() {
       ) : (
         <p className="hint muted">No cabinet selected.</p>
       )}
+
+      <div>
+        <h3>Glass</h3>
+        <p className="hint">Tint and opacity for all glass shelves and panels.</p>
+        <div className="glass-tints">
+          {GLASS_PRESETS.map((p) => (
+            <button
+              key={p.value}
+              className={`tint-swatch${glassTint === p.value ? ' active' : ''}`}
+              style={{ background: p.value }}
+              title={p.name}
+              aria-label={`Glass tint: ${p.name}`}
+              aria-pressed={glassTint === p.value}
+              onClick={() => setGlassTint(p.value)}
+            />
+          ))}
+        </div>
+        <div className="wood-row" style={{ marginTop: 8 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 48 }}>Opacity</span>
+          <input
+            type="range"
+            aria-label="Glass opacity"
+            min={5}
+            max={85}
+            step={5}
+            value={Math.round(glassOpacity * 100)}
+            onChange={(e) => setGlassOpacity(parseFloat(e.target.value) / 100)}
+          />
+          <span className="unit">{Math.round(glassOpacity * 100)}%</span>
+        </div>
+      </div>
     </div>
   )
 }

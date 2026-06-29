@@ -83,6 +83,10 @@ export interface Layout {
   items: Item[]
   /** Shared wood-brightness value used by all cabinets that are "linked" (synced). */
   woodBrightness: number
+  /** Glass opacity for all shelves and glass panels (0.1 = nearly clear, 0.8 = quite opaque). */
+  glassOpacity: number
+  /** Tint hex colour applied to all glass surfaces. */
+  glassTint: string
 }
 
 export type SelectedKind = 'segment' | 'item' | 'shelf'

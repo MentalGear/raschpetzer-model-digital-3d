@@ -7,8 +7,16 @@ import { compartments, useStore } from '../state/store'
 
 const WOOD_COLOR = '#7a4a24'
 const DIVIDER_COLOR = '#946134' // lighter so structural panels read as distinct
-const GLASS_COLOR = '#bcdcea'
-const GLASS_EDGE = '#eaf6ff'
+
+/** Derive a lighter edge highlight from the glass tint by blending 65% toward white. */
+function glassEdge(tint: string): string {
+  const c = new THREE.Color(tint)
+  return '#' + new THREE.Color(
+    Math.min(1, c.r + (1 - c.r) * 0.65),
+    Math.min(1, c.g + (1 - c.g) * 0.65),
+    Math.min(1, c.b + (1 - c.b) * 0.65),
+  ).getHexString()
+}
 
 /** Scale a hex colour's brightness, clamped to a displayable range. */
 function scaleColor(hex: string, factor: number): string {
@@ -32,6 +40,8 @@ export function Segment({ segment }: SegmentProps) {
   const placing = useStore((s) => s.placing)
   const syncedBrightness = useStore((s) => s.layout.woodBrightness)
   const woodBrightness = segment.woodBrightness ?? syncedBrightness
+  const glassTint = useStore((s) => s.layout.glassTint)
+  const glassOpacity = useStore((s) => s.layout.glassOpacity)
   const [hovered, setHovered] = useState(false)
 
   const woodColor = useMemo(() => scaleColor(WOOD_COLOR, woodBrightness), [woodBrightness])
@@ -108,11 +118,11 @@ export function Segment({ segment }: SegmentProps) {
           <mesh key={dv.id} position={[xLocal, h / 2, 0]} castShadow={!isGlass} receiveShadow>
             <boxGeometry args={[dv.thickness, Math.max(0.001, h - 2 * t), innerD]} />
             {isGlass ? (
-              <meshStandardMaterial color={GLASS_COLOR} transparent opacity={0.4} roughness={0.04} metalness={0.1} />
+              <meshStandardMaterial color={glassTint} transparent opacity={glassOpacity * 0.9} roughness={0.04} metalness={0.1} />
             ) : (
               wood(dividerColor)
             )}
-            <Edges threshold={15} color={isGlass ? GLASS_EDGE : '#caa46a'} />
+            <Edges threshold={15} color={isGlass ? glassEdge(glassTint) : '#caa46a'} />
           </mesh>
         )
       })}
@@ -130,6 +140,8 @@ export function Segment({ segment }: SegmentProps) {
             centerX={centerX}
             innerD={innerD}
             placing={placing}
+            glassTint={glassTint}
+            glassOpacity={glassOpacity}
           />
         )
       })}
@@ -146,12 +158,14 @@ interface ShelfMeshProps {
   centerX: number
   innerD: number
   placing: boolean
+  glassTint: string
+  glassOpacity: number
 }
 
 /** A glass shelf. Selectable in placement mode (its vertical move gizmo lives in
  *  Showcase so it isn't double-offset by the segment group). Highlights blue when
  *  selected or while an item is being dragged (valid drop target). */
-function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing }: ShelfMeshProps) {
+function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing, glassTint, glassOpacity }: ShelfMeshProps) {
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected?.kind === 'shelf' && s.selected.id === shelf.id)
   const select = useStore((s) => s.select)
@@ -174,15 +188,15 @@ function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing }: ShelfM
     >
       <boxGeometry args={[width, shelf.thickness, innerD]} />
       <meshStandardMaterial
-        color={hot ? '#7fc4ff' : GLASS_COLOR}
+        color={hot ? '#7fc4ff' : glassTint}
         transparent
-        opacity={hot ? 0.7 : 0.45}
+        opacity={hot ? Math.min(0.85, glassOpacity + 0.3) : glassOpacity}
         roughness={0.04}
         metalness={0.1}
         emissive={hot ? '#2b7fff' : '#000000'}
         emissiveIntensity={selected ? 0.65 : placing ? 0.5 : 0}
       />
-      <Edges threshold={15} color={hot ? '#2b7fff' : GLASS_EDGE} />
+      <Edges threshold={15} color={hot ? '#2b7fff' : glassEdge(glassTint)} />
     </mesh>
   )
 }
