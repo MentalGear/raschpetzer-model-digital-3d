@@ -205,6 +205,13 @@ input[type='range']::-moz-range-thumb {
   flex: 1; height: 34px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px;
   background: var(--input-bg); color: var(--text); font-family: ui-monospace, monospace; font-size: 13px;
 }
+.btn-row { display: flex; gap: 8px; margin-top: 8px; }
+.btn-row .mini {
+  flex: 1; min-height: 32px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--panel-2); color: var(--text); cursor: pointer; font-size: 12px;
+}
+.btn-row .mini:hover { border-color: var(--accent); color: var(--accent); }
+
 .color-presets { display: flex; gap: 6px; margin-top: 8px; }
 .color-chip {
   width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; padding: 0;
@@ -236,6 +243,8 @@ button.icon {
   min-width: 30px; min-height: 30px; border-radius: 6px;
 }
 button.icon:hover { background: var(--accent-weak); }
+button.icon.toggle { color: var(--muted); font-size: 12px; }
+button.icon.toggle.on { color: var(--accent); }
 /* destructive actions stay subordinate to constructive ones (quiet text link) */
 button.block {
   display: inline-flex; align-items: center; gap: 6px; width: auto; min-height: 36px;

@@ -10,9 +10,11 @@ export function DesignPanel() {
   const addSegment = useStore((s) => s.addSegment)
   const removeSegment = useStore((s) => s.removeSegment)
   const resizeSegment = useStore((s) => s.resizeSegment)
+  const setFrameThickness = useStore((s) => s.setFrameThickness)
   const addShelf = useStore((s) => s.addShelf)
   const removeShelf = useStore((s) => s.removeShelf)
   const setShelfHeight = useStore((s) => s.setShelfHeight)
+  const setShelfMovable = useStore((s) => s.setShelfMovable)
   const addDivider = useStore((s) => s.addDivider)
   const removeDivider = useStore((s) => s.removeDivider)
   const setDividerX = useStore((s) => s.setDividerX)
@@ -45,6 +47,16 @@ export function DesignPanel() {
           <NumberField label="Width" value={seg.width} onChange={(m) => resizeSegment(seg.id, { width: m })} />
           <NumberField label="Height" value={seg.height} onChange={(m) => resizeSegment(seg.id, { height: m })} />
           <NumberField label="Depth" value={seg.depth} onChange={(m) => resizeSegment(seg.id, { depth: m })} />
+          <NumberField
+            label="Wall thickness"
+            value={seg.frameThickness}
+            min={0.5}
+            max={20}
+            onChange={(m) => setFrameThickness(seg.id, m)}
+          />
+          <p className="hint muted">
+            Inner space: {formatCm(innerWidth(seg))} W × {formatCm(seg.depth - 2 * seg.frameThickness)} D
+          </p>
 
           <h3>Glass shelves</h3>
           <p className="hint">Height of each shelf above the cabinet floor.</p>
@@ -75,12 +87,21 @@ export function DesignPanel() {
                   }}
                 />
                 <span className="unit">cm</span>
+                <button
+                  className={`icon toggle${sh.movable ? ' on' : ''}`}
+                  title={sh.movable ? 'Movable in placement mode (click to lock)' : 'Locked (click to allow moving in placement mode)'}
+                  aria-pressed={sh.movable}
+                  onClick={() => setShelfMovable(seg.id, sh.id, !sh.movable)}
+                >
+                  {sh.movable ? '🔓↕' : '🔒'}
+                </button>
                 <button className="icon danger" title="Remove shelf" onClick={() => removeShelf(seg.id, sh.id)}>
                   ✕
                 </button>
               </div>
             ))}
           </div>
+          <p className="hint muted">🔓↕ = movable along Y in placement mode.</p>
           <button className="add" onClick={() => addShelf(seg.id)}>
             + Add shelf
           </button>

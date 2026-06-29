@@ -15,13 +15,20 @@ export interface Item {
   type: ItemType
   /** World position of the object's centre (metres). */
   position: Vec3
-  /** Rotation about the Y axis (radians). */
+  /** Rotation about the Y axis (radians) — turntable spin. */
   rotationY: number
+  /** Tilt about the X axis (radians) — lean/lay-flat. */
+  rotationX: number
   /** Bounding dimensions in metres [width, height, depth] = the object's scale. */
   size: Vec3
   color: string
   /** Shelf the item currently rests on, if any. */
   shelfId: string | null
+  /**
+   * true  = rests on its contact surface; follows its shelf and re-seats on tilt.
+   * false = fixed in space; free to move on all axes and ignores the shelf.
+   */
+  attached: boolean
 }
 
 /** A horizontal glass panel inside a segment. */
@@ -31,6 +38,8 @@ export interface Shelf {
   height: number
   /** Glass thickness (metres). */
   thickness: number
+  /** Whether this shelf can be moved along Y while in placement mode. Set in Design. */
+  movable: boolean
 }
 
 /** A vertical wooden separation panel splitting a segment into compartments. */
@@ -61,7 +70,7 @@ export interface Layout {
   items: Item[]
 }
 
-export type SelectedKind = 'segment' | 'item'
+export type SelectedKind = 'segment' | 'item' | 'shelf'
 
 export interface Selection {
   kind: SelectedKind

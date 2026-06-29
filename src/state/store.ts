@@ -26,7 +26,7 @@ const defaultItemColor = '#c9a14a'
 const DEFAULT_ITEM_SIZE: Vec3 = [0.2, 0.2, 0.2]
 
 function makeShelf(height: number): Shelf {
-  return { id: uid(), height, thickness: 0.01 }
+  return { id: uid(), height, thickness: 0.01, movable: true }
 }
 
 function makeDivider(x: number): Divider {
@@ -54,6 +54,19 @@ export const innerWidth = (s: Segment): number => Math.max(0.001, s.width - 2 * 
 /** Right edge X of a segment in world space. */
 const segRight = (s: Segment): number => s.position[0] + s.width / 2
 
+/** World Y of a shelf's top surface. */
+const shelfTopY = (seg: Segment, sh: Shelf): number => seg.position[1] + sh.height + sh.thickness / 2
+
+/** Half-height of an item's bounding box once tilted about X. */
+function tiltedHalfHeight(size: Vec3, rotationX: number): number {
+  return (Math.abs(Math.cos(rotationX)) * size[1] + Math.abs(Math.sin(rotationX)) * size[2]) / 2
+}
+
+/** Y position that seats an item on a given surface, accounting for tilt. */
+export function seatedY(size: Vec3, rotationX: number, topY: number): number {
+  return topY + tiltedHalfHeight(size, rotationX)
+}
+
 function seedLayout(): Layout {
   return { version: 1, segments: [makeSegment(0)], items: [] }
 }
@@ -62,8 +75,16 @@ function seedLayout(): Layout {
 function normalizeLayout(layout: Layout): Layout {
   return {
     version: layout.version ?? 1,
-    segments: (layout.segments ?? []).map((s) => ({ ...s, dividers: s.dividers ?? [] })),
-    items: layout.items ?? [],
+    segments: (layout.segments ?? []).map((s) => ({
+      ...s,
+      dividers: s.dividers ?? [],
+      shelves: (s.shelves ?? []).map((sh) => ({ ...sh, movable: sh.movable ?? true })),
+    })),
+    items: (layout.items ?? []).map((it) => ({
+      ...it,
+      rotationX: it.rotationX ?? 0,
+      attached: it.attached ?? true,
+    })),
   }
 }
 
@@ -85,11 +106,13 @@ export interface StoreState {
   addSegment: () => void
   removeSegment: (id: string) => void
   resizeSegment: (id: string, dims: Partial<Pick<Segment, 'width' | 'height' | 'depth'>>) => void
+  setFrameThickness: (id: string, t: number) => void
 
   // --- shelves ---
   addShelf: (segmentId: string) => void
   removeShelf: (segmentId: string, shelfId: string) => void
   setShelfHeight: (segmentId: string, shelfId: string, height: number) => void
+  setShelfMovable: (segmentId: string, shelfId: string, movable: boolean) => void
 
   // --- dividers (vertical separation panels) ---
   addDivider: (segmentId: string) => void
@@ -101,6 +124,8 @@ export interface StoreState {
   moveItem: (id: string, position: Vec3, shelfId?: string | null) => void
   resizeItem: (id: string, size: Vec3) => void
   rotateItem: (id: string, rotationY: number) => void
+  tiltItem: (id: string, rotationX: number) => void
+  setItemAttached: (id: string, attached: boolean) => void
   setItemColor: (id: string, color: string) => void
   removeItem: (id: string) => void
 
@@ -188,6 +213,21 @@ export const useStore = create<StoreState>()(
           }),
         })),
 
+      setFrameThickness: (id, t) =>
+        set((state) => ({
+          layout: updateSegment(state.layout, id, (s) => {
+            // wall thickness is bounded so inner space never collapses
+            const maxT = Math.min(s.width, s.depth) / 2 - 0.005
+            const frameThickness = clamp(t, 0.005, Math.max(0.005, maxT))
+            const iw = Math.max(0.001, s.width - 2 * frameThickness)
+            return {
+              ...s,
+              frameThickness,
+              dividers: s.dividers.map((dv) => ({ ...dv, x: clamp(dv.x, 0, iw) })),
+            }
+          }),
+        })),
+
       addShelf: (segmentId) =>
         set((state) => ({
           layout: updateSegment(state.layout, segmentId, (s) => ({
@@ -210,12 +250,41 @@ export const useStore = create<StoreState>()(
         })),
 
       setShelfHeight: (segmentId, shelfId, height) =>
+        set((state) => {
+          const seg = state.layout.segments.find((s) => s.id === segmentId)
+          if (!seg) return state
+          const sh = seg.shelves.find((x) => x.id === shelfId)
+          if (!sh) return state
+          const newShelf: Shelf = { ...sh, height: clamp(height, 0, seg.height) }
+          const newTop = shelfTopY(seg, newShelf)
+          return {
+            layout: {
+              ...updateSegment(state.layout, segmentId, (s2) => ({
+                ...s2,
+                shelves: s2.shelves.map((x) => (x.id === shelfId ? newShelf : x)),
+              })),
+              // attached items ride the shelf as it moves
+              items: state.layout.items.map((it) =>
+                it.shelfId === shelfId && it.attached
+                  ? {
+                      ...it,
+                      position: [
+                        it.position[0],
+                        seatedY(it.size, it.rotationX, newTop),
+                        it.position[2],
+                      ] as Vec3,
+                    }
+                  : it,
+              ),
+            } as Layout,
+          }
+        }),
+
+      setShelfMovable: (segmentId, shelfId, movable) =>
         set((state) => ({
           layout: updateSegment(state.layout, segmentId, (s) => ({
             ...s,
-            shelves: s.shelves.map((sh) =>
-              sh.id === shelfId ? { ...sh, height: clamp(height, 0, s.height) } : sh,
-            ),
+            shelves: s.shelves.map((sh) => (sh.id === shelfId ? { ...sh, movable } : sh)),
           })),
         })),
 
@@ -266,9 +335,11 @@ export const useStore = create<StoreState>()(
             type,
             position,
             rotationY: 0,
+            rotationX: 0,
             size: [...DEFAULT_ITEM_SIZE] as Vec3,
             color: defaultItemColor,
             shelfId,
+            attached: shelfId !== null,
           }
           return {
             layout: { ...state.layout, items: [...state.layout.items, item] },
@@ -292,18 +363,20 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           layout: {
             ...state.layout,
-            items: state.layout.items.map((it) =>
-              it.id === id
-                ? {
-                    ...it,
-                    size: [
-                      clamp(size[0], 0.01, 3),
-                      clamp(size[1], 0.01, 3),
-                      clamp(size[2], 0.01, 3),
-                    ] as Vec3,
-                  }
-                : it,
-            ),
+            items: state.layout.items.map((it) => {
+              if (it.id !== id) return it
+              const newSize: Vec3 = [
+                clamp(size[0], 0.01, 3),
+                clamp(size[1], 0.01, 3),
+                clamp(size[2], 0.01, 3),
+              ]
+              const top = shelfTopForItem(state.layout, it.shelfId)
+              const position: Vec3 =
+                it.attached && top !== null
+                  ? [it.position[0], seatedY(newSize, it.rotationX, top), it.position[2]]
+                  : it.position
+              return { ...it, size: newSize, position }
+            }),
           },
         })),
 
@@ -312,6 +385,49 @@ export const useStore = create<StoreState>()(
           layout: {
             ...state.layout,
             items: state.layout.items.map((it) => (it.id === id ? { ...it, rotationY } : it)),
+          },
+        })),
+
+      tiltItem: (id, rotationX) =>
+        set((state) => ({
+          layout: {
+            ...state.layout,
+            items: state.layout.items.map((it) => {
+              if (it.id !== id) return it
+              const top = shelfTopForItem(state.layout, it.shelfId)
+              const position: Vec3 =
+                it.attached && top !== null
+                  ? [it.position[0], seatedY(it.size, rotationX, top), it.position[2]]
+                  : it.position
+              return { ...it, rotationX, position }
+            }),
+          },
+        })),
+
+      setItemAttached: (id, attached) =>
+        set((state) => ({
+          layout: {
+            ...state.layout,
+            items: state.layout.items.map((it) => {
+              if (it.id !== id) return it
+              if (!attached) return { ...it, attached: false }
+              // re-attach: snap to the nearest shelf surface below/at the item
+              const surfaces = shelfSurfaces(state.layout)
+              if (!surfaces.length) return { ...it, attached: true }
+              const half = tiltedHalfHeight(it.size, it.rotationX)
+              const nearest = surfaces.reduce((best, s) =>
+                Math.abs(s.topY + half - it.position[1]) <
+                Math.abs(best.topY + half - it.position[1])
+                  ? s
+                  : best,
+              )
+              return {
+                ...it,
+                attached: true,
+                shelfId: nearest.shelfId,
+                position: [it.position[0], nearest.topY + half, it.position[2]] as Vec3,
+              }
+            }),
           },
         })),
 
@@ -345,6 +461,11 @@ export const useStore = create<StoreState>()(
   ),
 )
 
+// Dev-only handle for automated/manual testing in the browser console.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  ;(window as unknown as { __store?: typeof useStore }).__store = useStore
+}
+
 // ---- selectors / helpers (outside the store to avoid re-renders) ----
 
 export interface ShelfSurface {
@@ -371,6 +492,26 @@ export function shelfSurfaces(layout: Layout): ShelfSurface[] {
 
 export function findItem(layout: Layout, id: string): Item | undefined {
   return layout.items.find((it) => it.id === id)
+}
+
+export interface ShelfRef {
+  segment: Segment
+  shelf: Shelf
+}
+
+export function findShelf(layout: Layout, shelfId: string): ShelfRef | undefined {
+  for (const segment of layout.segments) {
+    const shelf = segment.shelves.find((sh) => sh.id === shelfId)
+    if (shelf) return { segment, shelf }
+  }
+  return undefined
+}
+
+/** World Y of the top surface of the shelf an item rests on (null if none). */
+function shelfTopForItem(layout: Layout, shelfId: string | null): number | null {
+  if (!shelfId) return null
+  const ref = findShelf(layout, shelfId)
+  return ref ? shelfTopY(ref.segment, ref.shelf) : null
 }
 
 export function findSegment(layout: Layout, id: string): Segment | undefined {

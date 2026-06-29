@@ -111,8 +111,10 @@ export default function App() {
         ? { text: 'Editing cabinet — drag handles or use the panel', cta: false }
         : { text: 'Click a cabinet to start editing', cta: true }
       : selected?.kind === 'item'
-        ? { text: 'Editing item — Move · Rotate · Resize in the panel', cta: false }
-        : { text: 'Drag a shape from the palette onto a shelf', cta: true }
+        ? { text: 'Editing item — Move · Rotate · Tilt in the panel', cta: false }
+        : selected?.kind === 'shelf'
+          ? { text: 'Editing shelf — drag the vertical gizmo to move it', cta: false }
+          : { text: 'Drag a shape onto a shelf, or click a shelf to move it', cta: true }
 
   return (
     <div className="app">

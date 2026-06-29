@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { Edges } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
-import type { Segment as SegmentT } from '../state/types'
+import type { Segment as SegmentT, Shelf } from '../state/types'
 import { useStore } from '../state/store'
 import { useTheme } from '../ui/theme'
 
@@ -114,25 +114,55 @@ export function Segment({ segment }: SegmentProps) {
 
       {/* glass shelves */}
       {shelves.map((sh) => (
-        <mesh
-          key={sh.id}
-          position={[0, sh.height, 0]}
-          userData={{ shelfId: sh.id, segmentId: segment.id }}
-          name={`shelf:${sh.id}`}
-        >
-          <boxGeometry args={[innerW, sh.thickness, innerD]} />
-          <meshStandardMaterial
-            color={placing ? '#7fc4ff' : GLASS_COLOR}
-            transparent
-            opacity={placing ? 0.7 : 0.45}
-            roughness={0.04}
-            metalness={0.1}
-            emissive={placing ? '#2b7fff' : '#000000'}
-            emissiveIntensity={placing ? 0.5 : 0}
-          />
-          <Edges threshold={15} color={placing ? '#2b7fff' : GLASS_EDGE} />
-        </mesh>
+        <ShelfMesh key={sh.id} segmentId={segment.id} shelf={sh} innerW={innerW} innerD={innerD} placing={placing} />
       ))}
     </group>
+  )
+}
+
+interface ShelfMeshProps {
+  segmentId: string
+  shelf: Shelf
+  innerW: number
+  innerD: number
+  placing: boolean
+}
+
+/** A glass shelf. Selectable in placement mode (its vertical move gizmo lives in
+ *  Showcase so it isn't double-offset by the segment group). Highlights blue when
+ *  selected or while an item is being dragged (valid drop target). */
+function ShelfMesh({ segmentId, shelf, innerW, innerD, placing }: ShelfMeshProps) {
+  const mode = useStore((s) => s.mode)
+  const selected = useStore((s) => s.selected?.kind === 'shelf' && s.selected.id === shelf.id)
+  const select = useStore((s) => s.select)
+
+  const onDown = (e: ThreeEvent<PointerEvent>) => {
+    // only movable shelves are interactive, and only in placement mode;
+    // otherwise let the click bubble to the cabinet (design selection)
+    if (mode !== 'place' || !shelf.movable) return
+    e.stopPropagation()
+    select({ kind: 'shelf', id: shelf.id })
+  }
+
+  const hot = selected || placing
+  return (
+    <mesh
+      position={[0, shelf.height, 0]}
+      userData={{ shelfId: shelf.id, segmentId }}
+      name={`shelf:${shelf.id}`}
+      onPointerDown={onDown}
+    >
+      <boxGeometry args={[innerW, shelf.thickness, innerD]} />
+      <meshStandardMaterial
+        color={hot ? '#7fc4ff' : GLASS_COLOR}
+        transparent
+        opacity={hot ? 0.7 : 0.45}
+        roughness={0.04}
+        metalness={0.1}
+        emissive={hot ? '#2b7fff' : '#000000'}
+        emissiveIntensity={selected ? 0.65 : placing ? 0.5 : 0}
+      />
+      <Edges threshold={15} color={hot ? '#2b7fff' : GLASS_EDGE} />
+    </mesh>
   )
 }
