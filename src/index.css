@@ -189,6 +189,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
   background: var(--accent); border-radius: 999px; pointer-events: none;
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
 }
+.plan-view-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: var(--accent);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0.9;
+}
 
 /* ---- side panel ---- */
 .side-panel {

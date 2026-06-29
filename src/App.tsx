@@ -23,6 +23,7 @@ export default function App() {
   const dropActive = useStore((s) => s.placing)
   const setDropActive = useStore((s) => s.setPlacing)
   const theme = useTheme((s) => s.theme)
+  const planView = useTheme((s) => s.planView)
 
   // Apply the theme to the document root so CSS variables switch.
   useEffect(() => {
@@ -167,6 +168,9 @@ export default function App() {
             <Showcase />
           </Canvas>
           <div className={`mode-badge${badge.cta ? ' cta' : ''}`}>{badge.text}</div>
+          {planView && (
+            <div className="plan-view-badge">📐 Plan view — top-down layout</div>
+          )}
           {dropActive && <div className="drop-hint">Drop onto a shelf</div>}
         </div>
         <SidePanel />

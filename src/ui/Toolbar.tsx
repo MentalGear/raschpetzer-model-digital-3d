@@ -16,6 +16,8 @@ export function Toolbar() {
   const toggleTheme = useTheme((s) => s.toggle)
   const showPeople = useTheme((s) => s.showPeople)
   const togglePeople = useTheme((s) => s.togglePeople)
+  const planView = useTheme((s) => s.planView)
+  const togglePlanView = useTheme((s) => s.togglePlanView)
   const canUndo = useHistoryStore((s) => s.canUndo)
   const canRedo = useHistoryStore((s) => s.canRedo)
 
@@ -68,6 +70,14 @@ export function Toolbar() {
           title="Show human cutouts in front of the showcase for real-life scale"
         >
           🧍 People
+        </button>
+        <button
+          className={`people-toggle${planView ? ' active' : ''}`}
+          onClick={togglePlanView}
+          aria-pressed={planView}
+          title="Top-down plan view"
+        >
+          📐 Plan
         </button>
         <button
           className="theme-toggle"

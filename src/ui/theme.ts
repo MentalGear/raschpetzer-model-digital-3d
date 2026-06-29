@@ -4,6 +4,7 @@ export type Theme = 'light' | 'dark'
 
 const KEY = 'vitrine:theme'
 const PEOPLE_KEY = 'vitrine:people'
+const PLANVIEW_KEY = 'vitrine:planview'
 
 const has = typeof localStorage !== 'undefined'
 
@@ -24,13 +25,17 @@ interface ThemeState {
   theme: Theme
   /** Show human silhouette cutouts in front of the showcase for real-life scale. */
   showPeople: boolean
+  /** Orthographic top-down plan view mode. */
+  planView: boolean
   toggle: () => void
   togglePeople: () => void
+  togglePlanView: () => void
 }
 
 export const useTheme = create<ThemeState>((set, get) => ({
   theme: initialTheme(),
   showPeople: has ? localStorage.getItem(PEOPLE_KEY) === '1' : false,
+  planView: has ? localStorage.getItem(PLANVIEW_KEY) === '1' : false,
   toggle: () => {
     const next: Theme = get().theme === 'dark' ? 'light' : 'dark'
     if (has) localStorage.setItem(KEY, next)
@@ -40,6 +45,11 @@ export const useTheme = create<ThemeState>((set, get) => ({
     const next = !get().showPeople
     if (has) localStorage.setItem(PEOPLE_KEY, next ? '1' : '0')
     set({ showPeople: next })
+  },
+  togglePlanView: () => {
+    const next = !get().planView
+    if (has) localStorage.setItem(PLANVIEW_KEY, next ? '1' : '0')
+    set({ planView: next })
   },
 }))
 

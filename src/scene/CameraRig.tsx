@@ -1,12 +1,14 @@
-import { ContactShadows, Grid, OrbitControls } from '@react-three/drei'
+import { ContactShadows, Grid, OrbitControls, OrthographicCamera } from '@react-three/drei'
 import { useTheme } from '../ui/theme'
 import { useStore } from '../state/store'
+import * as THREE from 'three'
 
 /** Lights, ground grid, contact shadow and orbit camera. OrbitControls is the
  *  default controls so drei's TransformControls auto-pauses it while dragging. */
 export function CameraRig() {
   const dark = useTheme((s) => s.theme === 'dark')
   const itemSelected = useStore((s) => s.selected?.kind === 'item')
+  const planView = useTheme((s) => s.planView)
 
   return (
     <>
@@ -47,14 +49,37 @@ export function CameraRig() {
         position={[0, 0, 0]}
       />
 
-      <OrbitControls
-        makeDefault
-        enableDamping
-        dampingFactor={0.1}
-        maxPolarAngle={Math.PI / 2}
-        target={[0, 1.0, 0]}
-        keys={itemSelected ? { LEFT: '', UP: '', RIGHT: '', BOTTOM: '' } as never : undefined}
-      />
+      {planView ? (
+        <>
+          <OrthographicCamera
+            makeDefault
+            position={[0, 12, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            zoom={80}
+            near={0.01}
+            far={200}
+          />
+          <OrbitControls
+            makeDefault
+            enableRotate={false}
+            screenSpacePanning={true}
+            mouseButtons={{
+              LEFT: THREE.MOUSE.PAN,
+              MIDDLE: THREE.MOUSE.DOLLY,
+              RIGHT: THREE.MOUSE.PAN,
+            }}
+          />
+        </>
+      ) : (
+        <OrbitControls
+          makeDefault
+          enableDamping
+          dampingFactor={0.1}
+          maxPolarAngle={Math.PI / 2}
+          target={[0, 1.0, 0]}
+          keys={itemSelected ? { LEFT: '', UP: '', RIGHT: '', BOTTOM: '' } as never : undefined}
+        />
+      )}
     </>
   )
 }
