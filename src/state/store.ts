@@ -784,31 +784,26 @@ export const useStore = create<StoreState>()(
             .filter((it): it is Item => !!it)
           if (sel.length < 2) return state
 
+          // Bounding-box edge helpers — use reduce instead of Math.min/max(...spread)
+          // to avoid RangeError on very large selections.
+          const minEdge = (ax: 0 | 1 | 2) =>
+            sel.reduce((m, i) => Math.min(m, i.position[ax] - i.size[ax] / 2), Infinity)
+          const maxEdge = (ax: 0 | 1 | 2) =>
+            sel.reduce((m, i) => Math.max(m, i.position[ax] + i.size[ax] / 2), -Infinity)
+
           const newPos = (it: Item): Vec3 => {
             const [x, y, z] = it.position
             const [w, h, d] = it.size
             switch (axis) {
-              case 'left': return [Math.min(...sel.map((i) => i.position[0] - i.size[0] / 2)) + w / 2, y, z]
-              case 'centerX': {
-                const lo = Math.min(...sel.map((i) => i.position[0] - i.size[0] / 2))
-                const hi = Math.max(...sel.map((i) => i.position[0] + i.size[0] / 2))
-                return [(lo + hi) / 2, y, z]
-              }
-              case 'right': return [Math.max(...sel.map((i) => i.position[0] + i.size[0] / 2)) - w / 2, y, z]
-              case 'front': return [x, y, Math.min(...sel.map((i) => i.position[2] - i.size[2] / 2)) + d / 2]
-              case 'centerZ': {
-                const lo = Math.min(...sel.map((i) => i.position[2] - i.size[2] / 2))
-                const hi = Math.max(...sel.map((i) => i.position[2] + i.size[2] / 2))
-                return [x, y, (lo + hi) / 2]
-              }
-              case 'back': return [x, y, Math.max(...sel.map((i) => i.position[2] + i.size[2] / 2)) - d / 2]
-              case 'bottom': return [x, Math.min(...sel.map((i) => i.position[1] - i.size[1] / 2)) + h / 2, z]
-              case 'middleY': {
-                const lo = Math.min(...sel.map((i) => i.position[1] - i.size[1] / 2))
-                const hi = Math.max(...sel.map((i) => i.position[1] + i.size[1] / 2))
-                return [x, (lo + hi) / 2, z]
-              }
-              case 'top': return [x, Math.max(...sel.map((i) => i.position[1] + i.size[1] / 2)) - h / 2, z]
+              case 'left':    return [minEdge(0) + w / 2, y, z]
+              case 'centerX': return [(minEdge(0) + maxEdge(0)) / 2, y, z]
+              case 'right':   return [maxEdge(0) - w / 2, y, z]
+              case 'front':   return [x, y, minEdge(2) + d / 2]
+              case 'centerZ': return [x, y, (minEdge(2) + maxEdge(2)) / 2]
+              case 'back':    return [x, y, maxEdge(2) - d / 2]
+              case 'bottom':  return [x, minEdge(1) + h / 2, z]
+              case 'middleY': return [x, (minEdge(1) + maxEdge(1)) / 2, z]
+              case 'top':     return [x, maxEdge(1) - h / 2, z]
             }
           }
 

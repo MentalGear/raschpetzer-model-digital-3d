@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { findItem, findShelf, useStore } from '../state/store'
 import type { TransformMode, Vec3 } from '../state/types'
 import { PRIMITIVE_LABELS } from '../scene/primitives'
@@ -115,6 +115,10 @@ export function PropertiesPanel() {
   const alignItems = useStore((s) => s.alignItems)
   const patchItem = useStore((s) => s.patchItem)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+  // Local draft for the font-size slider so dragging previews without flooding the store.
+  const selectedItem = selected?.kind === 'item' ? layout.items.find((it) => it.id === selected.id) : undefined
+  const [draftFontSize, setDraftFontSize] = useState(selectedItem?.labelFontSize ?? 30)
+  useEffect(() => { setDraftFontSize(selectedItem?.labelFontSize ?? 30) }, [selectedItem?.id, selectedItem?.labelFontSize])
 
   if (multiSelected.length >= 2) {
     const involvedGroups = [...new Set(
@@ -319,10 +323,11 @@ export function PropertiesPanel() {
                 min={10}
                 max={72}
                 step={1}
-                value={item.labelFontSize ?? 30}
-                onChange={(e) => patchItem(item.id, { labelFontSize: parseInt(e.target.value) })}
+                value={draftFontSize}
+                onChange={(e) => setDraftFontSize(parseInt(e.target.value))}
+                onMouseUp={(e) => patchItem(item.id, { labelFontSize: parseInt((e.target as HTMLInputElement).value) })}
               />
-              <span className="unit">{item.labelFontSize ?? 30}px</span>
+              <span className="unit">{draftFontSize}px</span>
             </div>
           </label>
         </>

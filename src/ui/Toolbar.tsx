@@ -146,7 +146,14 @@ export function Toolbar() {
               {views.map((v) => (
                 <div key={v.name} className="views-row">
                   <span className="views-name">{v.name}</span>
-                  <button className="mini" onClick={() => { requestLoad(v.name); setViewsOpen(false) }}>Go</button>
+                  <button className="mini" onClick={() => {
+                    // Exit plan/front view before loading so the exit-camera effect
+                    // (declared first in CameraRig) resets then the load effect wins.
+                    if (planView) togglePlanView()
+                    if (frontView) toggleFrontView()
+                    requestLoad(v.name)
+                    setViewsOpen(false)
+                  }}>Go</button>
                   <button className="mini danger" onClick={() => deleteView(v.name)} title="Delete view" aria-label={`Delete view ${v.name}`}>✕</button>
                 </div>
               ))}

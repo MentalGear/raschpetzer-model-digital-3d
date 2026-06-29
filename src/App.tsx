@@ -57,8 +57,10 @@ export default function App() {
       }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault()
-        const { selected: sel } = useStore.getState()
-        if (sel?.kind === 'item') useStore.getState().duplicateItem(sel.id)
+        if (!typing()) {
+          const { selected: sel } = useStore.getState()
+          if (sel?.kind === 'item') useStore.getState().duplicateItem(sel.id)
+        }
         return
       }
       if (typing()) return

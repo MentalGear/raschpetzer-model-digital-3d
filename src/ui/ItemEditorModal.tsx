@@ -401,8 +401,10 @@ export function ItemEditorModal() {
                       item: { ...draft, rotationY: (parseFloat(e.target.value) * Math.PI) / 180 },
                     })
                   }}
-                  onMouseUp={(e) => {
-                    commit({ rotationY: (parseFloat((e.target as HTMLInputElement).value) * Math.PI) / 180 })
+                  onMouseUp={() => {
+                    // Use draft.rotationY (React state) not e.target.value (DOM) so that
+                    // Ctrl+Z pressed mid-drag is not silently reversed by the mouseUp commit.
+                    commit({ rotationY: draft.rotationY })
                   }}
                 />
                 <input
@@ -444,8 +446,8 @@ export function ItemEditorModal() {
                       },
                     })
                   }
-                  onMouseUp={(e) =>
-                    commit({ rotationX: (parseFloat((e.target as HTMLInputElement).value) * Math.PI) / 180 })
+                  onMouseUp={() =>
+                    commit({ rotationX: draft.rotationX })
                   }
                 />
                 <span className="unit">{tiltDeg}°</span>

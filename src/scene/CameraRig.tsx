@@ -4,7 +4,7 @@ import { useStore } from '../state/store'
 import { useViewStore } from '../state/viewStore'
 import type { Vec3 } from '../state/types'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
+import { useThree, useFrame } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 
 /** Lights, ground grid, contact shadow and orbit camera. OrbitControls is the
@@ -17,6 +17,19 @@ export function CameraRig() {
   const gridSize = useTheme((s) => s.gridSize)
 
   const { camera, controls } = useThree()
+
+  // Track the perspective camera position so captures in plan/front view use the
+  // real 3D viewpoint rather than the orthographic camera's fixed position.
+  const perspPos = useRef<Vec3>([4.6, 3.0, 6.2])
+  const perspTarget = useRef(new THREE.Vector3(0, 1, 0))
+  useFrame(() => {
+    if (!planView && !frontView) {
+      perspPos.current = [camera.position.x, camera.position.y, camera.position.z]
+      if (controls && 'target' in controls) {
+        perspTarget.current.copy((controls as any).target)
+      }
+    }
+  })
 
   const prevPlanView = useRef(planView)
   useEffect(() => {
@@ -62,11 +75,12 @@ export function CameraRig() {
 
   useEffect(() => {
     if (!pendingCaptureName) return
-    const pos: Vec3 = [camera.position.x, camera.position.y, camera.position.z]
-    const tgt = (controls as any)?.target ?? new THREE.Vector3(0, 1, 0)
-    saveView(pendingCaptureName, pos, [tgt.x, tgt.y, tgt.z])
+    // Always capture the perspective camera position, even if currently in plan/front
+    // view where camera refers to an OrthographicCamera.
+    const tgt = perspTarget.current
+    saveView(pendingCaptureName, [...perspPos.current] as Vec3, [tgt.x, tgt.y, tgt.z])
     clearCapture()
-  }, [pendingCaptureName, camera, controls, saveView, clearCapture])
+  }, [pendingCaptureName, saveView, clearCapture])
 
   return (
     <>
