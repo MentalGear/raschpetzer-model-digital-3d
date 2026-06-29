@@ -47,6 +47,7 @@ export function Showcase() {
   const selected = useStore((s) => s.selected)
   const layout = useStore((s) => s.layout)
   const planView = useTheme((s) => s.planView)
+  const frontView = useTheme((s) => s.frontView)
 
   const seg = mode === 'design' && selected?.kind === 'segment' ? findSegment(layout, selected.id) : undefined
   const segCenter: Vec3 | null = seg
@@ -62,7 +63,7 @@ export function Showcase() {
         <Item key={it.id} item={it} />
       ))}
       {seg && segCenter && (
-        <DimensionArrows size={[seg.width, seg.height, seg.depth]} position={segCenter} hideY={planView} />
+        <DimensionArrows size={[seg.width, seg.height, seg.depth]} position={segCenter} hideY={planView} hideZ={frontView} />
       )}
       <ShelfGizmo />
       <People />

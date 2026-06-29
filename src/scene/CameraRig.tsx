@@ -86,7 +86,7 @@ export function CameraRig() {
             makeDefault
             position={[0, 12, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
-            zoom={80}
+            zoom={150}
             near={0.01}
             far={200}
           />
@@ -96,6 +96,7 @@ export function CameraRig() {
             screenSpacePanning={true}
             minZoom={10}
             maxZoom={400}
+            panSpeed={0.5}
             mouseButtons={{
               LEFT: THREE.MOUSE.PAN,
               MIDDLE: THREE.MOUSE.DOLLY,
@@ -109,7 +110,7 @@ export function CameraRig() {
             makeDefault
             position={[0, 1.2, 16]}
             rotation={[0, 0, 0]}
-            zoom={80}
+            zoom={150}
             near={0.01}
             far={200}
           />
@@ -117,8 +118,10 @@ export function CameraRig() {
             makeDefault
             enableRotate={false}
             screenSpacePanning={true}
+            target={[0, 1.0, 0]}
             minZoom={10}
             maxZoom={400}
+            panSpeed={0.5}
             mouseButtons={{
               LEFT: THREE.MOUSE.PAN,
               MIDDLE: THREE.MOUSE.DOLLY,

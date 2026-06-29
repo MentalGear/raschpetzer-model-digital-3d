@@ -147,6 +147,7 @@ export function Segment({ segment }: SegmentProps) {
             glassTint={glassTint}
             glassOpacity={glassOpacity}
             hidden={sh.hidden}
+            planView={planView}
           />
         )
       })}
@@ -166,12 +167,14 @@ interface ShelfMeshProps {
   glassTint: string
   glassOpacity: number
   hidden?: boolean
+  /** Boost shelf opacity + tint so glass reads clearly from directly above. */
+  planView?: boolean
 }
 
 /** A glass shelf. Selectable in placement mode (its vertical move gizmo lives in
  *  Showcase so it isn't double-offset by the segment group). Highlights blue when
  *  selected or while an item is being dragged (valid drop target). */
-function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing, glassTint, glassOpacity, hidden }: ShelfMeshProps) {
+function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing, glassTint, glassOpacity, hidden, planView }: ShelfMeshProps) {
   if (hidden) return null
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected?.kind === 'shelf' && s.selected.id === shelf.id)
@@ -186,6 +189,9 @@ function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing, glassTin
   }
 
   const hot = selected || placing
+  // In plan view shelves are seen edge-on (very thin from above). Boost opacity
+  // and use a solid tint so each shelf reads as a distinct horizontal band.
+  const planOpacity = Math.max(0.72, glassOpacity)
   return (
     <mesh
       position={[centerX, shelf.height, 0]}
@@ -197,11 +203,11 @@ function ShelfMesh({ segmentId, shelf, width, centerX, innerD, placing, glassTin
       <meshStandardMaterial
         color={hot ? '#7fc4ff' : glassTint}
         transparent
-        opacity={hot ? Math.min(0.85, glassOpacity + 0.3) : glassOpacity}
-        roughness={0.04}
+        opacity={hot ? Math.min(0.85, glassOpacity + 0.3) : planView ? planOpacity : glassOpacity}
+        roughness={planView ? 0.3 : 0.04}
         metalness={0.1}
-        emissive={hot ? '#2b7fff' : '#000000'}
-        emissiveIntensity={selected ? 0.65 : placing ? 0.5 : 0}
+        emissive={hot ? '#2b7fff' : planView ? glassTint : '#000000'}
+        emissiveIntensity={selected ? 0.65 : placing ? 0.5 : planView ? 0.25 : 0}
       />
       <Edges threshold={15} color={hot ? '#2b7fff' : glassEdge(glassTint)} />
     </mesh>

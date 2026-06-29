@@ -214,6 +214,7 @@ export function DesignPanel() {
                           <button
                             className="mini icon"
                             title={sh.hidden ? 'Show shelf' : 'Hide shelf'}
+                            aria-label={sh.hidden ? 'Show shelf' : 'Hide shelf'}
                             onClick={() => setShelfHidden(seg.id, sh.id, !sh.hidden)}
                             aria-pressed={sh.hidden}
                             style={{ opacity: sh.hidden ? 0.4 : 1 }}

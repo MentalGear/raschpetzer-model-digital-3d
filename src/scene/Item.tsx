@@ -92,6 +92,7 @@ export function Item({ item }: ItemProps) {
   })
 
   const planView = useTheme((s) => s.planView)
+  const frontView = useTheme((s) => s.frontView)
 
   const select = useStore((s) => s.select)
   const moveItem = useStore((s) => s.moveItem)
@@ -196,7 +197,7 @@ export function Item({ item }: ItemProps) {
       {content}
       {selected && (
         <>
-          <DimensionArrows size={item.size} position={item.position} rotationY={item.rotationY} hideY={planView} />
+          <DimensionArrows size={item.size} position={item.position} rotationY={item.rotationY} hideY={planView} hideZ={frontView} />
           <Html
             position={[
               item.position[0],
