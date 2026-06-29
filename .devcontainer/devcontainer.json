@@ -4,16 +4,21 @@
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  // Put a stable, container-wide Bun install on PATH so it survives rebuilds.
+  // BUN_INSTALL tells the bun installer where to put bun (persists across rebuilds).
+  // PATH is in remoteEnv (not containerEnv) so ${containerEnv:PATH} resolves correctly
+  // against the container's real PATH instead of being passed literally to docker run.
   "containerEnv": {
     "BUN_INSTALL": "/usr/local/bun",
-    "PATH": "/usr/local/bun/bin:${containerEnv:PATH}",
     "PLAYWRIGHT_BROWSERS_PATH": "/opt/pw-browsers"
+  },
+  "remoteEnv": {
+    "PATH": "/usr/local/bun/bin:${containerEnv:PATH}"
   },
   // Install Bun once when the container is created.
   "onCreateCommand": "curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local/bun bash",
   // Install JS deps and (best-effort) the Chromium used for browser verification.
-  "postCreateCommand": "bun install && (bunx playwright install --with-deps chromium || echo 'playwright chromium install skipped')",
+  // Use the full path so this works before remoteEnv PATH is active.
+  "postCreateCommand": "/usr/local/bun/bin/bun install && (/usr/local/bun/bin/bunx playwright install --with-deps chromium || echo 'playwright chromium install skipped')",
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": {
