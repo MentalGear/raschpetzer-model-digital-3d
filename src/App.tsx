@@ -60,7 +60,8 @@ export default function App() {
         if (!sel) return
         e.preventDefault()
         if (sel.kind === 'item') removeItem(sel.id)
-        else removeSegment(sel.id)
+        else if (sel.kind === 'segment') removeSegment(sel.id)
+        else if (sel.kind === 'group') useStore.getState().ungroupItems(sel.id)
       } else if (e.key === 'd' || e.key === 'D') {
         setMode('design')
       } else if (e.key === 'p' || e.key === 'P') {

@@ -63,14 +63,18 @@ function GroupGizmo() {
 
   if (!selectedGroupId || !anchorItemId || !anchorMesh) return null
 
+  const anyAttached = groupItems.some((it) => it.attached)
+
   return (
     <TransformControls
       object={anchorMesh}
       mode="translate"
+      showY={!anyAttached}
       onMouseDown={() => {
         const items = useStore.getState().layout.items.filter((it) => it.groupId === selectedGroupId)
         items.forEach((it) => startPositions.current.set(it.id, [...it.position] as Vec3))
-        anchorStartPos.current.set(...(groupItems[0].position as [number, number, number]))
+        const anchor = items.find((it) => it.id === anchorItemId)
+        if (anchor) anchorStartPos.current.set(...(anchor.position as [number, number, number]))
       }}
       onObjectChange={() => {
         const delta = new THREE.Vector3().subVectors(anchorMesh.position, anchorStartPos.current)

@@ -701,10 +701,33 @@ export const useStore = create<StoreState>()(
         })),
 
       removeItem: (id) =>
-        set((state) => ({
-          selected: state.selected?.id === id ? null : state.selected,
-          layout: { ...state.layout, items: state.layout.items.filter((it) => it.id !== id) },
-        })),
+        set((state) => {
+          const item = state.layout.items.find((it) => it.id === id)
+          const groupId = item?.groupId
+          const remaining = groupId
+            ? state.layout.items.filter((it) => it.groupId === groupId && it.id !== id)
+            : []
+          const dissolveGroup = groupId !== undefined && remaining.length <= 1
+          return {
+            selected:
+              state.selected?.id === id
+                ? null
+                : dissolveGroup && state.selected?.kind === 'group' && state.selected.id === groupId
+                  ? null
+                  : state.selected,
+            layout: {
+              ...state.layout,
+              groups: dissolveGroup
+                ? state.layout.groups.filter((g) => g.id !== groupId)
+                : state.layout.groups,
+              items: state.layout.items
+                .filter((it) => it.id !== id)
+                .map((it) =>
+                  dissolveGroup && it.groupId === groupId ? { ...it, groupId: undefined } : it,
+                ),
+            },
+          }
+        }),
 
       setGlassOpacity: (v) =>
         set((state) => ({
