@@ -12,6 +12,7 @@ export function CameraRig() {
   const itemSelected = useStore((s) => s.selected?.kind === 'item')
   const planView = useTheme((s) => s.planView)
   const frontView = useTheme((s) => s.frontView)
+  const gridSize = useTheme((s) => s.gridSize)
 
   const { camera, controls } = useThree()
 
@@ -68,10 +69,10 @@ export function CameraRig() {
 
       <Grid
         args={[24, 24]}
-        cellSize={0.1}
+        cellSize={gridSize}
         cellThickness={0.6}
         cellColor={dark ? '#2c3543' : '#d3dae1'}
-        sectionSize={0.5}
+        sectionSize={gridSize * 5}
         sectionThickness={1.1}
         sectionColor={dark ? '#46566b' : '#9aa6b4'}
         infiniteGrid

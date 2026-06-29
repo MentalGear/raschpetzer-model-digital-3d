@@ -6,6 +6,7 @@ const KEY = 'vitrine:theme'
 const PEOPLE_KEY = 'vitrine:people'
 const PLANVIEW_KEY = 'vitrine:planview'
 const FRONTVIEW_KEY = 'vitrine:frontview'
+const GRIDSIZE_KEY = 'vitrine:gridsize'
 
 const has = typeof localStorage !== 'undefined'
 
@@ -22,6 +23,20 @@ function initialTheme(): Theme {
 export const WOOD_BRIGHTNESS_MIN = 0.4
 export const WOOD_BRIGHTNESS_MAX = 1.6
 
+/** Grid cell size presets in metres. Section lines appear every 5 cells. */
+export const GRID_PRESETS = [
+  { label: '5 cm', value: 0.05 },
+  { label: '10 cm', value: 0.1 },
+  { label: '20 cm', value: 0.2 },
+  { label: '50 cm', value: 0.5 },
+  { label: '1 m', value: 1.0 },
+] as const
+
+function initialGridSize(): number {
+  const saved = has ? parseFloat(localStorage.getItem(GRIDSIZE_KEY) ?? '') : NaN
+  return Number.isFinite(saved) ? saved : 0.1
+}
+
 interface ThemeState {
   theme: Theme
   /** Show human silhouette cutouts in front of the showcase for real-life scale. */
@@ -30,10 +45,13 @@ interface ThemeState {
   planView: boolean
   /** Orthographic front elevation view mode. */
   frontView: boolean
+  /** Grid cell size in metres (section = 5×). */
+  gridSize: number
   toggle: () => void
   togglePeople: () => void
   togglePlanView: () => void
   toggleFrontView: () => void
+  setGridSize: (v: number) => void
 }
 
 export const useTheme = create<ThemeState>((set, get) => ({
@@ -41,6 +59,7 @@ export const useTheme = create<ThemeState>((set, get) => ({
   showPeople: has ? localStorage.getItem(PEOPLE_KEY) === '1' : false,
   planView: has ? localStorage.getItem(PLANVIEW_KEY) === '1' : false,
   frontView: has ? localStorage.getItem(FRONTVIEW_KEY) === '1' : false,
+  gridSize: initialGridSize(),
   toggle: () => {
     const next: Theme = get().theme === 'dark' ? 'light' : 'dark'
     if (has) localStorage.setItem(KEY, next)
@@ -70,6 +89,10 @@ export const useTheme = create<ThemeState>((set, get) => ({
     } else {
       set({ frontView: false })
     }
+  },
+  setGridSize: (v) => {
+    if (has) localStorage.setItem(GRIDSIZE_KEY, String(v))
+    set({ gridSize: v })
   },
 }))
 

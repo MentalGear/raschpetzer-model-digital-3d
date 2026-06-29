@@ -1,6 +1,7 @@
+import { useRef, useState } from 'react'
 import { useStore } from '../state/store'
 import type { Mode } from '../state/types'
-import { useTheme } from './theme'
+import { GRID_PRESETS, useTheme } from './theme'
 import { undo, redo, useHistoryStore } from '../state/historyStore'
 
 const MODES: { key: Mode; label: string; title: string; kbd?: string }[] = [
@@ -20,8 +21,12 @@ export function Toolbar() {
   const togglePlanView = useTheme((s) => s.togglePlanView)
   const frontView = useTheme((s) => s.frontView)
   const toggleFrontView = useTheme((s) => s.toggleFrontView)
+  const gridSize = useTheme((s) => s.gridSize)
+  const setGridSize = useTheme((s) => s.setGridSize)
   const canUndo = useHistoryStore((s) => s.canUndo)
   const canRedo = useHistoryStore((s) => s.canRedo)
+  const [gridOpen, setGridOpen] = useState(false)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   return (
     <header className="toolbar">
@@ -89,6 +94,32 @@ export function Toolbar() {
         >
           🖼 Front
         </button>
+        <div className="grid-picker" ref={gridRef}>
+          <button
+            className={`people-toggle${gridOpen ? ' active' : ''}`}
+            onClick={() => setGridOpen((o) => !o)}
+            title="Grid cell size"
+            aria-haspopup="listbox"
+            aria-expanded={gridOpen}
+          >
+            ⊞ Grid
+          </button>
+          {gridOpen && (
+            <div className="grid-popover" role="listbox" aria-label="Grid cell size">
+              {GRID_PRESETS.map((p) => (
+                <button
+                  key={p.value}
+                  role="option"
+                  aria-selected={gridSize === p.value}
+                  className={`grid-option${gridSize === p.value ? ' active' : ''}`}
+                  onClick={() => { setGridSize(p.value); setGridOpen(false) }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button
           className="theme-toggle"
           onClick={toggleTheme}
