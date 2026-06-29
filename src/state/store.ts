@@ -25,8 +25,8 @@ const defaultItemColor = '#c9a14a'
 
 const DEFAULT_ITEM_SIZE: Vec3 = [0.2, 0.2, 0.2]
 
-function makeShelf(height: number): Shelf {
-  return { id: uid(), height, thickness: 0.01, movable: true }
+function makeShelf(height: number, movable = true): Shelf {
+  return { id: uid(), height, thickness: 0.01, movable }
 }
 
 function makeDivider(x: number): Divider {
@@ -68,16 +68,21 @@ export function seatedY(size: Vec3, rotationX: number, topY: number): number {
 }
 
 /** A cabinet sized by INNER dimensions (wall thickness added to get the outer box). */
-function cabinetByInner(xCenter: number, innerW: number, innerH: number, t = 0.03): Segment {
-  const height = innerH + 2 * t
+function cabinetByInner(
+  xCenter: number,
+  innerW: number,
+  innerH: number,
+  shelves: Shelf[],
+  t = 0.03,
+): Segment {
   return {
     id: uid(),
     position: [xCenter, 0, 0],
     width: innerW + 2 * t,
-    height,
+    height: innerH + 2 * t,
     depth: 0.4,
     frameThickness: t,
-    shelves: [makeShelf(height * 0.34), makeShelf(height * 0.67)],
+    shelves,
     dividers: [],
   }
 }
@@ -86,6 +91,8 @@ function cabinetByInner(xCenter: number, innerW: number, innerH: number, t = 0.0
  * Default: two cabinets side by side, sized by the sketch's inner dimensions
  * (interpreted in mm → a realistic ~1.9 m-tall vitrine): inner widths 82 cm and
  * 178.6 cm, inner height 191.5 cm.
+ *  - Cabinet 1: two shelves placed low.
+ *  - Cabinet 2: three shelves, the highest at 1 m (fixed); the two lower ones movable.
  */
 function seedLayout(): Layout {
   const t = 0.03
@@ -95,11 +102,13 @@ function seedLayout(): Layout {
   const total = w1 + gap + w2
   const x1 = -total / 2 + w1 / 2
   const x2 = x1 + w1 / 2 + gap + w2 / 2
-  return {
-    version: 1,
-    segments: [cabinetByInner(x1, 0.82, 1.915), cabinetByInner(x2, 1.786, 1.915)],
-    items: [],
-  }
+  const cab1 = cabinetByInner(x1, 0.82, 1.915, [makeShelf(0.3), makeShelf(0.6)])
+  const cab2 = cabinetByInner(x2, 1.786, 1.915, [
+    makeShelf(0.35, true),
+    makeShelf(0.65, true),
+    makeShelf(1.0, false),
+  ])
+  return { version: 1, segments: [cab1, cab2], items: [] }
 }
 
 /** Backfill fields that may be missing in older saved/persisted layouts. */

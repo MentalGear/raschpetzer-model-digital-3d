@@ -75,22 +75,38 @@ export function People() {
     return { minX, maxX, z }
   }, [segments])
 
+  // Order people left-to-right so the tallest stand in the middle and they get
+  // shorter toward both edges.
+  const slots = useMemo(() => {
+    const byHeight = PEOPLE.map((_, i) => i).sort((a, b) => PEOPLE[b].height - PEOPLE[a].height)
+    const res: number[] = new Array(PEOPLE.length)
+    let left = Math.floor((PEOPLE.length - 1) / 2)
+    let right = left + 1
+    let toLeft = true
+    for (const idx of byHeight) {
+      if (toLeft) res[left--] = idx
+      else res[right++] = idx
+      toLeft = !toLeft
+    }
+    return res
+  }, [])
+
   if (!show || !placement) return null
   const { minX, maxX, z } = placement
   const span = Math.max(1.2, maxX - minX)
-  // spread the four people across the showcase width, in front
-  const xs = PEOPLE.map((_, i) => minX + (span * (i + 0.5)) / PEOPLE.length)
 
   return (
     <group>
-      {PEOPLE.map((p, i) => {
+      {slots.map((personIndex, slot) => {
+        const p = PEOPLE[personIndex]
+        const x = minX + (span * (slot + 0.5)) / PEOPLE.length
         const w = p.height * 0.42
         return (
-          <group key={p.label} position={[xs[i], 0, z]}>
+          <group key={p.label} position={[x, 0, z]}>
             <mesh position={[0, p.height / 2, 0]}>
               <planeGeometry args={[w, p.height]} />
               <meshBasicMaterial
-                map={textures[i]}
+                map={textures[personIndex]}
                 transparent
                 alphaTest={0.4}
                 side={THREE.DoubleSide}
