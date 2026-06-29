@@ -86,6 +86,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
   outline: 2px solid var(--accent); outline-offset: 3px;
 }
 
+.undo-redo { display: flex; align-items: center; gap: 2px; }
+.undo-btn {
+  width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--panel-2); color: var(--text); cursor: pointer; font-size: 16px; line-height: 1;
+}
+.undo-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-weak); }
+.undo-btn:disabled { opacity: 0.35; cursor: default; }
+
 .toolbar-utils { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .toolbar-utils::before {
   content: ''; width: 1px; height: 24px; background: var(--border); margin-right: 6px;

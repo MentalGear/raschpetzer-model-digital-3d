@@ -1,6 +1,7 @@
 import { useStore } from '../state/store'
 import type { Mode } from '../state/types'
 import { useTheme } from './theme'
+import { undo, redo, useHistoryStore } from '../state/historyStore'
 
 const MODES: { key: Mode; label: string; title: string }[] = [
   { key: 'design', label: 'Design shelf', title: 'Design mode (shortcut: D)' },
@@ -15,6 +16,8 @@ export function Toolbar() {
   const toggleTheme = useTheme((s) => s.toggle)
   const showPeople = useTheme((s) => s.showPeople)
   const togglePeople = useTheme((s) => s.togglePeople)
+  const canUndo = useHistoryStore((s) => s.canUndo)
+  const canRedo = useHistoryStore((s) => s.canRedo)
 
   return (
     <header className="toolbar">
@@ -33,6 +36,27 @@ export function Toolbar() {
             {m.label}
           </button>
         ))}
+      </div>
+
+      <div className="undo-redo">
+        <button
+          className="undo-btn"
+          onClick={undo}
+          disabled={!canUndo}
+          title="Undo (Ctrl+Z)"
+          aria-label="Undo"
+        >
+          ↩
+        </button>
+        <button
+          className="undo-btn"
+          onClick={redo}
+          disabled={!canRedo}
+          title="Redo (Ctrl+Y)"
+          aria-label="Redo"
+        >
+          ↪
+        </button>
       </div>
 
       <div className="toolbar-utils">
