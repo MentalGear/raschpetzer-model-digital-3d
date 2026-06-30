@@ -134,6 +134,7 @@
     </style>
     <script src="three.min.js"></script>
     <script src="OrbitControls.js"></script>
+    <script src="geodata-walferdange.js"></script>
 </head>
 <body>
 
@@ -162,7 +163,14 @@
             <select id="param-source">
                 <option value="procedural">Procedural (original)</option>
                 <option value="heightmap">Heightmap image</option>
+                <option value="geodata">GeoData (Walferdange DEM)</option>
             </select>
+            <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1em;"></div>
+        </div>
+
+        <div class="control-group">
+            <label>Elevation Intensity <span class="val" id="lbl-intensity">1.0</span></label>
+            <input type="range" id="param-intensity" min="0.2" max="4.0" step="0.1" value="1.0">
         </div>
 
         <div class="control-group">
@@ -209,7 +217,8 @@
             width: 70,
             depth: 26,
             baseY: -2,
-            terrainSource: 'procedural'  // 'procedural' | 'heightmap'
+            terrainSource: 'procedural',  // 'procedural' | 'heightmap' | 'geodata'
+            elevationIntensity: 1.0       // vertical exaggeration for heightmap/geodata
         };
 
         const pillarDefs = [
@@ -274,13 +283,181 @@
             return gx0 + (gx1 - gx0) * fy;
         }
 
-        // Terrain dispatcher: heightmap if selected & loaded, otherwise procedural.
+        // --- GeoData source: real DEM elevations around the Raschpëtzer qanat
+        //     (Walferdange / Helmsange, Luxembourg). Fetched client-side at runtime;
+        //     falls back to a baked morphological grid if the network is unavailable. ---
+        // grid: normalized 0..1 elevation, `cols` west->east, `rows` north->south.
+        const geodata = { ready: false, loading: false, source: '', data: null,
+                          cols: 0, rows: 0, minM: 0, maxM: 0 };
+
+        // Bilinear sample of the geodata grid.
+        //   u: west->east in [0,1]  -> column (lon increases east, no flip)
+        //   v: terrain z = (z+halfD)/depth, where +z is south/front, -z is north/back
+        // Grid rows run north(row 0)->south(row R-1). v=0 (north/back) -> row 0; v=1 (south) -> R-1.
+        function sampleGeo(u, v) {
+            const C = geodata.cols, R = geodata.rows, d = geodata.data;
+            const ix = u * (C - 1);
+            const iy = v * (R - 1);
+            const x0 = Math.floor(ix), y0 = Math.floor(iy);
+            const x1 = Math.min(x0 + 1, C - 1), y1 = Math.min(y0 + 1, R - 1);
+            const fx = ix - x0, fy = iy - y0;
+            const g00 = d[y0 * C + x0], g10 = d[y0 * C + x1];
+            const g01 = d[y1 * C + x0], g11 = d[y1 * C + x1];
+            const gx0 = g00 + (g10 - g00) * fx, gx1 = g01 + (g11 - g01) * fx;
+            return gx0 + (gx1 - gx0) * fy;
+        }
+
+        // Bounding box around the Raschpëtzer qanat (W->E profile: Alzette valley ->
+        // Pëtschend plateau -> Haedchen depression). Center ~49.6680N, 6.1390E.
+        // BBox capturing the real Alzette valley (west, ~230 m) -> Pëtschend plateau
+        // (east, ~410 m) escarpment around the qanat. Matches geodata-walferdange.js.
+        const GEO_BBOX = { west: 6.126, east: 6.166, south: 49.662, north: 49.674 };
+        const GEO_COLS = 48, GEO_ROWS = 20;
+
+        function setGeoStatus(msg) {
+            const el = document.getElementById('geo-status');
+            if (el) el.textContent = msg || '';
+        }
+
+        // Baked morphological fallback (used when no network): approximates the real
+        // Alzette-valley -> plateau -> depression relief so GeoData still renders offline.
+        function buildFallbackGeo() {
+            const C = GEO_COLS, R = GEO_ROWS, d = new Float32Array(C * R);
+            const ss = t => { t = Math.min(Math.max(t, 0), 1); return t * t * (3 - 2 * t); };
+            let mn = Infinity, mx = -Infinity; const m = new Float32Array(C * R);
+            for (let j = 0; j < R; j++) {
+                for (let i = 0; i < C; i++) {
+                    const fx = i / (C - 1), fy = j / (R - 1);
+                    let e;
+                    if (fx < 0.34) e = 286 + ss(fx / 0.34) * (400 - 286);          // valley -> plateau rim
+                    else if (fx < 0.60) e = 400 + Math.sin((fx - 0.34) / 0.26 * Math.PI) * 6; // plateau top
+                    else e = 400 - ss((fx - 0.60) / 0.40) * (400 - 344);            // -> Haedchen depression
+                    // N-S undulation + knolls
+                    e += Math.sin(fy * Math.PI * 1.4 + fx * 2.0) * 6;
+                    e += Math.sin(fx * 22.0) * Math.cos(fy * 9.0) * 3.0;
+                    m[j * C + i] = e; if (e < mn) mn = e; if (e > mx) mx = e;
+                }
+            }
+            for (let k = 0; k < C * R; k++) d[k] = (m[k] - mn) / (mx - mn);
+            geodata.data = d; geodata.cols = C; geodata.rows = R;
+            geodata.minM = mn; geodata.maxM = mx; geodata.ready = true;
+            geodata.source = 'approximate (offline fallback)';
+        }
+
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        // Fetch a real DEM grid client-side from OpenTopoData (EU-DEM 25 m).
+        // Rows north->south, cols west->east. 100 pts/request, 1 request/second.
+        async function fetchDemGrid() {
+            const C = GEO_COLS, R = GEO_ROWS;
+            const { west, east, south, north } = GEO_BBOX;
+            const pts = [];
+            for (let j = 0; j < R; j++) {
+                const lat = north - (j / (R - 1)) * (north - south);
+                for (let i = 0; i < C; i++) {
+                    const lon = west + (i / (C - 1)) * (east - west);
+                    pts.push(lat.toFixed(6) + ',' + lon.toFixed(6));
+                }
+            }
+            const meters = new Float32Array(C * R);
+            const BATCH = 100;
+            let idx = 0;
+            for (let b = 0; b < pts.length; b += BATCH) {
+                const locs = pts.slice(b, b + BATCH).join('|');
+                const url = 'https://api.opentopodata.org/v1/eudem25m?locations=' +
+                            locs + '&interpolation=cubic';
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const json = await resp.json();
+                if (json.status !== 'OK' || !json.results) throw new Error('API status ' + json.status);
+                for (let k = 0; k < json.results.length; k++) {
+                    const e = json.results[k].elevation;
+                    meters[idx++] = (e === null || e === undefined) ? NaN : e;
+                }
+                setGeoStatus('Fetching elevation data… ' +
+                             Math.min(b + BATCH, pts.length) + '/' + pts.length);
+                if (b + BATCH < pts.length) await sleep(1100); // respect 1 req/s
+            }
+            // Fill EU-DEM voids (null) with the mean of valid samples
+            let sum = 0, cnt = 0;
+            for (const e of meters) if (!isNaN(e)) { sum += e; cnt++; }
+            if (cnt === 0) throw new Error('all-void grid');
+            const mean = sum / cnt;
+            for (let k = 0; k < meters.length; k++) if (isNaN(meters[k])) meters[k] = mean;
+            return { meters, cols: C, rows: R };
+        }
+
+        // Adopt a {cols,rows,minM,maxM,meters[]} grid (meters) as the active geodata,
+        // normalizing to 0..1 from its own min/max.
+        function adoptMeterGrid(g, source) {
+            const n = g.meters.length;
+            const d = new Float32Array(n);
+            const span = (g.maxM - g.minM) || 1;
+            for (let k = 0; k < n; k++) d[k] = (g.meters[k] - g.minM) / span;
+            geodata.data = d; geodata.cols = g.cols; geodata.rows = g.rows;
+            geodata.minM = g.minM; geodata.maxM = g.maxM; geodata.ready = true; geodata.source = source;
+        }
+
+        async function loadGeoData(cb) {
+            if (geodata.ready) { if (cb) cb(true); return; }
+            if (geodata.loading) return;
+            geodata.loading = true;
+
+            // 1) Baked real DEM shipped with the page => instant, offline, no API risk.
+            if (window.BAKED_GEODATA && window.BAKED_GEODATA.meters) {
+                adoptMeterGrid(window.BAKED_GEODATA, 'baked EU-DEM 25 m');
+                geodata.loading = false;
+                setGeoStatus('EU-DEM 25 m (OpenTopoData) · ' +
+                             Math.round(geodata.minM) + '–' + Math.round(geodata.maxM) + ' m');
+                if (cb) cb(true); return;
+            }
+
+            // 2) Previously cached live fetch.
+            const cached = (() => { try { return JSON.parse(localStorage.getItem('geodata_v1')); } catch (e) { return null; } })();
+            if (cached && cached.cols === GEO_COLS && cached.rows === GEO_ROWS) {
+                geodata.data = Float32Array.from(cached.data);
+                geodata.cols = cached.cols; geodata.rows = cached.rows;
+                geodata.minM = cached.minM; geodata.maxM = cached.maxM;
+                geodata.ready = true; geodata.source = 'cached DEM';
+                geodata.loading = false;
+                setGeoStatus('Cached EU-DEM · ' + Math.round(cached.minM) + '–' + Math.round(cached.maxM) + ' m');
+                if (cb) cb(true); return;
+            }
+
+            // 3) Live fetch (only if no baked data present).
+            setGeoStatus('Fetching elevation data…');
+            try {
+                const grid = await fetchDemGrid();   // returns {meters:Float32Array, cols, rows}
+                let mn = Infinity, mx = -Infinity;
+                for (const e of grid.meters) { if (e < mn) mn = e; if (e > mx) mx = e; }
+                const d = new Float32Array(grid.meters.length);
+                for (let k = 0; k < d.length; k++) d[k] = (grid.meters[k] - mn) / (mx - mn);
+                geodata.data = d; geodata.cols = grid.cols; geodata.rows = grid.rows;
+                geodata.minM = mn; geodata.maxM = mx; geodata.ready = true; geodata.source = 'live DEM';
+                try { localStorage.setItem('geodata_v1', JSON.stringify({
+                    cols: grid.cols, rows: grid.rows, minM: mn, maxM: mx, data: Array.from(d) })); } catch (e) {}
+                setGeoStatus('Source: live DEM  (' + Math.round(mn) + '–' + Math.round(mx) + ' m)');
+            } catch (err) {
+                console.warn('GeoData fetch failed, using fallback:', err);
+                buildFallbackGeo();
+                setGeoStatus('Offline — showing approximate relief (' +
+                             Math.round(geodata.minM) + '–' + Math.round(geodata.maxM) + ' m)');
+            }
+            geodata.loading = false;
+            if (cb) cb(true);
+        }
+
+        // Terrain dispatcher: geodata / heightmap if selected & loaded, else procedural.
+        // elevationIntensity vertically exaggerates the sampled sources.
         function getTerrainHeight(x, z) {
+            const u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
+            const v = Math.min(Math.max((z + params.depth / 2) / params.depth, 0), 1);
+            if (params.terrainSource === 'geodata' && geodata.ready) {
+                return sampleGeo(u, v) * params.plateauHeight * params.elevationIntensity;
+            }
             if (params.terrainSource === 'heightmap' && heightmap.ready) {
-                const u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
-                const v = Math.min(Math.max((z + params.depth / 2) / params.depth, 0), 1);
-                // plateauHeight slider doubles as the vertical scale in heightmap mode
-                return sampleHeightmap(u, v) * params.plateauHeight;
+                // plateauHeight slider + intensity set the vertical scale in heightmap mode
+                return sampleHeightmap(u, v) * params.plateauHeight * params.elevationIntensity;
             }
             return getProceduralHeight(x, z);
         }
@@ -679,10 +856,20 @@
             bind('param-contours',   'contourSpacing',  'lbl-contours');
             bind('param-layer',      'layerDepth',      'lbl-layer');
 
-            // Terrain source selector (procedural vs heightmap image)
+            // Elevation intensity (vertical exaggeration for heightmap & geodata)
+            const intSl = document.getElementById('param-intensity');
+            const intLb = document.getElementById('lbl-intensity');
+            intSl.addEventListener('input', e => {
+                params.elevationIntensity = parseFloat(e.target.value);
+                intLb.innerText = params.elevationIntensity.toFixed(1);
+                buildParametricModel();
+            });
+
+            // Terrain source selector (procedural / heightmap / geodata)
             const sel = document.getElementById('param-source');
             sel.addEventListener('change', e => {
                 params.terrainSource = e.target.value;
+                if (params.terrainSource !== 'geodata') setGeoStatus('');
                 if (params.terrainSource === 'heightmap' && !heightmap.ready) {
                     loadHeightmap(HEIGHTMAP_URL, ok => {
                         if (!ok) {
@@ -692,6 +879,8 @@
                         }
                         buildParametricModel();
                     });
+                } else if (params.terrainSource === 'geodata' && !geodata.ready) {
+                    loadGeoData(() => buildParametricModel());
                 } else {
                     buildParametricModel();
                 }
