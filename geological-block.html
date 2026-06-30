@@ -131,6 +131,28 @@
         .instructions { position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.45);
             padding: 7px 14px; border-radius: 20px; font-size: 0.75rem; pointer-events: none;
             letter-spacing: 0.4px; color: #ddd; }
+
+        .check-row { display: flex; align-items: center; gap: 7px; cursor: pointer;
+            margin-top: 9px; font-size: 0.8rem; color: #d1d5db; }
+        .check-row input { accent-color: var(--accent-orange); cursor: pointer; }
+
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row button {
+            flex: 1; background: #374151; color: #f3f4f6;
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+            padding: 8px 6px; font-size: 0.78rem; cursor: pointer; transition: background 0.12s;
+        }
+        .btn-row button:hover { background: #4b5563; }
+        .btn-row button.active { background: var(--accent-orange); border-color: var(--accent-orange); color: #1a1a1a; font-weight: 600; }
+
+        #shaft-tooltip {
+            position: absolute; z-index: 8; pointer-events: none; display: none;
+            background: rgba(20,20,28,0.92); color: #fff; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 7px; padding: 7px 10px; font-size: 0.78rem; line-height: 1.35;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45); transform: translate(-50%, -115%); white-space: nowrap;
+        }
+        #shaft-tooltip .t-name { font-weight: 700; color: var(--accent-orange); }
+        #shaft-tooltip .t-depth { color: #cbd5e1; }
     </style>
     <script src="three.min.js"></script>
     <script src="OrbitControls.js"></script>
@@ -166,16 +188,31 @@
                 <option value="geodata">GeoData (Walferdange DEM)</option>
             </select>
             <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1em;"></div>
+            <label class="check-row"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
         </div>
 
         <div class="control-group">
             <label>Elevation Intensity <span class="val" id="lbl-intensity">1.0</span></label>
             <input type="range" id="param-intensity" min="0.2" max="4.0" step="0.1" value="1.0">
+            <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+        </div>
+
+        <div class="control-group">
+            <label for="param-layout">Qanat Layout</label>
+            <select id="param-layout">
+                <option value="faithful">Faithful (real depths, P5 ≈ 36 m)</option>
+                <option value="schematic">Schematic (original)</option>
+            </select>
         </div>
 
         <div class="control-group">
             <label>Qanat Tunnel Depth <span class="val" id="lbl-layer">5.0</span></label>
             <input type="range" id="param-layer" min="2.5" max="7.5" step="0.1" value="5.0">
+        </div>
+
+        <div class="control-group btn-row">
+            <button id="btn-reset" type="button">Reset view</button>
+            <button id="btn-overlay" type="button">Reference overlay</button>
         </div>
 
         <div class="legend">
@@ -192,10 +229,11 @@
 
     <div id="canvas-container">
         <img id="ref-overlay" src="Fig2-01 copy.jpg" alt="reference">
+        <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
 
-        <div id="scale-bar">
+        <div id="scale-bar" style="display:none;">
             <div class="bar-line">
                 <div class="bar-cap"></div>
                 <div class="bar-fill"></div>
@@ -205,7 +243,7 @@
         </div>
     </div>
 
-    <div class="instructions">Drag to rotate · Right-drag to pan · Scroll to zoom</div>
+    <div class="instructions">Drag to rotate · Scroll to zoom · Hover a shaft for depth · Click to focus</div>
 
     <script>
         const params = {
@@ -218,8 +256,13 @@
             depth: 26,
             baseY: -2,
             terrainSource: 'procedural',  // 'procedural' | 'heightmap' | 'geodata'
-            elevationIntensity: 1.0       // vertical exaggeration for heightmap/geodata
+            elevationIntensity: 1.0,      // vertical exaggeration for heightmap/geodata
+            qanatLayout: 'faithful',      // 'faithful' | 'schematic'
+            flipWE: false                 // mirror the geodata terrain West<->East
         };
+
+        // Real Raschpëtzer figures (for the faithful layout / depth read-outs)
+        const QANAT = { maxDepthM: 36, deepestShaft: 'P5', exploredFrac: 0.62 };
 
         const pillarDefs = [
             { id: "P-7A", x: -21, z: -1.5 },
@@ -241,6 +284,7 @@
 
         let scene, camera, renderer, controls, modelGroup;
         let contourMaterial, crossSectionMaterial;
+        const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
 
         // --- Heightmap source (sampled grayscale image) ---
         // Drop a grayscale heightmap next to this file and point HEIGHTMAP_URL at it.
@@ -450,9 +494,10 @@
         // Terrain dispatcher: geodata / heightmap if selected & loaded, else procedural.
         // elevationIntensity vertically exaggerates the sampled sources.
         function getTerrainHeight(x, z) {
-            const u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
+            let u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
             const v = Math.min(Math.max((z + params.depth / 2) / params.depth, 0), 1);
             if (params.terrainSource === 'geodata' && geodata.ready) {
+                if (params.flipWE) u = 1 - u;
                 return sampleGeo(u, v) * params.plateauHeight * params.elevationIntensity;
             }
             if (params.terrainSource === 'heightmap' && heightmap.ready) {
@@ -461,6 +506,19 @@
             }
             return getProceduralHeight(x, z);
         }
+
+        // Vertical model-units -> real metres, for honest depth read-outs & exaggeration.
+        // GeoData knows real metres; other sources are calibrated so the deepest shaft ~36 m.
+        function metersPerYUnit() {
+            if (params.terrainSource === 'geodata' && geodata.ready) {
+                const span = (geodata.maxM - geodata.minM) || 1;
+                // height = normalized(0..1) * plateauHeight * intensity  -> metres = norm*span
+                return span / (params.plateauHeight * params.elevationIntensity);
+            }
+            // calibrate so the tallest shaft maps to QANAT.maxDepthM
+            return QANAT.maxDepthM / Math.max(0.001, maxShaftLenUnits);
+        }
+        let maxShaftLenUnits = 5; // updated each rebuild (procedural/heightmap calibration)
 
         function getProceduralHeight(x, z) {
             let h = params.plateauHeight;
@@ -658,10 +716,16 @@
                 }
             }
             const sp = params.contourSpacing;
-            const linePos = [];
+            const linePos = [], idxPos = [];           // regular vs bold "index" contours
+            const isGeo = (params.terrainSource === 'geodata' && geodata.ready);
+            const mpu = metersPerYUnit();
+            const labelTargetX = -halfW * 0.32;        // column where elevation labels stack
+            const idxLabel = {};                       // level -> {x,y,z,dist}
             for (let L = Math.ceil(minH / sp); L <= Math.floor(maxH / sp); L++) {
                 const c = L * sp;
                 const ey = c + 0.02; // tiny lift to beat z-fighting with the fill mesh
+                const isIndex = (L % 5 === 0);
+                const out = isIndex ? idxPos : linePos;
                 for (let i = 0; i < gx; i++) {
                     for (let j = 0; j < gz; j++) {
                         const hA = H[i][j],     ax = xs[i],   az = zs[j];
@@ -674,18 +738,38 @@
                         if ((hC - c) * (hD - c) < 0) { const t=(c-hC)/(hD-hC); cr.push(cx+(dx-cx)*t, cz+(dz-cz)*t); }
                         if ((hD - c) * (hA - c) < 0) { const t=(c-hD)/(hA-hD); cr.push(dx+(ax-dx)*t, dz+(az-dz)*t); }
                         if (cr.length === 4) {
-                            linePos.push(cr[0], ey, cr[1],  cr[2], ey, cr[3]);
+                            out.push(cr[0], ey, cr[1],  cr[2], ey, cr[3]);
                         } else if (cr.length === 8) {
-                            linePos.push(cr[0], ey, cr[1],  cr[2], ey, cr[3]);
-                            linePos.push(cr[4], ey, cr[5],  cr[6], ey, cr[7]);
+                            out.push(cr[0], ey, cr[1],  cr[2], ey, cr[3]);
+                            out.push(cr[4], ey, cr[5],  cr[6], ey, cr[7]);
+                        }
+                        // pick the index-contour point nearest the label column
+                        if (isIndex && isGeo && cr.length >= 2) {
+                            const dist = Math.abs(cr[0] - labelTargetX);
+                            if (!idxLabel[L] || dist < idxLabel[L].dist)
+                                idxLabel[L] = { x: cr[0], y: ey, z: cr[1], dist };
                         }
                     }
                 }
             }
-            const contourGeo = new THREE.BufferGeometry();
-            contourGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
-            modelGroup.add(new THREE.LineSegments(contourGeo,
-                new THREE.LineBasicMaterial({ color: 0x8a4b22 })));
+            const regGeo = new THREE.BufferGeometry();
+            regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
+            modelGroup.add(new THREE.LineSegments(regGeo, new THREE.LineBasicMaterial({ color: 0x9c6233 })));
+            const idxGeo = new THREE.BufferGeometry();
+            idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
+            modelGroup.add(new THREE.LineSegments(idxGeo, new THREE.LineBasicMaterial({ color: 0x5e3414 })));
+
+            // Elevation labels on index contours (real metres, GeoData only)
+            if (isGeo) {
+                Object.keys(idxLabel).forEach(L => {
+                    const p = idxLabel[L];
+                    const metres = Math.round(geodata.minM + p.y * mpu);
+                    const s = createTextSprite(metres + ' m', '#5e3414', 20);
+                    s.scale.set(3.4, 0.85, 1);
+                    s.position.set(p.x, p.y + 0.18, p.z);
+                    modelGroup.add(s);
+                });
+            }
 
             // --- 3. Thin block skirt. Camera-facing front wall is semi-transparent
             //         so the subsurface horizon shows through (per the brief). ---
@@ -732,44 +816,85 @@
             baseMesh.position.y = params.baseY;
             modelGroup.add(baseMesh);
 
-            // --- 3. Raschpetzer shafts: vertical wells running DOWN from the
-            //         ground surface to the underground gallery (the blue horizon).
-            //         They sit within the ground, not above it. Rendered with
-            //         depthTest off so they stay visible through the terrain fill. ---
+            // --- 3. Raschpetzer shafts + qanat tunnel ---
+            //  Faithful layout: each shaft gets a realistic relative depth (deepest at
+            //  P5 ≈ 36 m, tapering to the ends), all shafts present & connected as in the
+            //  reference; explored core solid, inferred ends dashed. Schematic = original.
+            shaftMeshes.length = 0;
+            const faithful = (params.qanatLayout === 'faithful');
             const pillarMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, depthTest: false });
-            const layerPts = [];
+            const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
-            pillarDefs.forEach(p => {
-                const sy  = getTerrainHeight(p.x, p.z);
-                const ly  = getLayerHeight(p.x, p.z);
-                const len = sy - ly;  // shaft depth: surface down to the gallery horizon
+            // Relative shaft depths (index-aligned to pillarDefs P-7A..P9), peak at P5.
+            const DEPTH_REL = [0.30,0.40,0.50,0.58,0.72,0.80,0.88,0.93,0.97,0.99,1.00,0.60,0.48,0.40,0.32];
+            let maxDepthUnits;
+            if (isGeo) {
+                maxDepthUnits = QANAT.maxDepthM / ((geodata.maxM - geodata.minM) || 1)
+                                * params.plateauHeight * params.elevationIntensity;
+            } else {
+                maxDepthUnits = 0.6 * params.plateauHeight;
+            }
 
-                layerPts.push(new THREE.Vector3(p.x, ly, p.z));
-
-                if (len > 0.3) {
+            const basePts = [];
+            let localMaxLen = 0;
+            pillarDefs.forEach((p, i) => {
+                const sy = surf[i];
+                let len;
+                if (faithful) {
+                    len = (DEPTH_REL[i] !== undefined ? DEPTH_REL[i] : 0.5) * maxDepthUnits;
+                } else {
+                    let ty = getLayerHeight(p.x, p.z);   // original flat-ish gallery
+                    if (ty > sy - 0.05) ty = sy - 0.05;
+                    len = sy - ty;
+                }
+                if (len < 0.05) len = 0.05;
+                const ty = sy - len;
+                basePts.push(new THREE.Vector3(p.x, ty, p.z));
+                if (len > localMaxLen) localMaxLen = len;
+                if (len > 0.12) {
                     const geo = new THREE.CylinderGeometry(0.30, 0.30, len, 14);
                     const mesh = new THREE.Mesh(geo, pillarMat);
-                    // Top flush with the surface, bottom at the gallery horizon
                     mesh.position.set(p.x, sy - len / 2, p.z);
                     mesh.renderOrder = 6;
+                    mesh.userData = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z };
                     modelGroup.add(mesh);
+                    shaftMeshes.push(mesh);
                 }
-
-                // Label sits just above the shaft head at the ground surface
                 const lbl = createTextSprite(p.id, '#1a1a1a', 24);
                 lbl.position.set(p.x, sy + 0.6, p.z);
                 modelGroup.add(lbl);
             });
+            maxShaftLenUnits = localMaxLen || 5;          // calibrates metres for non-geo modes
+            const mpuNow = metersPerYUnit();
+            shaftMeshes.forEach(m => m.userData.depthMeters = m.userData.depthUnits * mpuNow);
 
-            // --- 4. Qanat tunnel: the underground water gallery the shafts descend to.
-            //         Routed through the shaft bases so each shaft visibly meets the
-            //         water; drawn with depthTest off so it reads through the ground. ---
-            const tunnelCurve = new THREE.CatmullRomCurve3(layerPts);
-            const tunnelGeo = new THREE.TubeGeometry(tunnelCurve, 220, 0.18, 8, false);
-            const tunnelMat = new THREE.MeshBasicMaterial({ color: 0x1d6fd6, depthTest: false });
-            const tunnelMesh = new THREE.Mesh(tunnelGeo, tunnelMat);
-            tunnelMesh.renderOrder = 5;
-            modelGroup.add(tunnelMesh);
+            // Tunnel polyline through the shaft bases. Faithful => solid explored core +
+            // dashed inferred ends; schematic => one solid tube.
+            function tunnelTube(points, color) {
+                if (points.length < 2) return;
+                const cv = new THREE.CatmullRomCurve3(points);
+                const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), 0.16, 8, false);
+                const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: false }));
+                mm.renderOrder = 5; modelGroup.add(mm);
+            }
+            function tunnelDashed(points, color) {
+                if (points.length < 2) return;
+                const cv = new THREE.CatmullRomCurve3(points);
+                const g = new THREE.BufferGeometry().setFromPoints(cv.getPoints(points.length * 10));
+                const ln = new THREE.Line(g, new THREE.LineDashedMaterial(
+                    { color, dashSize: 0.7, gapSize: 0.5, depthTest: false }));
+                ln.computeLineDistances(); ln.renderOrder = 5; modelGroup.add(ln);
+            }
+            if (faithful) {
+                const n = basePts.length;
+                const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
+                const start = Math.floor((n - exC) / 2), end = start + exC;
+                tunnelTube(basePts.slice(start, end), 0x1d6fd6);          // explored (solid)
+                tunnelDashed(basePts.slice(0, start + 1), 0x1d6fd6);      // inferred west (dashed)
+                tunnelDashed(basePts.slice(end - 1), 0x1d6fd6);          // inferred east (dashed)
+            } else {
+                tunnelTube(basePts, 0x1d6fd6);
+            }
 
             // --- 5. Dashed geological zone boundary lines on the terrain surface ---
             const dashMat = new THREE.LineDashedMaterial({ color: 0x333333, dashSize: 1.2, gapSize: 0.7, linewidth: 1 });
@@ -785,39 +910,98 @@
                 modelGroup.add(line);
             }
 
-            // Alzette hillside boundary — traces the hillside transition zone
-            const hillBoundXVals = [];
-            for (let x = -halfW; x <= -4; x += 0.8) hillBoundXVals.push(x);
-            addTerrainDashLine(hillBoundXVals, x => -2 + Math.sin((x + 20) * 0.18) * 5);
+            // The hand-drawn geological zone boundaries only match the procedural
+            // morphology, so draw them in that mode only.
+            if (params.terrainSource === 'procedural') {
+                const hillBoundXVals = [];
+                for (let x = -halfW; x <= -4; x += 0.8) hillBoundXVals.push(x);
+                addTerrainDashLine(hillBoundXVals, x => -2 + Math.sin((x + 20) * 0.18) * 5);
+                const hillBoundXVals2 = [];
+                for (let x = -halfW; x <= 0; x += 0.8) hillBoundXVals2.push(x);
+                addTerrainDashLine(hillBoundXVals2, x => 4 + Math.sin((x + 22) * 0.15) * 4.5);
+                const platXVals = [];
+                for (let x = -8; x <= 12; x += 0.6) platXVals.push(x);
+                addTerrainDashLine(platXVals, x => -5 + Math.cos((x - 2) * 0.22) * 7);
+                addTerrainDashLine(platXVals, x => 6 + Math.cos((x - 2) * 0.22) * 6);
+                const depXVals = [];
+                for (let x = 8; x <= halfW; x += 0.8) depXVals.push(x);
+                addTerrainDashLine(depXVals, x => -3 + Math.sin((x - 10) * 0.16) * 5);
+            }
 
-            // Second arc of hillside boundary (enclosing the slope)
-            const hillBoundXVals2 = [];
-            for (let x = -halfW; x <= 0; x += 0.8) hillBoundXVals2.push(x);
-            addTerrainDashLine(hillBoundXVals2, x => 4 + Math.sin((x + 22) * 0.15) * 4.5);
+            // --- 6. Region labels (placed per terrain source; flip-aware in GeoData) ---
+            function placeLabel(text, x, yOff, color, size) {
+                const s = createTextSprite(text, color, size);
+                s.position.set(x, getTerrainHeight(x, 0) + yOff, 0);
+                modelGroup.add(s);
+            }
+            if (isGeo) {
+                const S = params.flipWE ? -1 : 1;   // real DEM: valley west, plateau east
+                placeLabel("Alzette valley",    -22 * S, 3.0, "#555555", 30);
+                placeLabel("Pëtschend plateau",  16 * S, 3.2, "#333333", 34);
+            } else {
+                placeLabel("Alzette hillside",     -17, 3.2, "#555555", 30);
+                placeLabel("Pëtschend Plateau",      2, 4.5, "#333333", 34);
+                placeLabel("Haedchen Depression",   22, 3.2, "#555555", 30);
+            }
 
-            // Plateau outline — oval boundary around the plateau top
-            const platXVals = [];
-            for (let x = -8; x <= 12; x += 0.6) platXVals.push(x);
-            addTerrainDashLine(platXVals, x => -5 + Math.cos((x - 2) * 0.22) * 7);
-            addTerrainDashLine(platXVals, x => 6 + Math.cos((x - 2) * 0.22) * 6);
+            // --- 7. 3D scale bar (accurate metres) + north arrow ---
+            addScaleBarAndCompass(halfW, halfD, isGeo);
 
-            // Haedchen Depression boundary
-            const depXVals = [];
-            for (let x = 8; x <= halfW; x += 0.8) depXVals.push(x);
-            addTerrainDashLine(depXVals, x => -3 + Math.sin((x - 10) * 0.16) * 5);
+            updateCompass();
+            updateExagReadout();
+        }
 
-            // --- 6. Region labels ---
-            const lblAlzette = createTextSprite("Alzette hillside", "#555555", 30);
-            lblAlzette.position.set(-17, getTerrainHeight(-17, 0) + 3.2, 0);
-            modelGroup.add(lblAlzette);
+        // Real ground metres per model X-unit (GeoData uses the bbox; else nominal ~1 km block).
+        function metersPerXUnit() {
+            if (params.terrainSource === 'geodata' && geodata.ready) {
+                const mPerDegLon = 111320 * Math.cos(GEO_BBOX.south * Math.PI / 180);
+                return ((GEO_BBOX.east - GEO_BBOX.west) * mPerDegLon) / params.width;
+            }
+            return 1000 / params.width; // nominal: treat the block as ~1 km wide
+        }
 
-            const lblPlateau = createTextSprite("Pëtschend Plateau", "#333333", 34);
-            lblPlateau.position.set(2, getTerrainHeight(2, 0) + 4.5, 0);
-            modelGroup.add(lblPlateau);
+        function addScaleBarAndCompass(halfW, halfD, isGeo) {
+            const mpx = metersPerXUnit();
+            const barLenUnits = 100 / mpx;        // a 100 m bar
+            const y = params.baseY + 0.4, z = halfD + 0.6, x0 = -halfW + 1.5;
+            const mk = (a, b) => modelGroup.add(new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([a, b]),
+                new THREE.LineBasicMaterial({ color: 0x333333, depthTest: false })));
+            const yb = y;
+            mk(new THREE.Vector3(x0, yb, z), new THREE.Vector3(x0 + barLenUnits, yb, z));
+            mk(new THREE.Vector3(x0, yb - 0.35, z), new THREE.Vector3(x0, yb + 0.35, z));
+            mk(new THREE.Vector3(x0 + barLenUnits, yb - 0.35, z), new THREE.Vector3(x0 + barLenUnits, yb + 0.35, z));
+            const barLbl = createTextSprite(isGeo ? '100 m' : '100 m (approx.)', '#333333', 22);
+            barLbl.scale.set(isGeo ? 3.2 : 5.0, 0.9, 1);
+            barLbl.position.set(x0 + barLenUnits / 2, yb - 1.0, z);
+            modelGroup.add(barLbl);
 
-            const lblHaedchen = createTextSprite("Haedchen Depression", "#555555", 30);
-            lblHaedchen.position.set(22, getTerrainHeight(22, 0) + 3.2, 0);
-            modelGroup.add(lblHaedchen);
+            // North arrow: north is -Z (back). Show it as a ground arrow with an "N".
+            const flipped = params.flipWE && params.terrainSource === 'geodata';
+            const dir = new THREE.Vector3(0, 0, -1);
+            const origin = new THREE.Vector3(halfW - 2.5, params.baseY + 0.4, halfD + 0.6);
+            const arrow = new THREE.ArrowHelper(dir, origin, 4, 0x333333, 1.3, 0.9);
+            arrow.line.material.depthTest = false; arrow.cone.material.depthTest = false;
+            modelGroup.add(arrow);
+            const nLbl = createTextSprite('N', '#333333', 26);
+            nLbl.scale.set(1.1, 1.1, 1);
+            nLbl.position.copy(origin).add(new THREE.Vector3(0, 0, -5));
+            modelGroup.add(nLbl);
+        }
+
+        function updateCompass() {
+            const flipped = params.flipWE && params.terrainSource === 'geodata';
+            const w = document.getElementById('label-west'), e = document.getElementById('label-east');
+            if (w) w.innerHTML = '<em>' + (flipped ? 'East' : 'West') + '</em>';
+            if (e) e.innerHTML = '<em>' + (flipped ? 'West' : 'East') + '</em>';
+        }
+
+        function updateExagReadout() {
+            const el = document.getElementById('exag-readout');
+            if (!el) return;
+            const vEx = metersPerXUnit() / metersPerYUnit(); // vertical:horizontal scale ratio
+            el.textContent = 'Vertical exaggeration ≈ ' + vEx.toFixed(1) + '×' +
+                             (Math.abs(vEx - 1) < 0.15 ? '  (true scale)' : '');
         }
 
         function createTextSprite(text, colorStr = '#111', size = 24) {
@@ -885,6 +1069,79 @@
                     buildParametricModel();
                 }
             });
+
+            // Qanat layout (faithful real depths vs original schematic)
+            document.getElementById('param-layout').addEventListener('change', e => {
+                params.qanatLayout = e.target.value;
+                buildParametricModel();
+            });
+
+            // Flip West <-> East (GeoData)
+            document.getElementById('param-flip').addEventListener('change', e => {
+                params.flipWE = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Action buttons: reset view + reference-overlay toggle
+            document.getElementById('btn-reset').addEventListener('click', resetView);
+            const ovBtn = document.getElementById('btn-overlay');
+            ovBtn.addEventListener('click', () => {
+                const on = document.body.classList.toggle('overlay-mode');
+                document.getElementById('ref-overlay').style.display = on ? 'block' : 'none';
+                ovBtn.classList.toggle('active', on);
+            });
+
+            setupShaftInteraction();
+        }
+
+        // --- Camera helpers: default view + smooth fly-to ---
+        const DEFAULT_CAM = { pos: new THREE.Vector3(0, 20, 96), target: new THREE.Vector3(2, 3, 0) };
+        let camAnim = null;
+        function flyTo(pos, target, ms) {
+            camAnim = { fromP: camera.position.clone(), toP: pos.clone(),
+                        fromT: controls.target.clone(), toT: target.clone(),
+                        t0: performance.now(), dur: ms || 700 };
+        }
+        function resetView() { flyTo(DEFAULT_CAM.pos, DEFAULT_CAM.target, 700); }
+
+        // --- Shaft hover (tooltip) + click (focus) ---
+        const raycaster = new THREE.Raycaster();
+        const ndc = new THREE.Vector2();
+        let hoverActive = false;
+        function setupShaftInteraction() {
+            const dom = renderer.domElement;
+            const tip = document.getElementById('shaft-tooltip');
+            function pick(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                return raycaster.intersectObjects(shaftMeshes, false)[0];
+            }
+            dom.addEventListener('mousemove', ev => {
+                const hit = pick(ev);
+                if (hit) {
+                    const d = hit.object.userData;
+                    tip.innerHTML = '<span class="t-name">' + d.name + '</span><br>' +
+                        '<span class="t-depth">shaft depth ≈ ' + Math.round(d.depthMeters) + ' m</span>';
+                    tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
+                    tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
+                    tip.style.display = 'block';
+                    dom.style.cursor = 'pointer';
+                    hoverActive = true;
+                } else if (hoverActive) {
+                    tip.style.display = 'none'; dom.style.cursor = 'default'; hoverActive = false;
+                }
+            });
+            dom.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+            dom.addEventListener('click', ev => {
+                const hit = pick(ev);
+                if (!hit) return;
+                const d = hit.object.userData;
+                const tgt = new THREE.Vector3(d.x, d.topY - 1, d.z);
+                const pos = new THREE.Vector3(d.x - 6, d.topY + 10, d.z + 26);
+                flyTo(pos, tgt, 800);
+            });
         }
 
         function onResize() {
@@ -896,6 +1153,13 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            if (camAnim) {
+                const k = Math.min(1, (performance.now() - camAnim.t0) / camAnim.dur);
+                const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; // easeInOutQuad
+                camera.position.lerpVectors(camAnim.fromP, camAnim.toP, e);
+                controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
+                if (k >= 1) camAnim = null;
+            }
             controls.update();
             renderer.render(scene, camera);
         }
