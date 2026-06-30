@@ -6,19 +6,15 @@
     <title>Parametric 3D Geological Block Model</title>
     <style>
         :root {
-            --bg-color: #1e1e24;
-            --panel-bg: rgba(30, 30, 38, 0.85);
+            --bg-color: #f5f0ea;
+            --panel-bg: rgba(22, 22, 30, 0.93);
             --text-color: #f3f4f6;
             --accent-orange: #f97316;
             --accent-blue: #3b82f6;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 
         body {
             background-color: var(--bg-color);
@@ -34,113 +30,82 @@
             position: relative;
         }
 
+        /* Corner compass labels */
+        .compass-label {
+            position: absolute;
+            top: 18px;
+            font-style: italic;
+            font-size: 1.05rem;
+            font-weight: 400;
+            color: #222;
+            pointer-events: none;
+            letter-spacing: 0.3px;
+            z-index: 5;
+        }
+        #label-west { left: 22px; }
+        #label-east { right: 362px; }
+
+        /* Scale bar */
+        #scale-bar {
+            position: absolute;
+            bottom: 26px;
+            left: 22px;
+            pointer-events: none;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+        #scale-bar .bar-line {
+            display: flex;
+            align-items: center;
+        }
+        #scale-bar .bar-cap { width: 1px; height: 10px; background: #333; }
+        #scale-bar .bar-fill { width: 90px; height: 2px; background: #333; }
+        #scale-bar .bar-text { font-size: 0.8rem; color: #333; margin-top: 2px; }
+
         #ui-panel {
             position: absolute;
             top: 20px;
-            left: 20px;
-            width: 340px;
+            right: 20px;
+            width: 330px;
             background: var(--panel-bg);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 14px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
             z-index: 10;
             max-height: 90vh;
             overflow-y: auto;
         }
 
-        h1 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            color: #ffffff;
-        }
+        h1 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px;
+             text-transform: uppercase; color: #fff; }
+        h2 { font-size: 0.8rem; color: #9ca3af; margin-bottom: 18px; font-weight: 400; }
 
-        h2 {
-            font-size: 0.85rem;
-            color: #9ca3af;
-            margin-bottom: 20px;
-            font-weight: 400;
-        }
+        .control-group { margin-bottom: 16px; }
+        .control-group label { display: flex; justify-content: space-between;
+            font-size: 0.82rem; margin-bottom: 5px; color: #d1d5db; }
+        .control-group label span.val { color: var(--accent-orange); font-weight: 600; }
 
-        .control-group {
-            margin-bottom: 18px;
-        }
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: #374151;
+            height: 5px; border-radius: 3px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px;
+            border-radius: 50%; background: var(--accent-orange); cursor: pointer; transition: transform 0.1s; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
-        .control-group label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            margin-bottom: 6px;
-            color: #d1d5db;
-        }
+        .legend { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; }
+        .legend-item { display: flex; align-items: center; font-size: 0.78rem; margin-bottom: 7px; color: #9ca3af; }
+        .color-box { width: 13px; height: 13px; border-radius: 3px; margin-right: 9px; flex-shrink: 0; }
 
-        .control-group label span.val {
-            color: var(--accent-orange);
-            font-weight: 600;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            -webkit-appearance: none;
-            background: #4b5563;
-            height: 6px;
-            border-radius: 3px;
-            outline: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--accent-orange);
-            cursor: pointer;
-            transition: transform 0.1s ease;
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        .legend {
-            margin-top: 25px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 15px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            font-size: 0.8rem;
-            margin-bottom: 8px;
-            color: #9ca3af;
-        }
-
-        .color-box {
-            width: 14px;
-            height: 14px;
-            border-radius: 3px;
-            margin-right: 10px;
-        }
-
-        .instructions {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.6);
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            pointer-events: none;
-            letter-spacing: 0.5px;
-        }
+        .instructions { position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.45);
+            padding: 7px 14px; border-radius: 20px; font-size: 0.75rem; pointer-events: none;
+            letter-spacing: 0.4px; color: #ddd; }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="three.min.js"></script>
+    <script src="OrbitControls.js"></script>
 </head>
 <body>
 
@@ -152,122 +117,118 @@
             <label>Plateau Height <span class="val" id="lbl-plateau">5.0</span></label>
             <input type="range" id="param-plateau" min="2.0" max="8.0" step="0.1" value="5.0">
         </div>
-
         <div class="control-group">
             <label>Hillside Slope Drop <span class="val" id="lbl-hillside">4.5</span></label>
             <input type="range" id="param-hillside" min="2.0" max="7.0" step="0.1" value="4.5">
         </div>
-
         <div class="control-group">
             <label>Depression Depth <span class="val" id="lbl-depression">3.0</span></label>
             <input type="range" id="param-depression" min="0.5" max="5.0" step="0.1" value="3.0">
         </div>
-
         <div class="control-group">
-            <label>Contour Line Spacing <span class="val" id="lbl-contours">0.40</span></label>
-            <input type="range" id="param-contours" min="0.15" max="1.0" step="0.05" value="0.40">
+            <label>Contour Line Spacing <span class="val" id="lbl-contours">0.30</span></label>
+            <input type="range" id="param-contours" min="0.15" max="1.0" step="0.05" value="0.30">
         </div>
-
         <div class="control-group">
-            <label>Geological Layer Depth <span class="val" id="lbl-layer">4.0</span></label>
-            <input type="range" id="param-layer" min="2.5" max="6.0" step="0.1" value="4.0">
+            <label>Geological Layer Depth <span class="val" id="lbl-layer">5.0</span></label>
+            <input type="range" id="param-layer" min="2.5" max="7.5" step="0.1" value="5.0">
         </div>
 
         <div class="legend">
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-orange);"></div>
-                Excavation/Observation Pillars (P-7A to P9)
+                Observation Pillars (P-7A to P9)
             </div>
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-blue);"></div>
-                Subsurface Geological Horizon Line
+                Subsurface Geological Horizon
             </div>
         </div>
     </div>
 
-    <div id="canvas-container"></div>
-    <div class="instructions">Left Click + Drag to Rotate | Right Click + Drag to Pan | Scroll to Zoom</div>
+    <div id="canvas-container">
+        <span class="compass-label" id="label-west"><em>West</em></span>
+        <span class="compass-label" id="label-east"><em>East</em></span>
+
+        <div id="scale-bar">
+            <div class="bar-line">
+                <div class="bar-cap"></div>
+                <div class="bar-fill"></div>
+                <div class="bar-cap"></div>
+            </div>
+            <div class="bar-text">100 m</div>
+        </div>
+    </div>
+
+    <div class="instructions">Drag to rotate · Right-drag to pan · Scroll to zoom</div>
 
     <script>
-        // --- Parameters Object ---
         const params = {
             plateauHeight: 5.0,
             hillsideDrop: 4.5,
             depressionDepth: 3.0,
-            contourSpacing: 0.40,
-            layerDepth: 4.0,
-
-            // Fixed dimensions
-            width: 50,
-            depth: 22,
+            contourSpacing: 0.30,
+            layerDepth: 5.0,
+            width: 60,
+            depth: 26,
             baseY: -3
         };
 
-        // Pillar Positions matching the layout structure of the original diagram
         const pillarDefs = [
-            { id: "P-7A", x: -21, z: -2 },
-            { id: "P-5A", x: -18, z: -1 },
-            { id: "P-5",  x: -15, z: 0.5 },
-            { id: "P-4",  x: -12, z: 2 },
+            { id: "P-7A", x: -21, z: -1.5 },
+            { id: "P-5A", x: -18, z: -0.5 },
+            { id: "P-5",  x: -15, z: 1 },
+            { id: "P-4",  x: -12, z: 2.5 },
             { id: "P-1",  x: -5,  z: 3 },
             { id: "P0",   x: -2,  z: 2.5 },
             { id: "P1",   x: 1,   z: 1.5 },
             { id: "P2",   x: 4,   z: 0.5 },
             { id: "P3",   x: 8,   z: 0 },
             { id: "P4",   x: 13,  z: 1 },
-            { id: "P5",   x: 18,  z: 2.5 },
-            { id: "P6",   x: 21,  z: 1 },
+            { id: "P5",   x: 18,  z: 2 },
+            { id: "P6",   x: 21,  z: 0.5 },
             { id: "P7",   x: 23,  z: -0.5 },
-            { id: "P8",   x: 25,  z: -2 },
-            { id: "P9",   x: 27,  z: -3.5 }
+            { id: "P8",   x: 25,  z: -1.5 },
+            { id: "P9",   x: 27,  z: -3 }
         ];
 
-        // --- Three.js Setup Variables ---
-        let scene, camera, renderer, controls;
-        let modelGroup;
-        let contourMaterial;
+        let scene, camera, renderer, controls, modelGroup;
+        let contourMaterial, crossSectionMaterial;
 
-        // --- Core Procedural Topography Engine ---
         function getTerrainHeight(x, z) {
             let h = params.plateauHeight;
-
-            // West-side Slope (Alzette hillside)
             if (x < -6) {
                 let t = Math.min(Math.max((-6 - x) / 16, 0), 1);
                 let ease = t * t * (3 - 2 * t);
                 h -= ease * params.hillsideDrop;
-            }
-            // East-side Basin (Haedchen Depression)
-            else if (x > 9) {
+            } else if (x > 9) {
                 let t = Math.min(Math.max((x - 9) / 15, 0), 1);
                 let ease = Math.sin(t * Math.PI * 0.5);
                 h -= ease * params.depressionDepth;
-                if (x > 24) {
-                    h += (x - 24) * 0.25;
-                }
+                if (x > 24) h += (x - 24) * 0.25;
             }
-
             h += Math.sin(z * 0.25) * 0.4;
             h += Math.cos(x * 0.15) * 0.2;
-
             return h;
         }
 
         function getLayerHeight(x, z) {
-            return getTerrainHeight(x, z) - params.layerDepth + (Math.sin(x * 0.1) * 0.3);
+            // Flat-lying geological horizon so pillar heights directly encode
+            // terrain elevation above the layer (taller on plateau, shorter on slopes)
+            const horizonY = params.plateauHeight - params.layerDepth;
+            return horizonY + Math.sin(x * 0.08) * 0.45 + Math.cos(z * 0.1) * 0.28;
         }
 
-        // --- Initialize Engine Window ---
         function init() {
             const container = document.getElementById('canvas-container');
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x111115);
+            scene.background = new THREE.Color(0xf5f0ea);
 
-            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 1000);
-            camera.position.set(0, 25, 45);
+            camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 1, 1000);
+            camera.position.set(-4, 44, 68);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.shadowMap.enabled = true;
@@ -277,292 +238,306 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxPolarAngle = Math.PI / 2 - 0.05;
+            controls.target.set(0, 1, 0);
+            controls.maxPolarAngle = Math.PI / 2 - 0.04;
+            controls.update();
 
-            // Lighting Design
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-            scene.add(ambientLight);
+            // Lighting — bright, daylight feel to match the reference
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(20, 40, 20);
-            dirLight.castShadow = true;
-            scene.add(dirLight);
+            const sun = new THREE.DirectionalLight(0xfff8f0, 0.9);
+            sun.position.set(15, 50, 30);
+            sun.castShadow = true;
+            scene.add(sun);
 
-            const fillLight = new THREE.DirectionalLight(0x90b0ff, 0.3);
-            fillLight.position.set(-20, 20, -20);
-            scene.add(fillLight);
+            const fill = new THREE.DirectionalLight(0xd0e8ff, 0.35);
+            fill.position.set(-30, 20, -20);
+            scene.add(fill);
 
-            // Shader Material for clean, procedural anti-aliased Topographic Contour Lines
+            // Terrain contour shader — light beige base, brown lines
             contourMaterial = new THREE.ShaderMaterial({
                 uniforms: {
-                    lineColor: { value: new THREE.Color(0x855840) },
-                    baseColor: { value: new THREE.Color(0xd9ccbe) },
+                    lineColor:      { value: new THREE.Color(0x7a4a28) },
+                    baseColor:      { value: new THREE.Color(0xede3d4) },
                     contourSpacing: { value: params.contourSpacing }
                 },
                 vertexShader: `
                     varying vec3 vWorldPos;
                     void main() {
-                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
-                        vWorldPos = worldPos.xyz;
+                        vec4 wp = modelMatrix * vec4(position, 1.0);
+                        vWorldPos = wp.xyz;
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
+                    }`,
                 fragmentShader: `
                     varying vec3 vWorldPos;
                     uniform vec3 lineColor;
                     uniform vec3 baseColor;
                     uniform float contourSpacing;
                     void main() {
-                        float y = vWorldPos.y;
+                        float y  = vWorldPos.y;
                         float dF = fwidth(y / contourSpacing);
-                        float linePattern = abs(fract(y / contourSpacing - 0.5) - 0.5) / dF;
-                        float contourIntensity = 1.0 - min(linePattern, 1.0);
-                        gl_FragColor = vec4(mix(baseColor, lineColor, contourIntensity), 1.0);
-                    }
-                `,
+                        float lp = abs(fract(y / contourSpacing - 0.5) - 0.5) / dF;
+                        float ci = 1.0 - min(lp, 1.0);
+                        gl_FragColor = vec4(mix(baseColor, lineColor, ci), 1.0);
+                    }`,
                 side: THREE.DoubleSide
             });
 
-            // Cross-section shader for the exposed front face — shows geological strata bands
-            // with contour lines, making the interior visible when the front wall is removed
-            const crossSectionMaterial = new THREE.ShaderMaterial({
+            // Cross-section shader — horizontal geological strata bands on cut faces
+            crossSectionMaterial = new THREE.ShaderMaterial({
                 uniforms: {
-                    lineColor:      { value: new THREE.Color(0x6b4c3b) },
-                    strataColor1:   { value: new THREE.Color(0xc8b89a) },
-                    strataColor2:   { value: new THREE.Color(0xa89070) },
-                    strataColor3:   { value: new THREE.Color(0x8a7060) },
+                    lineColor:      { value: new THREE.Color(0x5a3a22) },
+                    strataA:        { value: new THREE.Color(0xc9b99a) },
+                    strataB:        { value: new THREE.Color(0xaa9278) },
+                    strataC:        { value: new THREE.Color(0x8c7460) },
+                    strataD:        { value: new THREE.Color(0x6e5848) },
                     contourSpacing: { value: params.contourSpacing }
                 },
                 vertexShader: `
                     varying vec3 vWorldPos;
                     void main() {
-                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
-                        vWorldPos = worldPos.xyz;
+                        vec4 wp = modelMatrix * vec4(position, 1.0);
+                        vWorldPos = wp.xyz;
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
+                    }`,
                 fragmentShader: `
                     varying vec3 vWorldPos;
                     uniform vec3 lineColor;
-                    uniform vec3 strataColor1;
-                    uniform vec3 strataColor2;
-                    uniform vec3 strataColor3;
+                    uniform vec3 strataA;
+                    uniform vec3 strataB;
+                    uniform vec3 strataC;
+                    uniform vec3 strataD;
                     uniform float contourSpacing;
-
                     void main() {
                         float y = vWorldPos.y;
-
-                        // Alternate geological strata bands by world-space Y
-                        float bandWidth = 1.8;
-                        float band = mod(floor(y / bandWidth), 3.0);
-                        vec3 strataColor = band < 0.5 ? strataColor1
-                                         : band < 1.5 ? strataColor2
-                                         : strataColor3;
-
-                        // Overlay contour lines
+                        // Four-colour strata bands cycling by Y
+                        float bw   = 1.6;
+                        float band = mod(floor(y / bw + 0.5) + 400.0, 4.0);
+                        vec3 sc = band < 0.5 ? strataA
+                                : band < 1.5 ? strataB
+                                : band < 2.5 ? strataC
+                                : strataD;
+                        // Overlay thin contour lines
                         float dF = fwidth(y / contourSpacing);
-                        float linePattern = abs(fract(y / contourSpacing - 0.5) - 0.5) / dF;
-                        float contourIntensity = 1.0 - min(linePattern, 1.0);
-
-                        vec3 col = mix(strataColor, lineColor, contourIntensity * 0.85);
-                        gl_FragColor = vec4(col, 1.0);
-                    }
-                `,
+                        float ci = 1.0 - min(abs(fract(y / contourSpacing - 0.5) - 0.5) / dF, 1.0);
+                        gl_FragColor = vec4(mix(sc, lineColor, ci * 0.7), 1.0);
+                    }`,
                 side: THREE.DoubleSide
             });
 
             modelGroup = new THREE.Group();
             scene.add(modelGroup);
 
-            buildParametricModel(crossSectionMaterial);
-            setupUIEventListeners(crossSectionMaterial);
+            buildParametricModel();
+            setupUI();
 
-            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('resize', onResize);
         }
 
-        // --- Model Generation Pipeline ---
-        function buildParametricModel(crossSectionMaterial) {
-            while(modelGroup.children.length > 0){
-                const obj = modelGroup.children[0];
-                modelGroup.remove(obj);
-            }
+        function buildParametricModel() {
+            while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
 
-            const segmentsX = 90;
-            const segmentsZ = 40;
+            const segX = 100, segZ = 46;
             const halfW = params.width / 2;
             const halfD = params.depth / 2;
 
-            // 1. Generate Surface Mesh
-            const surfaceGeo = new THREE.PlaneGeometry(params.width, params.depth, segmentsX, segmentsZ);
-            surfaceGeo.rotateX(-Math.PI / 2);
-
-            const posAttr = surfaceGeo.attributes.position;
-            for (let i = 0; i < posAttr.count; i++) {
-                let x = posAttr.getX(i);
-                let z = posAttr.getZ(i);
-                posAttr.setY(i, getTerrainHeight(x, z));
+            // --- 1. Terrain surface ---
+            const surfGeo = new THREE.PlaneGeometry(params.width, params.depth, segX, segZ);
+            surfGeo.rotateX(-Math.PI / 2);
+            const pos = surfGeo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                pos.setY(i, getTerrainHeight(pos.getX(i), pos.getZ(i)));
             }
-            surfaceGeo.computeVertexNormals();
-            const surfaceMesh = new THREE.Mesh(surfaceGeo, contourMaterial);
-            surfaceMesh.castShadow = true;
-            surfaceMesh.receiveShadow = true;
-            modelGroup.add(surfaceMesh);
+            surfGeo.computeVertexNormals();
+            const surfMesh = new THREE.Mesh(surfGeo, contourMaterial);
+            surfMesh.castShadow = true;
+            surfMesh.receiveShadow = true;
+            modelGroup.add(surfMesh);
 
-            // 2. Generate Solid Geological Block Skirt
-            const sideMat = new THREE.MeshStandardMaterial({ color: 0x6e5d4f, roughness: 0.8, side: THREE.DoubleSide });
-            const baseMat = new THREE.MeshStandardMaterial({ color: 0x3a312a, roughness: 0.9 });
-
-            // buildWall accepts an explicit material so the front wall can differ
-            function buildWall(points, isConstantX, fixedVal, mat) {
-                const wallGeo = new THREE.BufferGeometry();
-                const vertices = [];
-
-                for(let i=0; i < points.length - 1; i++) {
-                    let p1 = points[i];
-                    let p2 = points[i+1];
-
-                    let x1 = isConstantX ? fixedVal : p1;
-                    let z1 = isConstantX ? p1 : fixedVal;
-                    let x2 = isConstantX ? fixedVal : p2;
-                    let z2 = isConstantX ? p2 : fixedVal;
-
-                    let y1 = getTerrainHeight(x1, z1);
-                    let y2 = getTerrainHeight(x2, z2);
-
-                    vertices.push(x1, y1, z1);
-                    vertices.push(x1, params.baseY, z1);
-                    vertices.push(x2, y2, z2);
-                    vertices.push(x2, y2, z2);
-                    vertices.push(x1, params.baseY, z1);
-                    vertices.push(x2, params.baseY, z2);
+            // --- 2. Block walls (all faces show geological cross-section strata) ---
+            function buildWall(pts, isX, fixed, mat) {
+                const geo = new THREE.BufferGeometry();
+                const verts = [];
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const p1 = pts[i], p2 = pts[i + 1];
+                    const x1 = isX ? fixed : p1, z1 = isX ? p1 : fixed;
+                    const x2 = isX ? fixed : p2, z2 = isX ? p2 : fixed;
+                    const y1 = getTerrainHeight(x1, z1);
+                    const y2 = getTerrainHeight(x2, z2);
+                    verts.push(x1, y1, z1,  x1, params.baseY, z1,  x2, y2, z2);
+                    verts.push(x2, y2, z2,  x1, params.baseY, z1,  x2, params.baseY, z2);
                 }
-                wallGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-                wallGeo.computeVertexNormals();
-                modelGroup.add(new THREE.Mesh(wallGeo, mat));
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+                geo.computeVertexNormals();
+                modelGroup.add(new THREE.Mesh(geo, mat));
             }
 
             const xSteps = [], zSteps = [];
-            for(let i=0; i<=segmentsX; i++) xSteps.push(-halfW + (i/segmentsX)*params.width);
-            for(let i=0; i<=segmentsZ; i++) zSteps.push(-halfD + (i/segmentsZ)*params.depth);
+            for (let i = 0; i <= segX; i++) xSteps.push(-halfW + (i / segX) * params.width);
+            for (let i = 0; i <= segZ; i++) zSteps.push(-halfD + (i / segZ) * params.depth);
 
-            buildWall(xSteps, false, -halfD, sideMat);   // North Wall (back)
-            // South Wall (front, camera-facing) uses the cross-section shader
-            // instead of an opaque skirt so the interior is fully visible from
-            // the default camera position.
-            buildWall(xSteps, false,  halfD, crossSectionMaterial);
-            buildWall(zSteps, true,  -halfW, sideMat);   // West Wall
-            buildWall(zSteps, true,   halfW, sideMat);   // East Wall
+            buildWall(xSteps, false, -halfD, crossSectionMaterial); // back
+            buildWall(xSteps, false,  halfD, crossSectionMaterial); // front (camera-facing)
+            buildWall(zSteps, true,  -halfW, crossSectionMaterial); // west
+            buildWall(zSteps, true,   halfW, crossSectionMaterial); // east
 
-            // Solid Base Cap
+            // Base
             const baseGeo = new THREE.PlaneGeometry(params.width, params.depth);
             baseGeo.rotateX(Math.PI / 2);
-            const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+            const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({ color: 0x3a312a }));
             baseMesh.position.y = params.baseY;
             modelGroup.add(baseMesh);
 
-            // 3. Generate Structural Pillars & Subsurface Horizon Line
-            const pillarMaterial = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.3, metalness: 0.1 });
-            const layerPoints = [];
+            // --- 3. Observation pillars (extend ABOVE terrain to visualise depth-to-layer) ---
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0xf08030, roughness: 0.25, metalness: 0.05 });
+            const layerPts = [];
 
             pillarDefs.forEach(p => {
-                const surfaceY = getTerrainHeight(p.x, p.z);
-                const layerY = getLayerHeight(p.x, p.z);
+                const sy  = getTerrainHeight(p.x, p.z);
+                const ly  = getLayerHeight(p.x, p.z);
+                const len = sy - ly;  // depth to geological horizon
 
-                layerPoints.push(new THREE.Vector3(p.x, layerY, p.z));
+                layerPts.push(new THREE.Vector3(p.x, ly, p.z));
 
-                const pillarLength = surfaceY - layerY;
-                if(pillarLength > 0) {
-                    const pillarGeo = new THREE.CylinderGeometry(0.18, 0.18, pillarLength, 12);
-                    const pillarMesh = new THREE.Mesh(pillarGeo, pillarMaterial);
-                    pillarMesh.position.set(p.x, surfaceY - (pillarLength/2), p.z);
-                    modelGroup.add(pillarMesh);
+                if (len > 0.3) {
+                    // Pillar stands above terrain surface; height encodes depth to layer
+                    const geo = new THREE.CylinderGeometry(0.22, 0.22, len, 12);
+                    const mesh = new THREE.Mesh(geo, pillarMat);
+                    // Bottom cap sits at surface level, top sticks up by `len`
+                    mesh.position.set(p.x, sy + len / 2, p.z);
+                    modelGroup.add(mesh);
                 }
 
-                const labelSprite = createTextSprite(p.id);
-                labelSprite.position.set(p.x, surfaceY + 0.8, p.z);
-                modelGroup.add(labelSprite);
+                // Label just above terrain surface, below pillar base
+                const lbl = createTextSprite(p.id, '#1a1a1a', 24);
+                lbl.position.set(p.x, sy + 0.4, p.z);
+                modelGroup.add(lbl);
             });
 
-            const curve = new THREE.CatmullRomCurve3(layerPoints);
-            const tubeGeo = new THREE.TubeGeometry(curve, 100, 0.12, 8, false);
-            const tubeMat = new THREE.MeshBasicMaterial({ color: 0x2563eb });
-            const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
-            modelGroup.add(tubeMesh);
+            // --- 4. Subsurface geological horizon ---
+            // Interior tube connecting pillar bases
+            const curve = new THREE.CatmullRomCurve3(layerPts);
+            const tubeGeo = new THREE.TubeGeometry(curve, 120, 0.22, 8, false);
+            modelGroup.add(new THREE.Mesh(tubeGeo, new THREE.MeshBasicMaterial({ color: 0x1d65d8 })));
 
-            // 4. Geographic Text Overlays
-            const labelAlzette = createTextSprite("Alzette Hillside", "#9ca3af", 32);
-            labelAlzette.position.set(-16, getTerrainHeight(-16, 0) + 3.5, 0);
-            modelGroup.add(labelAlzette);
+            // Horizon trace on the front cross-section face (camera-facing wall)
+            // This makes the geological horizon clearly visible as a blue line
+            const horizonFrontPts = [];
+            for (let i = 0; i <= segX; i++) {
+                const fx = -halfW + (i / segX) * params.width;
+                horizonFrontPts.push(new THREE.Vector3(fx, getLayerHeight(fx, halfD), halfD));
+            }
+            const frontCurve = new THREE.CatmullRomCurve3(horizonFrontPts);
+            const frontTubeGeo = new THREE.TubeGeometry(frontCurve, 150, 0.20, 8, false);
+            modelGroup.add(new THREE.Mesh(frontTubeGeo, new THREE.MeshBasicMaterial({ color: 0x1d65d8 })));
 
-            const labelPetschend = createTextSprite("Pëtschend Plateau", "#ffffff", 36);
-            labelPetschend.position.set(1, getTerrainHeight(1, 0) + 4.5, 0);
-            modelGroup.add(labelPetschend);
+            // Horizon trace on the back face
+            const horizonBackPts = [];
+            for (let i = 0; i <= segX; i++) {
+                const bx = -halfW + (i / segX) * params.width;
+                horizonBackPts.push(new THREE.Vector3(bx, getLayerHeight(bx, -halfD), -halfD));
+            }
+            const backCurve = new THREE.CatmullRomCurve3(horizonBackPts);
+            const backTubeGeo = new THREE.TubeGeometry(backCurve, 150, 0.20, 8, false);
+            modelGroup.add(new THREE.Mesh(backTubeGeo, new THREE.MeshBasicMaterial({ color: 0x1d65d8 })));
 
-            const labelHaedchen = createTextSprite("Haedchen Depression", "#9ca3af", 32);
-            labelHaedchen.position.set(19, getTerrainHeight(19, 0) + 3.5, 0);
-            modelGroup.add(labelHaedchen);
+            // --- 5. Dashed geological zone boundary lines on the terrain surface ---
+            const dashMat = new THREE.LineDashedMaterial({ color: 0x333333, dashSize: 1.2, gapSize: 0.7, linewidth: 1 });
+
+            function addTerrainDashLine(xVals, zFunc) {
+                const pts = xVals.map(x => {
+                    const z = zFunc(x);
+                    return new THREE.Vector3(x, getTerrainHeight(x, z) + 0.08, z);
+                });
+                const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                const line = new THREE.Line(geo, dashMat);
+                line.computeLineDistances();
+                modelGroup.add(line);
+            }
+
+            // Alzette hillside boundary — traces the hillside transition zone
+            const hillBoundXVals = [];
+            for (let x = -halfW; x <= -4; x += 0.8) hillBoundXVals.push(x);
+            addTerrainDashLine(hillBoundXVals, x => -2 + Math.sin((x + 20) * 0.18) * 5);
+
+            // Second arc of hillside boundary (enclosing the slope)
+            const hillBoundXVals2 = [];
+            for (let x = -halfW; x <= 0; x += 0.8) hillBoundXVals2.push(x);
+            addTerrainDashLine(hillBoundXVals2, x => 4 + Math.sin((x + 22) * 0.15) * 4.5);
+
+            // Plateau outline — oval boundary around the plateau top
+            const platXVals = [];
+            for (let x = -8; x <= 12; x += 0.6) platXVals.push(x);
+            addTerrainDashLine(platXVals, x => -5 + Math.cos((x - 2) * 0.22) * 7);
+            addTerrainDashLine(platXVals, x => 6 + Math.cos((x - 2) * 0.22) * 6);
+
+            // Haedchen Depression boundary
+            const depXVals = [];
+            for (let x = 8; x <= halfW; x += 0.8) depXVals.push(x);
+            addTerrainDashLine(depXVals, x => -3 + Math.sin((x - 10) * 0.16) * 5);
+
+            // --- 6. Region labels ---
+            const lblAlzette = createTextSprite("Alzette hillside", "#555555", 30);
+            lblAlzette.position.set(-17, getTerrainHeight(-17, 0) + 3.2, 0);
+            modelGroup.add(lblAlzette);
+
+            const lblPlateau = createTextSprite("Pëtschend Plateau", "#333333", 34);
+            lblPlateau.position.set(2, getTerrainHeight(2, 0) + 4.5, 0);
+            modelGroup.add(lblPlateau);
+
+            const lblHaedchen = createTextSprite("Haedchen Depression", "#555555", 30);
+            lblHaedchen.position.set(22, getTerrainHeight(22, 0) + 3.2, 0);
+            modelGroup.add(lblHaedchen);
         }
 
-        // --- Custom Text Sprite Rasterizer ---
-        function createTextSprite(text, colorStr = '#1e293b', customSize = 26) {
+        function createTextSprite(text, colorStr = '#111', size = 24) {
             const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 64;
+            canvas.width = 320; canvas.height = 72;
             const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = 'rgba(0,0,0,0)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.font = `Bold ${customSize}px -apple-system, sans-serif`;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = `600 ${size}px -apple-system, sans-serif`;
             ctx.fillStyle = colorStr;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-            ctx.shadowBlur = 4;
+            ctx.shadowColor = 'rgba(245,240,234,0.9)';
+            ctx.shadowBlur = 6;
             ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
-            const sprite = new THREE.Sprite(spriteMat);
-            sprite.scale.set(5, 1.25, 1);
+            const tex = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+            sprite.scale.set(6, 1.35, 1);
             return sprite;
         }
 
-        // --- Controller UI Synchronization Setup ---
-        function setupUIEventListeners(crossSectionMaterial) {
-            const bindParam = (id, paramKey, labelId, isFixed = false) => {
-                const slider = document.getElementById(id);
-                const label = document.getElementById(labelId);
-
-                slider.addEventListener('input', (e) => {
-                    let val = parseFloat(e.target.value);
-                    params[paramKey] = val;
-                    label.innerText = isFixed ? val : val.toFixed(2);
-
-                    if(paramKey === 'contourSpacing') {
-                        contourMaterial.uniforms.contourSpacing.value = val;
-                        crossSectionMaterial.uniforms.contourSpacing.value = val;
+        function setupUI() {
+            function bind(id, key, lblId) {
+                const sl = document.getElementById(id);
+                const lb = document.getElementById(lblId);
+                sl.addEventListener('input', e => {
+                    const v = parseFloat(e.target.value);
+                    params[key] = v;
+                    lb.innerText = v.toFixed(2);
+                    if (key === 'contourSpacing') {
+                        contourMaterial.uniforms.contourSpacing.value = v;
+                        crossSectionMaterial.uniforms.contourSpacing.value = v;
                     } else {
-                        buildParametricModel(crossSectionMaterial);
+                        buildParametricModel();
                     }
                 });
-            };
-
-            bindParam('param-plateau',    'plateauHeight',   'lbl-plateau');
-            bindParam('param-hillside',   'hillsideDrop',    'lbl-hillside');
-            bindParam('param-depression', 'depressionDepth', 'lbl-depression');
-            bindParam('param-contours',   'contourSpacing',  'lbl-contours');
-            bindParam('param-layer',      'layerDepth',      'lbl-layer');
+            }
+            bind('param-plateau',    'plateauHeight',   'lbl-plateau');
+            bind('param-hillside',   'hillsideDrop',    'lbl-hillside');
+            bind('param-depression', 'depressionDepth', 'lbl-depression');
+            bind('param-contours',   'contourSpacing',  'lbl-contours');
+            bind('param-layer',      'layerDepth',      'lbl-layer');
         }
 
-        function onWindowResize() {
-            const container = document.getElementById('canvas-container');
-            camera.aspect = container.clientWidth / container.clientHeight;
+        function onResize() {
+            const c = document.getElementById('canvas-container');
+            camera.aspect = c.clientWidth / c.clientHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setSize(c.clientWidth, c.clientHeight);
         }
 
-        // --- Animation Render Loop ---
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
