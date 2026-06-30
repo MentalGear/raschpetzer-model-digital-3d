@@ -125,8 +125,8 @@
 <body>
 
     <div id="ui-panel">
-        <h1>Geological Block</h1>
-        <h2>Parametric Model Generator</h2>
+        <h1>Raschpetzer Qanat</h1>
+        <h2>Parametric Geological Block Model</h2>
 
         <div class="control-group">
             <label>Plateau Height <span class="val" id="lbl-plateau">5.0</span></label>
@@ -145,18 +145,18 @@
             <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
         </div>
         <div class="control-group">
-            <label>Geological Layer Depth <span class="val" id="lbl-layer">5.0</span></label>
+            <label>Qanat Tunnel Depth <span class="val" id="lbl-layer">5.0</span></label>
             <input type="range" id="param-layer" min="2.5" max="7.5" step="0.1" value="5.0">
         </div>
 
         <div class="legend">
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-orange);"></div>
-                Observation Pillars (P-7A to P9)
+                Raschpetzer Shafts (P-7A to P9)
             </div>
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-blue);"></div>
-                Subsurface Geological Horizon
+                Qanat Tunnel / Water Gallery
             </div>
         </div>
     </div>
@@ -481,42 +481,44 @@
             baseMesh.position.y = params.baseY;
             modelGroup.add(baseMesh);
 
-            // --- 3. Observation pillars (extend ABOVE terrain to visualise depth-to-layer) ---
-            const pillarMat = new THREE.MeshStandardMaterial({ color: 0xf08030, roughness: 0.25, metalness: 0.05 });
+            // --- 3. Raschpetzer shafts: vertical wells running DOWN from the
+            //         ground surface to the underground gallery (the blue horizon).
+            //         They sit within the ground, not above it. Rendered with
+            //         depthTest off so they stay visible through the terrain fill. ---
+            const pillarMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, depthTest: false });
             const layerPts = [];
 
             pillarDefs.forEach(p => {
                 const sy  = getTerrainHeight(p.x, p.z);
                 const ly  = getLayerHeight(p.x, p.z);
-                const len = sy - ly;  // depth to geological horizon
+                const len = sy - ly;  // shaft depth: surface down to the gallery horizon
 
                 layerPts.push(new THREE.Vector3(p.x, ly, p.z));
 
                 if (len > 0.3) {
-                    // Pillar stands above terrain surface; height encodes depth to layer
-                    const geo = new THREE.CylinderGeometry(0.22, 0.22, len, 12);
+                    const geo = new THREE.CylinderGeometry(0.30, 0.30, len, 14);
                     const mesh = new THREE.Mesh(geo, pillarMat);
-                    // Bottom cap sits at surface level, top sticks up by `len`
-                    mesh.position.set(p.x, sy + len / 2, p.z);
+                    // Top flush with the surface, bottom at the gallery horizon
+                    mesh.position.set(p.x, sy - len / 2, p.z);
+                    mesh.renderOrder = 6;
                     modelGroup.add(mesh);
                 }
 
-                // Label just above terrain surface, below pillar base
+                // Label sits just above the shaft head at the ground surface
                 const lbl = createTextSprite(p.id, '#1a1a1a', 24);
-                lbl.position.set(p.x, sy + 0.4, p.z);
+                lbl.position.set(p.x, sy + 0.6, p.z);
                 modelGroup.add(lbl);
             });
 
-            // --- 4. Subsurface geological horizon (single clean blue line on the
-            //         camera-facing front face, as in the reference) ---
-            const horizonFrontPts = [];
-            for (let i = 0; i <= segX; i++) {
-                const fx = -halfW + (i / segX) * params.width;
-                horizonFrontPts.push(new THREE.Vector3(fx, getLayerHeight(fx, halfD), halfD));
-            }
-            const frontCurve = new THREE.CatmullRomCurve3(horizonFrontPts);
-            const frontTubeGeo = new THREE.TubeGeometry(frontCurve, 160, 0.16, 8, false);
-            modelGroup.add(new THREE.Mesh(frontTubeGeo, new THREE.MeshBasicMaterial({ color: 0x1d65d8 })));
+            // --- 4. Qanat tunnel: the underground water gallery the shafts descend to.
+            //         Routed through the shaft bases so each shaft visibly meets the
+            //         water; drawn with depthTest off so it reads through the ground. ---
+            const tunnelCurve = new THREE.CatmullRomCurve3(layerPts);
+            const tunnelGeo = new THREE.TubeGeometry(tunnelCurve, 220, 0.18, 8, false);
+            const tunnelMat = new THREE.MeshBasicMaterial({ color: 0x1d6fd6, depthTest: false });
+            const tunnelMesh = new THREE.Mesh(tunnelGeo, tunnelMat);
+            tunnelMesh.renderOrder = 5;
+            modelGroup.add(tunnelMesh);
 
             // --- 5. Dashed geological zone boundary lines on the terrain surface ---
             const dashMat = new THREE.LineDashedMaterial({ color: 0x333333, dashSize: 1.2, gapSize: 0.7, linewidth: 1 });
