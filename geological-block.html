@@ -111,6 +111,19 @@
             border-radius: 50%; background: var(--accent-orange); cursor: pointer; transition: transform 0.1s; }
         input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
+        select {
+            width: 100%;
+            background: #374151;
+            color: #f3f4f6;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px;
+            padding: 7px 9px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            outline: none;
+        }
+        select:focus { border-color: var(--accent-orange); }
+
         .legend { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; }
         .legend-item { display: flex; align-items: center; font-size: 0.78rem; margin-bottom: 7px; color: #9ca3af; }
         .color-box { width: 13px; height: 13px; border-radius: 3px; margin-right: 9px; flex-shrink: 0; }
@@ -144,6 +157,14 @@
             <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
             <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
         </div>
+        <div class="control-group">
+            <label for="param-source">Terrain Source</label>
+            <select id="param-source">
+                <option value="procedural">Procedural (original)</option>
+                <option value="heightmap">Heightmap image</option>
+            </select>
+        </div>
+
         <div class="control-group">
             <label>Qanat Tunnel Depth <span class="val" id="lbl-layer">5.0</span></label>
             <input type="range" id="param-layer" min="2.5" max="7.5" step="0.1" value="5.0">
@@ -187,7 +208,8 @@
             layerDepth: 5.0,
             width: 70,
             depth: 26,
-            baseY: -2
+            baseY: -2,
+            terrainSource: 'procedural'  // 'procedural' | 'heightmap'
         };
 
         const pillarDefs = [
@@ -211,7 +233,59 @@
         let scene, camera, renderer, controls, modelGroup;
         let contourMaterial, crossSectionMaterial;
 
+        // --- Heightmap source (sampled grayscale image) ---
+        // Drop a grayscale heightmap next to this file and point HEIGHTMAP_URL at it.
+        const HEIGHTMAP_URL = 'heightmap_20260630213141_N1NB.png';
+        const heightmap = { ready: false, data: null, w: 0, h: 0, portrait: false };
+
+        function loadHeightmap(url, cb) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const c = document.createElement('canvas');
+                c.width = img.width; c.height = img.height;
+                const cx = c.getContext('2d');
+                cx.drawImage(img, 0, 0);
+                const px = cx.getImageData(0, 0, img.width, img.height).data;
+                const n = img.width * img.height;
+                const g = new Float32Array(n);
+                for (let i = 0; i < n; i++) g[i] = px[i * 4] / 255; // red channel = grayscale
+                heightmap.data = g; heightmap.w = img.width; heightmap.h = img.height;
+                heightmap.portrait = img.height > img.width; heightmap.ready = true;
+                if (cb) cb(true);
+            };
+            img.onerror = () => { console.warn('Heightmap failed to load:', url); if (cb) cb(false); };
+            img.src = url;
+        }
+
+        // Bilinear grayscale sample. (u,v) run along the terrain long/short axes in [0,1].
+        // A portrait image is rotated so its long axis maps to the terrain's long axis.
+        function sampleHeightmap(u, v) {
+            const W = heightmap.w, H = heightmap.h, d = heightmap.data;
+            let ix, iy;
+            if (heightmap.portrait) { ix = v * (W - 1); iy = u * (H - 1); }
+            else { ix = u * (W - 1); iy = v * (H - 1); }
+            const x0 = Math.floor(ix), y0 = Math.floor(iy);
+            const x1 = Math.min(x0 + 1, W - 1), y1 = Math.min(y0 + 1, H - 1);
+            const fx = ix - x0, fy = iy - y0;
+            const g00 = d[y0 * W + x0], g10 = d[y0 * W + x1];
+            const g01 = d[y1 * W + x0], g11 = d[y1 * W + x1];
+            const gx0 = g00 + (g10 - g00) * fx, gx1 = g01 + (g11 - g01) * fx;
+            return gx0 + (gx1 - gx0) * fy;
+        }
+
+        // Terrain dispatcher: heightmap if selected & loaded, otherwise procedural.
         function getTerrainHeight(x, z) {
+            if (params.terrainSource === 'heightmap' && heightmap.ready) {
+                const u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
+                const v = Math.min(Math.max((z + params.depth / 2) / params.depth, 0), 1);
+                // plateauHeight slider doubles as the vertical scale in heightmap mode
+                return sampleHeightmap(u, v) * params.plateauHeight;
+            }
+            return getProceduralHeight(x, z);
+        }
+
+        function getProceduralHeight(x, z) {
             let h = params.plateauHeight;
             if (x < -6) {
                 let t = Math.min(Math.max((-6 - x) / 16, 0), 1);
@@ -595,12 +669,8 @@
                     const v = parseFloat(e.target.value);
                     params[key] = v;
                     lb.innerText = v.toFixed(2);
-                    if (key === 'contourSpacing') {
-                        contourMaterial.uniforms.contourSpacing.value = v;
-                        crossSectionMaterial.uniforms.contourSpacing.value = v;
-                    } else {
-                        buildParametricModel();
-                    }
+                    // Contours are real geometry now, so every parameter rebuilds the model.
+                    buildParametricModel();
                 });
             }
             bind('param-plateau',    'plateauHeight',   'lbl-plateau');
@@ -608,6 +678,24 @@
             bind('param-depression', 'depressionDepth', 'lbl-depression');
             bind('param-contours',   'contourSpacing',  'lbl-contours');
             bind('param-layer',      'layerDepth',      'lbl-layer');
+
+            // Terrain source selector (procedural vs heightmap image)
+            const sel = document.getElementById('param-source');
+            sel.addEventListener('change', e => {
+                params.terrainSource = e.target.value;
+                if (params.terrainSource === 'heightmap' && !heightmap.ready) {
+                    loadHeightmap(HEIGHTMAP_URL, ok => {
+                        if (!ok) {
+                            alert('Could not load the heightmap image (' + HEIGHTMAP_URL + ').');
+                            sel.value = 'procedural';
+                            params.terrainSource = 'procedural';
+                        }
+                        buildParametricModel();
+                    });
+                } else {
+                    buildParametricModel();
+                }
+            });
         }
 
         function onResize() {
