@@ -30,6 +30,21 @@
             position: relative;
         }
 
+        /* Reference overlay (alignment aid; toggled via #overlay in the URL) */
+        #ref-overlay {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 4;
+            display: none;
+        }
+        body.overlay-mode #ui-panel,
+        body.overlay-mode .instructions { display: none; }
+
         /* Corner compass labels */
         .compass-label {
             position: absolute;
@@ -147,6 +162,7 @@
     </div>
 
     <div id="canvas-container">
+        <img id="ref-overlay" src="Fig2-01 copy.jpg" alt="reference">
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
 
@@ -169,7 +185,7 @@
             depressionDepth: 3.0,
             contourSpacing: 0.20,
             layerDepth: 5.0,
-            width: 60,
+            width: 70,
             depth: 26,
             baseY: -2
         };
@@ -207,8 +223,14 @@
                 h -= ease * params.depressionDepth;
                 if (x > 24) h += (x - 24) * 0.25;
             }
+            // Broad cross-structural undulation
             h += Math.sin(z * 0.25) * 0.4;
             h += Math.cos(x * 0.15) * 0.2;
+            // Rolling knolls + finer relief => richer, denser contour pattern (as in the reference)
+            h += Math.sin(x * 0.35) * Math.cos(z * 0.40) * 0.45;
+            h += Math.sin(x * 0.18 + 2.0) * 0.28;
+            h += Math.cos(x * 0.62 + z * 0.5) * 0.16;
+            h += Math.sin(z * 0.85 - x * 0.2) * 0.12;
             return h;
         }
 
@@ -222,12 +244,20 @@
         function init() {
             const container = document.getElementById('canvas-container');
 
+            // Reference-overlay alignment mode (open with #overlay in the URL)
+            if (location.hash.indexOf('overlay') >= 0) {
+                document.body.classList.add('overlay-mode');
+                document.getElementById('ref-overlay').style.display = 'block';
+            }
+
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xf5f0ea);
 
-            camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 1, 1000);
-            // Low, wide oblique angle matching the reference panoramic diagram
-            camera.position.set(-2, 22, 76);
+            camera = new THREE.PerspectiveCamera(13, container.clientWidth / container.clientHeight, 1, 1000);
+            // Low, wide oblique angle matching the reference panoramic diagram.
+            // Narrow FOV + far dolly => near-orthographic look with little perspective
+            // distortion, as in the reference; tuned against the overlay.
+            camera.position.set(0, 20, 96);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
@@ -239,7 +269,7 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.target.set(0, 2, 0);
+            controls.target.set(2, 3, 0);
             controls.maxPolarAngle = Math.PI / 2 - 0.01;
             controls.update();
 
@@ -477,32 +507,16 @@
                 modelGroup.add(lbl);
             });
 
-            // --- 4. Subsurface geological horizon ---
-            // Interior tube connecting pillar bases
-            const curve = new THREE.CatmullRomCurve3(layerPts);
-            const tubeGeo = new THREE.TubeGeometry(curve, 120, 0.22, 8, false);
-            modelGroup.add(new THREE.Mesh(tubeGeo, new THREE.MeshBasicMaterial({ color: 0x1d65d8 })));
-
-            // Horizon trace on the front cross-section face (camera-facing wall)
-            // This makes the geological horizon clearly visible as a blue line
+            // --- 4. Subsurface geological horizon (single clean blue line on the
+            //         camera-facing front face, as in the reference) ---
             const horizonFrontPts = [];
             for (let i = 0; i <= segX; i++) {
                 const fx = -halfW + (i / segX) * params.width;
                 horizonFrontPts.push(new THREE.Vector3(fx, getLayerHeight(fx, halfD), halfD));
             }
             const frontCurve = new THREE.CatmullRomCurve3(horizonFrontPts);
-            const frontTubeGeo = new THREE.TubeGeometry(frontCurve, 150, 0.20, 8, false);
+            const frontTubeGeo = new THREE.TubeGeometry(frontCurve, 160, 0.16, 8, false);
             modelGroup.add(new THREE.Mesh(frontTubeGeo, new THREE.MeshBasicMaterial({ color: 0x1d65d8 })));
-
-            // Horizon trace on the back face
-            const horizonBackPts = [];
-            for (let i = 0; i <= segX; i++) {
-                const bx = -halfW + (i / segX) * params.width;
-                horizonBackPts.push(new THREE.Vector3(bx, getLayerHeight(bx, -halfD), -halfD));
-            }
-            const backCurve = new THREE.CatmullRomCurve3(horizonBackPts);
-            const backTubeGeo = new THREE.TubeGeometry(backCurve, 150, 0.20, 8, false);
-            modelGroup.add(new THREE.Mesh(backTubeGeo, new THREE.MeshBasicMaterial({ color: 0x1d65d8 })));
 
             // --- 5. Dashed geological zone boundary lines on the terrain surface ---
             const dashMat = new THREE.LineDashedMaterial({ color: 0x333333, dashSize: 1.2, gapSize: 0.7, linewidth: 1 });
