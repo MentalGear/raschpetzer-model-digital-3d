@@ -69,6 +69,14 @@
             display: none;
         }
         #honesty-note b { color: #b06a00; }
+        #profile-panel {
+            position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+            display: none; background: rgba(255,255,255,0.94); border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 8px; padding: 8px 10px 4px; z-index: 8;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25); font-size: 0.7rem; color: #4a3f2f;
+        }
+        #profile-panel .pp-title { font-weight: 600; margin-bottom: 2px; color: #333; }
+        #profile-panel .pp-sub { color: #8a7a63; margin-bottom: 4px; }
 
         /* Scale bar */
         #scale-bar {
@@ -303,6 +311,9 @@
             <button id="btn-measure" type="button">📏 Measure</button>
             <button id="btn-tour" type="button">▶ Guided tour</button>
         </div>
+        <div class="control-group btn-row">
+            <button id="btn-profile" type="button">📈 Gallery profile</button>
+        </div>
 
         <div class="legend">
             <div class="legend-item">
@@ -376,6 +387,7 @@
 
         <div class="instructions">Drag to rotate · Scroll to zoom · Hover a shaft for depth · Click to focus</div>
         <div id="measure-readout"></div>
+        <div id="profile-panel"></div>
         <div id="tour-bar">
             <button id="tour-prev" type="button" aria-label="Previous">⏮</button>
             <button id="tour-play" type="button" aria-label="Play/pause">⏸</button>
@@ -1207,6 +1219,7 @@
             updateExagReadout();
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
             rebuildFlow();               // rebuild animated-flow particles for the new paths
+            if (profileOn) document.getElementById('profile-panel').innerHTML = buildProfileSVG();
         }
 
         // Real ground metres per model X-unit (GeoData uses the bbox; else nominal ~1 km block).
@@ -1295,7 +1308,9 @@
             // GeoData: anchor the sandstone/marl interface (= groundwater table, ≈ gallery
             // floor per fig.5-24) to REAL elevation; weathered cover ~2 m (cited [2,10]);
             // marl+keuper below. Non-geo: keep the schematic scene-unit bands.
-            const COVER_M = 2, MARL_M = 16, KO_M = 6;        // masl thicknesses (cover cited; marl/keuper approximate)
+            // masl thicknesses: cover cited (~2 m); li1 marl below the interface and ko
+            // Keuper from the fig.4-3 digitisation (ko ≈ 5 m; li1 ≈ 15 m of the ~50 m Liassic).
+            const COVER_M = 2, MARL_M = 15, KO_M = 5;
             const wThk = 0.45, marlThk = 2.6, koThk = 0.30;   // schematic fallback (scene units)
             const gwYschem = x => 2.7 - x * 0.02;
             // Interface elevation follows the near-level gallery floor, ~2 m below it.
@@ -1445,6 +1460,7 @@
             });
 
             // Action buttons: reset view + reference-overlay toggle
+            document.getElementById('btn-profile').addEventListener('click', toggleProfile);
             document.getElementById('btn-reset').addEventListener('click', resetView);
             const ovBtn = document.getElementById('btn-overlay');
             ovBtn.addEventListener('click', () => {
@@ -1852,6 +1868,63 @@
                 setMeasureMode(!measureMode);
                 if (measureMode && annotateMode) document.getElementById('btn-annotate').click();
             });
+        }
+
+        // --- Gallery longitudinal-profile chart (toggle) ---------------------
+        let profileOn = false;
+        function buildProfileSVG() {
+            // georeferenced main-line shafts, W->E; true elevations (masl)
+            const shs = SHAFTS.filter(s => s.geo && s.role !== 'auxiliary')
+                .sort((a, b) => a.geo.lon - b.geo.lon);
+            if (shs.length < 2) return '<div class="pp-sub">Profile needs georeferenced shafts.</div>';
+            const mPerDegLon = 111320 * Math.cos(GEO_BBOX.south * Math.PI / 180);
+            const lon0 = shs[0].geo.lon;
+            const pts = shs.map(s => {
+                const sc = geoToScene(s.geo.lat, s.geo.lon);
+                const surf = surfaceMeters(getTerrainHeight(sc.x, sc.z));
+                const floor = (s.floorElevM != null) ? s.floorElevM : floorMaslAtLon(s.geo.lon);
+                return { id: s.id, dist: (s.geo.lon - lon0) * mPerDegLon, surf, floor };
+            });
+            const W = 540, H = 200, mL = 40, mR = 12, mT = 26, mB = 26;
+            const maxD = pts[pts.length - 1].dist;
+            const ys = pts.flatMap(p => [p.surf, p.floor]);
+            let yMin = Math.floor(Math.min(...ys) - 3), yMax = Math.ceil(Math.max(...ys) + 3);
+            const X = d => mL + d / maxD * (W - mL - mR);
+            const Y = e => mT + (yMax - e) / (yMax - yMin) * (H - mT - mB);
+            const line = (key, col, w) => 'M' + pts.map(p => `${X(p.dist).toFixed(1)},${Y(p[key]).toFixed(1)}`).join(' L');
+            let svg = `<svg width="${W}" height="${H}">`;
+            // y gridlines (masl)
+            for (let e = Math.ceil(yMin / 10) * 10; e <= yMax; e += 10) {
+                svg += `<line x1="${mL}" y1="${Y(e)}" x2="${W - mR}" y2="${Y(e)}" stroke="#e3ddd2"/>` +
+                       `<text x="4" y="${Y(e) + 3}" fill="#8a7a63" font-size="9">${e}</text>`;
+            }
+            // shaft ticks + depth (surf->floor) + labels
+            for (const p of pts) {
+                svg += `<line x1="${X(p.dist)}" y1="${Y(p.surf)}" x2="${X(p.dist)}" y2="${Y(p.floor)}" stroke="#e0a23b" stroke-width="2"/>`;
+                svg += `<text x="${X(p.dist)}" y="${Y(p.surf) - 3}" fill="#5a4a33" font-size="8" text-anchor="middle">${p.id}</text>`;
+            }
+            svg += `<path d="${line('surf')}" fill="none" stroke="#9c8567" stroke-width="1.8"/>`;
+            svg += `<path d="${line('floor')}" fill="none" stroke="#1d6fd6" stroke-width="2.2"/>`;
+            // step markers
+            for (const st of SSOT.gallery.gallery.steps) {
+                const p = pts.find(q => q.id === st.underShaft);
+                if (p) svg += `<text x="${X(p.dist)}" y="${Y(p.floor) + 11}" fill="#1d6fd6" font-size="8" text-anchor="middle">▾${st.dropM}m</text>`;
+            }
+            // distance axis
+            svg += `<text x="${mL}" y="${H - 8}" fill="#8a7a63" font-size="9">0 m</text>` +
+                   `<text x="${W - mR}" y="${H - 8}" fill="#8a7a63" font-size="9" text-anchor="end">${Math.round(maxD)} m</text>`;
+            svg += `</svg>`;
+            const fall = (pts[pts.length - 1].floor - pts[0].floor);
+            return `<div class="pp-title">Gallery longitudinal profile — true elevation (m a.s.l.)</div>` +
+                   `<div class="pp-sub">Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
+                   `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps).</div>` + svg;
+        }
+        function toggleProfile() {
+            profileOn = !profileOn;
+            const el = document.getElementById('profile-panel');
+            document.getElementById('btn-profile').classList.toggle('active', profileOn);
+            if (profileOn) { el.innerHTML = buildProfileSVG(); el.style.display = 'block'; }
+            else el.style.display = 'none';
         }
 
         // --- Animated water flow ---------------------------------------------

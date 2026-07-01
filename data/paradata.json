@@ -30,8 +30,13 @@
     "basis": "OpenStreetMap contributors (ODbL); validated against ACT LiDAR 2019 (act-lidar-2019)",
     "author": "project team", "date": "2026-07-02"
   },
+  "pd-geology-digitised": {
+    "rationale": "Strata thicknesses were digitised from fig.4-3 (the schematic XY cross-section of the Pëtschend horst) by colour-classifying a vertical scan of the published raster against its 20 m vertical scale bar (~6.8 px/m): Liassic package (li2 sandstone + li1 marl) ≈ 50 m at the crest, Keuper mudstone (ko) ≈ 5 m (consistent across the section), Keuper dolomitic marl (km3) ≥ 44 m (base below the section). Accuracy is ~±3 m — the figure is 'schematic' per its own caption, so these are reconstructed, not surveyed. The li2/li1 internal split is not cleanly separable on the raster; the model derives the sandstone thickness from (LiDAR surface − sandstone/marl interface) instead.",
+    "basis": "Waringo 2018 fig.4-3 (p.15), digitised",
+    "author": "project team", "date": "2026-07-02"
+  },
   "pd-strata-render": {
-    "rationale": "The geological cross-section is a mix of sourced facts and display approximation. Sourced: the stratigraphic sequence and names (Luxembourg sandstone / marl+limestone / Keuper mudstone / dolomitic marl, fig.4-3), the ~2% SE dip (p.14), and that groundwater accumulates at the sandstone/marl interface and the gallery floor sits at that boundary (p.6, p.14, fig.5-24). Rendered faithfully: in GeoData mode the sandstone/marl interface (= groundwater table) is drawn ~2 m below the near-level gallery floor at REAL elevation, and the weathered cover uses the cited ~2 m. Approximate (NOT yet from the cited ranges): the marl and Keuper sub-thicknesses (~16 m, ~6 m display values) and the exact interface dip — these are decorative depths pending a digitised fig.4-2/4-3 section. Non-GeoData (procedural) mode uses purely schematic scene-unit bands.",
+    "rationale": "The geological cross-section is a mix of sourced facts and display approximation. Sourced: the stratigraphic sequence and names (Luxembourg sandstone / marl+limestone / Keuper mudstone / dolomitic marl, fig.4-3), the ~2% SE dip (p.14), and that groundwater accumulates at the sandstone/marl interface and the gallery floor sits at that boundary (p.6, p.14, fig.5-24). Rendered faithfully: in GeoData mode the sandstone/marl interface (= groundwater table) is drawn ~2 m below the near-level gallery floor at REAL elevation, and the weathered cover uses the cited ~2 m. Now digitised (pd-geology-digitised, fig.4-3): the marl (li1 ≈ 15 m below the interface) and Keuper mudstone (ko ≈ 5 m) sub-thicknesses; km3 fills to the block base (≥44 m, base below section). Still approximate: the exact interface dip and the li2/li1 internal split (derived instead from LiDAR surface − interface).",
     "basis": "Waringo 2018 fig.4-2/4-3, p.6, p.14-15, fig.5-24",
     "author": "project team", "date": "2026-07-02"
   },
