@@ -72,6 +72,67 @@ if (g) {
     if (!shaftIds.has(sh)) errs.push(`gallery.auxiliaryChannel → unknown shaft "${sh}"`);
 }
 
+// --- Credibility-derived invariants (see docs/DATA_CREDIBILITY.md) ---
+// Trusted facts become machine-checked gates. Hard errors = physical/documentary
+// impossibilities; warnings = cross-source agreement drift. Tolerances reflect that
+// LiDAR/OSM are ~metre-scale, not survey-grade.
+{
+  const shafts = data.shafts?.shafts || [];
+  const gg = data.gallery?.gallery;
+  const FLOOR_BAND = [350, 362];   // near-level gallery corridor (surveyed ~354–358 m)
+
+  // near-level-gallery: documented constant 0.1% grade (qanat angle ≈ 0.057°)
+  if (gg && typeof gg.gradientPct === 'number' && gg.gradientPct > 0.5)
+    errs.push(`constraint[near-level-gallery]: gallery.gradientPct ${gg.gradientPct}% > 0.5% (brochure: constant 0.1% P9→P-5)`);
+
+  for (const s of shafts) {
+    // positive-depth
+    if (typeof s.depthM === 'number' && s.depthM <= 0)
+      errs.push(`constraint[positive-depth]: ${s.id} depthM ${s.depthM} ≤ 0`);
+    // floor-band: surveyed floors sit in the near-level corridor
+    if (typeof s.floorElevM === 'number' && (s.floorElevM < FLOOR_BAND[0] || s.floorElevM > FLOOR_BAND[1]))
+      errs.push(`constraint[floor-band]: ${s.id} floorElevM ${s.floorElevM} outside ${FLOOR_BAND[0]}–${FLOOR_BAND[1]} m`);
+    // cross-source: LiDAR surface must reconcile with brochure floor+depth
+    if (typeof s.surfaceElevM === 'number' && typeof s.depthM === 'number') {
+      if (typeof s.floorElevM === 'number') {
+        const d = Math.abs(s.surfaceElevM - (s.floorElevM + s.depthM));
+        if (d > 5) errs.push(`constraint[lidar≈floor+depth]: ${s.id} |LiDAR ${s.surfaceElevM} − (floor ${s.floorElevM}+depth ${s.depthM})| = ${d.toFixed(1)} m > 5`);
+        else if (d > 2.5) warns.push(`constraint[lidar≈floor+depth]: ${s.id} off by ${d.toFixed(1)} m (>2.5)`);
+      } else {
+        // no surveyed floor → the floor implied by LiDAR−depth must stay near-level
+        const impl = s.surfaceElevM - s.depthM;
+        if (impl < FLOOR_BAND[0] || impl > FLOOR_BAND[1])
+          errs.push(`constraint[implied-floor]: ${s.id} LiDAR−depth = ${impl.toFixed(1)} m outside ${FLOOR_BAND[0]}–${FLOOR_BAND[1]} m`);
+      }
+    }
+  }
+
+  // aux-higher: dry auxiliary channel should not sit far below the main channel
+  const mainFloors = shafts.filter(s => s.role !== 'auxiliary' && typeof s.floorElevM === 'number').map(s => s.floorElevM);
+  const minMain = mainFloors.length ? Math.min(...mainFloors) : null;
+  if (minMain != null)
+    for (const s of shafts)
+      if (s.role === 'auxiliary' && typeof s.floorElevM === 'number' && s.floorElevM < minMain - 2)
+        warns.push(`constraint[aux-higher]: aux ${s.id} floor ${s.floorElevM} well below main-channel min ${minMain} m`);
+
+  // extent: georeferenced W–E extent should match the ~306 m OSM chain
+  const geos = shafts.filter(s => s.geo && typeof s.geo.lat === 'number');
+  if (geos.length >= 2) {
+    const R = 6371000, rad = x => x * Math.PI / 180;
+    const hav = (a, b) => {
+      const dla = rad(b.lat - a.lat), dlo = rad(b.lon - a.lon);
+      const h = Math.sin(dla / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dlo / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(h));
+    };
+    let mx = 0;
+    for (let i = 0; i < geos.length; i++)
+      for (let j = i + 1; j < geos.length; j++)
+        mx = Math.max(mx, hav(geos[i].geo, geos[j].geo));
+    if (mx < 200 || mx > 600)
+      warns.push(`constraint[extent]: georeferenced extent ${mx.toFixed(0)} m outside 200–600 m`);
+  }
+}
+
 if (warns.length) console.warn('SSOT warnings:\n  ' + warns.join('\n  '));
 if (errs.length) {
   console.error(`\nSSOT validation FAILED (${errs.length}):\n  ` + errs.join('\n  ') + '\n');

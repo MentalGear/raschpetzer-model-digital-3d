@@ -2,189 +2,779 @@
   "_doc": "One record per shaft (W→E). Reunifies the former pillarDefs / REAL_DEPTH / REAL_FLOOR. Bare scalars drive the model; _prov holds sparse per-field citations/status overriding the record defaults (source=waringo2018, status=documented). modelPos is schematic (crs model-schematic); geo (WGS84) is reserved for surveyed coords.",
   "shafts": [
     {
-      "id": "P-7A", "crm": "E22_Human-Made_Object", "order": 1, "role": "auxiliary",
-      "modelPos": { "x": -18, "z": -1 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
+      "id": "P-7A",
+      "crm": "E22_Human-Made_Object",
+      "order": 1,
+      "role": "auxiliary",
+      "modelPos": {
+        "x": -18,
+        "z": -1
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "model-schematic",
+        "status": "schematic",
+        "source": "fig-3-1b",
+        "paradataRef": [
+          "pd-schematic-positions"
+        ]
+      },
       "geo": null,
-      "depthM": 6, "floorElevM": 354.3, "floorElevCrs": "masl",
+      "depthM": 6,
+      "floorElevM": 354.3,
+      "floorElevCrs": "masl",
       "notes": "Auxiliary debris-filled drop-shaft ~25 m NW of P-5; rubble backfill from 3 m depth, +3 m deeper; dry channel, restored to original state.",
-      "source": "waringo2018", "status": "documented", "paradataRef": ["pd-aux-system"],
+      "source": "waringo2018",
+      "status": "documented",
+      "paradataRef": [
+        "pd-aux-system"
+      ],
       "_prov": {
-        "depthM": { "loc": "p.22; fig.5-14", "note": "drop-shaft: rubble from 3 m, +3 m" },
-        "floorElevM": { "source": "survey-shaft-floors", "note": "surveyed floor 354.3 m a.s.l." }
+        "depthM": {
+          "loc": "p.22; fig.5-14",
+          "note": "drop-shaft: rubble from 3 m, +3 m"
+        },
+        "floorElevM": {
+          "source": "survey-shaft-floors",
+          "note": "surveyed floor 354.3 m a.s.l."
+        }
       }
     },
     {
-      "id": "P-5A", "crm": "E22_Human-Made_Object", "order": 2, "role": "auxiliary",
-      "modelPos": { "x": -16.5, "z": 0 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
+      "id": "P-5A",
+      "crm": "E22_Human-Made_Object",
+      "order": 2,
+      "role": "auxiliary",
+      "modelPos": {
+        "x": -16.5,
+        "z": 0
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "model-schematic",
+        "status": "schematic",
+        "source": "fig-3-1b",
+        "paradataRef": [
+          "pd-schematic-positions"
+        ]
+      },
       "geo": null,
-      "depthM": 8, "floorElevM": 357.5, "floorElevCrs": "masl",
+      "depthM": 8,
+      "floorElevM": 357.5,
+      "floorElevCrs": "masl",
       "notes": "Auxiliary shaft ~30 m N of P-4; dry channel at 8 m, 2 m higher than the main channel, so never connected to it; dug in marl, sand-filled.",
-      "source": "waringo2018", "status": "documented", "paradataRef": ["pd-aux-system"],
+      "source": "waringo2018",
+      "status": "documented",
+      "paradataRef": [
+        "pd-aux-system"
+      ],
       "_prov": {
-        "depthM": { "loc": "p.21" },
-        "floorElevM": { "source": "survey-shaft-floors", "note": "surveyed floor 357.5 m a.s.l." }
+        "depthM": {
+          "loc": "p.21"
+        },
+        "floorElevM": {
+          "source": "survey-shaft-floors",
+          "note": "surveyed floor 357.5 m a.s.l."
+        }
       }
     },
     {
-      "id": "P-5", "crm": "E22_Human-Made_Object", "order": 3, "role": "main",
-      "modelPos": { "x": -15, "z": 1 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": null, "floorElevM": null,
+      "id": "P-5",
+      "crm": "E22_Human-Made_Object",
+      "order": 3,
+      "role": "main",
+      "modelPos": {
+        "x": -15,
+        "z": 1
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666523,
+        "lon": 6.148145,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
       "notes": "Yellow-sand filled; channel found at 10 m. Site of the 'geological accident' — channel floor breached, water lost into limestone fissures; rebuilt in concrete.",
-      "source": "waringo2018", "status": "documented",
-      "_prov": { "notes": { "loc": "p.20-21; p.23" } }
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.20-21; p.23"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; low confidence mapping to P-5"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 365.2,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "low"
     },
     {
-      "id": "P-4", "crm": "E22_Human-Made_Object", "order": 4, "role": "main",
-      "modelPos": { "x": -12, "z": 2.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": 12, "floorElevM": 355.4, "floorElevCrs": "masl", "diameterM": 0.8,
+      "id": "P-4",
+      "crm": "E22_Human-Made_Object",
+      "order": 4,
+      "role": "main",
+      "modelPos": {
+        "x": -12,
+        "z": 2.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666453,
+        "lon": 6.148369,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 12,
+      "floorElevM": 355.4,
+      "floorElevCrs": "masl",
+      "diameterM": 0.8,
       "notes": "Dry-stone lined (0.8 m wall, 3 concentric rows); base widened to 1.4 m cone; overflow weir diverts water to a lateral channel when the level exceeds 12 cm.",
-      "source": "waringo2018", "status": "documented",
+      "source": "waringo2018",
+      "status": "documented",
       "_prov": {
-        "depthM": { "loc": "p.20; fig.6-8" },
-        "floorElevM": { "source": "survey-shaft-floors", "note": "main-channel floor 355.4 m a.s.l." },
-        "diameterM": { "loc": "p.31" },
-        "notes": { "loc": "p.20; fig.5-11" }
-      }
+        "depthM": {
+          "loc": "p.20; fig.6-8"
+        },
+        "floorElevM": {
+          "source": "survey-shaft-floors",
+          "note": "main-channel floor 355.4 m a.s.l."
+        },
+        "diameterM": {
+          "loc": "p.31"
+        },
+        "notes": {
+          "loc": "p.20; fig.5-11"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P-4"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 366.9,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
     },
     {
-      "id": "P-1", "crm": "E22_Human-Made_Object", "order": 5, "role": "main",
-      "modelPos": { "x": -5, "z": 3 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": null, "floorElevM": null,
+      "id": "P-1",
+      "crm": "E22_Human-Made_Object",
+      "order": 5,
+      "role": "main",
+      "modelPos": {
+        "x": -5,
+        "z": 3
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666161,
+        "lon": 6.149026,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
       "notes": "Circular shaft in marl, sand-filled; secured with concrete segments; not used for access.",
-      "source": "waringo2018", "status": "documented", "_prov": { "notes": { "loc": "p.20" } }
-    },
-    {
-      "id": "P0", "crm": "E22_Human-Made_Object", "order": 6, "role": "not-excavated",
-      "modelPos": { "x": -2, "z": 2.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": null, "floorElevM": null,
-      "notes": "Marked only with a surface panel; not excavated.",
-      "source": "waringo2018", "status": "documented", "_prov": { "notes": { "loc": "p.20" } }
-    },
-    {
-      "id": "P1", "crm": "E22_Human-Made_Object", "order": 7, "role": "main",
-      "modelPos": { "x": 1, "z": 1.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": 30, "floorElevM": null,
-      "notes": "At the bend in the route; likely the first shaft sunk; 6 m below the plateau edge in a natural depression. Total depth 30 m; an intermediate 'sounding' gallery at 20 m has no channel.",
-      "source": "waringo2018", "status": "documented",
-      "_prov": { "depthM": { "loc": "p.16" }, "notes": { "loc": "p.16" } }
-    },
-    {
-      "id": "P2", "crm": "E22_Human-Made_Object", "order": 8, "role": "main",
-      "modelPos": { "x": 4, "z": 0.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": null, "floorElevM": null,
-      "notes": "Western edge of the Pëtschend plateau; still backfilled in its original state; unusually close to P1 for survey reasons.",
-      "source": "waringo2018", "status": "documented", "_prov": { "notes": { "loc": "p.17; fig.5-4" } }
-    },
-    {
-      "id": "P3", "crm": "E22_Human-Made_Object", "order": 9, "role": "main",
-      "modelPos": { "x": 8, "z": 0 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": 35, "floorElevM": null,
-      "notes": "Exactly on the P1–P5 line, 28 m from P2; crosses the plateau at its narrowest to minimise >30 m shafts; still in original state.",
-      "source": "waringo2018", "status": "documented",
-      "_prov": { "depthM": { "loc": "p.17" }, "notes": { "loc": "p.17" } }
-    },
-    {
-      "id": "P4", "crm": "E22_Human-Made_Object", "order": 10, "role": "main",
-      "modelPos": { "x": 13, "z": 1 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": null, "floorElevM": null,
-      "notes": "Half-way between P3 and P5; mouth first excavated with P5; concrete rings + slab cap; base later tunnelled through to link P5→P3.",
-      "source": "waringo2018", "status": "documented", "_prov": { "notes": { "loc": "p.18" } }
-    },
-    {
-      "id": "P5", "crm": "E22_Human-Made_Object", "order": 11, "role": "main",
-      "modelPos": { "x": 18, "z": 2 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": 36, "floorElevM": null, "diameterM": [0.85, 1.2],
-      "notes": "Deepest shaft; eastern plateau edge; first cleared to base (3 Oct 1986). Diameter 1.2 m, narrowing to 0.85 m at torus bulges; the channel passes tangentially.",
-      "source": "waringo2018", "status": "documented",
+      "source": "waringo2018",
+      "status": "documented",
       "_prov": {
-        "depthM": { "loc": "p.9; fig.6-7", "note": "shaft quoted 36 m; 35 m measured to gallery base" },
-        "diameterM": { "loc": "p.18; p.32" },
-        "notes": { "loc": "p.9; p.18" }
+        "notes": {
+          "loc": "p.20"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P-1"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 374.2,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P0",
+      "crm": "E22_Human-Made_Object",
+      "order": 6,
+      "role": "not-excavated",
+      "modelPos": {
+        "x": -2,
+        "z": 2.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666097,
+        "lon": 6.149273,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Marked only with a surface panel; not excavated.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.20"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P0"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 379.4,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P1",
+      "crm": "E22_Human-Made_Object",
+      "order": 7,
+      "role": "main",
+      "modelPos": {
+        "x": 1,
+        "z": 1.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666029,
+        "lon": 6.149463,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 30,
+      "floorElevM": null,
+      "notes": "At the bend in the route; likely the first shaft sunk; 6 m below the plateau edge in a natural depression. Total depth 30 m; an intermediate 'sounding' gallery at 20 m has no channel.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "depthM": {
+          "loc": "p.16"
+        },
+        "notes": {
+          "loc": "p.16"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P1"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 386.1,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P2",
+      "crm": "E22_Human-Made_Object",
+      "order": 8,
+      "role": "main",
+      "modelPos": {
+        "x": 4,
+        "z": 0.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666079,
+        "lon": 6.14978,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Western edge of the Pëtschend plateau; still backfilled in its original state; unusually close to P1 for survey reasons.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.17; fig.5-4"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P2"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 391.8,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P3",
+      "crm": "E22_Human-Made_Object",
+      "order": 9,
+      "role": "main",
+      "modelPos": {
+        "x": 8,
+        "z": 0
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665966,
+        "lon": 6.149992,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 35,
+      "floorElevM": null,
+      "notes": "Exactly on the P1–P5 line, 28 m from P2; crosses the plateau at its narrowest to minimise >30 m shafts; still in original state.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "depthM": {
+          "loc": "p.17"
+        },
+        "notes": {
+          "loc": "p.17"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P3"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 392.5,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P4",
+      "crm": "E22_Human-Made_Object",
+      "order": 10,
+      "role": "main",
+      "modelPos": {
+        "x": 13,
+        "z": 1
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665958,
+        "lon": 6.150488,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Half-way between P3 and P5; mouth first excavated with P5; concrete rings + slab cap; base later tunnelled through to link P5→P3.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.18"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P4"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 391.7,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P5",
+      "crm": "E22_Human-Made_Object",
+      "order": 11,
+      "role": "main",
+      "modelPos": {
+        "x": 18,
+        "z": 2
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665971,
+        "lon": 6.150928,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 36,
+      "floorElevM": null,
+      "diameterM": [
+        0.85,
+        1.2
+      ],
+      "notes": "Deepest shaft; eastern plateau edge; first cleared to base (3 Oct 1986). Diameter 1.2 m, narrowing to 0.85 m at torus bulges; the channel passes tangentially.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "depthM": {
+          "loc": "p.9; fig.6-7",
+          "note": "shaft quoted 36 m; 35 m measured to gallery base"
+        },
+        "diameterM": {
+          "loc": "p.18; p.32"
+        },
+        "notes": {
+          "loc": "p.9; p.18"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P5"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 392.1,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P6",
+      "crm": "E22_Human-Made_Object",
+      "order": 12,
+      "role": "main",
+      "modelPos": {
+        "x": 21,
+        "z": 0.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665968,
+        "lon": 6.151257,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "First Haedchen shaft surveyed from below ground. A 1.2 m stepped fall in the gallery at its base is a provision for level adjustment; debris/sinter cone with iron oxide. Rock bed ~10 m under ~10 m of soft ground.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.18-19; p.26-27; fig.5-5"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P6"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 382.1,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P7",
+      "crm": "E22_Human-Made_Object",
+      "order": 13,
+      "role": "main",
+      "modelPos": {
+        "x": 23,
+        "z": -0.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665974,
+        "lon": 6.151485,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Located from below ground along the eastbound gallery; cleared with heavy machinery; counter-excavation between P7 and P8.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.19; p.26"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P7"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 378.2,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P8",
+      "crm": "E22_Human-Made_Object",
+      "order": 14,
+      "role": "main",
+      "modelPos": {
+        "x": 25,
+        "z": -1.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665966,
+        "lon": 6.15177,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Cleared normally; a spring influx ~25 m³/d enters 2 m upstream on the left. An oak beam dated to 114 AD (felling ~131 AD) was found near its base.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.10; p.28-29"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P8"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 377.1,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P9",
+      "crm": "E22_Human-Made_Object",
+      "order": 15,
+      "role": "mother",
+      "modelPos": {
+        "x": 27,
+        "z": -3
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665948,
+        "lon": 6.152078,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "The 'mother shaft' — most upstream/easternmost. The gallery ends 6 m east of P9; there is no channel for the first ~13 m. A portal niche with a seepage gutter; oak shovels were found in the mud nearby.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.10; p.19; fig.5-7"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; medium confidence mapping to P9"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        }
+      },
+      "surfaceElevM": 377.2,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium"
+    },
+    {
+      "id": "P-2",
+      "crm": "E22_Human-Made_Object",
+      "order": null,
+      "role": "postulated",
+      "modelPos": null,
+      "geo": null,
+      "depthM": null,
+      "floorElevM": null,
+      "position": {
+        "crm": "E53_Place",
+        "status": "hypothetical",
+        "isSchematic": true
+      },
+      "existence": "inferred",
+      "confidence": "low",
+      "notes": "Not yet found. Existence postulated from the qanat shaft-spacing regularity west of P-4.",
+      "source": "waringo2018",
+      "status": "inferred",
+      "paradataRef": [
+        "pd-postulated-shafts"
+      ],
+      "_prov": {
+        "notes": {
+          "loc": "p.21"
+        }
       }
     },
     {
-      "id": "P6", "crm": "E22_Human-Made_Object", "order": 12, "role": "main",
-      "modelPos": { "x": 21, "z": 0.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
+      "id": "P-3",
+      "crm": "E22_Human-Made_Object",
+      "order": null,
+      "role": "postulated",
+      "modelPos": null,
       "geo": null,
-      "depthM": null, "floorElevM": null,
-      "notes": "First Haedchen shaft surveyed from below ground. A 1.2 m stepped fall in the gallery at its base is a provision for level adjustment; debris/sinter cone with iron oxide. Rock bed ~10 m under ~10 m of soft ground.",
-      "source": "waringo2018", "status": "documented", "_prov": { "notes": { "loc": "p.18-19; p.26-27; fig.5-5" } }
-    },
-    {
-      "id": "P7", "crm": "E22_Human-Made_Object", "order": 13, "role": "main",
-      "modelPos": { "x": 23, "z": -0.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": null, "floorElevM": null,
-      "notes": "Located from below ground along the eastbound gallery; cleared with heavy machinery; counter-excavation between P7 and P8.",
-      "source": "waringo2018", "status": "documented", "_prov": { "notes": { "loc": "p.19; p.26" } }
-    },
-    {
-      "id": "P8", "crm": "E22_Human-Made_Object", "order": 14, "role": "main",
-      "modelPos": { "x": 25, "z": -1.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": null, "floorElevM": null,
-      "notes": "Cleared normally; a spring influx ~25 m³/d enters 2 m upstream on the left. An oak beam dated to 114 AD (felling ~131 AD) was found near its base.",
-      "source": "waringo2018", "status": "documented", "_prov": { "notes": { "loc": "p.10; p.28-29" } }
-    },
-    {
-      "id": "P9", "crm": "E22_Human-Made_Object", "order": 15, "role": "mother",
-      "modelPos": { "x": 27, "z": -3 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
-      "geo": null,
-      "depthM": null, "floorElevM": null,
-      "notes": "The 'mother shaft' — most upstream/easternmost. The gallery ends 6 m east of P9; there is no channel for the first ~13 m. A portal niche with a seepage gutter; oak shovels were found in the mud nearby.",
-      "source": "waringo2018", "status": "documented", "_prov": { "notes": { "loc": "p.10; p.19; fig.5-7" } }
-    },
-
-    {
-      "id": "P-2", "crm": "E22_Human-Made_Object", "order": null, "role": "postulated",
-      "modelPos": null, "geo": null, "depthM": null, "floorElevM": null,
-      "position": { "crm": "E53_Place", "status": "hypothetical", "isSchematic": true },
-      "existence": "inferred", "confidence": "low",
-      "notes": "Not yet found. Existence postulated from the qanat shaft-spacing regularity west of P-4.",
-      "source": "waringo2018", "status": "inferred", "paradataRef": ["pd-postulated-shafts"],
-      "_prov": { "notes": { "loc": "p.21" } }
-    },
-    {
-      "id": "P-3", "crm": "E22_Human-Made_Object", "order": null, "role": "postulated",
-      "modelPos": null, "geo": null, "depthM": null, "floorElevM": null,
-      "position": { "crm": "E53_Place", "status": "hypothetical", "isSchematic": true },
-      "existence": "inferred", "confidence": "low",
+      "depthM": null,
+      "floorElevM": null,
+      "position": {
+        "crm": "E53_Place",
+        "status": "hypothetical",
+        "isSchematic": true
+      },
+      "existence": "inferred",
+      "confidence": "low",
       "notes": "Not yet found. Existence postulated from shaft-spacing regularity west of P-4.",
-      "source": "waringo2018", "status": "inferred", "paradataRef": ["pd-postulated-shafts"],
-      "_prov": { "notes": { "loc": "p.21" } }
+      "source": "waringo2018",
+      "status": "inferred",
+      "paradataRef": [
+        "pd-postulated-shafts"
+      ],
+      "_prov": {
+        "notes": {
+          "loc": "p.21"
+        }
+      }
     },
     {
-      "id": "P-6A", "crm": "E22_Human-Made_Object", "order": null, "role": "postulated",
-      "modelPos": null, "geo": null, "depthM": null, "floorElevM": null,
-      "position": { "crm": "E53_Place", "status": "hypothetical", "isSchematic": true },
-      "existence": "inferred", "confidence": "low",
+      "id": "P-6A",
+      "crm": "E22_Human-Made_Object",
+      "order": null,
+      "role": "postulated",
+      "modelPos": null,
+      "geo": null,
+      "depthM": null,
+      "floorElevM": null,
+      "position": {
+        "crm": "E53_Place",
+        "status": "hypothetical",
+        "isSchematic": true
+      },
+      "existence": "inferred",
+      "confidence": "low",
       "notes": "Not yet located; existence assumed from the spacing between P-5A and P-7A.",
-      "source": "waringo2018", "status": "inferred", "paradataRef": ["pd-postulated-shafts"],
-      "_prov": { "notes": { "loc": "p.22" } }
+      "source": "waringo2018",
+      "status": "inferred",
+      "paradataRef": [
+        "pd-postulated-shafts"
+      ],
+      "_prov": {
+        "notes": {
+          "loc": "p.22"
+        }
+      }
     }
   ]
 }
