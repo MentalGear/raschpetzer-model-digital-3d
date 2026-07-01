@@ -1293,7 +1293,9 @@
             for (let i = 0; i <= N; i++) xs.push(-halfW + i / N * params.width);
             for (let i = 0; i < N; i++) {
                 const xa = xs[i], xb = xs[i + 1];
-                const sA = getTerrainHeight(xa, 0), sB = getTerrainHeight(xb, 0);
+                // Sample the surface AT the front cut plane (zF), not the centreline,
+                // so the strata top matches the front terrain silhouette (no overflow).
+                const sA = getTerrainHeight(xa, zF), sB = getTerrainHeight(xb, zF);
                 const wA = sA - wThk, wB = sB - wThk;
                 const gA = Math.min(gwY(xa), wA - 0.05), gB = Math.min(gwY(xb), wB - 0.05);
                 const mA = Math.max(gA - marlThk, base + 0.6), mB = Math.max(gB - marlThk, base + 0.6);
@@ -1319,7 +1321,7 @@
                 new THREE.LineBasicMaterial({ color: COL.groundwater, depthTest: false })));
             for (let x = -halfW * 0.35; x < halfW * 0.9; x += params.width / 9) {
                 const y = gwY(x);
-                if (y < getTerrainHeight(x, 0) - wThk) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
+                if (y < getTerrainHeight(x, zF) - wThk) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
             }
             lastGwPts = gwPts;   // path for animated groundwater flow
         }
