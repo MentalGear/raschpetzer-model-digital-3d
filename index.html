@@ -579,7 +579,9 @@
                 const base = m.userData.baseOpacity != null ? m.userData.baseOpacity : 1;
                 const o = base * v;
                 m.opacity = o;
-                m.transparent = o < 0.999;
+                // Keep materials permanently in the transparent pass — flipping to opaque at
+                // v=1 caused a visible colour pop between 1.00 and 0.95 (opaque↔transparent).
+                m.transparent = true;
                 if (m.isMeshStandardMaterial) m.depthWrite = o >= 0.999;
                 m.needsUpdate = true;
             });
@@ -1021,7 +1023,7 @@
             surfGeo.computeVertexNormals();
             terrainFadeMats = [];   // rebuilt fresh each model build
             const fillMat = new THREE.MeshStandardMaterial({
-                color: 0xf4eee1, roughness: 1.0, metalness: 0.0,
+                color: 0xe7dabf, roughness: 1.0, metalness: 0.0,   // light beige (was near-white)
                 polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
                 side: THREE.DoubleSide, flatShading: false,
                 transparent: true, opacity: params.terrainOpacity,
@@ -1090,11 +1092,11 @@
             const tOp = params.terrainOpacity;
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
-            const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: tOp < 0.999, opacity: tOp });
+            const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
             modelGroup.add(new THREE.LineSegments(regGeo, regMat));
             const idxGeo = new THREE.BufferGeometry();
             idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
-            const idxMat = new THREE.LineBasicMaterial({ color: COL.contourIndex, transparent: tOp < 0.999, opacity: tOp });
+            const idxMat = new THREE.LineBasicMaterial({ color: COL.contourIndex, transparent: true, opacity: tOp });
             modelGroup.add(new THREE.LineSegments(idxGeo, idxMat));
             regMat.userData.baseOpacity = 1.0;
             idxMat.userData.baseOpacity = 1.0;
@@ -1108,6 +1110,10 @@
                     const s = createTextSprite(metres + ' m', COL.contourIndex, 20);
                     s.scale.set(3.4, 0.85, 1);
                     s.position.set(p.x, p.y + 0.18, p.z);
+                    // Contour elevation labels are part of the contour layer → fade with it.
+                    s.material.userData.baseOpacity = 1.0;
+                    s.material.opacity = params.terrainOpacity;
+                    terrainFadeMats.push(s.material);
                     modelGroup.add(s);
                 });
             }
@@ -1118,7 +1124,7 @@
             // strata cross-section is intentionally excluded so it stays readable.
             const tOpW = params.terrainOpacity;
             const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
-                                                              transparent: tOpW < 0.999, opacity: 1.0 * tOpW, depthWrite: tOpW >= 0.999 });
+                                                              transparent: true, opacity: 1.0 * tOpW, depthWrite: tOpW >= 0.999 });
             const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
                                                               transparent: true, opacity: 0.18 * tOpW, depthWrite: false });
             sideMat.userData.baseOpacity = 1.0;
@@ -1143,9 +1149,13 @@
                 geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
                 geo.computeVertexNormals();
                 modelGroup.add(new THREE.Mesh(geo, mat));
-                // crisp brown silhouette line along the top edge of the wall
+                // crisp brown silhouette line along the top edge of the wall (fades too)
                 const eg = new THREE.BufferGeometry().setFromPoints(edgePts);
-                modelGroup.add(new THREE.Line(eg, new THREE.LineBasicMaterial({ color: 0x8a4b22 })));
+                const em = new THREE.LineBasicMaterial({ color: 0x8a4b22,
+                    transparent: true, opacity: params.terrainOpacity });
+                em.userData.baseOpacity = 1.0;
+                terrainFadeMats.push(em);
+                modelGroup.add(new THREE.Line(eg, em));
             }
 
             const xSteps = [], zSteps = [];
