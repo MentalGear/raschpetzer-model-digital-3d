@@ -84,6 +84,18 @@ if (g) {
   // near-level-gallery: documented constant 0.1% grade (qanat angle ≈ 0.057°)
   if (gg && typeof gg.gradientPct === 'number' && gg.gradientPct > 0.5)
     errs.push(`constraint[near-level-gallery]: gallery.gradientPct ${gg.gradientPct}% > 0.5% (brochure: constant 0.1% P9→P-5)`);
+  // grade≈0.1%: warn if the constant fall drifts from the documented value
+  if (gg && typeof gg.gradientPct === 'number' && (gg.gradientPct < 0.05 || gg.gradientPct > 0.15))
+    warns.push(`constraint[grade≈0.1%]: gallery.gradientPct ${gg.gradientPct}% not ≈0.1% (documented p.26)`);
+  // stepped-falls: the two documented steps (1 m under P4, 1.2 m under P6) must be present
+  {
+    const EXP_STEPS = { P4: 1.0, P6: 1.2 };
+    const have = Object.fromEntries((gg?.steps || []).map(s => [s.underShaft, s.dropM]));
+    for (const [sh, exp] of Object.entries(EXP_STEPS)) {
+      if (have[sh] == null) warns.push(`constraint[steps]: missing documented step under ${sh} (≈${exp} m, p.26-27)`);
+      else if (Math.abs(have[sh] - exp) > 0.3) warns.push(`constraint[steps]: step under ${sh} = ${have[sh]} m, expected ≈${exp} m`);
+    }
+  }
 
   for (const s of shafts) {
     // positive-depth

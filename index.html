@@ -255,29 +255,13 @@
         <h1>Raschpetzer Qanat</h1>
         <h2>Parametric Geological Block Model</h2>
 
-        <div class="control-group" id="grp-plateau">
-            <label><span id="lbl-plateau-name">Plateau Height</span> <span class="val" id="lbl-plateau">5.0</span></label>
-            <input type="range" id="param-plateau" min="2.0" max="8.0" step="0.1" value="5.0">
-        </div>
-        <div class="control-group" id="grp-hillside">
-            <label>Hillside Slope Drop <span class="val" id="lbl-hillside">4.5</span></label>
-            <input type="range" id="param-hillside" min="2.0" max="7.0" step="0.1" value="4.5">
-        </div>
-        <div class="control-group" id="grp-depression">
-            <label>Depression Depth <span class="val" id="lbl-depression">3.0</span></label>
-            <input type="range" id="param-depression" min="0.5" max="5.0" step="0.1" value="3.0">
-        </div>
         <div class="control-group">
             <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
             <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
         </div>
         <div class="control-group">
-            <label for="param-source">Terrain Source</label>
-            <select id="param-source">
-                <option value="procedural">Procedural (original)</option>
-                <option value="geodata" selected>GeoData (LiDAR + georeferenced)</option>
-            </select>
-            <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1em;"></div>
+            <label>Terrain</label>
+            <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
             <label class="check-row" id="row-flip"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
             <label class="check-row"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
@@ -403,19 +387,17 @@
 
     <script>
         const params = {
-            plateauHeight: 5.0,
-            hillsideDrop: 4.5,
-            depressionDepth: 3.0,
+            plateauHeight: 5.0,           // vertical unit reference for the schematic qanat layout
             contourSpacing: 0.20,
             layerDepth: 5.0,
             width: 70,
-            depth: 26,
+            depth: 40,
             baseY: -2,
-            terrainSource: 'geodata',     // 'procedural' | 'geodata'
-            vExag: 1.0,                   // GeoData: TRUE vertical exaggeration (1.0 = true scale)
-            surround: 1.0,                // GeoData: how much surrounding DEM to show (1 = qanat window, 2 = whole 4x area). Qanat stays locked to its terrain patch (modelPos scaled by 1/surround).
-            qanatLayout: 'faithful',      // 'faithful' | 'schematic'
-            flipWE: false,                // mirror the geodata terrain West<->East
+            terrainSource: 'geodata',     // GeoData (LiDAR) is the only terrain source
+            vExag: 1.0,                   // TRUE vertical exaggeration (1.0 = true scale)
+            surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
+            qanatLayout: 'faithful',      // 'faithful' (georeferenced) | 'schematic' (legacy)
+            flipWE: false,                // mirror the terrain West<->East
             showGeology: true             // real strata + groundwater/qanat flows
         };
 
@@ -438,7 +420,7 @@
         }, MODEL_CONFIG.strataColors || {});
 
         // Scene-scale slider defaults come from model-config.sceneScale (single source).
-        for (const k of ['plateauHeight', 'hillsideDrop', 'depressionDepth', 'contourSpacing',
+        for (const k of ['plateauHeight', 'contourSpacing',
                          'layerDepth', 'width', 'depth', 'baseY'])
             if (MODEL_CONFIG.sceneScale && MODEL_CONFIG.sceneScale[k] != null)
                 params[k] = MODEL_CONFIG.sceneScale[k];
@@ -694,15 +676,13 @@
             return params.vExag * span / metersPerXUnit();
         }
 
-        // Terrain dispatcher: geodata if selected & loaded, else procedural.
+        // Terrain height (scene Y) from the LiDAR grid. Returns 0 until the grid is ready.
         function getTerrainHeight(x, z) {
+            if (!geodata.ready) return 0;
             let u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
             const v = Math.min(Math.max((z + params.depth / 2) / params.depth, 0), 1);
-            if (params.terrainSource === 'geodata' && geodata.ready) {
-                if (params.flipWE) u = 1 - u;
-                return sampleGeo(u, v) * geoVMul();
-            }
-            return getProceduralHeight(x, z);
+            if (params.flipWE) u = 1 - u;
+            return sampleGeo(u, v) * geoVMul();
         }
 
         // Vertical model-units -> real metres, for honest depth read-outs & exaggeration.
@@ -770,30 +750,6 @@
             let u = (x + params.width / 2) / params.width;
             if (params.flipWE) u = 1 - u;
             return geoView.west + u * (geoView.east - geoView.west);
-        }
-
-        function getProceduralHeight(x, z) {
-            let h = params.plateauHeight;
-            if (x < -6) {
-                let t = Math.min(Math.max((-6 - x) / 16, 0), 1);
-                let ease = t * t * (3 - 2 * t);
-                h -= ease * params.hillsideDrop;
-            } else if (x > 19) {
-                // Pëtschend plateau now spans P-1..P5; Haedchen depression sits east of P5
-                let t = Math.min(Math.max((x - 19) / 12, 0), 1);
-                let ease = Math.sin(t * Math.PI * 0.5);
-                h -= ease * params.depressionDepth;
-                if (x > 30) h += (x - 30) * 0.25;
-            }
-            // Broad cross-structural undulation
-            h += Math.sin(z * 0.25) * 0.4;
-            h += Math.cos(x * 0.15) * 0.2;
-            // Rolling knolls + finer relief => richer, denser contour pattern (as in the reference)
-            h += Math.sin(x * 0.35) * Math.cos(z * 0.40) * 0.45;
-            h += Math.sin(x * 0.18 + 2.0) * 0.28;
-            h += Math.cos(x * 0.62 + z * 0.5) * 0.16;
-            h += Math.sin(z * 0.85 - x * 0.2) * 0.12;
-            return h;
         }
 
         function getLayerHeight(x, z) {
@@ -925,9 +881,8 @@
             initFlow();
             initInfoPanel();
             initTour();
-            // Default to the real Walferdange DEM (baked grid loads synchronously).
-            if (params.terrainSource === 'geodata') loadGeoData(() => buildParametricModel());
-            else buildParametricModel();
+            // Load the baked LiDAR terrain (synchronous), then build.
+            loadGeoData(() => buildParametricModel());
             setupUI();
 
             window.addEventListener('resize', onResize);
@@ -1198,38 +1153,6 @@
             }
             lastQanatPts = basePts;   // path for animated flow
 
-            // --- 5. Dashed geological zone boundary lines on the terrain surface ---
-            const dashMat = new THREE.LineDashedMaterial({ color: 0x333333, dashSize: 1.2, gapSize: 0.7, linewidth: 1 });
-
-            function addTerrainDashLine(xVals, zFunc) {
-                const pts = xVals.map(x => {
-                    const z = zFunc(x);
-                    return new THREE.Vector3(x, getTerrainHeight(x, z) + 0.08, z);
-                });
-                const geo = new THREE.BufferGeometry().setFromPoints(pts);
-                const line = new THREE.Line(geo, dashMat);
-                line.computeLineDistances();
-                modelGroup.add(line);
-            }
-
-            // The hand-drawn geological zone boundaries only match the procedural
-            // morphology, so draw them in that mode only.
-            if (params.terrainSource === 'procedural') {
-                const hillBoundXVals = [];
-                for (let x = -halfW; x <= -4; x += 0.8) hillBoundXVals.push(x);
-                addTerrainDashLine(hillBoundXVals, x => -2 + Math.sin((x + 20) * 0.18) * 5);
-                const hillBoundXVals2 = [];
-                for (let x = -halfW; x <= 0; x += 0.8) hillBoundXVals2.push(x);
-                addTerrainDashLine(hillBoundXVals2, x => 4 + Math.sin((x + 22) * 0.15) * 4.5);
-                const platXVals = [];
-                for (let x = -8; x <= 12; x += 0.6) platXVals.push(x);
-                addTerrainDashLine(platXVals, x => -5 + Math.cos((x - 2) * 0.22) * 7);
-                addTerrainDashLine(platXVals, x => 6 + Math.cos((x - 2) * 0.22) * 6);
-                const depXVals = [];
-                for (let x = 8; x <= halfW; x += 0.8) depXVals.push(x);
-                addTerrainDashLine(depXVals, x => -3 + Math.sin((x - 10) * 0.16) * 5);
-            }
-
             // --- 6. Region labels (placed per terrain source; flip-aware in GeoData) ---
             function placeLabel(text, x, yOff, color, size) {
                 const s = createTextSprite(text, color, size);
@@ -1439,9 +1362,6 @@
                     buildParametricModel();
                 });
             }
-            bind('param-plateau',    'plateauHeight',   'lbl-plateau');
-            bind('param-hillside',   'hillsideDrop',    'lbl-hillside');
-            bind('param-depression', 'depressionDepth', 'lbl-depression');
             bind('param-contours',   'contourSpacing',  'lbl-contours');
             bind('param-layer',      'layerDepth',      'lbl-layer');
 
@@ -1479,19 +1399,6 @@
             });
             sliceReadout();
 
-            // Terrain source selector (procedural / geodata)
-            const sel = document.getElementById('param-source');
-            sel.addEventListener('change', e => {
-                params.terrainSource = e.target.value;
-                if (params.terrainSource !== 'geodata') setGeoStatus('');
-                updateControlVisibility();
-                if (params.terrainSource === 'geodata' && !geodata.ready) {
-                    loadGeoData(() => buildParametricModel());
-                } else {
-                    buildParametricModel();
-                }
-            });
-
             // Qanat layout (faithful real depths vs original schematic)
             document.getElementById('param-layout').addEventListener('change', e => {
                 params.qanatLayout = e.target.value;
@@ -1524,23 +1431,13 @@
             updateControlVisibility();
         }
 
-        // Show only the controls that actually affect the current view.
+        // Show only the controls that affect the current view.
         function updateControlVisibility() {
-            const ts = params.terrainSource, ql = params.qanatLayout;
+            const ql = params.qanatLayout;
             const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
-            // Plateau Height + Hillside/Depression shape only the PROCEDURAL terrain
-            show('grp-plateau', ts === 'procedural');
-            show('grp-hillside', ts === 'procedural');
-            show('grp-depression', ts === 'procedural');
-            // Vertical exaggeration is the single vertical control for the sampled DEM
-            show('grp-vexag', ts === 'geodata');
-            // W↔E flip + surrounding-area only meaningful for the real DEM
-            show('row-flip', ts === 'geodata');
-            show('grp-surround', ts === 'geodata');
-            // Honesty note: surface is real DEM but shaft plan positions are schematic
             const hn = document.getElementById('honesty-note');
-            if (hn) hn.style.display = (ts === 'geodata') ? 'block' : 'none';
-            // Tunnel-depth slider only drives the schematic gallery
+            if (hn) hn.style.display = 'block';
+            // Tunnel-depth slider only drives the legacy schematic gallery
             show('grp-layer', ql === 'schematic');
         }
 
