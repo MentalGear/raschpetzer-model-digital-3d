@@ -189,6 +189,32 @@
             border-radius: 6px; padding: 8px; font-size: 0.78rem; cursor: pointer; }
         .annot-io button:hover { background: #4b5563; }
 
+        /* Feature info panel (click a shaft) */
+        #info-panel {
+            position: absolute; top: 20px; left: 20px; width: 300px; z-index: 12;
+            background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 18px 18px 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45); max-height: 88vh; overflow-y: auto; display: none;
+        }
+        body.info-open #info-panel { display: block; }
+        #info-close { position: absolute; top: 10px; right: 12px; background: none; border: none;
+            color: #9ca3af; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+        #info-close:hover { color: #fff; }
+        #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
+        #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
+        .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+            padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.82rem; }
+        .ip-row .ip-k { color: #9ca3af; }
+        .ip-row .ip-v { color: #f3f4f6; font-weight: 600; text-align: right; }
+        .ip-note { font-size: 0.78rem; color: #cbd5e1; margin: 10px 0; line-height: 1.45; }
+        .ip-badge { display: inline-block; font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.4px; padding: 1px 6px; border-radius: 4px; color: #1a1a1a; margin-left: 6px; }
+        .ip-cite { display: block; margin-top: 4px; }
+        .ip-cite a { color: var(--accent-orange); font-size: 0.74rem; text-decoration: none; }
+        .ip-cite a:hover { text-decoration: underline; }
+        .ip-para { font-size: 0.72rem; color: #94a3b8; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 10px; line-height: 1.4; }
+
         body.measure-mode #canvas-container { cursor: crosshair; }
         #measure-readout {
             position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%);
@@ -201,6 +227,7 @@
     <script src="three.min.js"></script>
     <script src="OrbitControls.js"></script>
     <script src="geodata-walferdange.js"></script>
+    <script src="data.bundle.js"></script>
 </head>
 <body>
 
@@ -316,6 +343,11 @@
         </div>
     </div>
 
+    <div id="info-panel">
+        <button id="info-close" type="button" aria-label="Close">×</button>
+        <div id="info-body"></div>
+    </div>
+
     <div id="canvas-container">
         <img id="ref-overlay" src="Fig2-01 copy.jpg" alt="reference">
         <div id="shaft-tooltip"></div>
@@ -355,23 +387,29 @@
         // Real Raschpëtzer figures (for the faithful layout / depth read-outs)
         const QANAT = { maxDepthM: 36, deepestShaft: 'P5', exploredFrac: 0.62 };
 
-        const pillarDefs = [
-            { id: "P-7A", x: -21, z: -1.5 },
-            { id: "P-5A", x: -18, z: -0.5 },
-            { id: "P-5",  x: -15, z: 1 },
-            { id: "P-4",  x: -12, z: 2.5 },
-            { id: "P-1",  x: -5,  z: 3 },
-            { id: "P0",   x: -2,  z: 2.5 },
-            { id: "P1",   x: 1,   z: 1.5 },
-            { id: "P2",   x: 4,   z: 0.5 },
-            { id: "P3",   x: 8,   z: 0 },
-            { id: "P4",   x: 13,  z: 1 },
-            { id: "P5",   x: 18,  z: 2 },
-            { id: "P6",   x: 21,  z: 0.5 },
-            { id: "P7",   x: 23,  z: -0.5 },
-            { id: "P8",   x: 25,  z: -1.5 },
-            { id: "P9",   x: 27,  z: -3 }
-        ];
+        // --- Single Source of Truth (data.bundle.js -> window.SSOT) ---
+        const SSOT = window.SSOT;
+        const MODEL_CONFIG = SSOT.modelConfig || SSOT['model-config'] || {};
+        const SHAFTS = SSOT.shafts.shafts;
+        const shaftById = Object.fromEntries(SHAFTS.map(s => [s.id, s]));
+        // Derived model constants (facts now come from the SSOT, not hardcoded here):
+        const pillarDefs = SHAFTS.filter(s => s.modelPos)
+            .map(s => ({ id: s.id, x: s.modelPos.x, z: s.modelPos.z }));
+        const REAL_DEPTH = Object.fromEntries(
+            SHAFTS.filter(s => s.depthM != null).map(s => [s.id, s.depthM]));
+        const REAL_FLOOR = Object.fromEntries(
+            SHAFTS.filter(s => s.floorElevM != null).map(s => [s.id, s.floorElevM]));
+        const AUX_SHAFTS = Object.fromEntries(
+            SHAFTS.filter(s => s.role === 'auxiliary').map(s => [s.id, true]));
+
+        // Fact accessors: keep provenance out of geometry math.
+        const _isFact = x => x && typeof x === 'object' && 'value' in x;
+        const val = x => (_isFact(x) ? x.value : x);
+        const provOf = (rec, field) => {
+            const p = (rec._prov || {})[field] || {};
+            return { source: p.source || rec.source, loc: p.loc,
+                     status: p.status || rec.status || 'documented', note: p.note };
+        };
 
         let scene, camera, renderer, controls, modelGroup;
         let contourMaterial, crossSectionMaterial;
@@ -611,11 +649,7 @@
         }
         let maxShaftLenUnits = 5; // updated each rebuild (procedural/heightmap calibration)
 
-        // Surveyed qanat gallery-floor elevations (m a.s.l.), from the shaft detail figure.
-        const REAL_FLOOR = { 'P-7A': 354.3, 'P-5A': 357.5, 'P-4': 355.4 };
-        // Documented shaft depths (m) from the brochure (Waringo/Faber/Werner 2018).
-        // P1 p.16; P3 p.17; P5 p.9/fig.6-7; P-4 p.20; P-5A p.21; P-7A p.22.
-        const REAL_DEPTH = { 'P1': 30, 'P3': 35, 'P5': 36, 'P-4': 12, 'P-5A': 8, 'P-7A': 6 };
+        // REAL_FLOOR / REAL_DEPTH now come from the SSOT (see top of script).
         // Real surface elevation (m) at a model surface height: GeoData is true metres;
         // other sources use a nominal site datum (valley ~340 m, plateau ~390 m).
         function surfaceMeters(surfaceY) {
@@ -629,9 +663,13 @@
         // water runs West to the villa — plus two documented stepped falls: 1 m under P4
         // and 1.2 m under P6 [brochure p.26-27]. Anchored ~354 m at P-7A.
         function galleryFloorMeters(x) {
-            let e = 354.0 + 0.001 * metersPerXUnit() * (x + 21); // 0.1% grade
-            if (x > 13) e += 1.0;   // stepped fall under P4
-            if (x > 21) e += 1.2;   // stepped fall under P6
+            const g = SSOT.gallery.gallery;
+            let e = 354.0 + (g.gradientPct / 100) * metersPerXUnit() * (x + 21);
+            for (const step of g.steps) {                 // documented stepped falls
+                const sx = shaftById[step.underShaft] && shaftById[step.underShaft].modelPos
+                    ? shaftById[step.underShaft].modelPos.x : null;
+                if (sx != null && x > sx) e += step.dropM;
+            }
             return e;
         }
         // Convert a real depth (m) into model Y-units under the current vertical scale.
@@ -794,6 +832,7 @@
             initAnnotations();
             initMeasure();
             initFlow();
+            initInfoPanel();
             // Default to the real Walferdange DEM (baked grid loads synchronously).
             if (params.terrainSource === 'geodata') loadGeoData(() => buildParametricModel());
             else buildParametricModel();
@@ -954,9 +993,7 @@
             const pillarMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, depthTest: false });
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
-            // P-5A & P-7A form a separate, higher "auxiliary" dry channel (not connected
-            // to the main gallery) [brochure p.21-22].
-            const AUX_SHAFTS = { 'P-5A': true, 'P-7A': true };
+            // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
             const basePts = [], auxPts = [], shaftBaseById = {};
             let localMaxLen = 0;
             pillarDefs.forEach((p, i) => {
@@ -1033,8 +1070,9 @@
                 // Auxiliary dry channel (P-7A → P-5A), higher & unconnected: grey dashed
                 if (auxPts.length >= 2) tunnelDashed(auxPts, 0x8aa0b4);
 
-                // Stepped-fall markers (steps are ~1 m — sub-visible — so annotate them)
-                [['P6', '1.2 m step'], ['P4', '1.0 m step']].forEach(([id, txt]) => {
+                // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate)
+                SSOT.gallery.gallery.steps.forEach(step => {
+                    const id = step.underShaft, txt = step.dropM + ' m step';
                     const bp = shaftBaseById[id];
                     if (!bp) return;
                     const top = new THREE.Vector3(bp.x, bp.y + 0.9, bp.z);
@@ -1096,14 +1134,16 @@
                 s.position.set(x, getTerrainHeight(x, 0) + yOff, 0);
                 modelGroup.add(s);
             }
+            // Region names come from the SSOT (site.regions), placed by terrain source.
+            const regionName = id => (SSOT.site.regions.find(r => r.id === id) || {}).name || id;
             if (isGeo) {
                 const S = params.flipWE ? -1 : 1;   // real DEM: valley west, plateau east
-                placeLabel("Alzette valley",    -22 * S, 3.0, "#555555", 30);
-                placeLabel("Pëtschend plateau",  16 * S, 3.2, "#333333", 34);
+                placeLabel(regionName('alzette'),   -22 * S, 3.0, "#555555", 30);
+                placeLabel(regionName('petschend'),  16 * S, 3.2, "#333333", 34);
             } else {
-                placeLabel("Alzette hillside",     -17, 3.2, "#555555", 30);
-                placeLabel("Pëtschend Plateau",      2, 4.5, "#333333", 34);
-                placeLabel("Haedchen Depression",   22, 3.2, "#555555", 30);
+                placeLabel(regionName('alzette'),    -17, 3.2, "#555555", 30);
+                placeLabel(regionName('petschend'),    2, 4.5, "#333333", 34);
+                placeLabel(regionName('haedchen'),    22, 3.2, "#555555", 30);
             }
 
             // --- 7. Geological cross-section (strata + groundwater) ---
@@ -1410,10 +1450,62 @@
                 const hit = pick(ev);
                 if (!hit) return;
                 const d = hit.object.userData;
+                renderInfoPanel(shaftById[d.name]);       // SSOT-driven info side panel
                 const tgt = new THREE.Vector3(d.x, d.topY - 1, d.z);
                 const pos = new THREE.Vector3(d.x - 6, d.topY + 10, d.z + 26);
                 flyTo(pos, tgt, 800);
             });
+        }
+
+        // --- Feature info panel (SSOT-driven, with citations) ---
+        function statusBadge(status) {
+            const st = (MODEL_CONFIG.statusStyle || {})[status] || { color: '#888', label: status };
+            return `<span class="ip-badge" style="background:${st.color}">${st.label || status}</span>`;
+        }
+        function citeChip(pv) {
+            if (!pv || !pv.source) return '';
+            const s = SSOT.sources[pv.source];
+            const label = s ? (s.short || pv.source) : pv.source;
+            const loc = pv.loc || (s && s.locator) || '';
+            const text = label + (loc ? ' ' + loc : '');
+            const title = (s && (s.title || s.full)) ? ` title="${(s.title || s.full).replace(/"/g, '')}"` : '';
+            return `<span class="ip-cite">${s && s.url
+                ? `<a href="${s.url}" target="_blank" rel="noopener"${title}>${text}</a>`
+                : `<a${title}>${text}</a>`}</span>`;
+        }
+        function factRow(label, rec, field, unit) {
+            const raw = rec[field]; if (raw == null) return '';
+            const pv = provOf(rec, field);
+            const value = Array.isArray(raw) ? raw.join('–') : raw;
+            return `<div class="ip-row"><span class="ip-k">${label}</span>` +
+                `<span class="ip-v">${value}${unit ? ' ' + unit : ''}${statusBadge(pv.status)}</span></div>` +
+                citeChip(pv);
+        }
+        function renderInfoPanel(rec) {
+            if (!rec) return;
+            const body = document.getElementById('info-body');
+            let h = `<h3>${rec.id}</h3><div class="ip-sub">${rec.role || ''}` +
+                `${rec.existence ? ' · existence ' + rec.existence : ''}` +
+                `${rec.confidence ? ' · confidence ' + rec.confidence : ''}</div>`;
+            h += factRow('Depth', rec, 'depthM', 'm');
+            h += factRow('Gallery floor', rec, 'floorElevM', 'm a.s.l.');
+            h += factRow('Diameter', rec, 'diameterM', 'm');
+            if (rec.position && rec.position.status)
+                h += `<div class="ip-row"><span class="ip-k">Position</span>` +
+                     `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(rec.position.status)}</span></div>` +
+                     citeChip(provOf(rec.position, 'crs'));
+            if (rec.notes) { const np = provOf(rec, 'notes'); h += `<div class="ip-note">${rec.notes}</div>` + citeChip(np); }
+            if (rec.paradataRef && rec.paradataRef.length) {
+                const notes = rec.paradataRef.map(id => SSOT.paradata[id]).filter(Boolean);
+                if (notes.length) h += `<div class="ip-para"><b>Reasoning</b><br>` +
+                    notes.map(n => '‣ ' + n.rationale).join('<br><br>') + `</div>`;
+            }
+            body.innerHTML = h;
+            document.body.classList.add('info-open');
+        }
+        function initInfoPanel() {
+            document.getElementById('info-close').addEventListener('click',
+                () => document.body.classList.remove('info-open'));
         }
 
         // --- Annotations / notes system ---------------------------------------
