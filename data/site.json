@@ -63,6 +63,23 @@
     }
   },
 
+  "villa": {
+    "id": "recipient-villa",
+    "crm": "E27_Site",
+    "name": "Roman villa (inferred recipient)",
+    "role": "water recipient at the western (valley) end of the qanat",
+    "modelSide": "west",
+    "approxElevationMasl": 330,
+    "status": "inferred",
+    "confidence": "low",
+    "source": "waringo2018",
+    "note": "The qanat carried water east→west toward the Alzette valley to supply a Roman estate; the conduit's western continuation beyond P-7A is unexcavated and the villa's exact site is not established. Placement here is schematic (valley/west end) and shown as inferred.",
+    "_prov": {
+      "role": { "loc": "p.4; p.9", "note": "flow toward the Alzette valley to serve a Roman settlement downslope" },
+      "status": { "note": "position not surveyed — rendered as an inferred marker, not a located building" }
+    }
+  },
+
   "regions": [
     { "id": "alzette", "name": "Alzette hillside", "modelSide": "west",
       "source": "waringo2018", "status": "documented",

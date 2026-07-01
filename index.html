@@ -292,7 +292,7 @@
 
         <div class="control-group" id="grp-surround">
             <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
-            <input type="range" id="param-surround" min="1.0" max="2.0" step="0.05" value="1.0">
+            <input type="range" id="param-surround" min="0.4" max="2.0" step="0.05" value="1.0">
             <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
         </div>
 
@@ -1029,7 +1029,7 @@
             // different colour once transparency revealed the true tone. MeshBasicMaterial
             // renders the exact base colour at every opacity — one consistent beige.
             const fillMat = new THREE.MeshBasicMaterial({
-                color: 0xe7dabf,                                   // light beige (contour-map base)
+                color: 0xf0e8d6,                                   // lighter beige (contour-map base)
                 polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
                 side: THREE.DoubleSide,
                 transparent: true, opacity: params.terrainOpacity,
@@ -1196,10 +1196,18 @@
             // top" + faded parts dropping out). High renderOrder keeps them above the
             // terrain/strata/walls in the transparent pass — visible full-length, above and
             // below ground. Inferred shafts differ by opacity only.
-            const pillarMat = new THREE.MeshBasicMaterial({
-                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: 1.0 });
-            const pillarMatInferred = new THREE.MeshBasicMaterial({
-                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: 0.5 });
+            // Above-ground cap (the visible surface marker) is solid; the underground part
+            // is fainter (documented → faint cylinder, inferred → dotted line) so it reads as
+            // "below the surface" and inference is encoded by the dotted style.
+            const O = { capSolid: 1.0, capFaint: 0.7, below: 0.4, dash: 0.75 };
+            const mkShaftMat = op => new THREE.MeshBasicMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
+            const capSolidMat = mkShaftMat(O.capSolid);
+            const capFaintMat = mkShaftMat(O.capFaint);
+            const belowFaintMat = mkShaftMat(O.below);
+            const belowDashMat = new THREE.LineDashedMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true,
+                opacity: O.dash, dashSize: 0.5, gapSize: 0.4, linewidth: 2 });
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -1238,17 +1246,32 @@
                 // over the terrain (inferred shafts included — they were previously hidden
                 // as sub-surface translucent pillars that blended into the contours).
                 const CAP = 0.7;                              // above-ground stub height (units)
-                const totalLen = len + CAP;                   // spans [sy − len, sy + CAP]
-                const geo = new THREE.CylinderGeometry(0.30, 0.30, totalLen, 14);
-                // Solid only when the shaft is both depth-documented AND in a "known" era
-                // (Roman service or already rediscovered); otherwise faded.
-                const mesh = new THREE.Mesh(geo, (documented && st.solid) ? pillarMat : pillarMatInferred);
-                mesh.position.set(p.x, sy + (CAP - len) / 2, p.z);
-                mesh.renderOrder = 12;   // above terrain(0)/strata(2)/tunnel(5) in the transparent pass
-                mesh.userData = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
-                                  floorM: floorM, depthM: depthM, documented: documented };
-                modelGroup.add(mesh);
-                shaftMeshes.push(mesh);
+                const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
+                             floorM: floorM, depthM: depthM, documented: documented };
+                const solid = documented && st.solid;         // solid cylinder vs dotted (inferred/dormant)
+                // Above-ground cap: the visible surface marker (solid = full, inferred = faint).
+                const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, CAP, 14),
+                                           solid ? capSolidMat : capFaintMat);
+                cap.position.set(p.x, sy + CAP / 2, p.z);
+                cap.renderOrder = 13;
+                cap.userData = ud;
+                modelGroup.add(cap);
+                shaftMeshes.push(cap);
+                // Underground part — fainter: documented = faint cylinder, inferred = dotted line.
+                if (solid) {
+                    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, len, 14), belowFaintMat);
+                    body.position.set(p.x, sy - len / 2, p.z);
+                    body.renderOrder = 12;
+                    body.userData = ud;
+                    modelGroup.add(body);
+                    shaftMeshes.push(body);
+                } else {
+                    const dl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+                        [new THREE.Vector3(p.x, sy, p.z), new THREE.Vector3(p.x, sy - len, p.z)]), belowDashMat);
+                    dl.computeLineDistances();
+                    dl.renderOrder = 12;
+                    modelGroup.add(dl);
+                }
                 const lbl = createTextSprite(p.id, '#1a1a1a', 24);
                 lbl.position.set(p.x, sy + CAP + 0.5, p.z);
                 modelGroup.add(lbl);
@@ -1374,6 +1397,28 @@
                 placeLabel(regionName('alzette'),    -17, 3.2, "#555555", 30);
                 placeLabel(regionName('petschend'),    2, 4.5, "#333333", 34);
                 placeLabel(regionName('haedchen'),    22, 3.2, "#555555", 30);
+            }
+
+            // --- 6a. Inferred recipient villa at the valley (west) end (SSOT: site.villa).
+            // The qanat fed a Roman estate downslope to the west; the exact site is not
+            // established, so it's drawn as a faded box with a dashed (inferred) outline. ---
+            const villa = SSOT.site.villa;
+            if (villa) {
+                const Sv = (isGeo && params.flipWE) ? -1 : 1;   // valley is west (−x), flip-aware
+                const vx = -halfW * 0.82 * Sv;
+                const vy = getTerrainHeight(vx, 0);
+                const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6),
+                    new THREE.MeshBasicMaterial({ color: 0xb08d57, transparent: true, opacity: 0.45, depthTest: false }));
+                box.position.set(vx, vy + 0.6, 0); box.renderOrder = 9;
+                modelGroup.add(box);
+                const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry),
+                    new THREE.LineDashedMaterial({ color: 0x6b4f2a, dashSize: 0.28, gapSize: 0.2,
+                        transparent: true, opacity: 0.9, depthTest: false }));
+                edges.position.copy(box.position); edges.computeLineDistances(); edges.renderOrder = 10;
+                modelGroup.add(edges);
+                const vs = createTextSprite('Roman villa (inferred)', '#6b4f2a', 20);
+                vs.scale.set(6.2, 1.1, 1); vs.position.set(vx, vy + 2.1, 0);
+                modelGroup.add(vs);
             }
 
             // --- 6b. In-corridor water sources (documented; regional catchment springs
