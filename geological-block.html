@@ -188,6 +188,15 @@
         .annot-io button { flex: 1; background: #374151; color: #f3f4f6; border: 1px solid rgba(255,255,255,0.12);
             border-radius: 6px; padding: 8px; font-size: 0.78rem; cursor: pointer; }
         .annot-io button:hover { background: #4b5563; }
+
+        body.measure-mode #canvas-container { cursor: crosshair; }
+        #measure-readout {
+            position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%);
+            z-index: 9; display: none; background: rgba(20,20,28,0.9); color: #fff;
+            border: 1px solid rgba(255,210,63,0.5); border-radius: 8px; padding: 8px 14px;
+            font-size: 0.82rem; box-shadow: 0 6px 18px rgba(0,0,0,0.45); white-space: nowrap;
+        }
+        #measure-readout b { color: #ffd23f; }
     </style>
     <script src="three.min.js"></script>
     <script src="OrbitControls.js"></script>
@@ -225,6 +234,7 @@
             <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1em;"></div>
             <label class="check-row"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
+            <label class="check-row"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
         </div>
 
         <div class="control-group">
@@ -252,6 +262,9 @@
         </div>
         <div class="control-group btn-row">
             <button id="btn-annotate" type="button">✎ Annotate mode</button>
+        </div>
+        <div class="control-group btn-row">
+            <button id="btn-measure" type="button">📏 Measure</button>
         </div>
 
         <div class="legend">
@@ -293,6 +306,7 @@
         <div id="annot-editor">
             <input id="annot-title" type="text" placeholder="Title" maxlength="80">
             <textarea id="annot-note" rows="4" placeholder="Notes…"></textarea>
+            <div id="annot-anchor" style="font-size:0.72rem;color:#f2a93b;margin-bottom:7px;min-height:1em;"></div>
             <button id="annot-delete" type="button">Delete point</button>
         </div>
         <div class="annot-io">
@@ -319,6 +333,7 @@
     </div>
 
     <div class="instructions">Drag to rotate · Scroll to zoom · Hover a shaft for depth · Click to focus</div>
+    <div id="measure-readout"></div>
 
     <script>
         const params = {
@@ -777,6 +792,8 @@
             scene.add(modelGroup);
 
             initAnnotations();
+            initMeasure();
+            initFlow();
             // Default to the real Walferdange DEM (baked grid loads synchronously).
             if (params.terrainSource === 'geodata') loadGeoData(() => buildParametricModel());
             else buildParametricModel();
@@ -1039,6 +1056,7 @@
                     flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, 0x1d6fd6, 0.9);
                 }
             }
+            lastQanatPts = basePts;   // path for animated flow
 
             // --- 5. Dashed geological zone boundary lines on the terrain surface ---
             const dashMat = new THREE.LineDashedMaterial({ color: 0x333333, dashSize: 1.2, gapSize: 0.7, linewidth: 1 });
@@ -1097,6 +1115,7 @@
             updateCompass();
             updateExagReadout();
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
+            rebuildFlow();               // rebuild animated-flow particles for the new paths
         }
 
         // Real ground metres per model X-unit (GeoData uses the bbox; else nominal ~1 km block).
@@ -1220,6 +1239,7 @@
                 const y = gwY(x);
                 if (y < getTerrainHeight(x, 0) - wThk) flowArrow(x, y + 0.12, zF, +1, 0x2bb0f0, 0.8);
             }
+            lastGwPts = gwPts;   // path for animated groundwater flow
         }
 
         function createTextSprite(text, colorStr = '#111', size = 24) {
@@ -1366,16 +1386,25 @@
                 }
             });
             dom.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+            // Raycast the model meshes and return the first surface hit point (or null).
+            function pickSurface(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                const hits = raycaster.intersectObjects(modelGroup.children, true);
+                const h = hits.find(hh => hh.object.type === 'Mesh');
+                return h ? h.point : null;
+            }
             dom.addEventListener('click', ev => {
+                if (measureMode) {
+                    const p = pickSurface(ev);
+                    if (p) addMeasurePoint(p);
+                    return;
+                }
                 if (annotateMode) {
-                    // Drop an annotation point at the clicked surface location
-                    const r = dom.getBoundingClientRect();
-                    ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                    ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                    raycaster.setFromCamera(ndc, camera);
-                    const hits = raycaster.intersectObjects(modelGroup.children, true);
-                    const h = hits.find(hh => hh.object.type === 'Mesh');
-                    if (h) addAnnotation(h.point.x, h.point.z);
+                    const p = pickSurface(ev);
+                    if (p) addAnnotation(p.x, p.z);
                     return;
                 }
                 const hit = pick(ev);
@@ -1388,8 +1417,34 @@
         }
 
         // --- Annotations / notes system ---------------------------------------
-        let annotations = [];      // {id, x, z, title, note}
+        let annotations = [];      // {id, x, z, title, note, feature}
         let annotSeq = 0, selectedAnnotId = null, annotateMode = false, annotationGroup = null;
+        const ANNOT_KEY = 'raschpetzer_annotations_v1';
+
+        function saveAnnotations() {
+            try { localStorage.setItem(ANNOT_KEY, JSON.stringify(
+                annotations.map(a => ({ x: a.x, z: a.z, title: a.title, note: a.note, feature: a.feature })))); }
+            catch (e) { /* storage disabled — ignore */ }
+        }
+        function loadAnnotations() {
+            try {
+                const raw = localStorage.getItem(ANNOT_KEY);
+                if (!raw) return;
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) annotations = arr.map(a =>
+                    ({ id: ++annotSeq, x: +a.x, z: +a.z, title: a.title || '', note: a.note || '', feature: a.feature || null }));
+            } catch (e) { /* ignore corrupt storage */ }
+        }
+
+        // Nearest documented shaft to a clicked point (for anchoring), within `maxD` units.
+        function nearestShaft(x, z, maxD) {
+            let best = null, bd = Infinity;
+            pillarDefs.forEach(p => {
+                const d = Math.hypot(p.x - x, p.z - z);
+                if (d < bd) { bd = d; best = p; }
+            });
+            return (best && bd <= (maxD || 3)) ? best : null;
+        }
 
         function initAnnotations() {
             annotationGroup = new THREE.Group();
@@ -1397,29 +1452,37 @@
             const btn = document.getElementById('btn-annotate');
             btn.addEventListener('click', () => {
                 annotateMode = !annotateMode;
+                if (annotateMode) setMeasureMode(false);
                 document.body.classList.toggle('annotate-mode', annotateMode);
                 btn.classList.toggle('active', annotateMode);
             });
             document.getElementById('annot-title').addEventListener('input', e => {
                 const a = annotations.find(x => x.id === selectedAnnotId);
-                if (a) { a.title = e.target.value; refreshAnnotList(); }
+                if (a) { a.title = e.target.value; refreshAnnotList(); saveAnnotations(); }
             });
             document.getElementById('annot-note').addEventListener('input', e => {
                 const a = annotations.find(x => x.id === selectedAnnotId);
-                if (a) a.note = e.target.value;
+                if (a) { a.note = e.target.value; saveAnnotations(); }
             });
             document.getElementById('annot-delete').addEventListener('click', deleteSelectedAnnot);
             document.getElementById('annot-export').addEventListener('click', exportAnnotations);
             document.getElementById('annot-import-btn').addEventListener('click',
                 () => document.getElementById('annot-import').click());
             document.getElementById('annot-import').addEventListener('change', importAnnotations);
+
+            loadAnnotations();
+            renderAnnotationMarkers();
+            refreshAnnotList();
         }
 
         function addAnnotation(x, z) {
-            const a = { id: ++annotSeq, x, z, title: '', note: '' };
+            const shaft = nearestShaft(x, z, 3);   // snap & anchor to a shaft if close
+            const a = shaft
+                ? { id: ++annotSeq, x: shaft.x, z: shaft.z, title: '', note: '', feature: shaft.id }
+                : { id: ++annotSeq, x, z, title: '', note: '', feature: null };
             annotations.push(a);
             selectedAnnotId = a.id;
-            renderAnnotationMarkers(); refreshAnnotList(); openAnnotEditor();
+            renderAnnotationMarkers(); refreshAnnotList(); openAnnotEditor(); saveAnnotations();
             document.getElementById('annot-title').focus();
         }
         function selectAnnotation(id) {
@@ -1433,11 +1496,13 @@
             ed.style.display = 'block';
             document.getElementById('annot-title').value = a.title;
             document.getElementById('annot-note').value = a.note;
+            const anc = document.getElementById('annot-anchor');
+            anc.textContent = a.feature ? ('⚓ anchored to shaft ' + a.feature) : '';
         }
         function deleteSelectedAnnot() {
             annotations = annotations.filter(a => a.id !== selectedAnnotId);
             selectedAnnotId = null;
-            renderAnnotationMarkers(); refreshAnnotList();
+            renderAnnotationMarkers(); refreshAnnotList(); saveAnnotations();
             document.getElementById('annot-editor').style.display = 'none';
         }
         function refreshAnnotList() {
@@ -1446,7 +1511,8 @@
             annotations.forEach((a, i) => {
                 const row = document.createElement('div');
                 row.className = 'annot-row' + (a.id === selectedAnnotId ? ' sel' : '');
-                const t = (a.title || 'Untitled').replace(/</g, '&lt;');
+                let t = (a.title || 'Untitled').replace(/</g, '&lt;');
+                if (a.feature) t += ' <span style="opacity:.7">⚓' + a.feature + '</span>';
                 row.innerHTML = '<span class="an-num">' + (i + 1) + '</span><span class="an-t">' + t + '</span>';
                 row.addEventListener('click', () => selectAnnotation(a.id));
                 list.appendChild(row);
@@ -1470,7 +1536,8 @@
         }
         function exportAnnotations() {
             const data = { site: 'Raschpetzer Qanat', terrainSource: params.terrainSource,
-                annotations: annotations.map(a => ({ x: +a.x.toFixed(3), z: +a.z.toFixed(3), title: a.title, note: a.note })) };
+                annotations: annotations.map(a => ({ x: +a.x.toFixed(3), z: +a.z.toFixed(3),
+                    title: a.title, note: a.note, feature: a.feature })) };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const el = document.createElement('a');
@@ -1485,15 +1552,111 @@
                     const data = JSON.parse(reader.result);
                     const arr = Array.isArray(data) ? data : data.annotations;
                     if (!Array.isArray(arr)) throw new Error('no annotations array');
-                    annotations = arr.map(a => ({ id: ++annotSeq, x: +a.x, z: +a.z, title: a.title || '', note: a.note || '' }));
+                    annotations = arr.map(a => ({ id: ++annotSeq, x: +a.x, z: +a.z,
+                        title: a.title || '', note: a.note || '', feature: a.feature || null }));
                     selectedAnnotId = null;
-                    renderAnnotationMarkers(); refreshAnnotList();
+                    renderAnnotationMarkers(); refreshAnnotList(); saveAnnotations();
                     document.getElementById('annot-editor').style.display = 'none';
                     if (!annotateMode) document.getElementById('btn-annotate').click();
                 } catch (err) { alert('Could not import annotations: ' + err.message); }
             };
             reader.readAsText(file);
             e.target.value = '';
+        }
+
+        // --- Measurement tool -------------------------------------------------
+        let measureMode = false, measureGroup = null, measurePts = [];
+        function metersPerZUnit() {
+            if (params.terrainSource === 'geodata' && geodata.ready) {
+                const mPerDegLat = 111320;
+                return ((GEO_BBOX.north - GEO_BBOX.south) * mPerDegLat) / params.depth;
+            }
+            return metersPerXUnit(); // nominal: same as X
+        }
+        function setMeasureMode(on) {
+            measureMode = on;
+            document.body.classList.toggle('measure-mode', on);
+            document.getElementById('btn-measure').classList.toggle('active', on);
+            if (!on) { measurePts = []; clearMeasure(); document.getElementById('measure-readout').style.display = 'none'; }
+        }
+        function clearMeasure() {
+            if (!measureGroup) return;
+            while (measureGroup.children.length) measureGroup.remove(measureGroup.children[0]);
+        }
+        function measureDot(p) {
+            const m = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 10),
+                new THREE.MeshBasicMaterial({ color: 0xffd23f, depthTest: false }));
+            m.position.copy(p); m.renderOrder = 22; measureGroup.add(m);
+        }
+        function addMeasurePoint(p) {
+            if (measurePts.length === 2) { measurePts = []; clearMeasure(); }
+            measurePts.push(p.clone());
+            measureDot(p);
+            if (measurePts.length === 2) {
+                const a = measurePts[0], b = measurePts[1];
+                measureGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]),
+                    new THREE.LineBasicMaterial({ color: 0xffd23f, depthTest: false })));
+                const mpx = metersPerXUnit(), mpz = metersPerZUnit(), mpy = metersPerYUnit();
+                const dxm = (b.x - a.x) * mpx, dzm = (b.z - a.z) * mpz, dym = (b.y - a.y) * mpy;
+                const horiz = Math.hypot(dxm, dzm);
+                const slope = Math.hypot(horiz, dym);
+                const ro = document.getElementById('measure-readout');
+                ro.innerHTML = 'Horizontal <b>' + horiz.toFixed(1) + ' m</b> · ' +
+                    'Δ elevation <b>' + (dym >= 0 ? '+' : '') + dym.toFixed(1) + ' m</b> · ' +
+                    'straight-line <b>' + slope.toFixed(1) + ' m</b>';
+                ro.style.display = 'block';
+            } else {
+                document.getElementById('measure-readout').innerHTML = 'Click a second point…';
+                document.getElementById('measure-readout').style.display = 'block';
+            }
+        }
+        function initMeasure() {
+            measureGroup = new THREE.Group(); scene.add(measureGroup);
+            document.getElementById('btn-measure').addEventListener('click', () => {
+                setMeasureMode(!measureMode);
+                if (measureMode && annotateMode) document.getElementById('btn-annotate').click();
+            });
+        }
+
+        // --- Animated water flow ---------------------------------------------
+        let flowAnim = false, flowGroup = null, lastFlowTime = null;
+        const flowState = [];                 // {curve, mesh, phase, dir, speed}
+        let lastQanatPts = null, lastGwPts = null;
+        function initFlow() {
+            flowGroup = new THREE.Group(); scene.add(flowGroup);
+            document.getElementById('param-flowanim').addEventListener('change', e => {
+                flowAnim = e.target.checked; rebuildFlow();
+            });
+        }
+        function rebuildFlow() {
+            if (!flowGroup) return;
+            while (flowGroup.children.length) flowGroup.remove(flowGroup.children[0]);
+            flowState.length = 0;
+            if (!flowAnim) return;
+            const add = (pts, color, dir) => {
+                if (!pts || pts.length < 2) return;
+                const curve = new THREE.CatmullRomCurve3(pts.map(p => p.clone()));
+                const N = 14;
+                for (let i = 0; i < N; i++) {
+                    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6),
+                        new THREE.MeshBasicMaterial({ color, depthTest: false }));
+                    mesh.renderOrder = 8; flowGroup.add(mesh);
+                    flowState.push({ curve, mesh, phase: i / N, dir, speed: 0.05 });
+                }
+            };
+            add(lastQanatPts, 0x2fa8ff, -1);                        // qanat gallery: West
+            if (params.showGeology) add(lastGwPts, 0x67d0ff, +1);  // groundwater: East
+        }
+        function updateFlow(now) {
+            if (!flowState.length) { lastFlowTime = now; return; }
+            const dt = lastFlowTime ? Math.min(0.1, (now - lastFlowTime) / 1000) : 0;
+            lastFlowTime = now;
+            for (const s of flowState) {
+                s.phase = (s.phase + dt * s.speed) % 1;
+                let t = s.dir < 0 ? 1 - s.phase : s.phase;
+                const p = s.curve.getPointAt(t);
+                s.mesh.position.set(p.x, p.y + 0.05, p.z);
+            }
         }
 
         function onResize() {
@@ -1505,13 +1668,15 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            const now = performance.now();
             if (camAnim) {
-                const k = Math.min(1, (performance.now() - camAnim.t0) / camAnim.dur);
+                const k = Math.min(1, (now - camAnim.t0) / camAnim.dur);
                 const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; // easeInOutQuad
                 camera.position.lerpVectors(camAnim.fromP, camAnim.toP, e);
                 controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
                 if (k >= 1) camAnim = null;
             }
+            updateFlow(now);
             controls.update();
             renderer.render(scene, camera);
         }
