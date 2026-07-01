@@ -1,32 +1,19 @@
 {
-  "name": "vitrine-simulator",
+  "name": "raschpetzer-qanat-viz",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Interactive 3D visualization of the Raschpëtzer Roman qanat (Walferdange, Luxembourg), driven by a cited Single Source of Truth.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit",
-    "validate": "node scripts/validate.mjs",
+    "predev": "node scripts/bake.mjs",
     "bake": "node scripts/bake.mjs",
-    "predev": "node scripts/bake.mjs"
-  },
-  "dependencies": {
-    "@react-three/drei": "^9.114.3",
-    "@react-three/fiber": "^8.17.10",
-    "idb-keyval": "^6.2.6",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "three": "^0.169.0",
-    "zustand": "^4.5.5"
+    "validate": "node scripts/validate.mjs",
+    "build": "node scripts/bake.mjs",
+    "prebuild": "node scripts/validate.mjs",
+    "serve": "vite preview"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@types/three": "^0.169.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "^5.6.3",
     "vite": "^5.4.11"
   }
 }
