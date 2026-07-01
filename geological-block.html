@@ -538,17 +538,39 @@
         }
         let maxShaftLenUnits = 5; // updated each rebuild (procedural/heightmap calibration)
 
+        // Surveyed qanat gallery-floor elevations (m a.s.l.), from the shaft detail figure.
+        const REAL_FLOOR = { 'P-7A': 354.3, 'P-5A': 357.5, 'P-4': 355.4 };
+        // Real surface elevation (m) at a model surface height: GeoData is true metres;
+        // other sources use a nominal site datum (valley ~340 m, plateau ~390 m).
+        function surfaceMeters(surfaceY) {
+            if (params.terrainSource === 'geodata' && geodata.ready)
+                return geodata.minM + surfaceY / (params.plateauHeight * params.elevationIntensity)
+                       * ((geodata.maxM - geodata.minM) || 1);
+            return 340 + (surfaceY / params.plateauHeight) * 45;
+        }
+        // Gallery (channel) floor elevation (m), anchored to surveyed floors P-7A & P-4,
+        // gently rising eastward so water runs West toward the villa.
+        function galleryFloorMeters(x) { return 354.3 + 0.122 * (x + 21); }
+        // Convert a real depth (m) into model Y-units under the current vertical scale.
+        function metersToYDepth(depthM) {
+            if (params.terrainSource === 'geodata' && geodata.ready)
+                return depthM / (((geodata.maxM - geodata.minM) || 1)
+                       / (params.plateauHeight * params.elevationIntensity));
+            return depthM * params.plateauHeight / 45;
+        }
+
         function getProceduralHeight(x, z) {
             let h = params.plateauHeight;
             if (x < -6) {
                 let t = Math.min(Math.max((-6 - x) / 16, 0), 1);
                 let ease = t * t * (3 - 2 * t);
                 h -= ease * params.hillsideDrop;
-            } else if (x > 9) {
-                let t = Math.min(Math.max((x - 9) / 15, 0), 1);
+            } else if (x > 19) {
+                // Pëtschend plateau now spans P-1..P5; Haedchen depression sits east of P5
+                let t = Math.min(Math.max((x - 19) / 12, 0), 1);
                 let ease = Math.sin(t * Math.PI * 0.5);
                 h -= ease * params.depressionDepth;
-                if (x > 24) h += (x - 24) * 0.25;
+                if (x > 30) h += (x - 30) * 0.25;
             }
             // Broad cross-structural undulation
             h += Math.sin(z * 0.25) * 0.4;
@@ -835,31 +857,26 @@
             modelGroup.add(baseMesh);
 
             // --- 3. Raschpetzer shafts + qanat tunnel ---
-            //  Faithful layout: each shaft gets a realistic relative depth (deepest at
-            //  P5 ≈ 36 m, tapering to the ends), all shafts present & connected as in the
-            //  reference; explored core solid, inferred ends dashed. Schematic = original.
+            //  Faithful layout: the gallery floor follows the SURVEYED elevations
+            //  (near-level ~355 m, gentle West-down slope); shaft depth = ground surface
+            //  minus gallery floor, so the deepest shafts fall under the plateau (~36 m).
+            //  Schematic = original flat-ish gallery.
             shaftMeshes.length = 0;
             const faithful = (params.qanatLayout === 'faithful');
             const pillarMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, depthTest: false });
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
-            // Relative shaft depths (index-aligned to pillarDefs P-7A..P9), peak at P5.
-            const DEPTH_REL = [0.30,0.40,0.50,0.58,0.72,0.80,0.88,0.93,0.97,0.99,1.00,0.60,0.48,0.40,0.32];
-            let maxDepthUnits;
-            if (isGeo) {
-                maxDepthUnits = QANAT.maxDepthM / ((geodata.maxM - geodata.minM) || 1)
-                                * params.plateauHeight * params.elevationIntensity;
-            } else {
-                maxDepthUnits = 0.6 * params.plateauHeight;
-            }
-
             const basePts = [];
             let localMaxLen = 0;
             pillarDefs.forEach((p, i) => {
                 const sy = surf[i];
-                let len;
+                let len, floorM = null, depthM = null;
                 if (faithful) {
-                    len = (DEPTH_REL[i] !== undefined ? DEPTH_REL[i] : 0.5) * maxDepthUnits;
+                    const sM = surfaceMeters(sy);
+                    floorM = galleryFloorMeters(p.x);
+                    if (floorM > sM - 3) floorM = sM - 3;   // gallery ≥3 m below surface
+                    depthM = sM - floorM;
+                    len = metersToYDepth(depthM);
                 } else {
                     let ty = getLayerHeight(p.x, p.z);   // original flat-ish gallery
                     if (ty > sy - 0.05) ty = sy - 0.05;
@@ -874,7 +891,8 @@
                     const mesh = new THREE.Mesh(geo, pillarMat);
                     mesh.position.set(p.x, sy - len / 2, p.z);
                     mesh.renderOrder = 6;
-                    mesh.userData = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z };
+                    mesh.userData = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
+                                      floorM: floorM, depthM: depthM };
                     modelGroup.add(mesh);
                     shaftMeshes.push(mesh);
                 }
@@ -884,7 +902,8 @@
             });
             maxShaftLenUnits = localMaxLen || 5;          // calibrates metres for non-geo modes
             const mpuNow = metersPerYUnit();
-            shaftMeshes.forEach(m => m.userData.depthMeters = m.userData.depthUnits * mpuNow);
+            shaftMeshes.forEach(m => m.userData.depthMeters =
+                (m.userData.depthM != null) ? m.userData.depthM : m.userData.depthUnits * mpuNow);
 
             // Tunnel polyline through the shaft bases. Faithful => solid explored core +
             // dashed inferred ends; schematic => one solid tube.
@@ -1226,8 +1245,15 @@
                 const hit = pick(ev);
                 if (hit) {
                     const d = hit.object.userData;
-                    tip.innerHTML = '<span class="t-name">' + d.name + '</span><br>' +
+                    let html = '<span class="t-name">' + d.name + '</span><br>' +
                         '<span class="t-depth">shaft depth ≈ ' + Math.round(d.depthMeters) + ' m</span>';
+                    if (d.floorM != null) {
+                        const surveyed = REAL_FLOOR[d.name] != null;
+                        html += '<br><span class="t-depth">gallery floor ≈ ' +
+                            (surveyed ? REAL_FLOOR[d.name].toFixed(1) + ' m (surveyed)'
+                                      : d.floorM.toFixed(1) + ' m') + '</span>';
+                    }
+                    tip.innerHTML = html;
                     tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
                     tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
                     tip.style.display = 'block';
