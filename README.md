@@ -104,6 +104,18 @@ lens*: real-metre read-outs (info panel, measurements) are invariant to them.
 | `bun run validate` | Validate the SSOT (CI gate) |
 | `bun run build` | Validate + bake (static site; deploy by serving the repo root) |
 
+## Deploy (static / GitHub Pages)
+
+`npm run build` validates the SSOT, bakes the data, and assembles a clean,
+self-contained static site into `dist/` (index.html + `vendor/`, `assets/`,
+`docs/`). Because every asset reference is relative, the output works from any
+base path, so any static host will serve it — just point it at `dist/`.
+
+A GitHub Actions workflow (`.github/workflows/deploy.yml`) auto-deploys to
+**GitHub Pages** on every push to `main` (or via manual *Run workflow*). Enable
+it once under **Settings → Pages → Source: GitHub Actions**; the site then lives
+at `https://<user>.github.io/<repo>/`.
+
 ## Source & license
 
 Facts are extracted from **Waringo, G., Faber, S. & Werner, H. (2018),
