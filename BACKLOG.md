@@ -2,11 +2,14 @@
 
 Planned / deferred ideas for `geological-block.html`.
 
-- [ ] **Guided tour** — step through the shafts P-7A → P9 with the camera flying
-  to each in turn, showing that shaft's documented facts (depth, construction,
-  notes) from `RASCHPETZER_DATA.md`. Play/pause + next/prev controls.
+- (nothing open)
 
 ## Done
+- **Guided tour** — camera flies P-7A → P9, opening each shaft's SSOT info panel;
+  bottom bar with prev / play-pause / next / stop, auto-advance
+- **SSOT** — cited `data/*.json` drives the model; build/validate pipeline;
+  generated `RASCHPETZER_DATA.md`; click-to-info panel with citations
+- All render colours + scene-scale defaults sourced from `model-config.json`
 - Terrain modes: procedural / heightmap / GeoData (real EU-DEM, default)
 - Contour-line geometry with bold index contours + elevation labels
 - Faithful vs schematic qanat layout; documented shaft depths (P5 ≈ 36 m)
