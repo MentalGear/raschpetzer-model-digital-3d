@@ -293,7 +293,7 @@
 
         <div class="control-group" id="grp-surround">
             <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
-            <input type="range" id="param-surround" min="0.4" max="2.0" step="0.05" value="1.0">
+            <input type="range" id="param-surround" min="0.2" max="2.0" step="0.05" value="1.0">
             <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
         </div>
 
@@ -1198,18 +1198,17 @@
             // top" + faded parts dropping out). High renderOrder keeps them above the
             // terrain/strata/walls in the transparent pass — visible full-length, above and
             // below ground. Inferred shafts differ by opacity only.
-            // Above-ground cap (the visible surface marker) is solid; the underground part
-            // is fainter (documented → faint cylinder, inferred → dotted line) so it reads as
-            // "below the surface" and inference is encoded by the dotted style.
-            const O = { capSolid: 1.0, capFaint: 0.7, below: 0.4, dash: 0.75 };
+            // Documented shafts are SOLID cylinders (bright above-ground cap + fainter
+            // below-ground body). Inferred shafts are the SAME-size cylinder but "volume
+            // stripped" — a crisp wireframe cage (rim rings + vertical seams) over a faint
+            // ghost fill, so they're obviously shafts yet clearly distinct from the solid ones.
             const mkShaftMat = op => new THREE.MeshBasicMaterial({
                 color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
-            const capSolidMat = mkShaftMat(O.capSolid);
-            const capFaintMat = mkShaftMat(O.capFaint);
-            const belowFaintMat = mkShaftMat(O.below);
-            const belowDashMat = new THREE.LineDashedMaterial({
-                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true,
-                opacity: O.dash, dashSize: 0.5, gapSize: 0.4, linewidth: 2 });
+            const capSolidMat = mkShaftMat(1.0);
+            const belowFaintMat = mkShaftMat(0.4);
+            const ghostFillMat = mkShaftMat(0.12);
+            const cageMat = new THREE.LineBasicMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: 0.95 });
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -1250,29 +1249,26 @@
                 const CAP = 0.7;                              // above-ground stub height (units)
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
-                const solid = documented && st.solid;         // solid cylinder vs dotted (inferred/dormant)
-                // Above-ground cap: the visible surface marker (solid = full, inferred = faint).
-                const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, CAP, 14),
-                                           solid ? capSolidMat : capFaintMat);
-                cap.position.set(p.x, sy + CAP / 2, p.z);
-                cap.renderOrder = 13;
-                cap.userData = ud;
-                modelGroup.add(cap);
-                shaftMeshes.push(cap);
-                // Underground part — fainter: documented = faint cylinder, inferred = dotted line.
+                const solid = documented && st.solid;         // solid pillar vs stripped-volume cage
                 if (solid) {
-                    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, len, 14), belowFaintMat);
-                    body.position.set(p.x, sy - len / 2, p.z);
-                    body.renderOrder = 12;
-                    body.userData = ud;
-                    modelGroup.add(body);
-                    shaftMeshes.push(body);
+                    // Above-ground cap (bright) + fainter below-ground body.
+                    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, CAP, 16), capSolidMat);
+                    cap.position.set(p.x, sy + CAP / 2, p.z); cap.renderOrder = 13; cap.userData = ud;
+                    modelGroup.add(cap); shaftMeshes.push(cap);
+                    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, len, 16), belowFaintMat);
+                    body.position.set(p.x, sy - len / 2, p.z); body.renderOrder = 12; body.userData = ud;
+                    modelGroup.add(body); shaftMeshes.push(body);
                 } else {
-                    const dl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(
-                        [new THREE.Vector3(p.x, sy, p.z), new THREE.Vector3(p.x, sy - len, p.z)]), belowDashMat);
-                    dl.computeLineDistances();
-                    dl.renderOrder = 12;
-                    modelGroup.add(dl);
+                    // Inferred: same-size cylinder, volume stripped → ghost fill + wireframe cage.
+                    const fullLen = len + CAP;
+                    const cyl = new THREE.CylinderGeometry(0.30, 0.30, fullLen, 16);
+                    const cy = sy + (CAP - len) / 2;
+                    const ghost = new THREE.Mesh(cyl, ghostFillMat);
+                    ghost.position.set(p.x, cy, p.z); ghost.renderOrder = 11; ghost.userData = ud;
+                    modelGroup.add(ghost); shaftMeshes.push(ghost);   // hover/pick target
+                    const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), cageMat);
+                    cage.position.set(p.x, cy, p.z); cage.renderOrder = 13;
+                    modelGroup.add(cage);
                 }
                 const lbl = createTextSprite(p.id, '#1a1a1a', 24);
                 lbl.position.set(p.x, sy + CAP + 0.5, p.z);
@@ -1297,7 +1293,7 @@
                 const cv = new THREE.CatmullRomCurve3(points);
                 const g = new THREE.BufferGeometry().setFromPoints(cv.getPoints(points.length * 10));
                 const ln = new THREE.Line(g, new THREE.LineDashedMaterial(
-                    { color, dashSize: 0.7, gapSize: 0.5, depthTest: false }));
+                    { color, dashSize: 2.8, gapSize: 2.0, depthTest: false }));   // 4× larger dashes
                 ln.computeLineDistances(); ln.renderOrder = 5; modelGroup.add(ln);
             }
             // The gallery + channel exist only once the qanat is built (≥131 AD).
