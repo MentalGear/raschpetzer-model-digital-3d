@@ -2,6 +2,30 @@
 
 Planned / deferred ideas for `index.html`.
 
+## Open — UI / interaction
+
+- **Rework the guided tour.** Hidden in the UI for now (`#btn-tour` display:none). Its
+  waypoints were keyed off the removed schematic `modelPos`; rebuild it against the
+  georeferenced shafts (fly to each `geo`-placed shaft, narrate depth/role from the SSOT)
+  with a proper stop/scrub/keyboard flow before re-exposing the button.
+
+- **Detailed qanat / gallery modelling (recommended approach).** Currently the conduit is a
+  single tube through the shaft bases. Add an *optional* higher-fidelity layer, LOD-gated
+  and cited, built from the SSOT — not free-modelled from the photos:
+  1. **Cross-section-driven gallery.** Sweep the documented profile per section
+     (`gallery.sections`: rectangular → trapezoidal → wide → triangular → backfilled) along
+     the georeferenced centreline, with the channel (`channelHeightCm`/`channelWidthRangeCm`),
+     cover slabs and ballast as sub-parts. Drive dimensions from bare SSOT scalars so it stays
+     validate-gated.
+  2. **Shaft mouths + true depths** as real cylinders at surveyed diameters, funnelling into
+     the gallery, with the two documented steps (P4 1.0 m, P6 1.2 m) as real geometry.
+  3. **Overflow / lateral (deviation) channel** at P‑4 (`gallery.overflowChannel`) as a short
+     branch off the weir — separate toggle.
+  4. Keep it a **toggle / zoom-LOD** so the honest schematic stays the default; label the
+     detailed view "reconstructed profile (Waringo 2018), not surveyed geometry" as paradata.
+  Rationale: faithful to the primary source and inspectable, avoids inventing geometry the
+  brochure doesn't document.
+
 ## Open — expert-review backlog (2026-07-02)
 
 Deferred items from the four independent expert reviews (archaeology / hydrogeology
