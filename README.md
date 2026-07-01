@@ -11,9 +11,10 @@ source; documented facts are visually distinguished from inferred/schematic ones
 
 ## Features
 
-- **Three terrain sources**: procedural, a grayscale heightmap, and **GeoData** —
-  real EU‑DEM 25 m elevation for the site (default), sampled over a 4×-area grid
-  with **pan/zoom slice controls** to reposition the rendered window.
+- **Two terrain sources**: procedural, and **GeoData** — real EU‑DEM 25 m
+  elevation for the site (default), sampled over a 4×-area grid with a
+  **Surrounding area** control that reveals more of the DEM around the qanat
+  while keeping the qanat locked to its terrain.
 - **Honesty encoding**: the DEM surface is real, but shaft *plan positions* are
   schematic (the brochure carries no coordinates) — flagged on-canvas, with
   documented-depth shafts drawn solid and inferred ones faded.

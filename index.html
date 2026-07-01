@@ -25,7 +25,9 @@
         }
 
         #canvas-container {
-            flex-grow: 1;
+            order: 1;
+            flex: 1 1 auto;
+            min-width: 0;
             height: 100%;
             position: relative;
         }
@@ -58,7 +60,7 @@
             z-index: 5;
         }
         #label-west { left: 22px; }
-        #label-east { right: 362px; }
+        #label-east { right: 22px; }
         #honesty-note {
             position: absolute; bottom: 20px; left: 20px; max-width: 340px;
             background: rgba(255,255,255,0.82); border-left: 3px solid #e0a23b;
@@ -89,18 +91,15 @@
         #scale-bar .bar-text { font-size: 0.8rem; color: #333; margin-top: 2px; }
 
         #ui-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 330px;
+            order: 2;
+            flex: 0 0 340px;
+            width: 340px;
+            height: 100vh;
             background: var(--panel-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
             padding: 22px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35);
             z-index: 10;
-            max-height: 90vh;
             overflow-y: auto;
         }
 
@@ -276,7 +275,6 @@
             <label for="param-source">Terrain Source</label>
             <select id="param-source">
                 <option value="procedural">Procedural (original)</option>
-                <option value="heightmap">Heightmap image</option>
                 <option value="geodata" selected>GeoData (Walferdange DEM)</option>
             </select>
             <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1em;"></div>
@@ -291,15 +289,10 @@
             <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
         </div>
 
-        <div class="control-group" id="grp-slice">
-            <label>Slice size (zoom) <span class="val" id="lbl-slicezoom">1.0</span></label>
-            <input type="range" id="param-slicezoom" min="0.5" max="2.0" step="0.05" value="1.0">
-            <label style="margin-top:8px">Slice W ↔ E <span class="val" id="lbl-slicelon">0.50</span></label>
-            <input type="range" id="param-slicelon" min="0" max="1" step="0.01" value="0.5">
-            <label style="margin-top:8px">Slice S ↔ N <span class="val" id="lbl-slicelat">0.50</span></label>
-            <input type="range" id="param-slicelat" min="0" max="1" step="0.01" value="0.5">
+        <div class="control-group" id="grp-surround">
+            <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
+            <input type="range" id="param-surround" min="1.0" max="2.0" step="0.05" value="1.0">
             <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-            <button id="btn-slice-reset" type="button" style="margin-top:6px;font-size:0.72rem;padding:2px 8px;">Reset slice</button>
         </div>
 
         <div class="control-group">
@@ -396,16 +389,16 @@
             </div>
             <div class="bar-text">100 m</div>
         </div>
-    </div>
 
-    <div class="instructions">Drag to rotate · Scroll to zoom · Hover a shaft for depth · Click to focus</div>
-    <div id="measure-readout"></div>
-    <div id="tour-bar">
-        <button id="tour-prev" type="button" aria-label="Previous">⏮</button>
-        <button id="tour-play" type="button" aria-label="Play/pause">⏸</button>
-        <span id="tour-label">—</span>
-        <button id="tour-next" type="button" aria-label="Next">⏭</button>
-        <button id="tour-stop" type="button" aria-label="Stop">✕</button>
+        <div class="instructions">Drag to rotate · Scroll to zoom · Hover a shaft for depth · Click to focus</div>
+        <div id="measure-readout"></div>
+        <div id="tour-bar">
+            <button id="tour-prev" type="button" aria-label="Previous">⏮</button>
+            <button id="tour-play" type="button" aria-label="Play/pause">⏸</button>
+            <span id="tour-label">—</span>
+            <button id="tour-next" type="button" aria-label="Next">⏭</button>
+            <button id="tour-stop" type="button" aria-label="Stop">✕</button>
+        </div>
     </div>
 
     <script>
@@ -418,11 +411,9 @@
             width: 70,
             depth: 26,
             baseY: -2,
-            terrainSource: 'geodata',     // 'procedural' | 'heightmap' | 'geodata'
-            elevationIntensity: 1.0,      // vertical exaggeration for heightmap/geodata
-            sliceLon: 0.5,                // GeoData: W<->E position of the rendered slice (0..1)
-            sliceLat: 0.5,                // GeoData: S<->N position of the rendered slice (0..1)
-            sliceZoom: 1.0,               // GeoData: slice size (1 = original window, 2 = whole 4x area)
+            terrainSource: 'geodata',     // 'procedural' | 'geodata'
+            elevationIntensity: 1.0,      // vertical exaggeration for the GeoData surface
+            surround: 1.0,                // GeoData: how much surrounding DEM to show (1 = qanat window, 2 = whole 4x area). Qanat stays locked to its terrain patch (modelPos scaled by 1/surround).
             qanatLayout: 'faithful',      // 'faithful' | 'schematic'
             flipWE: false,                // mirror the geodata terrain West<->East
             showGeology: true             // real strata + groundwater/qanat flows
@@ -455,8 +446,14 @@
         const SHAFTS = SSOT.shafts.shafts;
         const shaftById = Object.fromEntries(SHAFTS.map(s => [s.id, s]));
         // Derived model constants (facts now come from the SSOT, not hardcoded here):
-        const pillarDefs = SHAFTS.filter(s => s.modelPos)
+        // Base (unscaled) schematic shaft positions; pillarDefs is the QSCALE-scaled view
+        // that geometry actually uses (see recomputeGeoView / applyQanatScale).
+        const SHAFT_BASE = SHAFTS.filter(s => s.modelPos)
             .map(s => ({ id: s.id, x: s.modelPos.x, z: s.modelPos.z }));
+        let pillarDefs = SHAFT_BASE.map(p => ({ id: p.id, x: p.x, z: p.z }));
+        function applyQanatScale() {
+            pillarDefs = SHAFT_BASE.map(p => ({ id: p.id, x: p.x * QSCALE, z: p.z * QSCALE }));
+        }
         const REAL_DEPTH = Object.fromEntries(
             SHAFTS.filter(s => s.depthM != null).map(s => [s.id, s.depthM]));
         const REAL_FLOOR = Object.fromEntries(
@@ -476,47 +473,6 @@
         let scene, camera, renderer, controls, modelGroup;
         let contourMaterial, crossSectionMaterial;
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
-
-        // --- Heightmap source (sampled grayscale image) ---
-        // Drop a grayscale heightmap next to this file and point HEIGHTMAP_URL at it.
-        const HEIGHTMAP_URL = 'assets/heightmap.png';
-        const heightmap = { ready: false, data: null, w: 0, h: 0, portrait: false };
-
-        function loadHeightmap(url, cb) {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                const c = document.createElement('canvas');
-                c.width = img.width; c.height = img.height;
-                const cx = c.getContext('2d');
-                cx.drawImage(img, 0, 0);
-                const px = cx.getImageData(0, 0, img.width, img.height).data;
-                const n = img.width * img.height;
-                const g = new Float32Array(n);
-                for (let i = 0; i < n; i++) g[i] = px[i * 4] / 255; // red channel = grayscale
-                heightmap.data = g; heightmap.w = img.width; heightmap.h = img.height;
-                heightmap.portrait = img.height > img.width; heightmap.ready = true;
-                if (cb) cb(true);
-            };
-            img.onerror = () => { console.warn('Heightmap failed to load:', url); if (cb) cb(false); };
-            img.src = url;
-        }
-
-        // Bilinear grayscale sample. (u,v) run along the terrain long/short axes in [0,1].
-        // A portrait image is rotated so its long axis maps to the terrain's long axis.
-        function sampleHeightmap(u, v) {
-            const W = heightmap.w, H = heightmap.h, d = heightmap.data;
-            let ix, iy;
-            if (heightmap.portrait) { ix = v * (W - 1); iy = u * (H - 1); }
-            else { ix = u * (W - 1); iy = v * (H - 1); }
-            const x0 = Math.floor(ix), y0 = Math.floor(iy);
-            const x1 = Math.min(x0 + 1, W - 1), y1 = Math.min(y0 + 1, H - 1);
-            const fx = ix - x0, fy = iy - y0;
-            const g00 = d[y0 * W + x0], g10 = d[y0 * W + x1];
-            const g01 = d[y1 * W + x0], g11 = d[y1 * W + x1];
-            const gx0 = g00 + (g10 - g00) * fx, gx1 = g01 + (g11 - g01) * fx;
-            return gx0 + (gx1 - gx0) * fy;
-        }
 
         // --- GeoData source: real DEM elevations around the Raschpëtzer qanat
         //     (Walferdange / Helmsange, Luxembourg). Fetched client-side at runtime;
@@ -558,16 +514,23 @@
         // Default rendered slice = the original (pre-4x) bbox: 0.040° lon x 0.012° lat,
         // i.e. exactly the centre quarter of the full grid, so default view is unchanged.
         const GEO_VIEW_SPAN = { lon: 0.040, lat: 0.012 };
-        // Cached view window (WGS84 bbox); recomputed whenever the slice sliders move.
+        // Cached view window (WGS84 bbox); recomputed whenever "Surrounding area" moves.
+        // The window is always CENTERED on the full grid (= centred on the qanat's terrain
+        // patch); `surround` grows it out to the full 4x extent. The qanat is scaled by
+        // 1/surround (QSCALE) so it keeps covering the SAME real-world patch — increasing
+        // `surround` reveals more surrounding DEM around a fixed qanat, it does not rescale
+        // the terrain under the qanat.
         let geoView = { west: 6.126, east: 6.166, south: 49.662, north: 49.674 };
+        let QSCALE = 1;   // qanat modelPos scale = (default window) / (current window) = 1/surround
         function recomputeGeoView() {
             const fullLon = GEO_BBOX.east - GEO_BBOX.west, fullLat = GEO_BBOX.north - GEO_BBOX.south;
-            const spanLon = Math.min(GEO_VIEW_SPAN.lon * params.sliceZoom, fullLon);
-            const spanLat = Math.min(GEO_VIEW_SPAN.lat * params.sliceZoom, fullLat);
-            const cLon = GEO_BBOX.west + spanLon / 2 + params.sliceLon * (fullLon - spanLon);
-            const cLat = GEO_BBOX.south + spanLat / 2 + params.sliceLat * (fullLat - spanLat);
+            const spanLon = Math.min(GEO_VIEW_SPAN.lon * params.surround, fullLon);
+            const spanLat = Math.min(GEO_VIEW_SPAN.lat * params.surround, fullLat);
+            const cLon = (GEO_BBOX.west + GEO_BBOX.east) / 2, cLat = (GEO_BBOX.south + GEO_BBOX.north) / 2;
             geoView = { west: cLon - spanLon / 2, east: cLon + spanLon / 2,
                         south: cLat - spanLat / 2, north: cLat + spanLat / 2 };
+            QSCALE = (params.terrainSource === 'geodata') ? (GEO_VIEW_SPAN.lon / spanLon) : 1;
+            applyQanatScale();
             return geoView;
         }
 
@@ -704,18 +667,14 @@
             if (cb) cb(true);
         }
 
-        // Terrain dispatcher: geodata / heightmap if selected & loaded, else procedural.
-        // elevationIntensity vertically exaggerates the sampled sources.
+        // Terrain dispatcher: geodata if selected & loaded, else procedural.
+        // elevationIntensity vertically exaggerates the sampled source.
         function getTerrainHeight(x, z) {
             let u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
             const v = Math.min(Math.max((z + params.depth / 2) / params.depth, 0), 1);
             if (params.terrainSource === 'geodata' && geodata.ready) {
                 if (params.flipWE) u = 1 - u;
                 return sampleGeo(u, v) * params.plateauHeight * params.elevationIntensity;
-            }
-            if (params.terrainSource === 'heightmap' && heightmap.ready) {
-                // plateauHeight slider + intensity set the vertical scale in heightmap mode
-                return sampleHeightmap(u, v) * params.plateauHeight * params.elevationIntensity;
             }
             return getProceduralHeight(x, z);
         }
@@ -731,7 +690,7 @@
             // calibrate so the tallest shaft maps to QANAT.maxDepthM
             return QANAT.maxDepthM / Math.max(0.001, maxShaftLenUnits);
         }
-        let maxShaftLenUnits = 5; // updated each rebuild (procedural/heightmap calibration)
+        let maxShaftLenUnits = 5; // updated each rebuild (procedural calibration)
 
         // REAL_FLOOR / REAL_DEPTH now come from the SSOT (see top of script).
         // Real surface elevation (m) at a model surface height: GeoData is true metres;
@@ -750,10 +709,11 @@
         // and 1.2 m under P6 [brochure p.26-27]. Anchored ~354 m at P-7A.
         function galleryFloorMeters(x) {
             const g = SSOT.gallery.gallery;
-            let e = 354.0 + (g.gradientPct / 100) * metersPerXUnit() * (x + 21);
+            // x is a scaled scene coord; the schematic layout uses scaled modelPos too.
+            let e = 354.0 + (g.gradientPct / 100) * metersPerXUnit() * (x + 21 * QSCALE);
             for (const step of g.steps) {                 // documented stepped falls
                 const sx = shaftById[step.underShaft] && shaftById[step.underShaft].modelPos
-                    ? shaftById[step.underShaft].modelPos.x : null;
+                    ? shaftById[step.underShaft].modelPos.x * QSCALE : null;
                 if (sx != null && x > sx) e += step.dropM;
             }
             return e;
@@ -929,6 +889,7 @@
 
         function buildParametricModel() {
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
+            recomputeGeoView();   // refresh geoView + QSCALE + scaled pillarDefs
 
             const segX = 100, segZ = 46;
             const halfW = params.width / 2;
@@ -1413,7 +1374,7 @@
             bind('param-contours',   'contourSpacing',  'lbl-contours');
             bind('param-layer',      'layerDepth',      'lbl-layer');
 
-            // Elevation intensity (vertical exaggeration for heightmap & geodata)
+            // Elevation intensity (vertical exaggeration for the GeoData surface)
             const intSl = document.getElementById('param-intensity');
             const intLb = document.getElementById('lbl-intensity');
             intSl.value = params.elevationIntensity;
@@ -1424,59 +1385,35 @@
                 buildParametricModel();
             });
 
-            // GeoData slice: pan (W-E / S-N) and zoom the rendered window within the 4x grid.
+            // GeoData "Surrounding area": grow the rendered window from the qanat footprint
+            // (1.0x) out to the full 4x sampled extent (2.0x). The qanat stays locked to its
+            // terrain patch (QSCALE), so this only reveals more surrounding DEM.
             const sliceReadout = () => {
                 const vb = recomputeGeoView();
                 const mLon = (vb.east - vb.west) * 111320 * Math.cos(vb.south * Math.PI / 180);
                 const mLat = (vb.north - vb.south) * 111320;
                 const el = document.getElementById('slice-readout');
-                if (el) el.textContent = 'Window ≈ ' + Math.round(mLon) + ' × ' + Math.round(mLat) +
-                    ' m · ' + vb.west.toFixed(3) + '–' + vb.east.toFixed(3) + 'E, ' +
-                    vb.south.toFixed(3) + '–' + vb.north.toFixed(3) + 'N';
+                if (el) el.textContent = 'Visible ≈ ' + Math.round(mLon) + ' × ' + Math.round(mLat) +
+                    ' m (qanat ≈ ' + Math.round(mLon * QSCALE) + ' m of it)';
             };
-            const bindSlice = (id, key, lbl, dec) => {
-                const sl = document.getElementById(id), lb = document.getElementById(lbl);
-                sl.value = params[key]; lb.innerText = params[key].toFixed(dec);
-                sl.addEventListener('input', e => {
-                    params[key] = parseFloat(e.target.value);
-                    lb.innerText = params[key].toFixed(dec);
-                    sliceReadout();
-                    buildParametricModel();
-                });
-            };
-            bindSlice('param-slicezoom', 'sliceZoom', 'lbl-slicezoom', 2);
-            bindSlice('param-slicelon', 'sliceLon', 'lbl-slicelon', 2);
-            bindSlice('param-slicelat', 'sliceLat', 'lbl-slicelat', 2);
-            document.getElementById('btn-slice-reset').addEventListener('click', () => {
-                params.sliceZoom = 1.0; params.sliceLon = 0.5; params.sliceLat = 0.5;
-                document.getElementById('param-slicezoom').value = 1.0;
-                document.getElementById('param-slicelon').value = 0.5;
-                document.getElementById('param-slicelat').value = 0.5;
-                document.getElementById('lbl-slicezoom').innerText = '1.00';
-                document.getElementById('lbl-slicelon').innerText = '0.50';
-                document.getElementById('lbl-slicelat').innerText = '0.50';
+            const surSl = document.getElementById('param-surround');
+            const surLb = document.getElementById('lbl-surround');
+            surSl.value = params.surround; surLb.innerText = params.surround.toFixed(1) + '×';
+            surSl.addEventListener('input', e => {
+                params.surround = parseFloat(e.target.value);
+                surLb.innerText = params.surround.toFixed(1) + '×';
                 sliceReadout();
                 buildParametricModel();
             });
             sliceReadout();
 
-            // Terrain source selector (procedural / heightmap / geodata)
+            // Terrain source selector (procedural / geodata)
             const sel = document.getElementById('param-source');
             sel.addEventListener('change', e => {
                 params.terrainSource = e.target.value;
                 if (params.terrainSource !== 'geodata') setGeoStatus('');
                 updateControlVisibility();
-                if (params.terrainSource === 'heightmap' && !heightmap.ready) {
-                    loadHeightmap(HEIGHTMAP_URL, ok => {
-                        if (!ok) {
-                            alert('Could not load the heightmap image (' + HEIGHTMAP_URL + ').');
-                            sel.value = 'procedural';
-                            params.terrainSource = 'procedural';
-                            updateControlVisibility();
-                        }
-                        buildParametricModel();
-                    });
-                } else if (params.terrainSource === 'geodata' && !geodata.ready) {
+                if (params.terrainSource === 'geodata' && !geodata.ready) {
                     loadGeoData(() => buildParametricModel());
                 } else {
                     buildParametricModel();
@@ -1526,7 +1463,7 @@
             show('grp-intensity', ts !== 'procedural');
             // W↔E flip + slice pan/zoom only meaningful for the real DEM
             show('row-flip', ts === 'geodata');
-            show('grp-slice', ts === 'geodata');
+            show('grp-surround', ts === 'geodata');
             // Honesty note: surface is real DEM but shaft plan positions are schematic
             const hn = document.getElementById('honesty-note');
             if (hn) hn.style.display = (ts === 'geodata') ? 'block' : 'none';
@@ -1673,7 +1610,7 @@
         let tourShafts = [];
         const TOUR_DWELL_MS = 5000;
         function tourFlyTo(rec) {
-            const x = rec.modelPos.x, z = rec.modelPos.z, sy = getTerrainHeight(x, z);
+            const x = rec.modelPos.x * QSCALE, z = rec.modelPos.z * QSCALE, sy = getTerrainHeight(x, z);
             flyTo(new THREE.Vector3(x - 6, sy + 10, z + 26), new THREE.Vector3(x, sy - 1, z), 900);
         }
         function tourGoto(i) {
