@@ -166,6 +166,33 @@ if (g) {
       }
     }
   }
+
+  // floor-coherence: a surveyed floorElevM must agree with the floor the app
+  // derives from the 0.1% grade line (anchored at P-4) + the two documented steps.
+  // Guards against a surveyed floor drifting out of sync with the rendered gallery.
+  // Replicates floorMaslAtLon() in index.html (anchor 355.4 masl at lon 6.148369).
+  if (gg && typeof gg.gradientPct === 'number') {
+    const SOUTH = 49.6618;                                    // GEO_BBOX.south
+    const ANCHOR = { lon: 6.148369, masl: 355.4 };            // P-4 surveyed
+    const mPerDegLon = 111320 * Math.cos(SOUTH * Math.PI / 180);
+    const byId = Object.fromEntries(shafts.map(s => [s.id, s]));
+    const floorAtLon = lon => {
+      let e = ANCHOR.masl + (gg.gradientPct / 100) * (lon - ANCHOR.lon) * mPerDegLon;
+      for (const step of gg.steps || []) {                    // floor is higher east of each step
+        const sr = byId[step.underShaft];
+        if (sr?.geo && lon > sr.geo.lon) e += step.dropM;
+      }
+      return e;
+    };
+    for (const s of shafts) {
+      if (typeof s.floorElevM !== 'number' || s.geo?.lon == null) continue;
+      if (s.role === 'auxiliary') continue;                   // aux carries its own surveyed floor
+      const model = floorAtLon(s.geo.lon);
+      const diff = Math.abs(model - s.floorElevM);
+      if (diff > 2)
+        warns.push(`constraint[floor-coherence]: ${s.id} surveyed floor ${s.floorElevM} m vs grade-line ${model.toFixed(1)} m (Δ${diff.toFixed(1)} m > 2)`);
+    }
+  }
 }
 
 if (warns.length) console.warn('SSOT warnings:\n  ' + warns.join('\n  '));
