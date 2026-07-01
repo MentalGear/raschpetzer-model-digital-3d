@@ -283,6 +283,17 @@
             <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
         </div>
 
+        <div class="control-group" id="grp-slice">
+            <label>Slice size (zoom) <span class="val" id="lbl-slicezoom">1.0</span></label>
+            <input type="range" id="param-slicezoom" min="0.5" max="2.0" step="0.05" value="1.0">
+            <label style="margin-top:8px">Slice W ↔ E <span class="val" id="lbl-slicelon">0.50</span></label>
+            <input type="range" id="param-slicelon" min="0" max="1" step="0.01" value="0.5">
+            <label style="margin-top:8px">Slice S ↔ N <span class="val" id="lbl-slicelat">0.50</span></label>
+            <input type="range" id="param-slicelat" min="0" max="1" step="0.01" value="0.5">
+            <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            <button id="btn-slice-reset" type="button" style="margin-top:6px;font-size:0.72rem;padding:2px 8px;">Reset slice</button>
+        </div>
+
         <div class="control-group">
             <label for="param-layout">Qanat Layout</label>
             <select id="param-layout">
@@ -400,6 +411,9 @@
             baseY: -2,
             terrainSource: 'geodata',     // 'procedural' | 'heightmap' | 'geodata'
             elevationIntensity: 1.0,      // vertical exaggeration for heightmap/geodata
+            sliceLon: 0.5,                // GeoData: W<->E position of the rendered slice (0..1)
+            sliceLat: 0.5,                // GeoData: S<->N position of the rendered slice (0..1)
+            sliceZoom: 1.0,               // GeoData: slice size (1 = original window, 2 = whole 4x area)
             qanatLayout: 'faithful',      // 'faithful' | 'schematic'
             flipWE: false,                // mirror the geodata terrain West<->East
             showGeology: true             // real strata + groundwater/qanat flows
@@ -502,14 +516,19 @@
         const geodata = { ready: false, loading: false, source: '', data: null,
                           cols: 0, rows: 0, minM: 0, maxM: 0 };
 
-        // Bilinear sample of the geodata grid.
-        //   u: west->east in [0,1]  -> column (lon increases east, no flip)
-        //   v: terrain z = (z+halfD)/depth, where +z is south/front, -z is north/back
-        // Grid rows run north(row 0)->south(row R-1). v=0 (north/back) -> row 0; v=1 (south) -> R-1.
+        // Bilinear sample of the geodata grid, mapped THROUGH the current view window.
+        //   u: west->east in [0,1] across the rendered slice
+        //   v: north(0)->south(1) across the rendered slice
+        // The slice (geoView) is a sub-rectangle of the full grid (GEO_BBOX); we convert
+        // slice (u,v) -> WGS84 -> full-grid fractional coords, then bilinear sample.
         function sampleGeo(u, v) {
             const C = geodata.cols, R = geodata.rows, d = geodata.data;
-            const ix = u * (C - 1);
-            const iy = v * (R - 1);
+            const lon = geoView.west + u * (geoView.east - geoView.west);
+            const lat = geoView.north - v * (geoView.north - geoView.south);
+            const gu = (lon - GEO_BBOX.west) / (GEO_BBOX.east - GEO_BBOX.west);
+            const gv = (GEO_BBOX.north - lat) / (GEO_BBOX.north - GEO_BBOX.south);
+            const ix = Math.min(Math.max(gu, 0), 1) * (C - 1);
+            const iy = Math.min(Math.max(gv, 0), 1) * (R - 1);
             const x0 = Math.floor(ix), y0 = Math.floor(iy);
             const x1 = Math.min(x0 + 1, C - 1), y1 = Math.min(y0 + 1, R - 1);
             const fx = ix - x0, fy = iy - y0;
@@ -519,12 +538,29 @@
             return gx0 + (gx1 - gx0) * fy;
         }
 
-        // Bounding box around the Raschpëtzer qanat (W->E profile: Alzette valley ->
-        // Pëtschend plateau -> Haedchen depression). Center ~49.6680N, 6.1390E.
-        // BBox capturing the real Alzette valley (west, ~230 m) -> Pëtschend plateau
-        // (east, ~410 m) escarpment around the qanat. Matches geodata-walferdange.js.
-        const GEO_BBOX = { west: 6.126, east: 6.166, south: 49.662, north: 49.674 };
-        const GEO_COLS = 48, GEO_ROWS = 20;
+        // FULL sampled bounding box: a 4x-area (2x each dimension) EU-DEM grid around
+        // the Raschpëtzer, centered on 49.668N 6.146E. The scene renders a movable
+        // "slice" (sub-window) of this; the Slice controls pan/zoom that window.
+        // West edge sits in the Alzette valley (~226 m), east on the Pëtschend
+        // plateau (~440 m). Matches geodata-walferdange.js.
+        const GEO_BBOX = { west: 6.106, east: 6.186, south: 49.656, north: 49.680 };
+        const GEO_COLS = 96, GEO_ROWS = 40;
+
+        // Default rendered slice = the original (pre-4x) bbox: 0.040° lon x 0.012° lat,
+        // i.e. exactly the centre quarter of the full grid, so default view is unchanged.
+        const GEO_VIEW_SPAN = { lon: 0.040, lat: 0.012 };
+        // Cached view window (WGS84 bbox); recomputed whenever the slice sliders move.
+        let geoView = { west: 6.126, east: 6.166, south: 49.662, north: 49.674 };
+        function recomputeGeoView() {
+            const fullLon = GEO_BBOX.east - GEO_BBOX.west, fullLat = GEO_BBOX.north - GEO_BBOX.south;
+            const spanLon = Math.min(GEO_VIEW_SPAN.lon * params.sliceZoom, fullLon);
+            const spanLat = Math.min(GEO_VIEW_SPAN.lat * params.sliceZoom, fullLat);
+            const cLon = GEO_BBOX.west + spanLon / 2 + params.sliceLon * (fullLon - spanLon);
+            const cLat = GEO_BBOX.south + spanLat / 2 + params.sliceLat * (fullLat - spanLat);
+            geoView = { west: cLon - spanLon / 2, east: cLon + spanLon / 2,
+                        south: cLat - spanLat / 2, north: cLat + spanLat / 2 };
+            return geoView;
+        }
 
         function setGeoStatus(msg) {
             const el = document.getElementById('geo-status');
@@ -1202,8 +1238,8 @@
         // Real ground metres per model X-unit (GeoData uses the bbox; else nominal ~1 km block).
         function metersPerXUnit() {
             if (params.terrainSource === 'geodata' && geodata.ready) {
-                const mPerDegLon = 111320 * Math.cos(GEO_BBOX.south * Math.PI / 180);
-                return ((GEO_BBOX.east - GEO_BBOX.west) * mPerDegLon) / params.width;
+                const mPerDegLon = 111320 * Math.cos(geoView.south * Math.PI / 180);
+                return ((geoView.east - geoView.west) * mPerDegLon) / params.width;
             }
             return 1000 / params.width; // nominal: treat the block as ~1 km wide
         }
@@ -1375,6 +1411,42 @@
                 buildParametricModel();
             });
 
+            // GeoData slice: pan (W-E / S-N) and zoom the rendered window within the 4x grid.
+            const sliceReadout = () => {
+                const vb = recomputeGeoView();
+                const mLon = (vb.east - vb.west) * 111320 * Math.cos(vb.south * Math.PI / 180);
+                const mLat = (vb.north - vb.south) * 111320;
+                const el = document.getElementById('slice-readout');
+                if (el) el.textContent = 'Window ≈ ' + Math.round(mLon) + ' × ' + Math.round(mLat) +
+                    ' m · ' + vb.west.toFixed(3) + '–' + vb.east.toFixed(3) + 'E, ' +
+                    vb.south.toFixed(3) + '–' + vb.north.toFixed(3) + 'N';
+            };
+            const bindSlice = (id, key, lbl, dec) => {
+                const sl = document.getElementById(id), lb = document.getElementById(lbl);
+                sl.value = params[key]; lb.innerText = params[key].toFixed(dec);
+                sl.addEventListener('input', e => {
+                    params[key] = parseFloat(e.target.value);
+                    lb.innerText = params[key].toFixed(dec);
+                    sliceReadout();
+                    buildParametricModel();
+                });
+            };
+            bindSlice('param-slicezoom', 'sliceZoom', 'lbl-slicezoom', 2);
+            bindSlice('param-slicelon', 'sliceLon', 'lbl-slicelon', 2);
+            bindSlice('param-slicelat', 'sliceLat', 'lbl-slicelat', 2);
+            document.getElementById('btn-slice-reset').addEventListener('click', () => {
+                params.sliceZoom = 1.0; params.sliceLon = 0.5; params.sliceLat = 0.5;
+                document.getElementById('param-slicezoom').value = 1.0;
+                document.getElementById('param-slicelon').value = 0.5;
+                document.getElementById('param-slicelat').value = 0.5;
+                document.getElementById('lbl-slicezoom').innerText = '1.00';
+                document.getElementById('lbl-slicelon').innerText = '0.50';
+                document.getElementById('lbl-slicelat').innerText = '0.50';
+                sliceReadout();
+                buildParametricModel();
+            });
+            sliceReadout();
+
             // Terrain source selector (procedural / heightmap / geodata)
             const sel = document.getElementById('param-source');
             sel.addEventListener('change', e => {
@@ -1439,8 +1511,9 @@
             show('grp-depression', ts === 'procedural');
             // Elevation intensity (vertical exaggeration) only affects sampled sources
             show('grp-intensity', ts !== 'procedural');
-            // W↔E flip only meaningful for the real DEM
+            // W↔E flip + slice pan/zoom only meaningful for the real DEM
             show('row-flip', ts === 'geodata');
+            show('grp-slice', ts === 'geodata');
             // Tunnel-depth slider only drives the schematic gallery
             show('grp-layer', ql === 'schematic');
             // Plateau Height doubles as the vertical scale for sampled terrains — relabel
@@ -1783,7 +1856,7 @@
         function metersPerZUnit() {
             if (params.terrainSource === 'geodata' && geodata.ready) {
                 const mPerDegLat = 111320;
-                return ((GEO_BBOX.north - GEO_BBOX.south) * mPerDegLat) / params.depth;
+                return ((geoView.north - geoView.south) * mPerDegLat) / params.depth;
             }
             return metersPerXUnit(); // nominal: same as X
         }

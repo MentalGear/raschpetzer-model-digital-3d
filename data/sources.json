@@ -86,6 +86,6 @@
     "url": "https://api.opentopodata.org/v1/eudem25m",
     "accessed": "2026-07-01",
     "license": "EU-DEM / Copernicus terms; OpenTopoData public instance",
-    "note": "Source of the GeoData terrain grid (geodata-walferdange.js); bbox 6.126–6.166 E, 49.662–49.674 N."
+    "note": "Source of the GeoData terrain grid (geodata-walferdange.js); 4x-area bbox 6.106–6.186 E, 49.656–49.680 N sampled on a 96x40 grid. The app renders a movable/zoomable sub-window ('slice') of this; default slice = the central 6.126–6.166 E, 49.662–49.674 N."
   }
 }
