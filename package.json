@@ -9,6 +9,9 @@
     "predev": "node scripts/bake.mjs",
     "bake": "node scripts/bake.mjs",
     "validate": "node scripts/validate.mjs",
+    "sample:lidar": "node scripts/sample-lidar.mjs",
+    "seed:lidar": "node scripts/sample-lidar.mjs --seed",
+    "bake:lidar": "node scripts/bake-lidar.mjs",
     "build": "node scripts/bake.mjs",
     "prebuild": "node scripts/validate.mjs",
     "serve": "vite preview"
