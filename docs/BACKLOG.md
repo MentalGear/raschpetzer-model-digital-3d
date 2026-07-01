@@ -61,9 +61,10 @@ and #7 (CRS registry + spacing invariant) are being actioned separately.
   from spacing") so the hypothesized downhill line is visible, not absent. *(archaeologist)*
 
 ### Geodesy / geophysics / data
-- **Densify the corridor mesh** toward native 0.5 m along the qanat axis (sampler ready;
-  a run is in progress) and resolve the shaft-mouth funnels; match the on-screen "0.5 m"
-  claim to the actual mesh. *(surveyor + geophysicist)*
+- **Densify the corridor mesh** — *done for now*: the grid was doubled to 80×44
+  (3520 nodes, `sample-2026-07-01` run, 4411 total points on file). Further densification
+  toward native 0.5 m along the qanat axis + resolving the shaft-mouth funnels remains
+  open. *(surveyor + geophysicist)*
 - **LiDAR hillshade / local-relief layer** off the native 0.5 m DTM to hunt the funnel
   depressions of the unlocated shafts (cheapest non-invasive test of the spacing inference). *(geophysicist)*
 - **Document geophysical-validation avenues** (microgravity for the void gallery; ERT for
