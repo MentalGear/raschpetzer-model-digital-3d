@@ -3,7 +3,7 @@
   "shafts": [
     {
       "id": "P-7A", "crm": "E22_Human-Made_Object", "order": 1, "role": "auxiliary",
-      "modelPos": { "x": -21, "z": -1.5 },
+      "modelPos": { "x": -18, "z": -1 },
       "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": 6, "floorElevM": 354.3, "floorElevCrs": "masl",
@@ -16,7 +16,7 @@
     },
     {
       "id": "P-5A", "crm": "E22_Human-Made_Object", "order": 2, "role": "auxiliary",
-      "modelPos": { "x": -18, "z": -0.5 },
+      "modelPos": { "x": -16.5, "z": 0 },
       "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": 8, "floorElevM": 357.5, "floorElevCrs": "masl",
