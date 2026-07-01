@@ -397,7 +397,7 @@
                profile. Solid shafts have a documented depth; faded (translucent) shafts have an
                inferred depth.</p>
             <ul>
-                <li>Waringo/Faber/Werner (2018) — site brochure &amp; survey</li>
+                <li>Faber/Waringo/Werner (2018) — site brochure &amp; survey</li>
                 <li>ACT LiDAR 2019 — 0.5&nbsp;m digital terrain model</li>
                 <li>OpenStreetMap — qanat shaft node coordinates</li>
                 <li>EU-DEM 25&nbsp;m — regional context only</li>
@@ -1402,15 +1402,16 @@
             // established, so it's drawn as a faded box with a dashed (inferred) outline. ---
             const villa = SSOT.site.villa;
             const shaftXs = [...basePts, ...auxPts].map(v => v.x);
-            if (villa && params.showVilla && shaftXs.length) {
-                // Anchor to the WEST-most shaft + a fixed metric offset (≈130 m downslope),
-                // so the villa stays put relative to the qanat as `surround` grows/shrinks
-                // (metersPerXUnit is constant, so a fixed metre offset = fixed scene offset).
-                const flipV = isGeo && params.flipWE;           // flipped ⇒ west is +x
-                const westX = flipV ? Math.max(...shaftXs) : Math.min(...shaftXs);
-                const offU = 75 / metersPerXUnit();   // ~75 m downslope beyond the west-most shaft
-                const vx = westX + (flipV ? offU : -offU);
-                const vy = getTerrainHeight(Math.max(-halfW, Math.min(halfW, vx)), 0);
+            // Anchor to the WEST-most shaft + a fixed metric offset (~75 m downslope), so the
+            // villa stays put relative to the qanat as `surround` grows/shrinks (metersPerXUnit
+            // is constant). It's shown only while it falls INSIDE the visible terrain window —
+            // so it appears/disappears with the surrounding-area slider, like the terrain itself.
+            const flipV = isGeo && params.flipWE;               // flipped ⇒ west is +x
+            const westX = shaftXs.length ? (flipV ? Math.max(...shaftXs) : Math.min(...shaftXs)) : 0;
+            const villaX = westX + (flipV ? 1 : -1) * (75 / metersPerXUnit());
+            if (villa && params.showVilla && shaftXs.length && Math.abs(villaX) <= halfW) {
+                const vx = villaX;
+                const vy = getTerrainHeight(vx, 0);
                 const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6),
                     new THREE.MeshBasicMaterial({ color: 0xb08d57, transparent: true, opacity: 0.45, depthTest: false }));
                 box.position.set(vx, vy + 0.6, 0); box.renderOrder = 9;

@@ -118,7 +118,7 @@ at `https://<user>.github.io/<repo>/`.
 
 ## Source & license
 
-Facts are extracted from **Waringo, G., Faber, S. & Werner, H. (2018),
+Facts are extracted from **Faber, S., Waringo, G. & Werner, H. (2018),
 *The Raschpëtzer — A Roman Underground Water Supply System*** (SIT Walferdange,
 ISBN 978‑2‑9199454‑2‑9); terrain from **ACT LiDAR 2019 (0.5 m)** via the
 Luxembourg geoportal (EU‑DEM 25 m via OpenTopoData retained only as coarse

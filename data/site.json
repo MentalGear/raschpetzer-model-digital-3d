@@ -8,7 +8,7 @@
     "created": "2026-07-01",
     "modified": "2026-07-01",
     "creators": [{ "name": "Raschpëtzer visualization project", "orcid": null }],
-    "citation": "Raschpëtzer Qanat SSOT dataset, v1.0.0 (2026), CC-BY-4.0. Facts after Waringo, Faber & Werner 2018.",
+    "citation": "Raschpëtzer Qanat SSOT dataset, v1.0.0 (2026), CC-BY-4.0. Facts after Faber, Waringo & Werner 2018.",
     "note": "Facts are cited to primary sources in sources.json. knowledgeStatus + confidence follow the London Charter / Seville Principles; entities carry lightweight CIDOC-CRM class tags."
   },
 
