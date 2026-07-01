@@ -30,6 +30,11 @@
     "basis": "OpenStreetMap contributors (ODbL); validated against ACT LiDAR 2019 (act-lidar-2019)",
     "author": "project team", "date": "2026-07-02"
   },
+  "pd-strata-render": {
+    "rationale": "The geological cross-section is a mix of sourced facts and display approximation. Sourced: the stratigraphic sequence and names (Luxembourg sandstone / marl+limestone / Keuper mudstone / dolomitic marl, fig.4-3), the ~2% SE dip (p.14), and that groundwater accumulates at the sandstone/marl interface and the gallery floor sits at that boundary (p.6, p.14, fig.5-24). Rendered faithfully: in GeoData mode the sandstone/marl interface (= groundwater table) is drawn ~2 m below the near-level gallery floor at REAL elevation, and the weathered cover uses the cited ~2 m. Approximate (NOT yet from the cited ranges): the marl and Keuper sub-thicknesses (~16 m, ~6 m display values) and the exact interface dip — these are decorative depths pending a digitised fig.4-2/4-3 section. Non-GeoData (procedural) mode uses purely schematic scene-unit bands.",
+    "basis": "Waringo 2018 fig.4-2/4-3, p.6, p.14-15, fig.5-24",
+    "author": "project team", "date": "2026-07-02"
+  },
   "pd-aux-system": {
     "rationale": "P-5A and P-7A belong to a separate, higher, dry auxiliary channel ~30 m north of the main line; their channel floor sits above the aquiferous qanat channel, so they were never connected to it and are drawn as a distinct dashed channel.",
     "basis": "Waringo 2018, p.21-22",

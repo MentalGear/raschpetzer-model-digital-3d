@@ -761,6 +761,16 @@
                 return depthM / metersPerYUnit();     // consistent with the terrain vertical scale
             return depthM * params.plateauHeight / NOMINAL_RANGE_M;
         }
+        // Real elevation (masl) -> scene Y, and scene x -> real longitude (GeoData only).
+        function maslToY(masl) {
+            const span = (geodata.maxM - geodata.minM) || 1;
+            return (masl - geodata.minM) / span * geoVMul();
+        }
+        function sceneXToLon(x) {
+            let u = (x + params.width / 2) / params.width;
+            if (params.flipWE) u = 1 - u;
+            return geoView.west + u * (geoView.east - geoView.west);
+        }
 
         function getProceduralHeight(x, z) {
             let h = params.plateauHeight;
@@ -1331,8 +1341,16 @@
                 ko:    new THREE.Color(STRATA.ko).toArray(),     // red mudstone (keuper)
                 km:    new THREE.Color(STRATA.km3).toArray()     // dolomitic marl (keuper)
             };
-            const wThk = 0.45, marlThk = 2.6, koThk = 0.30, base = params.baseY;
-            const gwY = x => 2.7 - x * 0.02;    // groundwater table / top of marl (gentle E dip)
+            const base = params.baseY;
+            const geoMode = (params.terrainSource === 'geodata' && geodata.ready);
+            // GeoData: anchor the sandstone/marl interface (= groundwater table, ≈ gallery
+            // floor per fig.5-24) to REAL elevation; weathered cover ~2 m (cited [2,10]);
+            // marl+keuper below. Non-geo: keep the schematic scene-unit bands.
+            const COVER_M = 2, MARL_M = 16, KO_M = 6;        // masl thicknesses (cover cited; marl/keuper approximate)
+            const wThk = 0.45, marlThk = 2.6, koThk = 0.30;   // schematic fallback (scene units)
+            const gwYschem = x => 2.7 - x * 0.02;
+            // Interface elevation follows the near-level gallery floor, ~2 m below it.
+            const interfaceMasl = x => floorMaslAtLon(sceneXToLon(x)) - 2;
 
             const pos = [], col = [], gwPts = [];
             const push = (x1, x2, t1, b1, t2, b2, c) => {
@@ -1347,10 +1365,21 @@
                 // Sample the surface AT the front cut plane (zF), not the centreline,
                 // so the strata top matches the front terrain silhouette (no overflow).
                 const sA = getTerrainHeight(xa, zF), sB = getTerrainHeight(xb, zF);
-                const wA = sA - wThk, wB = sB - wThk;
-                const gA = Math.min(gwY(xa), wA - 0.05), gB = Math.min(gwY(xb), wB - 0.05);
-                const mA = Math.max(gA - marlThk, base + 0.6), mB = Math.max(gB - marlThk, base + 0.6);
-                const kA = Math.max(mA - koThk, base + 0.3), kB = Math.max(mB - koThk, base + 0.3);
+                let wA, wB, gA, gB, mA, mB, kA, kB;
+                if (geoMode) {
+                    wA = sA - metersToYDepth(COVER_M); wB = sB - metersToYDepth(COVER_M);
+                    gA = Math.min(maslToY(interfaceMasl(xa)), wA - 0.02);
+                    gB = Math.min(maslToY(interfaceMasl(xb)), wB - 0.02);
+                    mA = Math.max(gA - metersToYDepth(MARL_M), base + 0.6);
+                    mB = Math.max(gB - metersToYDepth(MARL_M), base + 0.6);
+                    kA = Math.max(mA - metersToYDepth(KO_M), base + 0.3);
+                    kB = Math.max(mB - metersToYDepth(KO_M), base + 0.3);
+                } else {
+                    wA = sA - wThk; wB = sB - wThk;
+                    gA = Math.min(gwYschem(xa), wA - 0.05); gB = Math.min(gwYschem(xb), wB - 0.05);
+                    mA = Math.max(gA - marlThk, base + 0.6); mB = Math.max(gB - marlThk, base + 0.6);
+                    kA = Math.max(mA - koThk, base + 0.3); kB = Math.max(mB - koThk, base + 0.3);
+                }
                 push(xa, xb, sA, wA, sB, wB, C.weath);   // weathered
                 push(xa, xb, wA, gA, wB, gB, C.sand);    // sandstone
                 push(xa, xb, gA, mA, gB, mB, C.marl);    // marl & limestone
@@ -1371,8 +1400,9 @@
             modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwPts),
                 new THREE.LineBasicMaterial({ color: COL.groundwater, depthTest: false })));
             for (let x = -halfW * 0.35; x < halfW * 0.9; x += params.width / 9) {
-                const y = gwY(x);
-                if (y < getTerrainHeight(x, zF) - wThk) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
+                const y = geoMode ? maslToY(interfaceMasl(x)) : gwYschem(x);
+                const coverY = geoMode ? metersToYDepth(COVER_M) : wThk;
+                if (y < getTerrainHeight(x, zF) - coverY) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
             }
             lastGwPts = gwPts;   // path for animated groundwater flow
         }

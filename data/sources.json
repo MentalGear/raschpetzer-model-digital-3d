@@ -109,6 +109,8 @@
     "accessed": "2026-07-02",
     "license": "CC0 / open data (Administration du cadastre et de la topographie)",
     "attribution": "© Administration du cadastre et de la topographie (ACT), Luxembourg",
+    "sampling": "Point queries to map.geoportail.lu/raster?lon=&lat= (layer 'dhm'), one HTTP call per point, coords transformed WGS84→EPSG:2169 (pyproj). No bulk/WCS download (the full DTM is a 27 GB national mosaic).",
+    "resolution": "Source raster 0.5 m. The baked terrain grid (geodata-walferdange.js) is sampled on a 40×22 lattice over 6.138–6.162E / 49.6618–49.6708N ⇒ ~44 m (E–W) × ~48 m (N–S) node spacing — the mesh resolution, coarser than the source. Per-shaft surfaceElevM are exact 0.5 m point queries at the OSM coordinates. 0 voids over the area; sampled range 231.7–405.1 m.",
     "note": "0.5 m LiDAR-derived bare-earth DTM. Sampled pointwise at the OSM shaft coordinates it matches the brochure's floor+depth surfaces to 0.5–2.5 m (vs EU-DEM's +10–21 m) and resolves the Haedchen depression — externally validating the documented depths and the near-level gallery. Highest-credibility surface source for the corridor."
   }
 }
