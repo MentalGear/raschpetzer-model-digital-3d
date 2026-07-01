@@ -9,8 +9,8 @@
     "_note": "Display-scale knobs (scene units, not metres). Adjustable at runtime via the UI."
   },
   "datum": {
-    "nominalValleyMasl": 340, "nominalPlateauMasl": 390,
-    "_note": "Nominal vertical datum for non-GeoData modes (paradata pd-nominal-datum)."
+    "nominalValleyMasl": 340, "nominalPlateauMasl": 385,
+    "_note": "Nominal vertical datum for non-GeoData modes (paradata pd-nominal-datum). Range (plateau-valley) maps to plateauHeight scene units."
   },
   "colors": {
     "contour": "#9c6233", "contourIndex": "#5e3414",

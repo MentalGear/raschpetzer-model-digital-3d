@@ -652,11 +652,13 @@
         // REAL_FLOOR / REAL_DEPTH now come from the SSOT (see top of script).
         // Real surface elevation (m) at a model surface height: GeoData is true metres;
         // other sources use a nominal site datum (valley ~340 m, plateau ~390 m).
+        const DATUM = MODEL_CONFIG.datum || { nominalValleyMasl: 340, nominalPlateauMasl: 385 };
+        const NOMINAL_RANGE_M = DATUM.nominalPlateauMasl - DATUM.nominalValleyMasl;
         function surfaceMeters(surfaceY) {
             if (params.terrainSource === 'geodata' && geodata.ready)
                 return geodata.minM + surfaceY / (params.plateauHeight * params.elevationIntensity)
                        * ((geodata.maxM - geodata.minM) || 1);
-            return 340 + (surfaceY / params.plateauHeight) * 45;
+            return DATUM.nominalValleyMasl + (surfaceY / params.plateauHeight) * NOMINAL_RANGE_M;
         }
         // Gallery (channel) floor elevation (m): the real longitudinal profile is
         // near-level — a constant ~0.1% grade (10 cm / 100 m) rising gently eastward so
@@ -677,7 +679,7 @@
             if (params.terrainSource === 'geodata' && geodata.ready)
                 return depthM / (((geodata.maxM - geodata.minM) || 1)
                        / (params.plateauHeight * params.elevationIntensity));
-            return depthM * params.plateauHeight / 45;
+            return depthM * params.plateauHeight / NOMINAL_RANGE_M;
         }
 
         function getProceduralHeight(x, z) {
@@ -720,14 +722,13 @@
                 document.getElementById('ref-overlay').style.display = 'block';
             }
 
+            const CAM = MODEL_CONFIG.camera || { fov: 13, position: [0, 20, 96], target: [2, 3, 0], near: 1, far: 1000 };
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xf5f0ea);
+            scene.background = new THREE.Color(MODEL_CONFIG.background || '#f5f0ea');
 
-            camera = new THREE.PerspectiveCamera(13, container.clientWidth / container.clientHeight, 1, 1000);
-            // Low, wide oblique angle matching the reference panoramic diagram.
-            // Narrow FOV + far dolly => near-orthographic look with little perspective
-            // distortion, as in the reference; tuned against the overlay.
-            camera.position.set(0, 20, 96);
+            camera = new THREE.PerspectiveCamera(CAM.fov, container.clientWidth / container.clientHeight, CAM.near, CAM.far);
+            // Low, wide oblique angle matching the reference panorama (from model-config.json).
+            camera.position.set(CAM.position[0], CAM.position[1], CAM.position[2]);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
@@ -739,7 +740,7 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.target.set(2, 3, 0);
+            controls.target.set(CAM.target[0], CAM.target[1], CAM.target[2]);
             controls.maxPolarAngle = Math.PI / 2 - 0.01;
             controls.update();
 
@@ -1379,7 +1380,8 @@
         }
 
         // --- Camera helpers: default view + smooth fly-to ---
-        const DEFAULT_CAM = { pos: new THREE.Vector3(0, 20, 96), target: new THREE.Vector3(2, 3, 0) };
+        const _cc = MODEL_CONFIG.camera || { position: [0, 20, 96], target: [2, 3, 0] };
+        const DEFAULT_CAM = { pos: new THREE.Vector3(..._cc.position), target: new THREE.Vector3(..._cc.target) };
         let camAnim = null;
         function flyTo(pos, target, ms) {
             camAnim = { fromP: camera.position.clone(), toP: pos.clone(),
