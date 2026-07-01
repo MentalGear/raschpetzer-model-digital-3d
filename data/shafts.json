@@ -44,7 +44,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "derived from P-5 (OSM) + documented ~25 m NW offset (p.22)"
+          "note": "derived from P-5 (OSM) + documented ~25 m NW offset (p.22); NOT an OSM node. LOW confidence — see pd-osm-georef. fig.3-1 P-7A->P-5A = 24.1 m is consistent with the documented P-5->P-7A ~25 m, but P-7A is a derived auxiliary-branch position, not directly georeferenced. The OSM node 'Quanat -6' lies ~10.7 m from this derived point and has mapsTo=null (unassigned)."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -97,7 +97,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "derived from P-5 (OSM) + ~12 m NW (aux channel, vicinity of P-5)"
+          "note": "derived from P-5 (OSM) + ~12 m NW (aux channel, vicinity of P-5). LOW confidence — see pd-osm-georef. Auxiliary northern-branch shaft (~30 m N of the main line, fig.5-14 p.22), not directly georeferenced; the OSM node 'Quanat -5' lies ~12 m away and is itself unlabelled (mapsTo=null)."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -142,7 +142,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; low confidence mapping to P-5"
+          "note": "OSM node; LOW confidence mapping to P-5 — see pd-osm-georef. P-5's geo is copied from OSM node 'Quanat -5', but the two westernmost OSM nodes ('-6','-5') have no independent label and 'P-5' rests on the unverified '-5'->P-5 assignment. The main line here (P-5, P-4) is entangled with the separate NORTHERN auxiliary branch (P-5A/P-7A, ~25-30 m N, fig.5-14 p.22); no documented main-line inter-shaft distance exists to pin it. fig.3-1 P-5A->P-5 = 14.9 m is within the west-end foreshortening zone. Kept low."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -199,7 +199,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P-4"
+          "note": "OSM node; MEDIUM confidence mapping to P-4 — see pd-osm-georef. Largest similarity-fit residual (+12.7 m): this is the west-end route bend / plateau-edge transition where the oblique fig.3-1 foreshortening is worst, so the digitised spacing (P-5->P-4 = 12.3 m vs OSM 17.9 m) is unreliable here. LiDAR 366.9 m and the documented main-channel floor 355.4 m corroborate the label; kept medium, not high."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -244,7 +244,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P-1"
+          "note": "OSM node; MEDIUM confidence mapping to P-1 — see pd-osm-georef. Both fig.3-1 (P-4->P-1 = 41 m) and OSM (57.4 m) show a large gap before P-1 across the route bend; small similarity-fit residual (+1.9 m) and LiDAR 374.2 m rising smoothly toward the plateau support the label, but the long unbridged leg (no intervening OSM node besides postulated P-2/P-3) keeps this medium."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -289,7 +289,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P0"
+          "note": "OSM node; MEDIUM confidence mapping to P0 — see pd-osm-georef. fig.3-1 (P-1->P0 = 14.0 m) and OSM (19.1 m) agree in shape; small fit residual (-1.4 m); LiDAR 379.4 m on the rising hillside is consistent. Kept medium (not high) because P0 is 'marked only, not excavated' (no depth/floor to cross-check) and sits in the tight P-1/P0/P1 cluster whose absolute spacing is hard to separate on the oblique figure."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -337,7 +337,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P1"
+          "note": "OSM node; MEDIUM confidence mapping to P1 — see pd-osm-georef. fig.3-1 (P0->P1 = 11.3 m) and OSM (15.6 m) agree; small fit residual (-4.2 m); LiDAR 386.1 m fits the rise onto the plateau. Kept medium because P1 anchors the P1->P2 leg that is internally inconsistent (see P2, low) — the OSM P1 vs P2 spacing contradicts the brochure's 'P2 unusually close to P1' (p.16-17)."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -382,7 +382,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P2"
+          "note": "OSM node; LOW confidence mapping to P2 — see pd-osm-georef. The OSM 'P2' node conflicts with the documented geometry: OSM P1->P2 = 23.5 m while OSM P2->P3 = 19.8 m vs documented P2-P3 = 28 m (fig.3-1 digitised P2->P3 = 24.4 m). The brochure states P2 is 'unusually close to P1' (p.17), but the OSM node makes P1->P2 the LONGER leg. P2 is the largest negative residual (-11 m) in the OSM->fig-3-1 similarity fit: the OSM 'P2' node reads ~one-third too far east along the route. Coordinate NOT re-mapped (no unambiguous alternative), only flagged."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -391,7 +391,7 @@
       },
       "surfaceElevM": 391.8,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "low"
     },
     {
       "id": "P3",
@@ -430,7 +430,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P3"
+          "note": "OSM node; HIGH confidence mapping to P3 — see pd-osm-georef. fig.3-1 digitised P2->P3 = 24.4 m matches documented 28 m within oblique-figure tolerance; small similarity-fit residual (-4.5 m); LiDAR 392.5 m sits on the flat Petschend plateau top (fig.4-2), consistent with neighbours P4/P5. Sequence unambiguous."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -439,7 +439,7 @@
       },
       "surfaceElevM": 392.5,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "high"
     },
     {
       "id": "P4",
@@ -475,7 +475,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P4"
+          "note": "OSM node; HIGH confidence mapping to P4 — see pd-osm-georef. fig.3-1 digitised P3->P4 = 32.2 m agrees with OSM 35.7 m; small similarity-fit residual (-4.6 m); LiDAR 391.7 m on the flat plateau top (fig.4-2), consistent with P3/P5."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -484,7 +484,7 @@
       },
       "surfaceElevM": 391.7,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "high"
     },
     {
       "id": "P5",
@@ -531,7 +531,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P5"
+          "note": "OSM node; HIGH confidence mapping to P5 — see pd-osm-georef. fig.3-1 digitised P4->P5 = 32.0 m matches OSM 31.7 m almost exactly; small similarity-fit residual (-1.2 m); LiDAR 392.1 m is the eastern plateau edge (deepest shaft, 36 m; fig.4-2) immediately before the Haedchen drop."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -540,7 +540,7 @@
       },
       "surfaceElevM": 392.1,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "high"
     },
     {
       "id": "P6",
@@ -576,7 +576,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P6"
+          "note": "OSM node; HIGH confidence mapping to P6 — see pd-osm-georef. fig.3-1 digitised P5->P6 = 23.5 m matches OSM 23.7 m; LiDAR 382.1 m captures the sharp plateau-edge->Haedchen drop (-10 m from P5) exactly as fig.4-2 shows P6 as the first Haedchen shaft. Note: far/east end of fig.3-1, so digitised absolute spacing is the least reliable here, but the OSM-digitised agreement is excellent."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -585,7 +585,7 @@
       },
       "surfaceElevM": 382.1,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "high"
     },
     {
       "id": "P7",
@@ -621,7 +621,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P7"
+          "note": "OSM node; HIGH confidence mapping to P7 — see pd-osm-georef. fig.3-1 digitised P6->P7 = 16.4 m equals OSM 16.4 m; LiDAR 378.2 m in the Haedchen depression, consistent with P8/P9 (fig.4-2). Far-east end of the oblique figure (foreshortened), but OSM-digitised agreement is essentially exact."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -630,7 +630,7 @@
       },
       "surfaceElevM": 378.2,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "high"
     },
     {
       "id": "P8",
@@ -666,7 +666,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P8"
+          "note": "OSM node; HIGH confidence mapping to P8 — see pd-osm-georef. fig.3-1 digitised P7->P8 = 20.1 m matches OSM 20.5 m; LiDAR 377.1 m in the Haedchen depression, consistent with P7/P9 (fig.4-2). Far-east end of the oblique figure, but OSM-digitised agreement is excellent."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -675,7 +675,7 @@
       },
       "surfaceElevM": 377.1,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "high"
     },
     {
       "id": "P9",
@@ -711,7 +711,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; medium confidence mapping to P9"
+          "note": "OSM node; HIGH confidence mapping to P9 — see pd-osm-georef. fig.3-1 digitised P8->P9 = 21.3 m matches OSM 22.3 m; LiDAR 377.2 m in the Haedchen depression (mother shaft, easternmost), consistent with P7/P8 (fig.4-2). Far-east end of the oblique figure, but OSM-digitised agreement is excellent."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -720,7 +720,7 @@
       },
       "surfaceElevM": 377.2,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "high"
     },
     {
       "id": "P-2",
