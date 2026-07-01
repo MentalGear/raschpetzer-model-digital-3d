@@ -20,6 +20,11 @@
     "basis": "derived; consistent with Waringo 2018 elevations 350-405 m a.s.l.",
     "author": "project team", "date": "2026-07-01"
   },
+  "pd-osm-georef": {
+    "rationale": "Real shaft coordinates were imported from OpenStreetMap (data/osm-shafts.json, source osm-qanat-shafts) as candidate georeferencing. They are recorded with lineage but NOT yet used to drive the model, because: (a) OSM's -6..9 numbering does not map 1:1 to the brochure's P-labels, and (b) sampling EU-DEM at these points does not reproduce the documented depths/surveyed floors (e.g. OSM '-4' surface 388 m vs a P-4 that is only 12 m deep to a 355.4 m floor). Confidence is low/medium per node; treat as provisional until reconciled with an authoritative survey.",
+    "basis": "OpenStreetMap contributors (ODbL); EU-DEM via OpenTopoData",
+    "author": "project team", "date": "2026-07-01"
+  },
   "pd-aux-system": {
     "rationale": "P-5A and P-7A belong to a separate, higher, dry auxiliary channel ~30 m north of the main line; their channel floor sits above the aquiferous qanat channel, so they were never connected to it and are drawn as a distinct dashed channel.",
     "basis": "Waringo 2018, p.21-22",

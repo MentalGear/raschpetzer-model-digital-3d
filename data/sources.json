@@ -67,6 +67,18 @@
     "title": "Surveyed shaft-floor elevations (m a.s.l.)",
     "note": "Source of REAL_FLOOR elevations P-7A 354.3, P-5A 357.5, P-4 355.4 m."
   },
+  "osm-qanat-shafts": {
+    "type": "dataset",
+    "crm": "E73_Information_Object",
+    "short": "OpenStreetMap (qanat shaft nodes)",
+    "title": "Raschpëtzer qanat shaft nodes (historic=archaeological_site) in OpenStreetMap",
+    "url": "https://www.openstreetmap.org/",
+    "accessedVia": "Overpass API — https://overpass-api.de/api/interpreter",
+    "accessed": "2026-07-01",
+    "license": "ODbL 1.0",
+    "attribution": "© OpenStreetMap contributors",
+    "note": "14 shaft nodes 'Quanat -6..9' retrieved by Overpass query nwr(around:1200,49.668,6.139)[name~aschp|anat|ëtsch|aedch]. Community-mapped, not certified survey-grade; see data/osm-shafts.json for the raw import, node IDs and caveats."
+  },
   "eudem-opentopodata": {
     "type": "dataset", "crm": "E73_Information_Object",
     "short": "EU-DEM 25 m via OpenTopoData",

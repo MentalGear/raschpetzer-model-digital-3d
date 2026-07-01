@@ -18,6 +18,7 @@ Dataset 1.0.0 · CC-BY-4.0.
 - **Waringo 2018, fig. 5-24** — Gallery near P7 with channel; floor at sandstone/marl boundary
 - **Waringo 2018, fig. 6-7** — View into the 36 m deep shaft P5
 - **Waringo 2018, shaft-detail survey (wg 1:2000)** — Surveyed shaft-floor elevations (m a.s.l.)
+- **OpenStreetMap (qanat shaft nodes)** — Raschpëtzer qanat shaft nodes (historic=archaeological_site) in OpenStreetMap <https://www.openstreetmap.org/> (accessed 2026-07-01)
 - **EU-DEM 25 m via OpenTopoData** — EU-DEM v1.1 (25 m) sampled through the OpenTopoData API <https://api.opentopodata.org/v1/eudem25m> (accessed 2026-07-01)
 
 ## Headline characteristics [Waringo/Faber/Werner 2018]
@@ -107,4 +108,5 @@ Strata dip ~2% southeast. Layers (top→bottom):
 - **pd-schematic-positions** — Per-shaft plan positions (modelPos) are read as relative spacing from the route figure, not from a georeferenced survey. They are declared in a `model-schematic` CRS; real WGS84 coordinates (geo) are left null until surveyed values are available. _(Waringo 2018, fig.5-4)_
 - **pd-postulated-shafts** — Shafts P-2, P-3 and P-6A are inferred from the regular inter-shaft spacing of the located shafts (in qanats the spacing often matches the depth). They are not excavated or surveyed; existence is `inferred`, position `hypothetical` and schematic. _(Waringo 2018, p.21-22)_
 - **pd-nominal-datum** — For non-GeoData terrain modes there is no real vertical datum, so a nominal site datum is used (valley ~340 m, plateau ~390 m a.s.l.) purely to place the gallery/shafts at plausible depths. GeoData mode uses true EU-DEM metres. _(derived; consistent with Waringo 2018 elevations 350-405 m a.s.l.)_
+- **pd-osm-georef** — Real shaft coordinates were imported from OpenStreetMap (data/osm-shafts.json, source osm-qanat-shafts) as candidate georeferencing. They are recorded with lineage but NOT yet used to drive the model, because: (a) OSM's -6..9 numbering does not map 1:1 to the brochure's P-labels, and (b) sampling EU-DEM at these points does not reproduce the documented depths/surveyed floors (e.g. OSM '-4' surface 388 m vs a P-4 that is only 12 m deep to a 355.4 m floor). Confidence is low/medium per node; treat as provisional until reconciled with an authoritative survey. _(OpenStreetMap contributors (ODbL); EU-DEM via OpenTopoData)_
 - **pd-aux-system** — P-5A and P-7A belong to a separate, higher, dry auxiliary channel ~30 m north of the main line; their channel floor sits above the aquiferous qanat channel, so they were never connected to it and are drawn as a distinct dashed channel. _(Waringo 2018, p.21-22)_
