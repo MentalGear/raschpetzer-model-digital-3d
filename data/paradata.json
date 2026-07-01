@@ -40,6 +40,11 @@
     "basis": "Waringo 2018 fig.4-2/4-3, p.6, p.14-15, fig.5-24",
     "author": "project team", "date": "2026-07-02"
   },
+  "pd-overflow-channel": {
+    "rationale": "The P-4 overflow weir and its lateral (deviation) channel are documented in plan + cross-section (fig.5-11, fig.5-14) with a Ø 80 cm channel that carries ~80 m³/d when the main channel dams above ~12 cm. The brochure gives no georeferenced route for the lateral channel, so it is modeled SCHEMATICALLY as a short branch diverging from the main gallery at P-4 (shown only when the overflow-channel option is enabled), distinct from the main channel and from the higher, unconnected auxiliary dry channel (P-7A/P-5A).",
+    "basis": "Waringo 2018 p.20, p.30, fig.5-11, fig.5-14",
+    "author": "project team", "date": "2026-07-02"
+  },
   "pd-aux-system": {
     "rationale": "P-5A and P-7A belong to a separate, higher, dry auxiliary channel ~30 m north of the main line; their channel floor sits above the aquiferous qanat channel, so they were never connected to it and are drawn as a distinct dashed channel.",
     "basis": "Waringo 2018, p.21-22",

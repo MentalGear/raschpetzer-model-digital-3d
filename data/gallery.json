@@ -41,6 +41,22 @@
       "source": "waringo2018", "status": "documented", "paradataRef": ["pd-aux-system"],
       "_prov": { "relationToMain": { "loc": "p.21-22" } }
     },
+    "overflowChannel": {
+      "id": "p4-overflow-lateral",
+      "atShaft": "P-4",
+      "type": "overflow / lateral (deviation)",
+      "diameterCm": 80,
+      "triggerLevelCm": 12,
+      "divertedFlowM3PerDay": 80,
+      "relationToMain": "branches off the main channel at the P-4 overflow weir; when the main channel dams up above ~12 cm, the surplus spills over the weir into this lateral (deviation) channel",
+      "source": "waringo2018", "status": "documented", "paradataRef": ["pd-overflow-channel"],
+      "_prov": {
+        "diameterCm": { "loc": "fig.5-11", "note": "Ø 80 cm lateral channel at the P-4 weir" },
+        "triggerLevelCm": { "loc": "p.20; fig.5-11", "note": "weir diverts when the level exceeds ~12 cm" },
+        "divertedFlowM3PerDay": { "loc": "p.30", "note": "~80 m³/d deviated via the P-4 weir (hydrology.deviationAtP4M3PerDay)" },
+        "relationToMain": { "loc": "p.20; fig.5-11; fig.5-14" }
+      }
+    },
     "documentedDistances": {
       "_doc": "The only metric horizontal distances the brochure states in text (used to sanity-check the schematic modelPos spacing; see pd-schematic-positions). The brochure gives NO shaft coordinates, so these plus fig.3-1's 100 m scale bar are the whole positional record.",
       "items": [
