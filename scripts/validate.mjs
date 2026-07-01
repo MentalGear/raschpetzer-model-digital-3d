@@ -146,6 +146,26 @@ if (g) {
     if (mx < 200 || mx > 600)
       warns.push(`constraint[extent]: georeferenced extent ${mx.toFixed(0)} m outside 200–600 m`);
   }
+
+  // spacing: documented inter-shaft distances vs the geo-derived (haversine) distance,
+  // so a positional mismatch (e.g. the OSM P2 node reading short) is machine-tracked.
+  {
+    const R = 6371000, rad = x => x * Math.PI / 180;
+    const hav = (a, b) => {
+      const dla = rad(b.lat - a.lat), dlo = rad(b.lon - a.lon);
+      const h = Math.sin(dla / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dlo / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(h));
+    };
+    const byId = Object.fromEntries(shafts.map(s => [s.id, s]));
+    for (const d of gg?.documentedDistances?.items || []) {
+      const a = byId[d.from], b = byId[d.to];
+      if (a?.geo?.lat != null && b?.geo?.lat != null && typeof d.distanceM === 'number') {
+        const geoM = hav(a.geo, b.geo);
+        if (Math.abs(geoM - d.distanceM) > 6)
+          warns.push(`constraint[spacing]: ${d.from}–${d.to} geo ${geoM.toFixed(0)} m vs documented ${d.distanceM} m (Δ${(geoM - d.distanceM).toFixed(0)} m > 6)`);
+      }
+    }
+  }
 }
 
 if (warns.length) console.warn('SSOT warnings:\n  ' + warns.join('\n  '));

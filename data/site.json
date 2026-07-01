@@ -16,6 +16,10 @@
     "model-schematic": { "kind": "engineering", "unit": "scene-unit",
       "note": "Arbitrary origin; x = W→E route axis, z = cross-axis offset. NOT georeferenced." },
     "EPSG:4326": { "kind": "geographic", "unit": "deg", "note": "WGS84 lat/lon." },
+    "EPSG:2169": { "kind": "projected", "unit": "m",
+      "note": "LUREF (Luxembourg TM). Working CRS of the ACT LiDAR sampling: WGS84→2169 (pyproj) to query map.geoportail.lu/raster." },
+    "EPSG:3857": { "kind": "projected", "unit": "m",
+      "note": "Web Mercator. Used only for cross-DEM sanity queries (OpenTopoData/EU-DEM); not a model datum." },
     "site-datum-nominal": { "kind": "vertical", "unit": "m",
       "note": "Nominal display datum for non-GeoData modes: valley ~340 m, plateau ~390 m. Distinct from true a.s.l." },
     "masl": { "kind": "vertical", "unit": "m", "note": "True metres above sea level." }
