@@ -281,7 +281,7 @@
 
         <div class="control-group" id="grp-terrain-opacity">
             <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
-            <input type="range" id="param-terrain-opacity" min="0.2" max="1.0" step="0.05" value="1.0">
+            <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0">
         </div>
 
         <div class="control-group" id="grp-vexag">
@@ -296,7 +296,8 @@
             <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
         </div>
 
-        <div class="control-group" id="grp-timeline">
+        <div class="control-group" id="grp-timeline" style="display:none">
+            <!-- Timeline slider hidden for now — see BACKLOG. -->
             <label>Timeline <span class="val" id="lbl-year">present</span></label>
             <input type="range" id="param-year" min="0" max="1000" step="1" value="1000">
             <div id="timeline-track" aria-hidden="true"></div>
@@ -318,10 +319,10 @@
             <!-- Annotation mode hidden for now. -->
             <button id="btn-annotate" type="button">✎ Annotate mode</button>
         </div>
-        <div class="control-group btn-row">
+        <div class="control-group btn-row" style="display:none">
+            <!-- Measure + Guided tour hidden for now (both need rework — see BACKLOG). -->
             <button id="btn-measure" type="button">📏 Measure</button>
-            <!-- Guided tour hidden for now (needs rework — see BACKLOG). -->
-            <button id="btn-tour" type="button" style="display:none">▶ Guided tour</button>
+            <button id="btn-tour" type="button">▶ Guided tour</button>
         </div>
         <div class="control-group btn-row">
             <button id="btn-profile" type="button">📈 Gallery profile</button>
@@ -1117,7 +1118,7 @@
             // strata cross-section is intentionally excluded so it stays readable.
             const tOpW = params.terrainOpacity;
             const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
-                                                              transparent: true, opacity: 1.0 * tOpW, depthWrite: tOpW >= 0.999 });
+                                                              transparent: tOpW < 0.999, opacity: 1.0 * tOpW, depthWrite: tOpW >= 0.999 });
             const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
                                                               transparent: true, opacity: 0.18 * tOpW, depthWrite: false });
             sideMat.userData.baseOpacity = 1.0;
@@ -1172,8 +1173,15 @@
             // Honesty encoding: a shaft whose DEPTH is documented (P5, P3, P1, P-4, P-7A,
             // P-5A) is drawn solid; one whose depth is only inferred from the gallery model
             // is drawn translucent. (Plan POSITIONS are schematic for all — see the caption.)
-            const pillarMat = new THREE.MeshBasicMaterial({ color: COL.shaft, depthTest: false });
-            const pillarMatInferred = new THREE.MeshBasicMaterial({ color: COL.shaft, depthTest: false, transparent: true, opacity: 0.55 });
+            // Shafts are an x-ray overlay: depthTest AND depthWrite off so they never test
+            // or pollute the depth buffer (the latter caused the intermittent "glitch on
+            // top" + faded parts dropping out). High renderOrder keeps them above the
+            // terrain/strata/walls in the transparent pass — visible full-length, above and
+            // below ground. Inferred shafts differ by opacity only.
+            const pillarMat = new THREE.MeshBasicMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: 1.0 });
+            const pillarMatInferred = new THREE.MeshBasicMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: 0.5 });
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -1218,7 +1226,7 @@
                 // (Roman service or already rediscovered); otherwise faded.
                 const mesh = new THREE.Mesh(geo, (documented && st.solid) ? pillarMat : pillarMatInferred);
                 mesh.position.set(p.x, sy + (CAP - len) / 2, p.z);
-                mesh.renderOrder = 6;
+                mesh.renderOrder = 12;   // above terrain(0)/strata(2)/tunnel(5) in the transparent pass
                 mesh.userData = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                                   floorM: floorM, depthM: depthM, documented: documented };
                 modelGroup.add(mesh);
@@ -1321,7 +1329,7 @@
             if (basePts.length) {
                 const c = basePts.reduce((a, p) => a.clone().add(p), new THREE.Vector3())
                     .multiplyScalar(1 / basePts.length);
-                const dist = Math.max(params.width * 0.95, 70);
+                const dist = Math.max(params.width * 1.6, 120);   // start further off
                 DEFAULT_CAM.target.set(c.x, c.y, 0);
                 DEFAULT_CAM.pos.set(c.x, c.y, dist);          // same y as target ⇒ elevation 0°
                 if (!initialViewSet && camera && controls) {
@@ -1539,20 +1547,30 @@
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = `600 ${size}px -apple-system, sans-serif`;
-            ctx.fillStyle = colorStr;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.shadowColor = 'rgba(245,240,234,0.9)';
-            ctx.shadowBlur = 6;
-            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            // A glyph-hugging light stroke gives contrast on dark terrain WITHOUT the
+            // rectangular halo that shadowBlur baked into the transparent canvas (that
+            // faint box was the label "glitch" seen over the strata).
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = 'rgba(245,240,234,0.92)';
+            ctx.strokeText(text, cx, cy);
+            ctx.fillStyle = colorStr;
+            ctx.fillText(text, cx, cy);
             const tex = new THREE.CanvasTexture(canvas);
             // NPOT canvas (320×72): force no-mipmap linear sampling so WebGL doesn't
             // resize-to-power-of-two, which was smearing a horizontal streak across labels.
             tex.minFilter = THREE.LinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.generateMipmaps = false;
+            // Labels are always-on-top overlays: depthTest + depthWrite off and a high
+            // renderOrder so they draw last, above the (transparent) terrain fill. Without
+            // this they sorted against the fill and flickered once terrain opacity < 1.
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: tex, transparent: true, depthWrite: false }));   // depthWrite off: no depth halo
+                map: tex, transparent: true, depthTest: false, depthWrite: false }));
+            sprite.renderOrder = 30;
             sprite.scale.set(6, 1.35, 1);
             return sprite;
         }
