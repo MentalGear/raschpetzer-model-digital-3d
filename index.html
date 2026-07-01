@@ -42,8 +42,8 @@
             z-index: 4;
             display: none;
         }
-        body.overlay-mode #ui-panel,
-        body.overlay-mode .instructions { display: none; }
+        /* Reference overlay sits behind the panels (z-index 4, pointer-events none),
+           so controls stay fully accessible while it's shown. */
 
         /* Corner compass labels */
         .compass-label {
@@ -1248,8 +1248,9 @@
             const el = document.getElementById('exag-readout');
             if (!el) return;
             const vEx = metersPerXUnit() / metersPerYUnit(); // vertical:horizontal scale ratio
+            // "(true scale)" only when it really is 1.0× (consistent with the shown value)
             el.textContent = 'Vertical exaggeration ≈ ' + vEx.toFixed(1) + '×' +
-                             (Math.abs(vEx - 1) < 0.15 ? '  (true scale)' : '');
+                             (vEx.toFixed(1) === '1.0' ? '  (true scale)' : '');
         }
 
         // Small flow-direction arrow (cone) along +x (east, dir>0) or -x (west, dir<0).
