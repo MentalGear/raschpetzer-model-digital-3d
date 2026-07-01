@@ -185,7 +185,7 @@
             <select id="param-source">
                 <option value="procedural">Procedural (original)</option>
                 <option value="heightmap">Heightmap image</option>
-                <option value="geodata">GeoData (Walferdange DEM)</option>
+                <option value="geodata" selected>GeoData (Walferdange DEM)</option>
             </select>
             <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1em;"></div>
             <label class="check-row"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
@@ -272,7 +272,7 @@
             width: 70,
             depth: 26,
             baseY: -2,
-            terrainSource: 'procedural',  // 'procedural' | 'heightmap' | 'geodata'
+            terrainSource: 'geodata',     // 'procedural' | 'heightmap' | 'geodata'
             elevationIntensity: 1.0,      // vertical exaggeration for heightmap/geodata
             qanatLayout: 'faithful',      // 'faithful' | 'schematic'
             flipWE: false,                // mirror the geodata terrain West<->East
@@ -711,7 +711,9 @@
             modelGroup = new THREE.Group();
             scene.add(modelGroup);
 
-            buildParametricModel();
+            // Default to the real Walferdange DEM (baked grid loads synchronously).
+            if (params.terrainSource === 'geodata') loadGeoData(() => buildParametricModel());
+            else buildParametricModel();
             setupUI();
 
             window.addEventListener('resize', onResize);
