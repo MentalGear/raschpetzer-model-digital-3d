@@ -1,120 +1,127 @@
-# Vitrine Simulator — Museum Showcase Layout Tool
+# Raschpëtzer Qanat — Interactive 3D Visualization
 
-A browser-based 3D simulator for pre-visualising **museum showcase (vitrine)** layouts at real
-metric scale before building or filling a physical case. Design wooden display cabinets, adjust
-glass shelves, drag items onto shelves, and resize everything with **live centimetre dimension
-arrows**.
+An interactive 3D visualization of the **Raschpëtzer**, a Roman underground water
+supply system (qanat) near Walferdange/Helmsange, Luxembourg. It renders the
+topography, the shafts P‑7A→P9, the water gallery, the hydrogeology (strata +
+groundwater/qanat flows), and lets you explore it with real elevation data.
 
-Built with **React Three Fiber · drei · zustand · Vite · TypeScript**, run with **Bun**.
-
-## Getting started
-
-```bash
-bun install
-bun run dev        # http://localhost:5173
-bun run build      # type-check + production bundle → dist/
-bun run preview    # preview the production build
-```
-
-## Modes
-
-| Mode | What it does |
-|---|---|
-| **Design shelf** | Add/remove cabinet segments; resize width, height, depth; add/remove glass shelves and drag their height. |
-| **Place items** | Drag primitives from the palette onto shelves; select to move, rotate, resize, recolour, or delete. |
-| **Presets** | Save and restore complete named layouts to the browser (localStorage). |
+Every fact shown (shaft depths, gallery gradient, geology, hydrology) is driven
+by a **cited Single Source of Truth** (`data/`) and traceable to a primary
+source; documented facts are visually distinguished from inferred/schematic ones.
 
 ## Features
 
-### Cabinet design
-- Multi-segment showcases — add, remove, and resize segments side-by-side.
-- Parametric wood frame (sides, back, top, bottom) and translucent glass shelves.
-- Adjustable glass opacity and tint per layout.
-- Combined cabinet with configurable divider thickness and per-compartment shelves.
-- Separation panels can be wood or glass.
-- Per-cabinet brightness control; optional sync across all segments.
-- Drag the in-scene vertical gizmo or type an exact cm value to set shelf height — all items on that shelf follow.
+- **Real terrain (GeoData)**: **ACT LiDAR 2019 (0.5 m)** elevation, with shafts
+  placed by their **georeferenced** OSM coordinates (elevation cross-checked
+  against LiDAR to 0.5–2.5 m; plan/label confidence varies per shaft) and the
+  gallery held **near-level** per the brochure. A **Surrounding area** control
+  reveals more of the DEM around the qanat. See `docs/DATA_CREDIBILITY.md`.
+- **Honesty encoding**: georeferenced positions are `reconstructed` (per-shaft
+  confidence), documented-depth shafts are drawn solid and inferred ones faded,
+  and the source is flagged on-canvas.
+- **Contour-map rendering** with bold index contours + elevation labels.
+- **Faithful qanat**: documented shaft depths (P5 ≈ 36 m), near‑level gallery at
+  the real ~0.1 % gradient with the P6/P4 steps, separate auxiliary channel.
+- **Geology cross-section**: weathered rock / Luxembourg sandstone / marl /
+  keuper, with groundwater flowing **East** and the qanat gallery **West**.
+- **Click a shaft → info panel** with values, units, provenance (citation chips)
+  and knowledge‑status badges; **Guided tour** flies P‑7A→P9.
+- **Annotations** (drop notes, localStorage, import/export), **measurement tool**,
+  **animated water flow**, W↔E flip, reference-image overlay.
+- **Context-aware controls**: only the sliders/toggles that affect the current
+  view are shown.
 
-### Item placement
-- Primitives: box, cylinder, sphere, cone, torus, image frame, label card.
-- **Image items** — upload a PNG/JPG (stored as IndexedDB data URLs); displayed on a flat plane.
-- **Label items** — editable text with configurable font size; renders as a canvas texture.
-- Drag from the palette; drops onto the nearest shelf surface with XZ grid snap.
-- **Attach / Float** toggle — attached items ride with their shelf; floating items stay fixed.
-- **Tilt (X rotation)** — lean items forward/back (e.g. lay flat, stand upright).
-- Move, Rotate, Resize via in-scene gizmo (TransformControls) or the Properties panel.
-- **Live cm dimension arrows** — W/H/D labels update in real time while resizing.
-- **Item detail editor** — double-click any item for a full-screen modal with its own undo/redo stack and a live 3D preview.
+## Quick start
 
-### Multi-select and grouping
-- **Shift-click** to multi-select items.
-- **Align tools** — align left/centre/right edges, front/centre/back depth, bottom/middle/top height.
-- **Group** selected items — the group gizmo moves all members together while preserving shelf seating for attached items.
-- **Ungroup**, or remove individual items from a group, in the Properties panel.
+Requires [Bun](https://bun.sh) (or Node ≥ 18).
 
-### Keyboard shortcuts
-| Key | Action |
+```bash
+bun install
+bun run dev        # bakes the data, starts Vite at http://localhost:5173
+```
+
+`predev` runs `bun run bake` automatically. Any static file server also works
+(the app is zero-build):
+
+```bash
+bun run bake                 # regenerate assets/data.bundle.js + docs
+python3 -m http.server 8000  # then open http://localhost:8000/
+```
+
+## Project structure
+
+```
+index.html                 # the app (Three.js, single file)
+vendor/                    # three.min.js, OrbitControls.js (pinned)
+assets/                    # geodata-walferdange.js, images, data.bundle.js (generated)
+data/                      # ── Single Source of Truth (edit here) ──
+  sources.json             #   bibliography / citation registry
+  site.json                #   headline facts, dataset (FAIR) metadata, CRS registry, regions
+  shafts.json              #   per-shaft records (position, depth, floor, notes, provenance)
+  gallery.json             #   gradient, steps, channel, sections, auxiliary channel
+  geology.json             #   strata, dip, structure, groundwater
+  hydrology.json           #   flows, springs, chemistry
+  paradata.json            #   reasoning behind modeled/inferred choices
+  model-config.json        #   visualization-only config (camera, colours, scene scale) — NOT facts
+scripts/
+  validate.mjs             # SSOT validation (CI gate)
+  bake.mjs                 # validate → assets/data.bundle.js + docs/RASCHPETZER_DATA.md
+docs/
+  RASCHPETZER_DATA.md      # human-readable knowledge base (GENERATED — do not edit)
+  BACKLOG.md
+```
+
+## Data & provenance (SSOT)
+
+The dataset is the source of truth; the app and the docs are generated from it.
+
+- **Edit** `data/*.json`, then run `bun run bake`. This validates the data, writes
+  the runtime bundle (`assets/data.bundle.js` → `window.SSOT`), and regenerates
+  `docs/RASCHPETZER_DATA.md`. **Never edit the generated files.**
+- **Validate** at any time / in CI: `bun run validate` (checks referential
+  integrity, status enums, that documented facts carry a source, ranges, CRS).
+- **Provenance model**: values are plain scalars with a sparse `_prov` sibling map
+  (per-field `source`/`locator`/`status` overriding record defaults). Two axes:
+  `knowledgeStatus` (documented → inferred → reconstructed → hypothetical /
+  schematic) and `confidence`. Entities carry lightweight **CIDOC-CRM** class
+  tags; modeled/inferred choices are explained in `paradata.json` (London Charter
+  / Seville Principles). Positions use a declared `model-schematic` CRS with real
+  `geo` coordinates reserved for future survey data.
+
+### Facts vs. visualization config
+
+`data/` (everything except `model-config.json`) holds **citable facts** and drives
+the geometry. `model-config.json` holds **visualization-only** settings (camera,
+colours, scene-scale slider defaults). The parametric sliders are a *display
+lens*: real-metre read-outs (info panel, measurements) are invariant to them.
+
+## Scripts
+
+| Command | Does |
 |---|---|
-| `D` | Design mode |
-| `P` | Place mode |
-| `V` | Toggle plan view (top-down) |
-| `Ctrl/⌘+Z` / `Ctrl/⌘+Y` | Global undo / redo |
-| `Ctrl/⌘+D` | Duplicate selected item |
-| `Delete` / `Backspace` | Remove selected item or segment |
-| `←↑↓→` / `PgUp/PgDn` | Nudge item 1 cm (hold Shift → 10 cm) |
+| `bun run dev` | Bake, then serve with Vite at :5173 |
+| `bun run bake` | Validate → generate `assets/data.bundle.js` + `docs/RASCHPETZER_DATA.md` |
+| `bun run validate` | Validate the SSOT (CI gate) |
+| `bun run build` | Validate + bake (static site; deploy by serving the repo root) |
 
-### Views and cameras
-- **Perspective** (default), **Plan** (top-down ortho), **Front** (elevation ortho).
-- **Named camera views** — save and restore perspective camera positions from the toolbar (🎥 Views).
+## Deploy (static / GitHub Pages)
 
-### Layout presets
-- Type a preset name in the Presets panel, Save, and the full layout is written to `localStorage`.
-- Load or delete named presets anytime; the working draft auto-saves separately via zustand persist.
+`npm run build` validates the SSOT, bakes the data, and assembles a clean,
+self-contained static site into `dist/` (index.html + `vendor/`, `assets/`,
+`docs/`). Because every asset reference is relative, the output works from any
+base path, so any static host will serve it — just point it at `dist/`.
 
-### Display options
-- Dark / light canvas theme toggle.
-- Human scale cutout toggle (shows silhouettes for scale reference).
-- Grid cell size picker (2 cm → 20 cm).
+A GitHub Actions workflow (`.github/workflows/deploy.yml`) auto-deploys to
+**GitHub Pages** on every push to `main` (or via manual *Run workflow*). Enable
+it once under **Settings → Pages → Source: GitHub Actions**; the site then lives
+at `https://<user>.github.io/<repo>/`.
 
-## Project layout
+## Source & license
 
-```
-src/
-  state/
-    types.ts          — Layout, Segment, Shelf, Item types (fully serialisable)
-    store.ts          — zustand store + persist; all scene mutations
-    historyStore.ts   — global undo/redo middleware
-    viewStore.ts      — named camera views (persist)
-    presets.ts        — named layout presets (localStorage)
-    units.ts          — m↔cm helpers, snapGrid
-    imageStore.ts     — image data URLs (IndexedDB via idb-keyval)
-  scene/
-    Showcase.tsx      — renders all segments + group gizmo
-    Segment.tsx       — parametric wood/glass cabinet from state
-    Shelf.tsx         — glass shelf panel at a height
-    Item.tsx          — placed primitive (geometry + material + gizmo)
-    primitives.ts     — primitive type registry
-    DimensionArrows.tsx — live W/H/D cm arrows
-    CameraRig.tsx     — lights, grid, OrbitControls, named-view load/capture
-    SceneBridge.tsx   — exposes R3F camera/scene to App for DnD raycasting
-  ui/
-    Toolbar.tsx       — mode tabs, undo/redo, view toggles, Views popover
-    SidePanel.tsx     — left palette (Place mode) or Design/Presets panel
-    DesignPanel.tsx   — segment list and shelf editor
-    ItemPalette.tsx   — draggable primitive chips
-    PropertiesPanel.tsx — selected item/group/shelf: size, rotation, colour, align
-    ItemEditorModal.tsx — full-screen item detail editor with local undo/redo
-    PresetBar.tsx     — named layout save/load/delete
-    NumberField.tsx   — cm input field (stores metres internally)
-    theme.ts          — zustand theme store (dark/light, plan/front view, grid)
-```
-
-## Architecture notes
-
-- **1 three.js unit = 1 metre.** All state stored in metres; UI shows centimetres (`×100`).
-- **Parametric geometry** — segments and shelves rebuild from numeric state so frame thickness never distorts under resize.
-- **Fully serialisable state** — `Layout` is a plain JSON object; presets are direct `JSON.stringify` of it.
-- **Image storage** — uploaded images stored as data URLs in IndexedDB (`idb-keyval`), referenced by UUID in layout state, so presets remain JSON-clean.
-- **Global undo/redo** — `historyStore.ts` wraps `store.ts` mutations; `Ctrl+Z/Y` replay the store diff.
-- **Item editor undo/redo** — separate `useReducer` with `past/present/future`; committed to global store only on Save.
-- **Named views** — transient `pendingLoad`/`pendingCaptureName` flags consumed by `CameraRig` inside the R3F Canvas context where `useThree` is accessible.
+Facts are extracted from **Faber, S., Waringo, G. & Werner, H. (2018),
+*The Raschpëtzer — A Roman Underground Water Supply System*** (SIT Walferdange,
+ISBN 978‑2‑9199454‑2‑9); terrain from **ACT LiDAR 2019 (0.5 m)** via the
+Luxembourg geoportal (EU‑DEM 25 m via OpenTopoData retained only as coarse
+context). Full
+citations in `data/sources.json`. The dataset is offered under **CC‑BY‑4.0**;
+third-party figures/imagery remain under their respective rights.

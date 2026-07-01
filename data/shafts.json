@@ -1,0 +1,991 @@
+{
+  "_doc": "One record per shaft (W→E). Reunifies the former pillarDefs / REAL_DEPTH / REAL_FLOOR. Bare scalars drive the model; _prov holds sparse per-field citations/status overriding the record defaults (source=waringo2018, status=documented). modelPos is schematic (crs model-schematic); geo (WGS84) is reserved for surveyed coords.",
+  "shafts": [
+    {
+      "id": "P-7A",
+      "crm": "E22_Human-Made_Object",
+      "order": 1,
+      "role": "auxiliary",
+      "modelPos": {
+        "x": -18,
+        "z": -1
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666682,
+        "lon": 6.1479,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 6,
+      "floorElevM": 354.3,
+      "floorElevCrs": "masl",
+      "notes": "Auxiliary debris-filled drop-shaft ~25 m NW of P-5; rubble backfill from 3 m depth, +3 m deeper; dry channel, restored to original state.",
+      "source": "waringo2018",
+      "status": "documented",
+      "paradataRef": [
+        "pd-aux-system"
+      ],
+      "_prov": {
+        "depthM": {
+          "loc": "p.22; fig.5-14",
+          "note": "drop-shaft: rubble from 3 m, +3 m"
+        },
+        "floorElevM": {
+          "source": "survey-shaft-floors",
+          "note": "surveyed floor 354.3 m a.s.l."
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "derived from P-5 (OSM) + documented ~25 m NW offset (p.22); NOT an OSM node. LOW confidence — see pd-osm-georef. fig.3-1 P-7A->P-5A = 24.1 m is consistent with the documented P-5->P-7A ~25 m, but P-7A is a derived auxiliary-branch position, not directly georeferenced. The OSM node 'Quanat -6' lies ~10.7 m from this derived point and has mapsTo=null (unassigned)."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR at the derived coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.12; fig.3-1",
+          "note": "western continuation 1992-2000 (auxiliary drop-shaft)"
+        }
+      },
+      "surfaceElevM": 366.8,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "low",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1994,
+        "campaign": "explore-west"
+      }
+    },
+    {
+      "id": "P-5A",
+      "crm": "E22_Human-Made_Object",
+      "order": 2,
+      "role": "auxiliary",
+      "modelPos": {
+        "x": -16.5,
+        "z": 0
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666599,
+        "lon": 6.148027,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 8,
+      "floorElevM": 357.5,
+      "floorElevCrs": "masl",
+      "notes": "Auxiliary shaft ~30 m N of P-4; dry channel at 8 m, 2 m higher than the main channel, so never connected to it; dug in marl, sand-filled.",
+      "source": "waringo2018",
+      "status": "documented",
+      "paradataRef": [
+        "pd-aux-system"
+      ],
+      "_prov": {
+        "depthM": {
+          "loc": "p.21"
+        },
+        "floorElevM": {
+          "source": "survey-shaft-floors",
+          "note": "surveyed floor 357.5 m a.s.l."
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "derived from P-5 (OSM) + ~12 m NW (aux channel, vicinity of P-5). LOW confidence — see pd-osm-georef. Auxiliary northern-branch shaft (~30 m N of the main line, fig.5-14 p.22), not directly georeferenced; the OSM node 'Quanat -5' lies ~12 m away and is itself unlabelled (mapsTo=null)."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR at the derived coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "western continuation 1992-2000 (auxiliary)"
+        }
+      },
+      "surfaceElevM": 365.5,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "low",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1994,
+        "campaign": "explore-west"
+      }
+    },
+    {
+      "id": "P-5",
+      "crm": "E22_Human-Made_Object",
+      "order": 3,
+      "role": "main",
+      "modelPos": {
+        "x": -15,
+        "z": 1
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666523,
+        "lon": 6.148145,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Yellow-sand filled; channel found at 10 m. Site of the 'geological accident' — channel floor breached, water lost into limestone fissures; rebuilt in concrete.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.20-21; p.23"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; LOW confidence mapping to P-5 — see pd-osm-georef. P-5's geo is copied from OSM node 'Quanat -5', but the two westernmost OSM nodes ('-6','-5') have no independent label and 'P-5' rests on the unverified '-5'->P-5 assignment. The main line here (P-5, P-4) is entangled with the separate NORTHERN auxiliary branch (P-5A/P-7A, ~25-30 m N, fig.5-14 p.22); no documented main-line inter-shaft distance exists to pin it. fig.3-1 P-5A->P-5 = 14.9 m is within the west-end foreshortening zone. Kept low."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "western continuation 1992-2000"
+        }
+      },
+      "surfaceElevM": 365.2,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "low",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1993,
+        "campaign": "explore-west"
+      }
+    },
+    {
+      "id": "P-4",
+      "crm": "E22_Human-Made_Object",
+      "order": 4,
+      "role": "main",
+      "modelPos": {
+        "x": -12,
+        "z": 2.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666453,
+        "lon": 6.148369,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 12,
+      "floorElevM": 355.4,
+      "floorElevCrs": "masl",
+      "diameterM": 0.8,
+      "notes": "Dry-stone lined (0.8 m wall, 3 concentric rows); base widened to 1.4 m cone; overflow weir diverts water to a lateral channel when the level exceeds 12 cm.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "depthM": {
+          "loc": "p.20; fig.6-8"
+        },
+        "floorElevM": {
+          "source": "survey-shaft-floors",
+          "note": "main-channel floor 355.4 m a.s.l."
+        },
+        "diameterM": {
+          "loc": "p.31"
+        },
+        "notes": {
+          "loc": "p.20; fig.5-11"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; MEDIUM confidence mapping to P-4 — see pd-osm-georef. Largest similarity-fit residual (+12.7 m): this is the west-end route bend / plateau-edge transition where the oblique fig.3-1 foreshortening is worst, so the digitised spacing (P-5->P-4 = 12.3 m vs OSM 17.9 m) is unreliable here. LiDAR 366.9 m and the documented main-channel floor 355.4 m corroborate the label; kept medium, not high."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.12; fig.3-1",
+          "note": "western continuation 1992-2000"
+        }
+      },
+      "surfaceElevM": 366.9,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1992,
+        "campaign": "explore-west"
+      }
+    },
+    {
+      "id": "P-1",
+      "crm": "E22_Human-Made_Object",
+      "order": 5,
+      "role": "main",
+      "modelPos": {
+        "x": -5,
+        "z": 3
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666161,
+        "lon": 6.149026,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Circular shaft in marl, sand-filled; secured with concrete segments; not used for access.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.20"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; MEDIUM confidence mapping to P-1 — see pd-osm-georef. Both fig.3-1 (P-4->P-1 = 41 m) and OSM (57.4 m) show a large gap before P-1 across the route bend; small similarity-fit residual (+1.9 m) and LiDAR 374.2 m rising smoothly toward the plateau support the label, but the long unbridged leg (no intervening OSM node besides postulated P-2/P-3) keeps this medium."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "western continuation 1992-2000"
+        }
+      },
+      "surfaceElevM": 374.2,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1992,
+        "campaign": "explore-west"
+      }
+    },
+    {
+      "id": "P0",
+      "crm": "E22_Human-Made_Object",
+      "order": 6,
+      "role": "not-excavated",
+      "modelPos": {
+        "x": -2,
+        "z": 2.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666097,
+        "lon": 6.149273,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Marked only with a surface panel; not excavated.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.20"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; MEDIUM confidence mapping to P0 — see pd-osm-georef. fig.3-1 (P-1->P0 = 14.0 m) and OSM (19.1 m) agree in shape; small fit residual (-1.4 m); LiDAR 379.4 m on the rising hillside is consistent. Kept medium (not high) because P0 is 'marked only, not excavated' (no depth/floor to cross-check) and sits in the tight P-1/P0/P1 cluster whose absolute spacing is hard to separate on the oblique figure."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.20",
+          "note": "not excavated — marked only with a surface panel"
+        }
+      },
+      "surfaceElevM": 379.4,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": null,
+        "campaign": null
+      }
+    },
+    {
+      "id": "P1",
+      "crm": "E22_Human-Made_Object",
+      "order": 7,
+      "role": "main",
+      "modelPos": {
+        "x": 1,
+        "z": 1.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666029,
+        "lon": 6.149463,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 30,
+      "floorElevM": null,
+      "notes": "At the bend in the route; likely the first shaft sunk; 6 m below the plateau edge in a natural depression. Total depth 30 m; an intermediate 'sounding' gallery at 20 m has no channel.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "depthM": {
+          "loc": "p.16"
+        },
+        "notes": {
+          "loc": "p.16"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; MEDIUM confidence mapping to P1 — see pd-osm-georef. fig.3-1 (P0->P1 = 11.3 m) and OSM (15.6 m) agree; small fit residual (-4.2 m); LiDAR 386.1 m fits the rise onto the plateau. Kept medium because P1 anchors the P1->P2 leg that is internally inconsistent (see P2, low) — the OSM P1 vs P2 spacing contradicts the brochure's 'P2 unusually close to P1' (p.16-17)."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.11",
+          "note": "cleared 1913 (initial excavations)"
+        }
+      },
+      "surfaceElevM": 386.1,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "medium",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1913,
+        "campaign": "first-excav"
+      }
+    },
+    {
+      "id": "P2",
+      "crm": "E22_Human-Made_Object",
+      "order": 8,
+      "role": "main",
+      "modelPos": {
+        "x": 4,
+        "z": 0.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.666079,
+        "lon": 6.14978,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Western edge of the Pëtschend plateau; still backfilled in its original state; unusually close to P1 for survey reasons.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.17; fig.5-4"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; LOW confidence mapping to P2 — see pd-osm-georef. The OSM 'P2' node conflicts with the documented geometry: OSM P1->P2 = 23.5 m while OSM P2->P3 = 19.8 m vs documented P2-P3 = 28 m (fig.3-1 digitised P2->P3 = 24.4 m). The brochure states P2 is 'unusually close to P1' (p.17), but the OSM node makes P1->P2 the LONGER leg. P2 is the largest negative residual (-11 m) in the OSM->fig-3-1 similarity fit: the OSM 'P2' node reads ~one-third too far east along the route. Coordinate NOT re-mapped (no unambiguous alternative), only flagged."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991 (fig 3-1 excavation-period bracket)"
+        }
+      },
+      "surfaceElevM": 391.8,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "low",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1987,
+        "campaign": "explore-east"
+      }
+    },
+    {
+      "id": "P3",
+      "crm": "E22_Human-Made_Object",
+      "order": 9,
+      "role": "main",
+      "modelPos": {
+        "x": 8,
+        "z": 0
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665966,
+        "lon": 6.149992,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 35,
+      "floorElevM": null,
+      "notes": "Exactly on the P1–P5 line, 28 m from P2; crosses the plateau at its narrowest to minimise >30 m shafts; still in original state.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "depthM": {
+          "loc": "p.17"
+        },
+        "notes": {
+          "loc": "p.17"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; HIGH confidence mapping to P3 — see pd-osm-georef. fig.3-1 digitised P2->P3 = 24.4 m matches documented 28 m within oblique-figure tolerance; small similarity-fit residual (-4.5 m); LiDAR 392.5 m sits on the flat Petschend plateau top (fig.4-2), consistent with neighbours P4/P5. Sequence unambiguous."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991"
+        }
+      },
+      "surfaceElevM": 392.5,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1987,
+        "campaign": "explore-east"
+      }
+    },
+    {
+      "id": "P4",
+      "crm": "E22_Human-Made_Object",
+      "order": 10,
+      "role": "main",
+      "modelPos": {
+        "x": 13,
+        "z": 1
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665958,
+        "lon": 6.150488,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Half-way between P3 and P5; mouth first excavated with P5; concrete rings + slab cap; base later tunnelled through to link P5→P3.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.18"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; HIGH confidence mapping to P4 — see pd-osm-georef. fig.3-1 digitised P3->P4 = 32.2 m agrees with OSM 35.7 m; small similarity-fit residual (-4.6 m); LiDAR 391.7 m on the flat plateau top (fig.4-2), consistent with P3/P5."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991"
+        }
+      },
+      "surfaceElevM": 391.7,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1987,
+        "campaign": "explore-east"
+      }
+    },
+    {
+      "id": "P5",
+      "crm": "E22_Human-Made_Object",
+      "order": 11,
+      "role": "main",
+      "modelPos": {
+        "x": 18,
+        "z": 2
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665971,
+        "lon": 6.150928,
+        "crs": "EPSG:4326"
+      },
+      "depthM": 36,
+      "floorElevM": null,
+      "diameterM": [
+        0.85,
+        1.2
+      ],
+      "notes": "Deepest shaft; eastern plateau edge; first cleared to base (3 Oct 1986). Diameter 1.2 m, narrowing to 0.85 m at torus bulges; the channel passes tangentially.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "depthM": {
+          "loc": "p.9; fig.6-7",
+          "note": "shaft quoted 36 m; 35 m measured to gallery base"
+        },
+        "diameterM": {
+          "loc": "p.18; p.32"
+        },
+        "notes": {
+          "loc": "p.9; p.18"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; HIGH confidence mapping to P5 — see pd-osm-georef. fig.3-1 digitised P4->P5 = 32.0 m matches OSM 31.7 m almost exactly; small similarity-fit residual (-1.2 m); LiDAR 392.1 m is the eastern plateau edge (deepest shaft, 36 m; fig.4-2) immediately before the Haedchen drop."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.9; p.11-12",
+          "note": "cleared ~10 m in 1913; base reached 3 Oct 1986 — the gallery was rediscovered here"
+        }
+      },
+      "surfaceElevM": 392.1,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1913,
+        "campaign": "rediscovery",
+        "rediscoveredAD": 1986
+      }
+    },
+    {
+      "id": "P6",
+      "crm": "E22_Human-Made_Object",
+      "order": 12,
+      "role": "main",
+      "modelPos": {
+        "x": 21,
+        "z": 0.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665968,
+        "lon": 6.151257,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "First Haedchen shaft surveyed from below ground. A 1.2 m stepped fall in the gallery at its base is a provision for level adjustment; debris/sinter cone with iron oxide. Rock bed ~10 m under ~10 m of soft ground.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.18-19; p.26-27; fig.5-5"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; HIGH confidence mapping to P6 — see pd-osm-georef. fig.3-1 digitised P5->P6 = 23.5 m matches OSM 23.7 m; LiDAR 382.1 m captures the sharp plateau-edge->Haedchen drop (-10 m from P5) exactly as fig.4-2 shows P6 as the first Haedchen shaft. Note: far/east end of fig.3-1, so digitised absolute spacing is the least reliable here, but the OSM-digitised agreement is excellent."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991"
+        }
+      },
+      "surfaceElevM": 382.1,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1988,
+        "campaign": "explore-east"
+      }
+    },
+    {
+      "id": "P7",
+      "crm": "E22_Human-Made_Object",
+      "order": 13,
+      "role": "main",
+      "modelPos": {
+        "x": 23,
+        "z": -0.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665974,
+        "lon": 6.151485,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Located from below ground along the eastbound gallery; cleared with heavy machinery; counter-excavation between P7 and P8.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.19; p.26"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; HIGH confidence mapping to P7 — see pd-osm-georef. fig.3-1 digitised P6->P7 = 16.4 m equals OSM 16.4 m; LiDAR 378.2 m in the Haedchen depression, consistent with P8/P9 (fig.4-2). Far-east end of the oblique figure (foreshortened), but OSM-digitised agreement is essentially exact."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991"
+        }
+      },
+      "surfaceElevM": 378.2,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1988,
+        "campaign": "explore-east"
+      }
+    },
+    {
+      "id": "P8",
+      "crm": "E22_Human-Made_Object",
+      "order": 14,
+      "role": "main",
+      "modelPos": {
+        "x": 25,
+        "z": -1.5
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665966,
+        "lon": 6.15177,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "Cleared normally; a spring influx ~25 m³/d enters 2 m upstream on the left. An oak beam dated to 114 AD (felling ~131 AD) was found near its base.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.10; p.28-29"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; HIGH confidence mapping to P8 — see pd-osm-georef. fig.3-1 digitised P7->P8 = 20.1 m matches OSM 20.5 m; LiDAR 377.1 m in the Haedchen depression, consistent with P7/P9 (fig.4-2). Far-east end of the oblique figure, but OSM-digitised agreement is excellent."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.29; fig.3-1",
+          "note": "eastern campaign; oak beam (114 AD) found near its base by 1991"
+        }
+      },
+      "surfaceElevM": 377.1,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1989,
+        "campaign": "explore-east"
+      }
+    },
+    {
+      "id": "P9",
+      "crm": "E22_Human-Made_Object",
+      "order": 15,
+      "role": "mother",
+      "modelPos": {
+        "x": 27,
+        "z": -3
+      },
+      "position": {
+        "crm": "E53_Place",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
+        "paradataRef": [
+          "pd-osm-georef"
+        ]
+      },
+      "geo": {
+        "lat": 49.665948,
+        "lon": 6.152078,
+        "crs": "EPSG:4326"
+      },
+      "depthM": null,
+      "floorElevM": null,
+      "notes": "The 'mother shaft' — most upstream/easternmost. The gallery ends 6 m east of P9; there is no channel for the first ~13 m. A portal niche with a seepage gutter; oak shovels were found in the mud nearby.",
+      "source": "waringo2018",
+      "status": "documented",
+      "_prov": {
+        "notes": {
+          "loc": "p.10; p.19; fig.5-7"
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "OSM node; HIGH confidence mapping to P9 — see pd-osm-georef. fig.3-1 digitised P8->P9 = 21.3 m matches OSM 22.3 m; LiDAR 377.2 m in the Haedchen depression (mother shaft, easternmost), consistent with P7/P8 (fig.4-2). Far-east end of the oblique figure, but OSM-digitised agreement is excellent."
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991 (mother shaft)"
+        }
+      },
+      "surfaceElevM": 377.2,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1990,
+        "campaign": "explore-east"
+      }
+    },
+    {
+      "id": "P-2",
+      "crm": "E22_Human-Made_Object",
+      "order": null,
+      "role": "postulated",
+      "modelPos": null,
+      "geo": null,
+      "depthM": null,
+      "floorElevM": null,
+      "position": {
+        "crm": "E53_Place",
+        "status": "hypothetical",
+        "isSchematic": true
+      },
+      "existence": "inferred",
+      "confidence": "low",
+      "notes": "Not yet found. Existence postulated from the qanat shaft-spacing regularity west of P-4.",
+      "source": "waringo2018",
+      "status": "inferred",
+      "paradataRef": [
+        "pd-postulated-shafts"
+      ],
+      "_prov": {
+        "notes": {
+          "loc": "p.21"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.21",
+          "note": "postulated; never located"
+        }
+      },
+      "dates": {
+        "builtAD": null,
+        "excavatedAD": null,
+        "campaign": null
+      }
+    },
+    {
+      "id": "P-3",
+      "crm": "E22_Human-Made_Object",
+      "order": null,
+      "role": "postulated",
+      "modelPos": null,
+      "geo": null,
+      "depthM": null,
+      "floorElevM": null,
+      "position": {
+        "crm": "E53_Place",
+        "status": "hypothetical",
+        "isSchematic": true
+      },
+      "existence": "inferred",
+      "confidence": "low",
+      "notes": "Not yet found. Existence postulated from shaft-spacing regularity west of P-4.",
+      "source": "waringo2018",
+      "status": "inferred",
+      "paradataRef": [
+        "pd-postulated-shafts"
+      ],
+      "_prov": {
+        "notes": {
+          "loc": "p.21"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.21",
+          "note": "postulated; never located"
+        }
+      },
+      "dates": {
+        "builtAD": null,
+        "excavatedAD": null,
+        "campaign": null
+      }
+    },
+    {
+      "id": "P-6A",
+      "crm": "E22_Human-Made_Object",
+      "order": null,
+      "role": "postulated",
+      "modelPos": null,
+      "geo": null,
+      "depthM": null,
+      "floorElevM": null,
+      "position": {
+        "crm": "E53_Place",
+        "status": "hypothetical",
+        "isSchematic": true
+      },
+      "existence": "inferred",
+      "confidence": "low",
+      "notes": "Not yet located; existence assumed from the spacing between P-5A and P-7A.",
+      "source": "waringo2018",
+      "status": "inferred",
+      "paradataRef": [
+        "pd-postulated-shafts"
+      ],
+      "_prov": {
+        "notes": {
+          "loc": "p.22"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.22",
+          "note": "postulated; never located"
+        }
+      },
+      "dates": {
+        "builtAD": null,
+        "excavatedAD": null,
+        "campaign": null
+      }
+    }
+  ]
+}

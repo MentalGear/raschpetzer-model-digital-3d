@@ -1,0 +1,33 @@
+{
+  "_doc": "Raw georeferenced shaft positions imported from OpenStreetMap (community data), kept verbatim with full lineage. NOT yet reconciled with the brochure's documented depths/floors — see caveats. The 3D model does not consume these yet; they are recorded for provenance and future georeferencing.",
+  "_meta": {
+    "source": "osm-qanat-shafts",
+    "retrievedVia": "Overpass API (https://overpass-api.de/api/interpreter)",
+    "overpassQuery": "nwr(around:1200,49.668,6.139)[\"name\"~\"aschp|anat|ëtsch|aedch\",i];out center tags;",
+    "accessed": "2026-07-01",
+    "license": "ODbL 1.0 — © OpenStreetMap contributors",
+    "crs": "EPSG:4326",
+    "demSampledFrom": "eudem-opentopodata",
+    "caveats": [
+      "OSM node names use a scheme (-6..9) that does not map 1:1 to the brochure labels (P-7A/P-5A/P-5/P-4/P-1/P0/P1..P9); mapping below is inferred and marked by confidence.",
+      "Community-mapped (likely traced from the published survey plan), NOT certified survey-grade.",
+      "The sampled EU-DEM (25 m, smoothed) surface at these points does NOT reconcile with the documented shaft depths/surveyed floors: e.g. OSM '-4' surface 388 m with a documented P-4 depth of 12 m implies a ~376 m floor, not the surveyed 355.4 m. Cause unresolved (label offset, DEM smoothing over the hillside edge, or datum). Treat depths derived this way as unverified."
+    ]
+  },
+  "nodes": [
+    { "osmName": "Quanat -6", "osmId": 8209797123, "lat": 49.666589, "lon": 6.147938, "demElevM": 383.7, "mapsTo": null,   "confidence": "low" },
+    { "osmName": "Quanat -5", "osmId": 3890047299, "lat": 49.666523, "lon": 6.148145, "demElevM": 386.3, "mapsTo": null,   "confidence": "low" },
+    { "osmName": "Quanat -4", "osmId": 429961864,  "lat": 49.666453, "lon": 6.148369, "demElevM": 388.1, "mapsTo": "P-4", "confidence": "low" },
+    { "osmName": "Quanat -1", "osmId": 3890047301, "lat": 49.666161, "lon": 6.149026, "demElevM": 391.0, "mapsTo": "P-1", "confidence": "medium" },
+    { "osmName": "Quanat 0",  "osmId": 3890047300, "lat": 49.666097, "lon": 6.149273, "demElevM": 393.0, "mapsTo": "P0",  "confidence": "medium" },
+    { "osmName": "Quanat 1",  "osmId": 429961865,  "lat": 49.666029, "lon": 6.149463, "demElevM": 394.9, "mapsTo": "P1",  "confidence": "medium" },
+    { "osmName": "Quanat 2",  "osmId": 429961866,  "lat": 49.666079, "lon": 6.149780, "demElevM": 398.7, "mapsTo": "P2",  "confidence": "medium" },
+    { "osmName": "Quanat 3",  "osmId": 3890047305, "lat": 49.665966, "lon": 6.149992, "demElevM": 400.5, "mapsTo": "P3",  "confidence": "medium" },
+    { "osmName": "Quanat 4",  "osmId": 3890047306, "lat": 49.665958, "lon": 6.150488, "demElevM": 403.0, "mapsTo": "P4",  "confidence": "medium" },
+    { "osmName": "Quanat 5",  "osmId": 429961867,  "lat": 49.665971, "lon": 6.150928, "demElevM": 403.6, "mapsTo": "P5",  "confidence": "medium" },
+    { "osmName": "Quanat 6",  "osmId": 3890047307, "lat": 49.665968, "lon": 6.151257, "demElevM": 403.6, "mapsTo": "P6",  "confidence": "medium" },
+    { "osmName": "Quanat 7",  "osmId": 3890047308, "lat": 49.665974, "lon": 6.151485, "demElevM": 403.2, "mapsTo": "P7",  "confidence": "medium" },
+    { "osmName": "Quanat 8",  "osmId": 3890047309, "lat": 49.665966, "lon": 6.151770, "demElevM": 402.1, "mapsTo": "P8",  "confidence": "medium" },
+    { "osmName": "Quanat 9",  "osmId": 429961868,  "lat": 49.665948, "lon": 6.152078, "demElevM": 400.7, "mapsTo": "P9",  "confidence": "medium" }
+  ]
+}

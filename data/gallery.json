@@ -1,0 +1,88 @@
+{
+  "_doc": "Qanat gallery + channel facts. Bare scalars drive geometry; _prov holds citations. Steps reference the shaft they sit under.",
+  "gallery": {
+    "id": "raschpetzer-gallery", "crm": "E22_Human-Made_Object",
+    "gradientPct": 0.1,
+    "channelStartFromP9M": 13,
+    "channelHeightCm": 45,
+    "channelWidthRangeCm": [12, 15],
+    "waterFlowHeightRangeCm": [5, 7],
+    "coverSlabThicknessRangeCm": [6, 20],
+    "ballastMaxThicknessCm": 60,
+    "construction": "dry-masonry",
+    "floorFollows": "sandstone/marl boundary",
+    "source": "waringo2018", "status": "documented", "paradataRef": ["pd-gallery-gradient"],
+    "_prov": {
+      "gradientPct": { "loc": "p.26", "note": "constant 0.1% (10 cm/100 m) from P9 to P-5, except two steps" },
+      "channelStartFromP9M": { "loc": "p.28", "note": "no channel for the first ~13 m from the east" },
+      "channelHeightCm": { "loc": "p.28" },
+      "channelWidthRangeCm": { "loc": "p.28" },
+      "waterFlowHeightRangeCm": { "loc": "p.28" },
+      "coverSlabThicknessRangeCm": { "loc": "p.28" },
+      "ballastMaxThicknessCm": { "loc": "p.28" },
+      "floorFollows": { "loc": "p.28; fig.5-24" }
+    },
+    "steps": [
+      { "id": "step-P6", "underShaft": "P6", "dropM": 1.2, "source": "waringo2018", "status": "documented",
+        "_prov": { "dropM": { "loc": "p.26-27", "note": "stepped fall / height provision under P6" } } },
+      { "id": "step-P4", "underShaft": "P4", "dropM": 1.0, "source": "waringo2018", "status": "documented",
+        "_prov": { "dropM": { "loc": "p.27", "note": "gallery + channel drop 1 m below the limestone band under P4" } } }
+    ],
+    "sections": [
+      { "from": "P9", "to": "P6", "host": "solid-rock", "profile": "rectangular" },
+      { "from": "P6", "to": "P5", "host": "intersecting-marl", "profile": "trapezoidal" },
+      { "from": "P5", "to": "P4", "host": "limestone-walls", "profile": "wide" },
+      { "from": "P4", "to": "P0", "host": "limestone-crown", "profile": "triangular" },
+      { "from": "P0", "to": "P-5", "host": "marl", "profile": "backfilled" }
+    ],
+    "_sectionsProv": { "source": "waringo2018", "loc": "p.23; fig.5-15" },
+    "auxiliaryChannel": {
+      "shafts": ["P-7A", "P-5A"], "type": "dry", "relationToMain": "higher, unconnected",
+      "source": "waringo2018", "status": "documented", "paradataRef": ["pd-aux-system"],
+      "_prov": { "relationToMain": { "loc": "p.21-22" } }
+    },
+    "overflowChannel": {
+      "id": "p4-overflow-lateral",
+      "atShaft": "P-4",
+      "type": "overflow / lateral (deviation)",
+      "diameterCm": 80,
+      "triggerLevelCm": 12,
+      "divertedFlowM3PerDay": 80,
+      "relationToMain": "branches off the main channel at the P-4 overflow weir; when the main channel dams up above ~12 cm, the surplus spills over the weir into this lateral (deviation) channel",
+      "surfaceOutlet": {
+        "name": "surface spring (overflow resurgence)",
+        "flowM3PerDay": 80,
+        "status": "inferred",
+        "gps": null,
+        "gpsStatus": "needed",
+        "note": "The ~80 m³/d diverted at the P-4 weir stays a subterranean lateral drain near the channel level (~355 m) and resurfaces DOWNSLOPE, where the falling hillside drops to that level — not straight up above the weir; the daylight point drawn is illustrative. The exact resurgence has NO confirmed coordinates: the brochure gives none, and the OSM spring 'source Geierbierg 2' (node 5768923730, 49.6558/6.1455, ~600 m S of the qanat) was checked and is NOT this outlet. GPS still needed.",
+        "_prov": {
+          "flowM3PerDay": { "loc": "p.30", "note": "= hydrology.deviationAtP4M3PerDay" },
+          "gpsStatus": { "note": "no documented coordinates; OSM 'source Geierbierg 2' ruled out; field GPS required" }
+        }
+      },
+      "source": "waringo2018", "status": "documented", "paradataRef": ["pd-overflow-channel"],
+      "_prov": {
+        "diameterCm": { "loc": "fig.5-11", "note": "Ø 80 cm lateral channel at the P-4 weir" },
+        "triggerLevelCm": { "loc": "p.20; fig.5-11", "note": "weir diverts when the level exceeds ~12 cm" },
+        "divertedFlowM3PerDay": { "loc": "p.30", "note": "~80 m³/d deviated via the P-4 weir (hydrology.deviationAtP4M3PerDay)" },
+        "relationToMain": { "loc": "p.20; fig.5-11; fig.5-14" }
+      }
+    },
+    "documentedDistances": {
+      "_doc": "The only metric horizontal distances the brochure states in text (used to sanity-check the schematic modelPos spacing; see pd-schematic-positions). The brochure gives NO shaft coordinates, so these plus fig.3-1's 100 m scale bar are the whole positional record.",
+      "items": [
+        { "from": "P2", "to": "P3", "distanceM": 28, "along": "P1–P5 straight line",
+          "source": "waringo2018", "status": "documented",
+          "_prov": { "distanceM": { "loc": "p.17", "note": "P3 exactly on the P1–P5 line, 28 m from P2, depth 35 m" } } },
+        { "from": "P-5", "to": "P-7A", "distanceM": 25, "direction": "NW", "approx": true,
+          "source": "waringo2018", "status": "documented", "paradataRef": ["pd-schematic-positions"],
+          "_prov": { "distanceM": { "loc": "p.22", "note": "P-7A located about 25 m northwest of P-5; modelPos re-spaced to honour this (~3.6 units at 7 m/unit)" } } },
+        { "from": "Petschend-spur", "to": "Haedchen-source", "distanceM": 600, "direction": "E",
+          "note": "Haedchen marshy source area ~375 masl, 600 m east of the Pëtschend spur (~395 masl).",
+          "source": "waringo2018", "status": "documented",
+          "_prov": { "distanceM": { "loc": "p.6" } } }
+      ]
+    }
+  }
+}

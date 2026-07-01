@@ -1,0 +1,64 @@
+{
+  "source": "act-lidar-2019",
+  "endpoint": "https://map.geoportail.lu/raster",
+  "crs": "EPSG:2169",
+  "sourceVersion": "20200121-082330",
+  "totalPoints": 4411,
+  "runs": [
+    {
+      "run": "seed-grid",
+      "date": "2026-07-01T12:38:06.593Z",
+      "bbox": [
+        6.138,
+        49.6618,
+        6.162,
+        49.6708
+      ],
+      "cols": 40,
+      "rows": 22,
+      "nRequested": 880,
+      "nNew": 880,
+      "nSkipped": 0
+    },
+    {
+      "run": "seed-shafts",
+      "date": "2026-07-01T12:38:06.604Z",
+      "bbox": null,
+      "cols": null,
+      "rows": null,
+      "nRequested": 15,
+      "nNew": 15,
+      "nSkipped": 0
+    },
+    {
+      "run": "sample-2026-07-01T1238",
+      "date": "2026-07-01T12:38:32.343Z",
+      "bbox": [
+        6.141077,
+        49.669086,
+        6.142923,
+        49.669514
+      ],
+      "cols": 3,
+      "rows": 2,
+      "nRequested": 6,
+      "nNew": 0,
+      "nSkipped": 4
+    },
+    {
+      "run": "sample-2026-07-01T1308",
+      "date": "2026-07-01T14:11:56.554Z",
+      "bbox": [
+        6.138,
+        49.6618,
+        6.162,
+        49.6708
+      ],
+      "cols": 80,
+      "rows": 44,
+      "nRequested": 3520,
+      "nNew": 3516,
+      "nSkipped": 4
+    }
+  ]
+}

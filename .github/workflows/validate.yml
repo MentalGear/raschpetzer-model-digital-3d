@@ -1,0 +1,27 @@
+name: Validate SSOT
+
+# Gates the credibility-derived invariants (see docs/DATA_CREDIBILITY.md) on every
+# change to the data or its scripts, so the checks actually block regressions.
+on:
+  push:
+    paths:
+      - 'data/**'
+      - 'scripts/**'
+      - '.github/workflows/validate.yml'
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'scripts/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate the SSOT (referential integrity + credibility invariants)
+        run: node scripts/validate.mjs
+      - name: Bake is reproducible (bundle + docs regenerate cleanly)
+        run: node scripts/bake.mjs

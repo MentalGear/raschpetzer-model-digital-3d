@@ -1,13 +1,2510 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🏛️</text></svg>" />
-    <title>Vitrine Simulator — Museum Showcase Layout</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3d geological raschpëtzer visualization</title>
+    <!-- Inline SVG favicon: keeps the site self-contained and avoids a /favicon.ico 404. -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232a3b4d'/%3E%3Crect y='10' width='16' height='6' fill='%237a5c3e'/%3E%3Crect x='7' y='3' width='2' height='11' fill='%2358a6ff'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            --bg-color: #f5f0ea;
+            --panel-bg: rgba(22, 22, 30, 0.93);
+            --text-color: #f3f4f6;
+            --accent-orange: #f97316;
+            --accent-blue: #3b82f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            display: flex;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            order: 1;
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Corner compass labels */
+        .compass-label {
+            position: absolute;
+            top: 18px;
+            font-style: italic;
+            font-size: 1.05rem;
+            font-weight: 400;
+            color: #222;
+            pointer-events: none;
+            letter-spacing: 0.3px;
+            z-index: 5;
+        }
+        #label-west { left: 22px; }
+        #label-east { right: 22px; }
+        /* Data-sources modal (replaces the old inline bottom-left honesty-note overlay) */
+        #sources-modal-backdrop {
+            position: fixed; inset: 0; background: rgba(10,10,14,0.62); z-index: 30;
+            display: none; align-items: center; justify-content: center;
+        }
+        body.sources-open #sources-modal-backdrop { display: flex; }
+        #sources-modal {
+            position: relative; max-width: 440px; width: 90%; max-height: 82vh; overflow-y: auto;
+            background: #fbf8f3; color: #3a3226; border-radius: 12px; padding: 22px 24px 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); border-top: 4px solid #e0a23b;
+        }
+        #sources-modal h3 { font-size: 1.05rem; color: #2a2318; margin-bottom: 10px; }
+        #sources-modal p { font-size: 0.82rem; line-height: 1.45; margin-bottom: 10px; }
+        #sources-modal b { color: #b06a00; }
+        #sources-modal ul { margin: 4px 0 12px 20px; font-size: 0.8rem; line-height: 1.5; }
+        #sources-close { position: absolute; top: 10px; right: 14px; background: none; border: none;
+            color: #8a7a63; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+        #sources-close:hover { color: #2a2318; }
+        #profile-panel {
+            position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+            display: none; background: rgba(255,255,255,0.94); border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 8px; padding: 8px 10px 4px; z-index: 8;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25); font-size: 0.7rem; color: #4a3f2f;
+        }
+        #profile-panel .pp-title { font-weight: 600; margin-bottom: 2px; color: #333; }
+        #profile-panel .pp-sub { color: #8a7a63; margin-bottom: 4px; }
+
+        /* Scale bar */
+        #scale-bar {
+            position: absolute;
+            bottom: 26px;
+            left: 22px;
+            pointer-events: none;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+        #scale-bar .bar-line {
+            display: flex;
+            align-items: center;
+        }
+        #scale-bar .bar-cap { width: 1px; height: 10px; background: #333; }
+        #scale-bar .bar-fill { width: 90px; height: 2px; background: #333; }
+        #scale-bar .bar-text { font-size: 0.8rem; color: #333; margin-top: 2px; }
+
+        #ui-panel {
+            order: 2;
+            flex: 0 0 340px;
+            width: 340px;
+            height: 100vh;
+            background: var(--panel-bg);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 22px;
+            box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35);
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        h1 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px;
+             text-transform: lowercase; color: #fff; }
+        h2 { font-size: 0.8rem; color: #9ca3af; margin-bottom: 18px; font-weight: 400; }
+
+        .control-group { margin-bottom: 16px; }
+        .control-group label { display: flex; justify-content: space-between;
+            font-size: 0.82rem; margin-bottom: 5px; color: #d1d5db; }
+        .control-group label span.val { color: var(--accent-orange); font-weight: 600; }
+
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: #374151;
+            height: 5px; border-radius: 3px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px;
+            border-radius: 50%; background: var(--accent-orange); cursor: pointer; transition: transform 0.1s; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        /* Timeline event bands under the year slider (piecewise-scaled year axis) */
+        #timeline-track { position: relative; height: 9px; margin-top: 6px;
+            border-radius: 3px; background: #2b3341; overflow: hidden; }
+        #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; }
+        #timeline-readout b { color: var(--accent-orange); font-weight: 600; }
+
+        select {
+            width: 100%;
+            background: #374151;
+            color: #f3f4f6;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px;
+            padding: 7px 9px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            outline: none;
+        }
+        select:focus { border-color: var(--accent-orange); }
+
+        .legend { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; }
+        .legend-item { display: flex; align-items: center; font-size: 0.78rem; margin-bottom: 7px; color: #9ca3af; }
+        .color-box { width: 13px; height: 13px; border-radius: 3px; margin-right: 9px; flex-shrink: 0; }
+
+        .instructions { position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.45);
+            padding: 7px 14px; border-radius: 20px; font-size: 0.75rem; pointer-events: none;
+            letter-spacing: 0.4px; color: #ddd; }
+
+        .check-row { display: flex; align-items: center; gap: 7px; cursor: pointer;
+            margin-top: 9px; font-size: 0.8rem; color: #d1d5db; }
+        .check-row input { accent-color: var(--accent-orange); cursor: pointer; }
+
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row button {
+            flex: 1; background: #374151; color: #f3f4f6;
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+            padding: 8px 6px; font-size: 0.78rem; cursor: pointer; transition: background 0.12s;
+        }
+        .btn-row button:hover { background: #4b5563; }
+        .btn-row button.active { background: var(--accent-orange); border-color: var(--accent-orange); color: #1a1a1a; font-weight: 600; }
+
+        #shaft-tooltip {
+            position: absolute; z-index: 8; pointer-events: none; display: none;
+            background: rgba(20,20,28,0.92); color: #fff; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 7px; padding: 7px 10px; font-size: 0.78rem; line-height: 1.35;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45); transform: translate(-50%, -115%); white-space: nowrap;
+        }
+        #shaft-tooltip .t-name { font-weight: 700; color: var(--accent-orange); }
+        #shaft-tooltip .t-depth { color: #cbd5e1; }
+
+        /* Annotations side panel (left) */
+        #annot-panel {
+            position: absolute; top: 20px; left: 20px; width: 270px; z-index: 11;
+            background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-height: 90vh; overflow-y: auto;
+            display: none;
+        }
+        body.annotate-mode #annot-panel { display: block; }
+        body.annotate-mode #canvas-container { cursor: crosshair; }
+        #annot-panel h3 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; margin-bottom: 6px; }
+        .annot-hint { font-size: 0.72rem; color: #9ca3af; margin-bottom: 12px; line-height: 1.4; }
+        #annot-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+        .annot-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 7px;
+            background: #2b2f3a; cursor: pointer; font-size: 0.8rem; color: #d1d5db; }
+        .annot-row:hover { background: #363b47; }
+        .annot-row.sel { background: var(--accent-orange); color: #1a1a1a; font-weight: 600; }
+        .annot-row .an-num { display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%; background: #e11d8f; color: #fff;
+            font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
+        .annot-row.sel .an-num { background: #1a1a1a; }
+        .annot-row .an-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #annot-editor { display: none; margin-bottom: 12px; }
+        #annot-editor input, #annot-editor textarea {
+            width: 100%; background: #374151; color: #f3f4f6; border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px; padding: 7px 9px; font-size: 0.8rem; margin-bottom: 7px; resize: vertical; }
+        #annot-editor input:focus, #annot-editor textarea:focus { outline: none; border-color: var(--accent-orange); }
+        #annot-delete { width: 100%; background: #7f1d1d; color: #fecaca; border: none;
+            border-radius: 6px; padding: 7px; font-size: 0.76rem; cursor: pointer; }
+        #annot-delete:hover { background: #991b1b; }
+        .annot-io { display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
+        .annot-io button { flex: 1; background: #374151; color: #f3f4f6; border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px; padding: 8px; font-size: 0.78rem; cursor: pointer; }
+        .annot-io button:hover { background: #4b5563; }
+
+        /* Feature info panel (click a shaft) */
+        #info-panel {
+            position: absolute; top: 20px; left: 20px; width: 300px; z-index: 12;
+            background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 18px 18px 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45); max-height: 88vh; overflow-y: auto; display: none;
+        }
+        body.info-open #info-panel { display: block; }
+        #info-close { position: absolute; top: 10px; right: 12px; background: none; border: none;
+            color: #9ca3af; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+        #info-close:hover { color: #fff; }
+        #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
+        #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
+        .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+            padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.82rem; }
+        .ip-row .ip-k { color: #9ca3af; }
+        .ip-row .ip-v { color: #f3f4f6; font-weight: 600; text-align: right; }
+        .ip-note { font-size: 0.78rem; color: #cbd5e1; margin: 10px 0; line-height: 1.45; }
+        .ip-badge { display: inline-block; font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.4px; padding: 1px 6px; border-radius: 4px; color: #1a1a1a; margin-left: 6px; }
+        .ip-cite { display: block; margin-top: 4px; }
+        .ip-cite a { color: var(--accent-orange); font-size: 0.74rem; text-decoration: none; }
+        .ip-cite a:hover { text-decoration: underline; }
+        .ip-para { font-size: 0.72rem; color: #94a3b8; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 10px; line-height: 1.4; }
+
+        body.measure-mode #canvas-container { cursor: crosshair; }
+        #measure-readout {
+            position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%);
+            z-index: 9; display: none; background: rgba(20,20,28,0.9); color: #fff;
+            border: 1px solid rgba(255,210,63,0.5); border-radius: 8px; padding: 8px 14px;
+            font-size: 0.82rem; box-shadow: 0 6px 18px rgba(0,0,0,0.45); white-space: nowrap;
+        }
+        #measure-readout b { color: #ffd23f; }
+
+        #tour-bar {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 12; display: none; align-items: center; gap: 6px;
+            background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 24px; padding: 6px 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        }
+        body.tour-mode #tour-bar { display: flex; }
+        #tour-bar button { background: #374151; color: #f3f4f6; border: none; border-radius: 50%;
+            width: 30px; height: 30px; font-size: 0.85rem; cursor: pointer; }
+        #tour-bar button:hover { background: #4b5563; }
+        #tour-label { color: #f3f4f6; font-size: 0.82rem; min-width: 120px; text-align: center; font-weight: 600; }
+    </style>
+    <script src="vendor/three.min.js"></script>
+    <script src="vendor/OrbitControls.js"></script>
+    <script src="assets/geodata-walferdange.js"></script>
+    <script src="assets/data.bundle.js"></script>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <h1>3D geological Raschpëtzer visualization</h1>
+        <h2>Roman qanat · Walferdange, Luxembourg</h2>
+
+        <div class="control-group">
+            <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
+            <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
+        </div>
+        <div class="control-group">
+            <label>Terrain</label>
+            <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
+            <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
+            <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
+            <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
+            <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
+            <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
+            <label class="check-row"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
+            <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
+        </div>
+
+        <div class="control-group" id="grp-terrain-opacity">
+            <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
+            <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0">
+        </div>
+
+        <div class="control-group" id="grp-vexag">
+            <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
+            <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0">
+            <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+        </div>
+
+        <div class="control-group" id="grp-surround">
+            <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
+            <input type="range" id="param-surround" min="0.2" max="2.0" step="0.05" value="1.0">
+            <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+        </div>
+
+        <div class="control-group" id="grp-timeline" style="display:none">
+            <!-- Timeline slider hidden for now — see BACKLOG. -->
+            <label>Timeline <span class="val" id="lbl-year">present</span></label>
+            <input type="range" id="param-year" min="0" max="1000" step="1" value="1000">
+            <div id="timeline-track" aria-hidden="true"></div>
+            <div id="timeline-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1.1em;"></div>
+        </div>
+
+        <div class="control-group">
+            <label>Camera</label>
+            <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
+        </div>
+        <div class="control-group btn-row">
+            <button id="btn-level-horizon" type="button">⊞ Level horizon (0°)</button>
+        </div>
+
+        <div class="control-group btn-row">
+            <button id="btn-reset" type="button">Reset view</button>
+        </div>
+        <div class="control-group btn-row" style="display:none">
+            <!-- Annotation mode hidden for now. -->
+            <button id="btn-annotate" type="button">✎ Annotate mode</button>
+        </div>
+        <div class="control-group btn-row" style="display:none">
+            <!-- Measure + Guided tour hidden for now (both need rework — see BACKLOG). -->
+            <button id="btn-measure" type="button">📏 Measure</button>
+            <button id="btn-tour" type="button">▶ Guided tour</button>
+        </div>
+        <div class="control-group btn-row">
+            <button id="btn-profile" type="button">📈 Gallery profile</button>
+        </div>
+        <div class="control-group btn-row">
+            <button id="btn-sources" type="button">ⓘ Data sources</button>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="color-box" style="background: var(--accent-orange);"></div>
+                Raschpëtzer Shafts (P-7A to P9)
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: var(--accent-blue);"></div>
+                Qanat gallery — flows West → villa
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #2bb0f0;"></div>
+                Groundwater — flows East (in sandstone)
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #8aa0b4;"></div>
+                Auxiliary dry channel (P-7A/P-5A)
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #d8c0a8;"></div>
+                Weathered rock / soft ground
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #b9d3e8;"></div>
+                Luxembourg sandstone (water-bearing)
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #8f95c4;"></div>
+                Marl &amp; limestone strata
+            </div>
+        </div>
+    </div>
+
+    <div id="annot-panel">
+        <h3>Annotations</h3>
+        <p class="annot-hint">Click anywhere on the model to drop a numbered point, then write a note. Export to share, or import a saved file.</p>
+        <div id="annot-list"></div>
+        <div id="annot-editor">
+            <input id="annot-title" type="text" placeholder="Title" maxlength="80">
+            <textarea id="annot-note" rows="4" placeholder="Notes…"></textarea>
+            <div id="annot-anchor" style="font-size:0.72rem;color:#f2a93b;margin-bottom:7px;min-height:1em;"></div>
+            <button id="annot-delete" type="button">Delete point</button>
+        </div>
+        <div class="annot-io">
+            <button id="annot-export" type="button">Export</button>
+            <button id="annot-import-btn" type="button">Import</button>
+            <input id="annot-import" type="file" accept="application/json,.json" hidden>
+        </div>
+    </div>
+
+    <div id="info-panel">
+        <button id="info-close" type="button" aria-label="Close">×</button>
+        <div id="info-body"></div>
+    </div>
+
+    <div id="sources-modal-backdrop">
+        <div id="sources-modal" role="dialog" aria-modal="true" aria-labelledby="sources-title">
+            <button id="sources-close" type="button" aria-label="Close">×</button>
+            <h3 id="sources-title">Data sources &amp; honesty note</h3>
+            <p>Surface: <b>ACT LiDAR 2019</b> (0.5&nbsp;m DTM). Shafts are placed by <b>georeferenced</b>
+               OpenStreetMap coordinates, elevation-cross-checked against the LiDAR to within
+               0.5–2.5&nbsp;m; per-shaft position/depth confidence varies (see each shaft's info
+               panel). The qanat gallery is drawn near-level, per the site brochure's surveyed
+               profile. Solid shafts have a documented depth; faded (translucent) shafts have an
+               inferred depth.</p>
+            <ul>
+                <li>Faber/Waringo/Werner (2018) — site brochure &amp; survey</li>
+                <li>ACT LiDAR 2019 — 0.5&nbsp;m digital terrain model</li>
+                <li>OpenStreetMap — qanat shaft node coordinates</li>
+                <li>EU-DEM 25&nbsp;m — regional context only</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <div id="shaft-tooltip"></div>
+        <span class="compass-label" id="label-west"><em>West</em></span>
+        <span class="compass-label" id="label-east"><em>East</em></span>
+
+        <div id="scale-bar" style="display:none;">
+            <div class="bar-line">
+                <div class="bar-cap"></div>
+                <div class="bar-fill"></div>
+                <div class="bar-cap"></div>
+            </div>
+            <div class="bar-text">100 m</div>
+        </div>
+
+        <div class="instructions">Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · Scroll to zoom · Hover a shaft for depth · Click for info</div>
+        <div id="measure-readout"></div>
+        <div id="profile-panel"></div>
+        <div id="tour-bar">
+            <button id="tour-prev" type="button" aria-label="Previous">⏮</button>
+            <button id="tour-play" type="button" aria-label="Play/pause">⏸</button>
+            <span id="tour-label">—</span>
+            <button id="tour-next" type="button" aria-label="Next">⏭</button>
+            <button id="tour-stop" type="button" aria-label="Stop">✕</button>
+        </div>
+    </div>
+
+    <script>
+        const params = {
+            plateauHeight: 5.0,           // vertical unit reference (non-GeoData fallback datum)
+            contourSpacing: 0.20,
+            width: 70,
+            depth: 40,
+            baseY: -2,
+            terrainSource: 'geodata',     // GeoData (LiDAR) is the only terrain source
+            vExag: 1.0,                   // TRUE vertical exaggeration (1.0 = true scale)
+            surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
+            flipWE: false,                // mirror the terrain West<->East
+            showGeology: true,            // real strata + groundwater/qanat flows
+            terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
+            year: 2025,                   // timeline slider: shown state at this year AD (present)
+            showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
+            showVilla: false,             // inferred recipient villa marker (optional)
+            showUnderground: true,        // qanat shafts + gallery + flow (subsurface structures)
+            showSides: true               // terrain block side walls
+        };
+
+        // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
+        const QANAT = { maxDepthM: 36, deepestShaft: 'P5', exploredFrac: 0.62 };
+
+        // --- Single Source of Truth (data.bundle.js -> window.SSOT) ---
+        const SSOT = window.SSOT;
+        const MODEL_CONFIG = SSOT.modelConfig || SSOT['model-config'] || {};
+
+        // Visualization colours (single source: model-config.json), with safe fallbacks.
+        const COL = Object.assign({
+            contour: '#9c6233', contourIndex: '#5e3414', shaft: '#f2a93b', qanat: '#1d6fd6',
+            groundwater: '#2bb0f0', auxChannel: '#8aa0b4', flowQanat: '#2fa8ff',
+            flowGroundwater: '#67d0ff', wall: '#cdb595', base: '#9c8567',
+            annotation: '#e11d8f', annotationSel: '#ffd23f', measure: '#ffd23f',
+            overflow: '#35c4e8'
+        }, MODEL_CONFIG.colors || {});
+        const STRATA = Object.assign({
+            cover: '#d8c0a8', li2: '#b9d3e8', li1: '#8f95c4', ko: '#e58a9a', km3: '#f2d9a0'
+        }, MODEL_CONFIG.strataColors || {});
+
+        // Scene-scale slider defaults come from model-config.sceneScale (single source).
+        for (const k of ['plateauHeight', 'contourSpacing', 'width', 'depth', 'baseY'])
+            if (MODEL_CONFIG.sceneScale && MODEL_CONFIG.sceneScale[k] != null)
+                params[k] = MODEL_CONFIG.sceneScale[k];
+
+        // Base (unscaled) scene dimensions from model-config.sceneScale; item (2) below
+        // scales params.width/depth by `surround` so the core stays constant scale while
+        // the terrain grows outward.
+        const BASE_WIDTH = params.width;
+        const BASE_DEPTH = params.depth;
+
+        const SHAFTS = SSOT.shafts.shafts;
+        const shaftById = Object.fromEntries(SHAFTS.map(s => [s.id, s]));
+
+        // --- Timeline (SSOT site.timeline + shafts[].dates) --------------------
+        // Piecewise-linear year axis so each era gets fair slider room (the ~1500-yr
+        // dormancy would otherwise swallow the whole track). Slider t∈[0,1] ⇄ year AD.
+        const TIMELINE = SSOT.site.timeline || { spanAD: [100, 2025], events: [] };
+        const TL_STOPS = [[100, 0.00], [350, 0.36], [1913, 0.56], [2025, 1.00]];
+        function sliderToYear(t) {
+            t = Math.max(0, Math.min(1, t));
+            for (let i = 0; i < TL_STOPS.length - 1; i++) {
+                const [y0, t0] = TL_STOPS[i], [y1, t1] = TL_STOPS[i + 1];
+                if (t <= t1) return Math.round(y0 + (y1 - y0) * (t - t0) / (t1 - t0));
+            }
+            return TL_STOPS[TL_STOPS.length - 1][0];
+        }
+        function yearToSlider(y) {
+            for (let i = 0; i < TL_STOPS.length - 1; i++) {
+                const [y0, t0] = TL_STOPS[i], [y1, t1] = TL_STOPS[i + 1];
+                if (y <= y1) return t0 + (t1 - t0) * (y - y0) / (y1 - y0);
+            }
+            return 1;
+        }
+        // Per-shaft render state at a given year: hidden (not yet built), faded
+        // (dormant / not-yet-rediscovered / postulated / unexcavated), or solid.
+        function shaftTimeState(rec, year) {
+            const d = rec.dates || {};
+            const built = d.builtAD;                          // null ⇒ postulated (unconfirmed)
+            if (rec.role === 'postulated' || built == null)   // hypothesised: never assert solidly
+                return { show: year >= 100, solid: false };
+            if (year < built) return { show: false, solid: false };   // not yet built
+            if (year < 350)  return { show: true,  solid: true };     // Roman construction + service
+            if (year < 1913) return { show: true,  solid: false };    // dormant / silted / lost
+            const disc = d.excavatedAD;                       // modern rediscovery
+            if (disc == null) return { show: true, solid: false };    // known to exist, never dug (P0)
+            return { show: true, solid: year >= disc };
+        }
+        // Which timeline event/period contains this year (for the readout).
+        function timelineEventAt(year) {
+            const evs = (TIMELINE.events || []).filter(e => year >= e.fromAD && year <= e.toAD);
+            return evs.length ? evs[evs.length - 1] : null;   // last-declared wins on overlap
+        }
+        // Derived model constants (facts now come from the SSOT, not hardcoded here):
+        // Base (unscaled) schematic shaft positions; pillarDefs is the QSCALE-scaled view
+        // that geometry actually uses (see recomputeGeoView / applyQanatScale).
+        const SHAFT_BASE = SHAFTS.filter(s => s.modelPos)
+            .map(s => ({ id: s.id, x: s.modelPos.x, z: s.modelPos.z }));
+        let pillarDefs = SHAFT_BASE.map(p => ({ id: p.id, x: p.x, z: p.z }));
+        // Map a real WGS84 coordinate into the current scene window (georeferenced placement).
+        function geoToScene(lat, lon) {
+            let u = (lon - geoView.west) / (geoView.east - geoView.west);
+            if (params.flipWE) u = 1 - u;
+            const v = (geoView.north - lat) / (geoView.north - geoView.south);
+            return { x: u * params.width - params.width / 2, z: v * params.depth - params.depth / 2 };
+        }
+        // In GeoData mode shafts sit at their real geo coords on the LiDAR terrain; otherwise
+        // they fall back to the schematic modelPos (scaled by QSCALE).
+        function applyQanatScale() {
+            const geo = (params.terrainSource === 'geodata');
+            pillarDefs = SHAFT_BASE.map(p => {
+                const rec = shaftById[p.id];
+                if (geo && rec && rec.geo) {
+                    const s = geoToScene(rec.geo.lat, rec.geo.lon);
+                    return { id: p.id, x: s.x, z: s.z };
+                }
+                return { id: p.id, x: p.x * QSCALE, z: p.z * QSCALE };
+            });
+        }
+        const REAL_DEPTH = Object.fromEntries(
+            SHAFTS.filter(s => s.depthM != null).map(s => [s.id, s.depthM]));
+        const REAL_FLOOR = Object.fromEntries(
+            SHAFTS.filter(s => s.floorElevM != null).map(s => [s.id, s.floorElevM]));
+        const AUX_SHAFTS = Object.fromEntries(
+            SHAFTS.filter(s => s.role === 'auxiliary').map(s => [s.id, true]));
+
+        // Fact accessors: keep provenance out of geometry math.
+        const _isFact = x => x && typeof x === 'object' && 'value' in x;
+        const val = x => (_isFact(x) ? x.value : x);
+        const provOf = (rec, field) => {
+            const p = (rec._prov || {})[field] || {};
+            return { source: p.source || rec.source, loc: p.loc,
+                     status: p.status || rec.status || 'documented', note: p.note };
+        };
+
+        let scene, camera, renderer, controls, modelGroup;
+        let contourMaterial, crossSectionMaterial;
+        let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
+        let initialViewSet = false; // snap camera to the computed 0°-horizon default on first build
+        const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
+
+        // Terrain opacity drives the fill surface AND the contour lines together, live
+        // (no full rebuild). Fill keeps depthWrite only when fully opaque so the subsurface
+        // shows through when faded.
+        // Each faded material keeps its own baseOpacity (fill/contours/side-walls = 1.0;
+        // the front wall is designed see-through at 0.18) and is scaled by the slider.
+        // The geological strata are deliberately NOT registered here, so they stay put.
+        function applyTerrainOpacity(v) {
+            params.terrainOpacity = v;
+            terrainFadeMats.forEach(m => {
+                const base = m.userData.baseOpacity != null ? m.userData.baseOpacity : 1;
+                const o = base * v;
+                m.opacity = o;
+                // Keep materials permanently in the transparent pass — flipping to opaque at
+                // v=1 caused a visible colour pop between 1.00 and 0.95 (opaque↔transparent).
+                m.transparent = true;
+                // Surface/wall meshes write depth only when fully opaque (so the subsurface
+                // shows through when faded); lines don't manage depth.
+                if (m.isMeshStandardMaterial || m.isMeshBasicMaterial) m.depthWrite = o >= 0.999;
+                m.needsUpdate = true;
+            });
+        }
+
+        // --- GeoData source: real DEM elevations around the Raschpëtzer qanat
+        //     (Walferdange / Helmsange, Luxembourg). Fetched client-side at runtime;
+        //     falls back to a baked morphological grid if the network is unavailable. ---
+        // grid: normalized 0..1 elevation, `cols` west->east, `rows` north->south.
+        const geodata = { ready: false, loading: false, source: '', data: null,
+                          cols: 0, rows: 0, minM: 0, maxM: 0 };
+
+        // Bilinear sample of the geodata grid, mapped THROUGH the current view window.
+        //   u: west->east in [0,1] across the rendered slice
+        //   v: north(0)->south(1) across the rendered slice
+        // The slice (geoView) is a sub-rectangle of the full grid (GEO_BBOX); we convert
+        // slice (u,v) -> WGS84 -> full-grid fractional coords, then bilinear sample.
+        function sampleGeo(u, v) {
+            const C = geodata.cols, R = geodata.rows, d = geodata.data;
+            const lon = geoView.west + u * (geoView.east - geoView.west);
+            const lat = geoView.north - v * (geoView.north - geoView.south);
+            const gu = (lon - GEO_BBOX.west) / (GEO_BBOX.east - GEO_BBOX.west);
+            const gv = (GEO_BBOX.north - lat) / (GEO_BBOX.north - GEO_BBOX.south);
+            const ix = Math.min(Math.max(gu, 0), 1) * (C - 1);
+            const iy = Math.min(Math.max(gv, 0), 1) * (R - 1);
+            const x0 = Math.floor(ix), y0 = Math.floor(iy);
+            const x1 = Math.min(x0 + 1, C - 1), y1 = Math.min(y0 + 1, R - 1);
+            const fx = ix - x0, fy = iy - y0;
+            const g00 = d[y0 * C + x0], g10 = d[y0 * C + x1];
+            const g01 = d[y1 * C + x0], g11 = d[y1 * C + x1];
+            const gx0 = g00 + (g10 - g00) * fx, gx1 = g01 + (g11 - g01) * fx;
+            return gx0 + (gx1 - gx0) * fy;
+        }
+
+        // FULL sampled bounding box: a 4x-area (2x each dimension) EU-DEM grid around
+        // the Raschpëtzer, centered on 49.668N 6.146E. The scene renders a movable
+        // "slice" (sub-window) of this; the Slice controls pan/zoom that window.
+        // West edge sits in the Alzette valley (~226 m), east on the Pëtschend
+        // plateau (~440 m). Matches geodata-walferdange.js.
+        // LiDAR corridor grid (ACT 2019 0.5 m DTM, re-baked). Full sampled extent:
+        const GEO_BBOX = { west: 6.138, east: 6.162, south: 49.6618, north: 49.6708 };
+        const GEO_COLS = 40, GEO_ROWS = 22;
+
+        // Default rendered window = central half of the grid (~866 × 501 m), framing the
+        // ~300 m qanat; "Surrounding area" grows it to the full sampled extent.
+        const GEO_VIEW_SPAN = { lon: 0.012, lat: 0.0045 };
+        // Cached view window (WGS84 bbox); recomputed whenever "Surrounding area" moves.
+        // The window is always CENTERED on the full grid; `surround` grows it out to the full
+        // sampled extent. In GeoData mode shafts are placed by their real geo coordinates
+        // (geoToScene), so they stay locked to the LiDAR terrain as the window changes.
+        // QSCALE only scales the schematic modelPos fallback (procedural mode).
+        let geoView = { west: 6.144, east: 6.156, south: 49.66405, north: 49.66855 };
+        let QSCALE = 1;   // schematic-modelPos scale (procedural fallback only)
+        function recomputeGeoView() {
+            const fullLon = GEO_BBOX.east - GEO_BBOX.west, fullLat = GEO_BBOX.north - GEO_BBOX.south;
+            const spanLon = Math.min(GEO_VIEW_SPAN.lon * params.surround, fullLon);
+            const spanLat = Math.min(GEO_VIEW_SPAN.lat * params.surround, fullLat);
+            const cLon = (GEO_BBOX.west + GEO_BBOX.east) / 2, cLat = (GEO_BBOX.south + GEO_BBOX.north) / 2;
+            geoView = { west: cLon - spanLon / 2, east: cLon + spanLon / 2,
+                        south: cLat - spanLat / 2, north: cLat + spanLat / 2 };
+            QSCALE = (params.terrainSource === 'geodata') ? (GEO_VIEW_SPAN.lon / spanLon) : 1;
+            // Grow the MESH outward with `surround`, instead of shrinking the core scale:
+            // scale width/depth by the same factor as the geoView window, so
+            // metersPerXUnit = (geoView lon-span × mPerDeg) / params.width stays CONSTANT
+            // (numerator and width both scale by `surround`). The qanat itself therefore
+            // stays the same on-screen size/position; only more surrounding terrain appears.
+            params.width = BASE_WIDTH * params.surround;
+            params.depth = BASE_DEPTH * params.surround;
+            applyQanatScale();
+            return geoView;
+        }
+
+        function setGeoStatus(msg) {
+            const el = document.getElementById('geo-status');
+            if (el) el.textContent = msg || '';
+        }
+
+        // Baked morphological fallback (used when no network): approximates the real
+        // Alzette-valley -> plateau -> depression relief so GeoData still renders offline.
+        function buildFallbackGeo() {
+            const C = GEO_COLS, R = GEO_ROWS, d = new Float32Array(C * R);
+            const ss = t => { t = Math.min(Math.max(t, 0), 1); return t * t * (3 - 2 * t); };
+            let mn = Infinity, mx = -Infinity; const m = new Float32Array(C * R);
+            for (let j = 0; j < R; j++) {
+                for (let i = 0; i < C; i++) {
+                    const fx = i / (C - 1), fy = j / (R - 1);
+                    let e;
+                    if (fx < 0.34) e = 286 + ss(fx / 0.34) * (400 - 286);          // valley -> plateau rim
+                    else if (fx < 0.60) e = 400 + Math.sin((fx - 0.34) / 0.26 * Math.PI) * 6; // plateau top
+                    else e = 400 - ss((fx - 0.60) / 0.40) * (400 - 344);            // -> Haedchen depression
+                    // N-S undulation + knolls
+                    e += Math.sin(fy * Math.PI * 1.4 + fx * 2.0) * 6;
+                    e += Math.sin(fx * 22.0) * Math.cos(fy * 9.0) * 3.0;
+                    m[j * C + i] = e; if (e < mn) mn = e; if (e > mx) mx = e;
+                }
+            }
+            for (let k = 0; k < C * R; k++) d[k] = (m[k] - mn) / (mx - mn);
+            geodata.data = d; geodata.cols = C; geodata.rows = R;
+            geodata.minM = mn; geodata.maxM = mx; geodata.ready = true;
+            geodata.source = 'approximate (offline fallback)';
+        }
+
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        // Fetch a real DEM grid client-side from OpenTopoData (EU-DEM 25 m).
+        // Rows north->south, cols west->east. 100 pts/request, 1 request/second.
+        async function fetchDemGrid() {
+            const C = GEO_COLS, R = GEO_ROWS;
+            const { west, east, south, north } = GEO_BBOX;
+            const pts = [];
+            for (let j = 0; j < R; j++) {
+                const lat = north - (j / (R - 1)) * (north - south);
+                for (let i = 0; i < C; i++) {
+                    const lon = west + (i / (C - 1)) * (east - west);
+                    pts.push(lat.toFixed(6) + ',' + lon.toFixed(6));
+                }
+            }
+            const meters = new Float32Array(C * R);
+            const BATCH = 100;
+            let idx = 0;
+            for (let b = 0; b < pts.length; b += BATCH) {
+                const locs = pts.slice(b, b + BATCH).join('|');
+                const url = 'https://api.opentopodata.org/v1/eudem25m?locations=' +
+                            locs + '&interpolation=cubic';
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const json = await resp.json();
+                if (json.status !== 'OK' || !json.results) throw new Error('API status ' + json.status);
+                for (let k = 0; k < json.results.length; k++) {
+                    const e = json.results[k].elevation;
+                    meters[idx++] = (e === null || e === undefined) ? NaN : e;
+                }
+                setGeoStatus('Fetching elevation data… ' +
+                             Math.min(b + BATCH, pts.length) + '/' + pts.length);
+                if (b + BATCH < pts.length) await sleep(1100); // respect 1 req/s
+            }
+            // Fill EU-DEM voids (null) with the mean of valid samples
+            let sum = 0, cnt = 0;
+            for (const e of meters) if (!isNaN(e)) { sum += e; cnt++; }
+            if (cnt === 0) throw new Error('all-void grid');
+            const mean = sum / cnt;
+            for (let k = 0; k < meters.length; k++) if (isNaN(meters[k])) meters[k] = mean;
+            return { meters, cols: C, rows: R };
+        }
+
+        // Adopt a {cols,rows,minM,maxM,meters[]} grid (meters) as the active geodata,
+        // normalizing to 0..1 from its own min/max.
+        function adoptMeterGrid(g, source) {
+            const n = g.meters.length;
+            const d = new Float32Array(n);
+            const span = (g.maxM - g.minM) || 1;
+            for (let k = 0; k < n; k++) d[k] = (g.meters[k] - g.minM) / span;
+            geodata.data = d; geodata.cols = g.cols; geodata.rows = g.rows;
+            geodata.minM = g.minM; geodata.maxM = g.maxM; geodata.ready = true; geodata.source = source;
+        }
+
+        async function loadGeoData(cb) {
+            if (geodata.ready) { if (cb) cb(true); return; }
+            if (geodata.loading) return;
+            geodata.loading = true;
+
+            // 1) Baked real DEM shipped with the page => instant, offline, no API risk.
+            if (window.BAKED_GEODATA && window.BAKED_GEODATA.meters) {
+                adoptMeterGrid(window.BAKED_GEODATA, 'baked ACT LiDAR 0.5 m');
+                geodata.loading = false;
+                setGeoStatus('ACT LiDAR 2019 (0.5 m) · ' +
+                             Math.round(geodata.minM) + '–' + Math.round(geodata.maxM) + ' m');
+                if (cb) cb(true); return;
+            }
+
+            // 2) Previously cached live fetch.
+            const cached = (() => { try { return JSON.parse(localStorage.getItem('geodata_v1')); } catch (e) { return null; } })();
+            if (cached && cached.cols === GEO_COLS && cached.rows === GEO_ROWS) {
+                geodata.data = Float32Array.from(cached.data);
+                geodata.cols = cached.cols; geodata.rows = cached.rows;
+                geodata.minM = cached.minM; geodata.maxM = cached.maxM;
+                geodata.ready = true; geodata.source = 'cached DEM';
+                geodata.loading = false;
+                setGeoStatus('Cached EU-DEM · ' + Math.round(cached.minM) + '–' + Math.round(cached.maxM) + ' m');
+                if (cb) cb(true); return;
+            }
+
+            // 3) Live fetch (only if no baked data present).
+            setGeoStatus('Fetching elevation data…');
+            try {
+                const grid = await fetchDemGrid();   // returns {meters:Float32Array, cols, rows}
+                let mn = Infinity, mx = -Infinity;
+                for (const e of grid.meters) { if (e < mn) mn = e; if (e > mx) mx = e; }
+                const d = new Float32Array(grid.meters.length);
+                for (let k = 0; k < d.length; k++) d[k] = (grid.meters[k] - mn) / (mx - mn);
+                geodata.data = d; geodata.cols = grid.cols; geodata.rows = grid.rows;
+                geodata.minM = mn; geodata.maxM = mx; geodata.ready = true; geodata.source = 'live DEM';
+                try { localStorage.setItem('geodata_v1', JSON.stringify({
+                    cols: grid.cols, rows: grid.rows, minM: mn, maxM: mx, data: Array.from(d) })); } catch (e) {}
+                setGeoStatus('Source: live DEM  (' + Math.round(mn) + '–' + Math.round(mx) + ' m)');
+            } catch (err) {
+                console.warn('GeoData fetch failed, using fallback:', err);
+                buildFallbackGeo();
+                setGeoStatus('Offline — showing approximate relief (' +
+                             Math.round(geodata.minM) + '–' + Math.round(geodata.maxM) + ' m)');
+            }
+            geodata.loading = false;
+            if (cb) cb(true);
+        }
+
+        // GeoData vertical multiplier: scene Y-units spanning the full DEM elevation range,
+        // chosen so the TRUE vertical exaggeration equals params.vExag (1.0 = true scale).
+        // exag = metersPerXUnit / metersPerYUnit, metersPerYUnit = span / geoVMul,
+        // so geoVMul = vExag * span / metersPerXUnit. This makes one slider (vExag) the
+        // single, honest vertical control and keeps true scale constant as the window changes.
+        function geoVMul() {
+            const span = (geodata.maxM - geodata.minM) || 1;
+            return params.vExag * span / metersPerXUnit();
+        }
+
+        // Terrain height (scene Y) from the LiDAR grid. Returns 0 until the grid is ready.
+        function getTerrainHeight(x, z) {
+            if (!geodata.ready) return 0;
+            let u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
+            const v = Math.min(Math.max((z + params.depth / 2) / params.depth, 0), 1);
+            if (params.flipWE) u = 1 - u;
+            return sampleGeo(u, v) * geoVMul();
+        }
+
+        // Vertical model-units -> real metres, for honest depth read-outs & exaggeration.
+        // GeoData knows real metres; other sources are calibrated so the deepest shaft ~36 m.
+        function metersPerYUnit() {
+            if (params.terrainSource === 'geodata' && geodata.ready) {
+                return metersPerXUnit() / params.vExag;   // exag = mpx/mpy = vExag
+            }
+            // calibrate so the tallest shaft maps to QANAT.maxDepthM
+            return QANAT.maxDepthM / Math.max(0.001, maxShaftLenUnits);
+        }
+        let maxShaftLenUnits = 5; // updated each rebuild (procedural calibration)
+
+        // REAL_FLOOR / REAL_DEPTH now come from the SSOT (see top of script).
+        // Real surface elevation (m) at a model surface height: GeoData is true metres;
+        // other sources use a nominal site datum (valley ~340 m, plateau ~390 m).
+        const DATUM = MODEL_CONFIG.datum || { nominalValleyMasl: 340, nominalPlateauMasl: 385 };
+        const NOMINAL_RANGE_M = DATUM.nominalPlateauMasl - DATUM.nominalValleyMasl;
+        function surfaceMeters(surfaceY) {
+            if (params.terrainSource === 'geodata' && geodata.ready)
+                return geodata.minM + (surfaceY / geoVMul()) * ((geodata.maxM - geodata.minM) || 1);
+            return DATUM.nominalValleyMasl + (surfaceY / params.plateauHeight) * NOMINAL_RANGE_M;
+        }
+        // Gallery (channel) floor elevation (m): the real longitudinal profile is
+        // near-level — a constant ~0.1% grade (10 cm / 100 m) rising gently eastward so
+        // water runs West to the villa — plus two documented stepped falls: 1 m under P4
+        // and 1.2 m under P6 [brochure p.26-27]. Anchored ~354 m at P-7A.
+        function galleryFloorMeters(x) {
+            const g = SSOT.gallery.gallery;
+            // x is a scaled scene coord; the schematic layout uses scaled modelPos too.
+            let e = 354.0 + (g.gradientPct / 100) * metersPerXUnit() * (x + 21 * QSCALE);
+            for (const step of g.steps) {                 // documented stepped falls
+                const sx = shaftById[step.underShaft] && shaftById[step.underShaft].modelPos
+                    ? shaftById[step.underShaft].modelPos.x * QSCALE : null;
+                if (sx != null && x > sx) e += step.dropM;
+            }
+            return e;
+        }
+        // Near-level gallery floor (masl) from REAL longitude, for georeferenced (GeoData)
+        // placement. Anchored at P-4's surveyed floor (355.4 m), constant 0.1% grade rising
+        // eastward, plus the two documented stepped falls (1 m under P4, 1.2 m under P6).
+        const FLOOR_ANCHOR = { lon: 6.148369, masl: 355.4 };   // P-4 surveyed
+        function floorMaslAtLon(lon) {
+            const g = SSOT.gallery.gallery;
+            const mPerDegLon = 111320 * Math.cos(GEO_BBOX.south * Math.PI / 180);
+            let e = FLOOR_ANCHOR.masl + (g.gradientPct / 100) * (lon - FLOOR_ANCHOR.lon) * mPerDegLon;
+            for (const step of g.steps) {                 // floor is higher east of each step
+                const sr = shaftById[step.underShaft];
+                if (sr && sr.geo && lon > sr.geo.lon) e += step.dropM;
+            }
+            return e;
+        }
+        // Convert a real depth (m) into model Y-units under the current vertical scale.
+        function metersToYDepth(depthM) {
+            if (params.terrainSource === 'geodata' && geodata.ready)
+                return depthM / metersPerYUnit();     // consistent with the terrain vertical scale
+            return depthM * params.plateauHeight / NOMINAL_RANGE_M;
+        }
+        // Real elevation (masl) -> scene Y, and scene x -> real longitude (GeoData only).
+        function maslToY(masl) {
+            const span = (geodata.maxM - geodata.minM) || 1;
+            return (masl - geodata.minM) / span * geoVMul();
+        }
+        function sceneXToLon(x) {
+            let u = (x + params.width / 2) / params.width;
+            if (params.flipWE) u = 1 - u;
+            return geoView.west + u * (geoView.east - geoView.west);
+        }
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            const CAM = MODEL_CONFIG.camera || { fov: 13, position: [0, 20, 96], target: [2, 3, 0], near: 1, far: 1000 };
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(MODEL_CONFIG.background || '#f5f0ea');
+
+            camera = new THREE.PerspectiveCamera(CAM.fov, container.clientWidth / container.clientHeight, CAM.near, CAM.far);
+            // Low, wide oblique angle matching the reference panorama (from model-config.json).
+            camera.position.set(CAM.position[0], CAM.position[1], CAM.position[2]);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.sortObjects = true;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(CAM.target[0], CAM.target[1], CAM.target[2]);
+            controls.maxPolarAngle = Math.PI / 2;   // allow a true 0° horizon (level) view
+            // Zoom-distance clamps: don't let the user dolly through the terrain or drift so
+            // far out the model becomes a speck. Scaled by `surround` (item 2 makes the block
+            // physically larger at surround=2, so the far clamp grows with it).
+            controls.minDistance = 25;
+            controls.maxDistance = 400;
+            updateZoomClamp();
+            controls.update();
+            setupZoomToCursor();
+            setupCameraReadout();
+
+            // Lighting — bright, daylight feel to match the reference
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+            const sun = new THREE.DirectionalLight(0xfff8f0, 0.9);
+            sun.position.set(15, 50, 30);
+            sun.castShadow = true;
+            scene.add(sun);
+
+            const fill = new THREE.DirectionalLight(0xd0e8ff, 0.35);
+            fill.position.set(-30, 20, -20);
+            scene.add(fill);
+
+            // Terrain contour shader — light beige base, brown lines
+            contourMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    lineColor:      { value: new THREE.Color(0x7a4a28) },
+                    baseColor:      { value: new THREE.Color(0xede3d4) },
+                    contourSpacing: { value: params.contourSpacing }
+                },
+                vertexShader: `
+                    varying vec3 vWorldPos;
+                    void main() {
+                        vec4 wp = modelMatrix * vec4(position, 1.0);
+                        vWorldPos = wp.xyz;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }`,
+                fragmentShader: `
+                    varying vec3 vWorldPos;
+                    uniform vec3 lineColor;
+                    uniform vec3 baseColor;
+                    uniform float contourSpacing;
+                    void main() {
+                        float y  = vWorldPos.y;
+                        float dF = fwidth(y / contourSpacing);
+                        float lp = abs(fract(y / contourSpacing - 0.5) - 0.5) / dF;
+                        float ci = 1.0 - min(lp, 1.0);
+                        gl_FragColor = vec4(mix(baseColor, lineColor, ci), 1.0);
+                    }`,
+                side: THREE.DoubleSide
+            });
+
+            // Cross-section shader — horizontal geological strata bands on cut faces
+            crossSectionMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    lineColor:      { value: new THREE.Color(0x5a3a22) },
+                    strataA:        { value: new THREE.Color(0xc9b99a) },
+                    strataB:        { value: new THREE.Color(0xaa9278) },
+                    strataC:        { value: new THREE.Color(0x8c7460) },
+                    strataD:        { value: new THREE.Color(0x6e5848) },
+                    contourSpacing: { value: params.contourSpacing }
+                },
+                vertexShader: `
+                    varying vec3 vWorldPos;
+                    void main() {
+                        vec4 wp = modelMatrix * vec4(position, 1.0);
+                        vWorldPos = wp.xyz;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }`,
+                fragmentShader: `
+                    varying vec3 vWorldPos;
+                    uniform vec3 lineColor;
+                    uniform vec3 strataA;
+                    uniform vec3 strataB;
+                    uniform vec3 strataC;
+                    uniform vec3 strataD;
+                    uniform float contourSpacing;
+                    void main() {
+                        float y = vWorldPos.y;
+                        // Four-colour strata bands cycling by Y
+                        float bw   = 1.6;
+                        float band = mod(floor(y / bw + 0.5) + 400.0, 4.0);
+                        vec3 sc = band < 0.5 ? strataA
+                                : band < 1.5 ? strataB
+                                : band < 2.5 ? strataC
+                                : strataD;
+                        // Overlay thin contour lines
+                        float dF = fwidth(y / contourSpacing);
+                        float ci = 1.0 - min(abs(fract(y / contourSpacing - 0.5) - 0.5) / dF, 1.0);
+                        gl_FragColor = vec4(mix(sc, lineColor, ci * 0.7), 1.0);
+                    }`,
+                side: THREE.DoubleSide
+            });
+
+            modelGroup = new THREE.Group();
+            scene.add(modelGroup);
+
+            initAnnotations();
+            initMeasure();
+            initFlow();
+            initInfoPanel();
+            initSourcesModal();
+            initTour();
+            // Load the baked LiDAR terrain (synchronous), then build.
+            loadGeoData(() => buildParametricModel());
+            setupUI();
+
+            window.addEventListener('resize', onResize);
+        }
+
+        function buildParametricModel() {
+            while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
+            recomputeGeoView();   // refresh geoView + QSCALE + scaled pillarDefs
+
+            const segX = 100, segZ = 46;
+            const halfW = params.width / 2;
+            const halfD = params.depth / 2;
+
+            // --- 1. Fill surface mesh (plain light cream; pushed back so contour lines sit on top) ---
+            const surfGeo = new THREE.PlaneGeometry(params.width, params.depth, 120, 54);
+            surfGeo.rotateX(-Math.PI / 2);
+            const pos = surfGeo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                pos.setY(i, getTerrainHeight(pos.getX(i), pos.getZ(i)));
+            }
+            surfGeo.computeVertexNormals();
+            terrainFadeMats = [];   // rebuilt fresh each model build
+            // Unlit flat beige: the scene lights (ambient+sun+fill ≈ >1.0) were over-
+            // brightening a lit surface toward white at full opacity, so it looked like a
+            // different colour once transparency revealed the true tone. MeshBasicMaterial
+            // renders the exact base colour at every opacity — one consistent beige.
+            const fillMat = new THREE.MeshBasicMaterial({
+                color: 0xf0e8d6,                                   // lighter beige (contour-map base)
+                polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
+                side: THREE.DoubleSide,
+                transparent: true, opacity: params.terrainOpacity,
+                depthWrite: params.terrainOpacity >= 0.999
+            });
+            fillMat.userData.baseOpacity = 1.0;
+            terrainFadeMats.push(fillMat);
+            const surfMesh = new THREE.Mesh(surfGeo, fillMat);
+            modelGroup.add(surfMesh);
+
+            // --- 2. CONTOUR LINES as real geometry (marching squares over the height field) ---
+            // This renders the topography the way the reference does: thin brown
+            // iso-elevation curves, not a shaded surface.
+            const gx = 200, gz = 88;
+            const xs = [], zs = [], H = [];
+            for (let i = 0; i <= gx; i++) xs.push(-halfW + (i / gx) * params.width);
+            for (let j = 0; j <= gz; j++) zs.push(-halfD + (j / gz) * params.depth);
+            let minH = Infinity, maxH = -Infinity;
+            for (let i = 0; i <= gx; i++) {
+                H[i] = [];
+                for (let j = 0; j <= gz; j++) {
+                    const h = getTerrainHeight(xs[i], zs[j]);
+                    H[i][j] = h;
+                    if (h < minH) minH = h;
+                    if (h > maxH) maxH = h;
+                }
+            }
+            const sp = params.contourSpacing;
+            const linePos = [], idxPos = [];           // regular vs bold "index" contours
+            const isGeo = (params.terrainSource === 'geodata' && geodata.ready);
+            const mpu = metersPerYUnit();
+            const labelTargetX = -halfW * 0.32;        // column where elevation labels stack
+            const idxLabel = {};                       // level -> {x,y,z,dist}
+            for (let L = Math.ceil(minH / sp); L <= Math.floor(maxH / sp); L++) {
+                const c = L * sp;
+                const ey = c + 0.02; // tiny lift to beat z-fighting with the fill mesh
+                const isIndex = (L % 5 === 0);
+                const out = isIndex ? idxPos : linePos;
+                for (let i = 0; i < gx; i++) {
+                    for (let j = 0; j < gz; j++) {
+                        const hA = H[i][j],     ax = xs[i],   az = zs[j];
+                        const hB = H[i+1][j],   bx = xs[i+1], bz = zs[j];
+                        const hC = H[i+1][j+1], cx = xs[i+1], cz = zs[j+1];
+                        const hD = H[i][j+1],   dx = xs[i],   dz = zs[j+1];
+                        const cr = [];
+                        if ((hA - c) * (hB - c) < 0) { const t=(c-hA)/(hB-hA); cr.push(ax+(bx-ax)*t, az+(bz-az)*t); }
+                        if ((hB - c) * (hC - c) < 0) { const t=(c-hB)/(hC-hB); cr.push(bx+(cx-bx)*t, bz+(cz-bz)*t); }
+                        if ((hC - c) * (hD - c) < 0) { const t=(c-hC)/(hD-hC); cr.push(cx+(dx-cx)*t, cz+(dz-cz)*t); }
+                        if ((hD - c) * (hA - c) < 0) { const t=(c-hD)/(hA-hD); cr.push(dx+(ax-dx)*t, dz+(az-dz)*t); }
+                        if (cr.length === 4) {
+                            out.push(cr[0], ey, cr[1],  cr[2], ey, cr[3]);
+                        } else if (cr.length === 8) {
+                            out.push(cr[0], ey, cr[1],  cr[2], ey, cr[3]);
+                            out.push(cr[4], ey, cr[5],  cr[6], ey, cr[7]);
+                        }
+                        // pick the index-contour point nearest the label column
+                        if (isIndex && isGeo && cr.length >= 2) {
+                            const dist = Math.abs(cr[0] - labelTargetX);
+                            if (!idxLabel[L] || dist < idxLabel[L].dist)
+                                idxLabel[L] = { x: cr[0], y: ey, z: cr[1], dist };
+                        }
+                    }
+                }
+            }
+            const tOp = params.terrainOpacity;
+            const regGeo = new THREE.BufferGeometry();
+            regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
+            const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
+            modelGroup.add(new THREE.LineSegments(regGeo, regMat));
+            const idxGeo = new THREE.BufferGeometry();
+            idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
+            const idxMat = new THREE.LineBasicMaterial({ color: COL.contourIndex, transparent: true, opacity: tOp });
+            modelGroup.add(new THREE.LineSegments(idxGeo, idxMat));
+            regMat.userData.baseOpacity = 1.0;
+            idxMat.userData.baseOpacity = 1.0;
+            terrainFadeMats.push(regMat, idxMat);
+
+            // Elevation labels on index contours (real metres, GeoData only)
+            if (isGeo) {
+                Object.keys(idxLabel).forEach(L => {
+                    const p = idxLabel[L];
+                    const metres = Math.round(geodata.minM + p.y * mpu);
+                    const s = createTextSprite(metres + ' m', COL.contourIndex, 20);
+                    s.scale.set(3.4, 0.85, 1);
+                    s.position.set(p.x, p.y + 0.18, p.z);
+                    // Contour elevation labels are part of the contour layer → fade with it.
+                    s.material.userData.baseOpacity = 1.0;
+                    s.material.opacity = params.terrainOpacity;
+                    terrainFadeMats.push(s.material);
+                    modelGroup.add(s);
+                });
+            }
+
+            // --- 3. Thin block skirt. Camera-facing front wall is semi-transparent
+            //         so the subsurface horizon shows through (per the brief). ---
+            // Walls fade with the terrain-opacity slider too (baseOpacity × slider); the
+            // strata cross-section is intentionally excluded so it stays readable.
+            // The block sides stay ≥50% transparent (baseOpacity ≤ 0.5) at all times so the
+            // subsurface (shafts/gallery) always shows through them; they never write depth.
+            const tOpW = params.terrainOpacity;
+            const SIDE_MAX = 0.5;
+            const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
+                                                              transparent: true, opacity: SIDE_MAX * tOpW, depthWrite: false });
+            const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
+                                                              transparent: true, opacity: 0.18 * tOpW, depthWrite: false });
+            sideMat.userData.baseOpacity = SIDE_MAX;
+            frontMat.userData.baseOpacity = 0.18;
+            terrainFadeMats.push(sideMat, frontMat);
+
+            function buildWall(pts, isX, fixed, mat) {
+                const geo = new THREE.BufferGeometry();
+                const verts = [];
+                const edgePts = [];
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const p1 = pts[i], p2 = pts[i + 1];
+                    const x1 = isX ? fixed : p1, z1 = isX ? p1 : fixed;
+                    const x2 = isX ? fixed : p2, z2 = isX ? p2 : fixed;
+                    const y1 = getTerrainHeight(x1, z1);
+                    const y2 = getTerrainHeight(x2, z2);
+                    verts.push(x1, y1, z1,  x1, params.baseY, z1,  x2, y2, z2);
+                    verts.push(x2, y2, z2,  x1, params.baseY, z1,  x2, params.baseY, z2);
+                    edgePts.push(new THREE.Vector3(x1, y1, z1));
+                    if (i === pts.length - 2) edgePts.push(new THREE.Vector3(x2, y2, z2));
+                }
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+                geo.computeVertexNormals();
+                modelGroup.add(new THREE.Mesh(geo, mat));
+                // crisp brown silhouette line along the top edge of the wall (fades too)
+                const eg = new THREE.BufferGeometry().setFromPoints(edgePts);
+                const em = new THREE.LineBasicMaterial({ color: 0x8a4b22,
+                    transparent: true, opacity: params.terrainOpacity });
+                em.userData.baseOpacity = 1.0;
+                terrainFadeMats.push(em);
+                modelGroup.add(new THREE.Line(eg, em));
+            }
+
+            const xSteps = [], zSteps = [];
+            for (let i = 0; i <= segX; i++) xSteps.push(-halfW + (i / segX) * params.width);
+            for (let i = 0; i <= segZ; i++) zSteps.push(-halfD + (i / segZ) * params.depth);
+
+            if (params.showSides) {
+                buildWall(xSteps, false, -halfD, sideMat);   // back
+                buildWall(xSteps, false,  halfD, frontMat);  // front (camera-facing, transparent)
+                buildWall(zSteps, true,  -halfW, sideMat);   // west
+                buildWall(zSteps, true,   halfW, sideMat);   // east
+            }
+
+            // Base
+            const baseGeo = new THREE.PlaneGeometry(params.width, params.depth);
+            baseGeo.rotateX(Math.PI / 2);
+            const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({ color: COL.base }));
+            baseMesh.position.y = params.baseY;
+            modelGroup.add(baseMesh);
+
+            // --- 3. Raschpëtzer shafts + qanat tunnel ---
+            //  Faithful (georeferenced) layout: the gallery floor follows the SURVEYED
+            //  elevations (near-level ~355 m, gentle West-down slope); shaft depth =
+            //  ground surface minus gallery floor, so the deepest shafts fall under the
+            //  plateau (~36 m). This is now the only layout.
+            shaftMeshes.length = 0;
+            // Honesty encoding: a shaft whose DEPTH is documented (P5, P3, P1, P-4, P-7A,
+            // P-5A) is drawn solid; one whose depth is only inferred from the gallery model
+            // is drawn translucent. (Plan POSITIONS are schematic for all — see the caption.)
+            // Shafts are an x-ray overlay: depthTest AND depthWrite off so they never test
+            // or pollute the depth buffer (the latter caused the intermittent "glitch on
+            // top" + faded parts dropping out). High renderOrder keeps them above the
+            // terrain/strata/walls in the transparent pass — visible full-length, above and
+            // below ground. Inferred shafts differ by opacity only.
+            // Documented shafts are SOLID cylinders (bright above-ground cap + fainter
+            // below-ground body). Inferred shafts are the SAME-size cylinder but "volume
+            // stripped" — a crisp wireframe cage (rim rings + vertical seams) over a faint
+            // ghost fill, so they're obviously shafts yet clearly distinct from the solid ones.
+            const mkShaftMat = op => new THREE.MeshBasicMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
+            const capSolidMat = mkShaftMat(1.0);
+            const belowFaintMat = mkShaftMat(0.4);
+            const ghostFillMat = mkShaftMat(0.12);
+            const cageMat = new THREE.LineBasicMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: 0.95 });
+            const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
+
+            // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
+            const basePts = [], auxPts = [], shaftBaseById = {};
+            let localMaxLen = 0;
+            pillarDefs.forEach((p, i) => {
+                const sy = surf[i];
+                let len, floorM = null, depthM = null, documented = false;
+                const sM = surfaceMeters(sy);
+                const rec = shaftById[p.id];
+                // Timeline: skip shafts not yet built at the selected year.
+                const st = rec ? shaftTimeState(rec, params.year) : { show: true, solid: true };
+                if (!st.show) return;
+                if (params.terrainSource === 'geodata' && rec && rec.geo) {
+                    // Georeferenced: the gallery floor is the near-level documented profile
+                    // (or the surveyed floor); depth = LiDAR surface − floor. This makes the
+                    // tunnel near-level by construction and reproduces the documented depths.
+                    floorM = (REAL_FLOOR[p.id] != null) ? REAL_FLOOR[p.id] : floorMaslAtLon(rec.geo.lon);
+                } else if (REAL_DEPTH[p.id] != null) {
+                    floorM = sM - REAL_DEPTH[p.id];        // schematic/procedural fallback
+                } else {
+                    floorM = galleryFloorMeters(p.x);
+                }
+                if (floorM > sM - 1) floorM = sM - 1;      // gallery stays below the surface
+                const renderedDepth = sM - floorM;
+                depthM = (REAL_DEPTH[p.id] != null) ? REAL_DEPTH[p.id] : renderedDepth;
+                documented = (REAL_DEPTH[p.id] != null);
+                len = metersToYDepth(renderedDepth);
+                if (len < 0.05) len = 0.05;
+                const ty = sy - len;
+                const bp = new THREE.Vector3(p.x, ty, p.z);
+                shaftBaseById[p.id] = bp;
+                (AUX_SHAFTS[p.id] ? auxPts : basePts).push(bp);
+                if (len > localMaxLen) localMaxLen = len;
+                // Every shaft gets a short above-ground stub so its opening is visible
+                // over the terrain (inferred shafts included — they were previously hidden
+                // as sub-surface translucent pillars that blended into the contours).
+                const CAP = 0.7;                              // above-ground stub height (units)
+                const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
+                             floorM: floorM, depthM: depthM, documented: documented };
+                const solid = documented && st.solid;         // solid pillar vs stripped-volume cage
+                // Build one shaft segment (solid cylinder, or ghost-fill + wireframe cage).
+                const addSeg = (h, cyY, order) => {
+                    const cyl = new THREE.CylinderGeometry(0.30, 0.30, h, 16);
+                    if (solid) {
+                        const m = new THREE.Mesh(cyl, order === 'cap' ? capSolidMat : belowFaintMat);
+                        m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
+                        modelGroup.add(m); shaftMeshes.push(m);
+                    } else {
+                        const g = new THREE.Mesh(cyl, ghostFillMat);
+                        g.position.set(p.x, cyY, p.z); g.renderOrder = 11; g.userData = ud;
+                        modelGroup.add(g); shaftMeshes.push(g);   // hover/pick target
+                        const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), cageMat);
+                        cage.position.set(p.x, cyY, p.z); cage.renderOrder = 13;
+                        modelGroup.add(cage);
+                    }
+                };
+                // Above-ground cap is ALWAYS shown (surface marker, even with underground off);
+                // the below-ground body only when subsurface structures are enabled.
+                addSeg(CAP, sy + CAP / 2, 'cap');
+                if (params.showUnderground) addSeg(len, sy - len / 2, 'body');
+                const lbl = createTextSprite(p.id, '#1a1a1a', 24);
+                lbl.position.set(p.x, sy + CAP + 0.5, p.z);
+                modelGroup.add(lbl);
+            });
+            maxShaftLenUnits = localMaxLen || 5;          // calibrates metres for non-geo modes
+            const mpuNow = metersPerYUnit();
+            shaftMeshes.forEach(m => m.userData.depthMeters =
+                (m.userData.depthM != null) ? m.userData.depthM : m.userData.depthUnits * mpuNow);
+
+            // Tunnel polyline through the shaft bases: solid explored core +
+            // dashed inferred ends.
+            function tunnelTube(points, color) {
+                if (points.length < 2) return;
+                const cv = new THREE.CatmullRomCurve3(points);
+                const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), 0.16, 8, false);
+                const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: false }));
+                mm.renderOrder = 5; modelGroup.add(mm);
+            }
+            function tunnelDashed(points, color) {
+                if (points.length < 2) return;
+                const cv = new THREE.CatmullRomCurve3(points);
+                const g = new THREE.BufferGeometry().setFromPoints(cv.getPoints(points.length * 10));
+                const ln = new THREE.Line(g, new THREE.LineDashedMaterial(
+                    { color, dashSize: 2.8, gapSize: 2.0, depthTest: false }));   // 4× larger dashes
+                ln.computeLineDistances(); ln.renderOrder = 5; modelGroup.add(ln);
+            }
+            // The gallery + channel exist only once the qanat is built (≥131 AD).
+            const galleryBuilt = params.year >= 131;
+            if (galleryBuilt && params.showUnderground) {
+                const n = basePts.length;
+                const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
+                const start = Math.floor((n - exC) / 2), end = start + exC;
+                tunnelTube(basePts.slice(start, end), COL.qanat);          // explored (solid)
+                tunnelDashed(basePts.slice(0, start + 1), COL.qanat);      // inferred west (dashed)
+                tunnelDashed(basePts.slice(end - 1), COL.qanat);          // inferred east (dashed)
+
+                // Auxiliary dry channel (P-7A → P-5A), higher & unconnected: grey dashed
+                if (auxPts.length >= 2) tunnelDashed(auxPts, COL.auxChannel);
+
+                // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate)
+                SSOT.gallery.gallery.steps.forEach(step => {
+                    const id = step.underShaft, txt = step.dropM + ' m step';
+                    const bp = shaftBaseById[id];
+                    if (!bp) return;
+                    const top = new THREE.Vector3(bp.x, bp.y + 0.9, bp.z);
+                    modelGroup.add(new THREE.Line(
+                        new THREE.BufferGeometry().setFromPoints([bp, top]),
+                        new THREE.LineBasicMaterial({ color: COL.qanat, depthTest: false })));
+                    const s = createTextSprite(txt, '#1d6fd6', 20);
+                    s.scale.set(3.0, 0.8, 1);
+                    s.position.set(bp.x, bp.y + 1.35, bp.z);
+                    modelGroup.add(s);
+                });
+            }
+
+            // Static flow-direction arrows show once the gallery exists (didactic);
+            // animated *moving* water only during the Roman service period (140–350).
+            const inService = params.year >= 140 && params.year <= 350;
+            if (galleryBuilt && params.showGeology && params.showUnderground) {
+                for (let i = basePts.length - 2; i >= 1; i -= 2) {
+                    flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, COL.qanat, 0.9);
+                }
+            }
+            lastQanatPts = (inService && params.showUnderground) ? basePts : [];   // animated flow: in-service only
+
+            // Overflow / lateral (deviation) channel at the P-4 weir (optional; SSOT-driven).
+            // Ø80 cm branch that carries surplus (~80 m³/d) away when the main channel dams
+            // above ~12 cm. The brochure gives no surveyed plan geometry (fig 5-11/5-14), so
+            // the route here is a SCHEMATIC short lateral drain — labelled as reconstructed.
+            if (params.showOverflow && galleryBuilt && params.showUnderground) {
+                const oc = SSOT.gallery.gallery.overflowChannel;
+                const bp = oc && shaftBaseById[oc.atShaft];
+                if (bp) {
+                    const flowM = inService ? oc.divertedFlowM3PerDay : 0;
+                    const start = new THREE.Vector3(bp.x, bp.y + 0.02, bp.z);
+                    const mid   = new THREE.Vector3(bp.x + 1.0, bp.y - 0.25, bp.z + 2.2);
+                    const end   = new THREE.Vector3(bp.x + 1.7, bp.y - 0.6, bp.z + 5.0);
+                    const cv = new THREE.CatmullRomCurve3([start, mid, end]);
+                    const g = new THREE.TubeGeometry(cv, 40, 0.16, 8, false);
+                    const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
+                    mm.renderOrder = 5; modelGroup.add(mm);
+                    // Weir tap marker at the branch point
+                    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10),
+                        new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
+                    dot.position.copy(start); dot.renderOrder = 6; modelGroup.add(dot);
+                    const s = createTextSprite('overflow weir (P‑4, Ø80 cm)', '#0a9bc4', 20);
+                    s.scale.set(6.0, 1.0, 1);
+                    s.position.set(end.x, end.y + 1.0, end.z);
+                    modelGroup.add(s);
+                    // (Surface resurgence spring not drawn — its exact outlet has no confirmed
+                    //  GPS; kept in the SSOT as gallery.overflowChannel.surfaceOutlet only.)
+                }
+            }
+
+            // Default / reset camera: an edge-on side elevation at 0° horizon, centred on
+            // the qanat, so the near-level tunnel and the horizontal strata / aquifer-bottom
+            // bands line up. Looks north (−Z) from the south at the tunnel's own height.
+            if (basePts.length) {
+                const c = basePts.reduce((a, p) => a.clone().add(p), new THREE.Vector3())
+                    .multiplyScalar(1 / basePts.length);
+                const dist = Math.max(params.width * 1.6, 120);   // start further off
+                DEFAULT_CAM.target.set(c.x, c.y, 0);
+                DEFAULT_CAM.pos.set(c.x, c.y, dist);          // same y as target ⇒ elevation 0°
+                if (!initialViewSet && camera && controls) {
+                    camera.position.copy(DEFAULT_CAM.pos);
+                    controls.target.copy(DEFAULT_CAM.target);
+                    controls.update();
+                    initialViewSet = true;
+                }
+            }
+
+            // --- 6. Region labels (placed per terrain source; flip-aware in GeoData) ---
+            function placeLabel(text, x, yOff, color, size) {
+                const s = createTextSprite(text, color, size);
+                s.position.set(x, getTerrainHeight(x, 0) + yOff, 0);
+                modelGroup.add(s);
+            }
+            // Region names come from the SSOT (site.regions), placed by terrain source.
+            const regionName = id => (SSOT.site.regions.find(r => r.id === id) || {}).name || id;
+            if (isGeo) {
+                const S = params.flipWE ? -1 : 1;   // real DEM: valley west, plateau east
+                placeLabel(regionName('alzette'),   -22 * S, 3.0, "#555555", 30);
+                placeLabel(regionName('petschend'),  16 * S, 3.2, "#333333", 34);
+            } else {
+                placeLabel(regionName('alzette'),    -17, 3.2, "#555555", 30);
+                placeLabel(regionName('petschend'),    2, 4.5, "#333333", 34);
+                placeLabel(regionName('haedchen'),    22, 3.2, "#555555", 30);
+            }
+
+            // --- 6a. Inferred recipient villa at the valley (west) end (SSOT: site.villa).
+            // The qanat fed a Roman estate downslope to the west; the exact site is not
+            // established, so it's drawn as a faded box with a dashed (inferred) outline. ---
+            const villa = SSOT.site.villa;
+            const shaftXs = [...basePts, ...auxPts].map(v => v.x);
+            // Anchor to the WEST-most shaft + a fixed metric offset (~75 m downslope), so the
+            // villa stays put relative to the qanat as `surround` grows/shrinks (metersPerXUnit
+            // is constant). It's shown only while it falls INSIDE the visible terrain window —
+            // so it appears/disappears with the surrounding-area slider, like the terrain itself.
+            const flipV = isGeo && params.flipWE;               // flipped ⇒ west is +x
+            const westX = shaftXs.length ? (flipV ? Math.max(...shaftXs) : Math.min(...shaftXs)) : 0;
+            // ~200 m downslope: the recipient estate lay in the Alzette valley, not adjacent
+            // to the qanat's west end. Exact site is undocumented (see site.villa) — schematic.
+            const villaX = westX + (flipV ? 1 : -1) * (200 / metersPerXUnit());
+            if (villa && params.showVilla && shaftXs.length && Math.abs(villaX) <= halfW) {
+                const vx = villaX;
+                const vy = getTerrainHeight(vx, 0);
+                const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6),
+                    new THREE.MeshBasicMaterial({ color: 0xb08d57, transparent: true, opacity: 0.45, depthTest: false }));
+                box.position.set(vx, vy + 0.6, 0); box.renderOrder = 9;
+                modelGroup.add(box);
+                const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry),
+                    new THREE.LineDashedMaterial({ color: 0x6b4f2a, dashSize: 0.28, gapSize: 0.2,
+                        transparent: true, opacity: 0.9, depthTest: false }));
+                edges.position.copy(box.position); edges.computeLineDistances(); edges.renderOrder = 10;
+                modelGroup.add(edges);
+                const vs = createTextSprite('Roman villa (inferred, location unknown)', '#6b4f2a', 18);
+                vs.scale.set(9.0, 1.05, 1); vs.position.set(vx, vy + 2.1, 0);
+                modelGroup.add(vs);
+            }
+
+            // --- 6b. In-corridor water sources (documented; regional catchment springs
+            // in hydrology.catchment are km away and shown in the data, not the corridor). ---
+            const waterMarker = (scenePos, label, sub) => {
+                const sy = getTerrainHeight(scenePos.x, scenePos.z);
+                const dot = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12),
+                    new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
+                dot.position.set(scenePos.x, sy + 0.35, scenePos.z); dot.renderOrder = 7;
+                modelGroup.add(dot);
+                const s = createTextSprite(label, '#0a6ebd', 20);
+                s.scale.set(4.6, 1.0, 1); s.position.set(scenePos.x, sy + 1.15, scenePos.z);
+                modelGroup.add(s);
+            };
+            if (params.showGeology) {
+                const p9 = shaftById['P9'];
+                // Haedchen source: the qanat's east end (gallery starts ~13 m E of P9)
+                if (p9 && p9.geo) {
+                    const e = geoToScene(p9.geo.lat, p9.geo.lon);
+                    waterMarker({ x: e.x + (params.flipWE ? -2 : 2), z: e.z }, 'Haedchen source');
+                }
+            }
+
+            // --- 7. Geological cross-section (strata + groundwater) ---
+            addGeology(halfW, halfD);
+
+            // --- 8. 3D scale bar (accurate metres) + north arrow ---
+            addScaleBarAndCompass(halfW, halfD, isGeo);
+
+            // X-ray overlays: every depthTest-off object (shafts, tunnel, flow, water,
+            // overflow, groundwater, markers) must render in the TRANSPARENT pass, above
+            // the (transparent) terrain fill, so the qanat + everything underground always
+            // shows through the terrain at any opacity. depthTest-off + renderOrder ≥ 4
+            // (fill=0, strata=2) guarantees it.
+            modelGroup.traverse(o => {
+                const m = o.material;
+                if (m && m.depthTest === false) {
+                    m.transparent = true;
+                    if (o.renderOrder === 0) o.renderOrder = 4;
+                }
+            });
+
+            updateCompass();
+            updateExagReadout();
+            renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
+            rebuildFlow();               // rebuild animated-flow particles for the new paths
+            if (profileOn) document.getElementById('profile-panel').innerHTML = buildProfileSVG();
+        }
+
+        // Real ground metres per model X-unit (GeoData uses the bbox; else nominal ~1 km block).
+        function metersPerXUnit() {
+            if (params.terrainSource === 'geodata' && geodata.ready) {
+                const mPerDegLon = 111320 * Math.cos(geoView.south * Math.PI / 180);
+                return ((geoView.east - geoView.west) * mPerDegLon) / params.width;
+            }
+            return 1000 / params.width; // nominal: treat the block as ~1 km wide
+        }
+
+        function addScaleBarAndCompass(halfW, halfD, isGeo) {
+            const mpx = metersPerXUnit();
+            const barLenUnits = 100 / mpx;        // a 100 m bar
+            const y = params.baseY + 0.4, z = halfD + 0.6, x0 = -halfW + 1.5;
+            const mk = (a, b) => modelGroup.add(new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([a, b]),
+                new THREE.LineBasicMaterial({ color: 0x333333, depthTest: false })));
+            const yb = y;
+            mk(new THREE.Vector3(x0, yb, z), new THREE.Vector3(x0 + barLenUnits, yb, z));
+            mk(new THREE.Vector3(x0, yb - 0.35, z), new THREE.Vector3(x0, yb + 0.35, z));
+            mk(new THREE.Vector3(x0 + barLenUnits, yb - 0.35, z), new THREE.Vector3(x0 + barLenUnits, yb + 0.35, z));
+            const barLbl = createTextSprite(isGeo ? '100 m' : '100 m (approx.)', '#333333', 22);
+            barLbl.scale.set(isGeo ? 3.2 : 5.0, 0.9, 1);
+            barLbl.position.set(x0 + barLenUnits / 2, yb - 1.0, z);
+            modelGroup.add(barLbl);
+            // (North arrow removed; W/E corner labels convey orientation.)
+        }
+
+        function updateCompass() {
+            const flipped = params.flipWE && params.terrainSource === 'geodata';
+            const w = document.getElementById('label-west'), e = document.getElementById('label-east');
+            if (w) w.innerHTML = '<em>' + (flipped ? 'East' : 'West') + '</em>';
+            if (e) e.innerHTML = '<em>' + (flipped ? 'West' : 'East') + '</em>';
+        }
+
+        function updateExagReadout() {
+            const el = document.getElementById('exag-readout');
+            if (!el) return;
+            const vEx = metersPerXUnit() / metersPerYUnit(); // vertical:horizontal scale ratio
+            // "(true scale)" only when it really is 1.0× (consistent with the shown value)
+            el.textContent = 'Vertical exaggeration ≈ ' + vEx.toFixed(1) + '×' +
+                             (vEx.toFixed(1) === '1.0' ? '  (true scale)' : '');
+        }
+
+        // Small flow-direction arrow (cone) along +x (east, dir>0) or -x (west, dir<0).
+        function flowArrow(x, y, z, dir, color, size) {
+            size = size || 0.9;
+            const cone = new THREE.Mesh(
+                new THREE.ConeGeometry(0.36 * size, 1.1 * size, 8),
+                new THREE.MeshBasicMaterial({ color, depthTest: false }));
+            cone.rotation.z = dir > 0 ? -Math.PI / 2 : Math.PI / 2;
+            cone.position.set(x, y, z);
+            cone.renderOrder = 7;
+            modelGroup.add(cone);
+        }
+
+        // Geological cross-section on the camera-facing cut plane: real strata bands
+        // (weathered rock / Luxembourg sandstone / marl+limestone / keuper) plus the
+        // groundwater band that flows East toward the mother shaft. Semi-transparent so
+        // the shafts & gallery still read in front of it.
+        function addGeology(halfW, halfD) {
+            if (!params.showGeology) return;
+            const zF = halfD - 0.03;
+            const N = 96;
+            const C = {
+                weath: new THREE.Color(STRATA.cover).toArray(),  // weathered rock / soft ground
+                sand:  new THREE.Color(STRATA.li2).toArray(),    // Luxembourg sandstone (water-bearing)
+                marl:  new THREE.Color(STRATA.li1).toArray(),    // blue-grey marl & limestone
+                ko:    new THREE.Color(STRATA.ko).toArray(),     // red mudstone (keuper)
+                km:    new THREE.Color(STRATA.km3).toArray()     // dolomitic marl (keuper)
+            };
+            const base = params.baseY;
+            const geoMode = (params.terrainSource === 'geodata' && geodata.ready);
+            // GeoData: anchor the sandstone/marl interface (= groundwater table, ≈ gallery
+            // floor per fig.5-24) to REAL elevation; weathered cover ~2 m (cited [2,10]);
+            // marl+keuper below. Non-geo: keep the schematic scene-unit bands.
+            // masl thicknesses: cover cited (~2 m); li1 marl below the interface and ko
+            // Keuper from the fig.4-3 digitisation (ko ≈ 5 m; li1 ≈ 15 m of the ~50 m Liassic).
+            const COVER_M = 2, MARL_M = 15, KO_M = 5;
+            const wThk = 0.45, marlThk = 2.6, koThk = 0.30;   // schematic fallback (scene units)
+            const gwYschem = x => 2.7 - x * 0.02;
+            // Interface elevation follows the near-level gallery floor, ~2 m below it.
+            const interfaceMasl = x => floorMaslAtLon(sceneXToLon(x)) - 2;
+
+            const pos = [], col = [], gwPts = [];
+            const push = (x1, x2, t1, b1, t2, b2, c) => {
+                if (t1 - b1 < 0.01 && t2 - b2 < 0.01) return;
+                pos.push(x1, t1, zF, x1, b1, zF, x2, t2, zF,  x2, t2, zF, x1, b1, zF, x2, b2, zF);
+                for (let k = 0; k < 6; k++) col.push(c[0], c[1], c[2]);
+            };
+            const xs = [];
+            for (let i = 0; i <= N; i++) xs.push(-halfW + i / N * params.width);
+            for (let i = 0; i < N; i++) {
+                const xa = xs[i], xb = xs[i + 1];
+                // Sample the surface AT the front cut plane (zF), not the centreline,
+                // so the strata top matches the front terrain silhouette (no overflow).
+                const sA = getTerrainHeight(xa, zF), sB = getTerrainHeight(xb, zF);
+                let wA, wB, gA, gB, mA, mB, kA, kB;
+                if (geoMode) {
+                    wA = sA - metersToYDepth(COVER_M); wB = sB - metersToYDepth(COVER_M);
+                    gA = Math.min(maslToY(interfaceMasl(xa)), wA - 0.02);
+                    gB = Math.min(maslToY(interfaceMasl(xb)), wB - 0.02);
+                    mA = Math.max(gA - metersToYDepth(MARL_M), base + 0.6);
+                    mB = Math.max(gB - metersToYDepth(MARL_M), base + 0.6);
+                    kA = Math.max(mA - metersToYDepth(KO_M), base + 0.3);
+                    kB = Math.max(mB - metersToYDepth(KO_M), base + 0.3);
+                } else {
+                    wA = sA - wThk; wB = sB - wThk;
+                    gA = Math.min(gwYschem(xa), wA - 0.05); gB = Math.min(gwYschem(xb), wB - 0.05);
+                    mA = Math.max(gA - marlThk, base + 0.6); mB = Math.max(gB - marlThk, base + 0.6);
+                    kA = Math.max(mA - koThk, base + 0.3); kB = Math.max(mB - koThk, base + 0.3);
+                }
+                push(xa, xb, sA, wA, sB, wB, C.weath);   // weathered
+                push(xa, xb, wA, gA, wB, gB, C.sand);    // sandstone
+                push(xa, xb, gA, mA, gB, mB, C.marl);    // marl & limestone
+                push(xa, xb, mA, kA, mB, kB, C.ko);      // red mudstone
+                push(xa, xb, kA, base, kB, base, C.km);  // dolomitic marl
+                gwPts.push(new THREE.Vector3(xa, gA, zF));
+                if (i === N - 1) gwPts.push(new THREE.Vector3(xb, gB, zF));
+            }
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+            const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial(
+                { vertexColors: true, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }));
+            mesh.renderOrder = 2;
+            modelGroup.add(mesh);
+
+            // Bright groundwater band + eastward flow arrows along the sandstone base
+            modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwPts),
+                new THREE.LineBasicMaterial({ color: COL.groundwater, depthTest: false })));
+            for (let x = -halfW * 0.35; x < halfW * 0.9; x += params.width / 9) {
+                const y = geoMode ? maslToY(interfaceMasl(x)) : gwYschem(x);
+                const coverY = geoMode ? metersToYDepth(COVER_M) : wThk;
+                if (y < getTerrainHeight(x, zF) - coverY) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
+            }
+            lastGwPts = gwPts;   // path for animated groundwater flow
+        }
+
+        function createTextSprite(text, colorStr = '#111', size = 24) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const font = `600 ${size}px -apple-system, sans-serif`;
+            // Size the canvas to the text so long labels aren't clipped (min 320 keeps
+            // short labels identical to before). Sprite scale (set by callers) is unchanged.
+            ctx.font = font;
+            canvas.width = Math.max(320, Math.ceil(ctx.measureText(text).width) + 28);
+            canvas.height = 72;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = font;   // re-apply: resizing the canvas resets the context
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            // A glyph-hugging light stroke gives contrast on dark terrain WITHOUT the
+            // rectangular halo that shadowBlur baked into the transparent canvas (that
+            // faint box was the label "glitch" seen over the strata).
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = 'rgba(245,240,234,0.92)';
+            ctx.strokeText(text, cx, cy);
+            ctx.fillStyle = colorStr;
+            ctx.fillText(text, cx, cy);
+            const tex = new THREE.CanvasTexture(canvas);
+            // NPOT canvas (320×72): force no-mipmap linear sampling so WebGL doesn't
+            // resize-to-power-of-two, which was smearing a horizontal streak across labels.
+            tex.minFilter = THREE.LinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.generateMipmaps = false;
+            // Labels are always-on-top overlays: depthTest + depthWrite off and a high
+            // renderOrder so they draw last, above the (transparent) terrain fill. Without
+            // this they sorted against the fill and flickered once terrain opacity < 1.
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: tex, transparent: true, depthTest: false, depthWrite: false }));
+            sprite.renderOrder = 30;
+            sprite.raycast = () => {};   // labels are never pickable (no zoom-target / rotation-centre)
+            sprite.scale.set(6, 1.35, 1);
+            return sprite;
+        }
+
+        function setupUI() {
+            function bind(id, key, lblId) {
+                const sl = document.getElementById(id);
+                const lb = document.getElementById(lblId);
+                sl.value = params[key];                 // init from model-config sceneScale
+                lb.innerText = Number(params[key]).toFixed(2);
+                sl.addEventListener('input', e => {
+                    const v = parseFloat(e.target.value);
+                    params[key] = v;
+                    lb.innerText = v.toFixed(2);
+                    // Contours are real geometry now, so every parameter rebuilds the model.
+                    buildParametricModel();
+                });
+            }
+            bind('param-contours',   'contourSpacing',  'lbl-contours');
+
+            // Vertical exaggeration (single true-scale control for the GeoData surface;
+            // 1.0 = true scale). Replaces the old redundant Vertical-Scale × Elevation-Intensity.
+            const vexSl = document.getElementById('param-vexag');
+            const vexLb = document.getElementById('lbl-vexag');
+            vexSl.value = params.vExag;
+            vexLb.innerText = params.vExag.toFixed(1) + '×';
+            vexSl.addEventListener('input', e => {
+                params.vExag = parseFloat(e.target.value);
+                vexLb.innerText = params.vExag.toFixed(1) + '×';
+                buildParametricModel();
+            });
+
+            // GeoData "Surrounding area": grow the rendered window from the qanat footprint
+            // (1.0x corridor) out to the full sampled extent (2.0x). Shafts are georeferenced,
+            // so they stay locked to the LiDAR terrain; this only reveals more surrounding DEM.
+            const sliceReadout = () => {
+                const vb = recomputeGeoView();
+                const mLon = (vb.east - vb.west) * 111320 * Math.cos(vb.south * Math.PI / 180);
+                const mLat = (vb.north - vb.south) * 111320;
+                const el = document.getElementById('slice-readout');
+                if (el) el.textContent = 'Visible ≈ ' + Math.round(mLon) + ' × ' + Math.round(mLat) +
+                    ' m · qanat ≈ 306 m (georeferenced)';
+            };
+            const surSl = document.getElementById('param-surround');
+            const surLb = document.getElementById('lbl-surround');
+            surSl.value = params.surround; surLb.innerText = params.surround.toFixed(1) + '×';
+            surSl.addEventListener('input', e => {
+                params.surround = parseFloat(e.target.value);
+                surLb.innerText = params.surround.toFixed(1) + '×';
+                sliceReadout();
+                buildParametricModel();
+                updateZoomClamp();   // maxDistance scales with the physically-larger block
+            });
+            sliceReadout();
+
+            // Flip West <-> East (GeoData)
+            document.getElementById('param-flip').addEventListener('change', e => {
+                params.flipWE = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle geological strata + water flows
+            document.getElementById('param-geology').addEventListener('change', e => {
+                params.showGeology = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the optional P-4 overflow / lateral (deviation) channel
+            document.getElementById('param-overflow').addEventListener('change', e => {
+                params.showOverflow = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the optional inferred recipient villa marker
+            document.getElementById('param-villa').addEventListener('change', e => {
+                params.showVilla = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle subsurface qanat structures (shafts + gallery + flow + overflow)
+            document.getElementById('param-underground').addEventListener('change', e => {
+                params.showUnderground = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the terrain block side walls
+            document.getElementById('param-sides').addEventListener('change', e => {
+                params.showSides = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Terrain opacity: lets shafts/gallery show through the fill surface.
+            const opSl = document.getElementById('param-terrain-opacity');
+            const opLb = document.getElementById('lbl-terrain-opacity');
+            opSl.value = params.terrainOpacity;
+            opLb.innerText = params.terrainOpacity.toFixed(2);
+            opSl.addEventListener('input', e => {
+                const v = parseFloat(e.target.value);
+                opLb.innerText = v.toFixed(2);
+                applyTerrainOpacity(v);   // fill + contour lines, live (no rebuild)
+            });
+
+            // Timeline year slider (piecewise-scaled axis; see sliderToYear).
+            setupTimeline();
+
+            // Action buttons
+            document.getElementById('btn-profile').addEventListener('click', toggleProfile);
+            document.getElementById('btn-reset').addEventListener('click', resetView);
+
+            setupShaftInteraction();
+            updateControlVisibility();
+        }
+
+        // --- Timeline slider: colour bands per era + a live year/period readout ------
+        const TL_KIND_COLORS = {
+            build: '#e08a2b', use: '#2f7fd6', dormant: '#4b5563',
+            rediscovery: '#2fae66', investigation: '#2aa6a0', exploration: '#8b5cf6'
+        };
+        function buildTimelineBands() {
+            const track = document.getElementById('timeline-track');
+            if (!track) return;
+            track.innerHTML = '';
+            (TIMELINE.events || []).forEach(e => {
+                const l = yearToSlider(e.fromAD), r = yearToSlider(e.toAD);
+                const d = document.createElement('div');
+                d.className = 'tl-band';
+                d.style.left = (l * 100).toFixed(2) + '%';
+                d.style.width = Math.max(0.6, (r - l) * 100).toFixed(2) + '%';
+                d.style.background = TL_KIND_COLORS[e.kind] || '#6b7280';
+                d.title = e.label + ' (' + e.fromAD + '–' + e.toAD + ' AD)';
+                track.appendChild(d);
+            });
+        }
+        function updateTimelineReadout() {
+            const lbl = document.getElementById('lbl-year');
+            const ro = document.getElementById('timeline-readout');
+            const y = params.year;
+            const yTxt = y >= 2025 ? 'present' : (y + ' AD');
+            if (lbl) lbl.textContent = yTxt;
+            if (!ro) return;
+            const ev = timelineEventAt(y);
+            const lastEnd = Math.max(...(TIMELINE.events || [{ toAD: 2000 }]).map(e => e.toAD));
+            if (ev) {
+                const span = (ev.fromAD === ev.toAD) ? (ev.fromAD + ' AD') : (ev.fromAD + '–' + ev.toAD + ' AD');
+                ro.innerHTML = '<b>' + ev.label + '</b> · ' + span +
+                    (ev.status === 'inferred' ? ' · inferred' : '');
+            } else if (y < TIMELINE.spanAD[0] + 31) {
+                ro.innerHTML = '<b>Before construction</b> · plateau not yet worked';
+            } else if (y > lastEnd) {
+                ro.innerHTML = '<b>Present day</b> · excavated & conserved (~310 m explored)';
+            } else {
+                ro.textContent = '—';
+            }
+        }
+        function setupTimeline() {
+            const sl = document.getElementById('param-year');
+            if (!sl) return;
+            buildTimelineBands();
+            sl.value = Math.round(yearToSlider(params.year) * 1000);
+            let raf = null;
+            sl.addEventListener('input', e => {
+                params.year = sliderToYear(parseFloat(e.target.value) / 1000);
+                updateTimelineReadout();
+                // Debounce the (heavier) model rebuild to one per animation frame.
+                if (raf) cancelAnimationFrame(raf);
+                raf = requestAnimationFrame(() => { raf = null; buildParametricModel(); });
+            });
+            updateTimelineReadout();
+        }
+
+        // Show only the controls that affect the current view.
+        function updateControlVisibility() {
+            // Reserved for future conditional control visibility (the schematic qanat
+            // layout — the only thing this used to gate — has been removed; the faithful
+            // georeferenced layout is now the only mode).
+        }
+
+        // --- Camera helpers: default view + smooth fly-to ---
+        const _cc = MODEL_CONFIG.camera || { position: [0, 20, 96], target: [2, 3, 0] };
+        const DEFAULT_CAM = { pos: new THREE.Vector3(..._cc.position), target: new THREE.Vector3(..._cc.target) };
+        let camAnim = null;
+        function flyTo(pos, target, ms) {
+            camAnim = { fromP: camera.position.clone(), toP: pos.clone(),
+                        fromT: controls.target.clone(), toT: target.clone(),
+                        t0: performance.now(), dur: ms || 700 };
+        }
+        function resetView() { flyTo(DEFAULT_CAM.pos, DEFAULT_CAM.target, 700); }
+
+        // --- Zoom-to-pointer: dolly toward the mouse cursor instead of the orbit target ---
+        // three r128's vendored OrbitControls has no `zoomToCursor` option, so when it's
+        // absent we replace the wheel handler: raycast the pointer onto the model, then
+        // move BOTH the camera and the orbit target toward that world point by the same
+        // fraction (so orbiting after zooming still feels natural), scaled by the zoom step.
+        // Base zoom-distance clamps (surround=1); maxDistance grows with `surround` so the
+        // physically-larger block (item 2) still fits comfortably at full zoom-out.
+        const BASE_MIN_DISTANCE = 25, BASE_MAX_DISTANCE = 400;
+        function updateZoomClamp() {
+            if (!controls) return;
+            controls.minDistance = BASE_MIN_DISTANCE;
+            // The qanat is a fixed on-screen size regardless of `surround`, so the far clamp
+            // must never drop below the base (else at 0.2× it collapses to ~80 and traps the
+            // camera short of the ~120 default framing distance). Only GROW it above 1×.
+            controls.maxDistance = BASE_MAX_DISTANCE * Math.max(1, params.surround);
+            const d = camera.position.distanceTo(controls.target);
+            const clamped = Math.min(controls.maxDistance, Math.max(controls.minDistance, d));
+            if (clamped !== d) {
+                const dir = new THREE.Vector3().subVectors(camera.position, controls.target).setLength(clamped);
+                camera.position.copy(controls.target).add(dir);
+            }
+        }
+
+        function setupZoomToCursor() {
+            if (controls.zoomToCursor !== undefined) { controls.zoomToCursor = true; return; }
+            const dom = renderer.domElement;
+            const zRaycaster = new THREE.Raycaster();
+            const zNdc = new THREE.Vector2();
+            function pointerWorldPoint(ev) {
+                const r = dom.getBoundingClientRect();
+                zNdc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                zNdc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                zRaycaster.setFromCamera(zNdc, camera);
+                const hits = zRaycaster.intersectObjects(modelGroup.children, true)
+                    .filter(h => h.object.type === 'Mesh');
+                if (hits.length) return hits[0].point;
+                // Fall back to intersecting the y=target.y ground plane under the cursor.
+                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -controls.target.y);
+                const pt = new THREE.Vector3();
+                return zRaycaster.ray.intersectPlane(plane, pt) ? pt : null;
+            }
+            dom.addEventListener('wheel', ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                // Respect the same OrbitControls.min/maxDistance clamps as native zoom
+                // (item 9) — including the surround-scaled maxDistance.
+                const minD = controls.minDistance, maxD = controls.maxDistance;
+                const focus = pointerWorldPoint(ev);
+                const step = Math.min(Math.abs(ev.deltaY) / 400, 0.6);
+                const zoomIn = ev.deltaY < 0;
+                const scale = zoomIn ? (1 - step) : (1 + step);
+                const camToTarget = camera.position.distanceTo(controls.target);
+                const newDist = Math.min(maxD, Math.max(minD, camToTarget * scale));
+                const clampedScale = newDist / camToTarget;
+                if (focus) {
+                    // Shift camera + target toward the cursor's world point by the same
+                    // fraction the distance is shrinking (or away from it, if zooming out).
+                    const frac = 1 - clampedScale;
+                    camera.position.lerp(focus, frac);
+                    controls.target.lerp(focus, frac);
+                }
+                // Re-apply the distance change along the (possibly re-centred) view direction.
+                const dir = new THREE.Vector3().subVectors(camera.position, controls.target);
+                const dist = dir.length();
+                const finalDist = Math.min(maxD, Math.max(minD, dist));
+                dir.setLength(finalDist);
+                camera.position.copy(controls.target).add(dir);
+                controls.update();
+            }, { passive: false, capture: true });
+        }
+
+        // --- Super-key (Ctrl/Cmd) + left-drag pans; plain left-drag still rotates. ---
+        // three r128's vendored OrbitControls already builds this in: with the default
+        // mouseButtons.LEFT = ROTATE, holding ctrlKey/metaKey/shiftKey during a left-drag
+        // makes it pan instead (see onMouseDown's ROTATE case). Right-drag pans by default
+        // too (mouseButtons.RIGHT = PAN). Nothing to wire up beyond the on-screen hint.
+
+        // --- Camera readout (azimuth / elevation / distance) + "Level horizon" button ---
+        let _readoutDirty = true, _readoutLastPaint = 0;
+        function updateCameraReadout() {
+            const el = document.getElementById('camera-readout');
+            if (!el) return;
+            const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+            const dist = off.length();
+            const azimuthRad = Math.atan2(off.x, off.z);              // 0° = looking from +Z (south)
+            const azimuthDeg = (THREE.MathUtils.radToDeg(azimuthRad) + 360) % 360;
+            const elevationDeg = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(off.y / (dist || 1), -1, 1)));
+            el.textContent = 'Azimuth ' + azimuthDeg.toFixed(0) + '°  ·  Elevation ' +
+                elevationDeg.toFixed(0) + '°  ·  Distance ' + dist.toFixed(1) + ' u';
+        }
+        function setupCameraReadout() {
+            updateCameraReadout();
+            controls.addEventListener('change', () => { _readoutDirty = true; });
+            document.getElementById('btn-level-horizon').addEventListener('click', levelHorizon);
+        }
+        // "Level horizon": keep azimuth + distance, set elevation/pitch to 0° (camera.y ==
+        // target.y), i.e. polar angle = 90°, animated via the existing flyTo.
+        function levelHorizon() {
+            const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+            const dist = off.length();
+            const horiz = Math.hypot(off.x, off.z) || 1;
+            const scale = dist / horiz;             // stretch the horizontal projection back out to `dist`
+            const levelPos = new THREE.Vector3(
+                controls.target.x + off.x * scale,
+                controls.target.y,
+                controls.target.z + off.z * scale);
+            flyTo(levelPos, controls.target.clone(), 700);
+        }
+
+        // --- Shaft hover (tooltip, shown only after a long dwell) + click (info panel) ---
+        const raycaster = new THREE.Raycaster();
+        const ndc = new THREE.Vector2();
+        let hoverActive = false;
+        const HOVER_DWELL_MS = 600;
+        function setupShaftInteraction() {
+            const dom = renderer.domElement;
+            const tip = document.getElementById('shaft-tooltip');
+            let dwellTimer = null, dwellShaft = null, lastEv = null;
+            function pick(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                return raycaster.intersectObjects(shaftMeshes, false)[0];
+            }
+            function showTooltip(hit, ev) {
+                const d = hit.object.userData;
+                let html = '<span class="t-name">' + d.name + '</span><br>' +
+                    '<span class="t-depth">shaft depth ≈ ' + Math.round(d.depthMeters) + ' m' +
+                    (d.documented ? ' (documented)' : '') + '</span>';
+                if (d.floorM != null) {
+                    const surveyed = REAL_FLOOR[d.name] != null;
+                    html += '<br><span class="t-depth">gallery floor ≈ ' +
+                        (surveyed ? REAL_FLOOR[d.name].toFixed(1) + ' m (surveyed)'
+                                  : d.floorM.toFixed(1) + ' m') + '</span>';
+                }
+                tip.innerHTML = html;
+                tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
+                tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
+                tip.style.display = 'block';
+            }
+            function clearDwell() {
+                if (dwellTimer) { clearTimeout(dwellTimer); dwellTimer = null; }
+                dwellShaft = null;
+            }
+            dom.addEventListener('mousemove', ev => {
+                const hit = pick(ev);
+                if (hit) {
+                    const d = hit.object.userData;
+                    dom.style.cursor = 'pointer';
+                    hoverActive = true;
+                    lastEv = ev;
+                    if (dwellShaft !== d.name) {
+                        // Entered a (new) shaft: reset the dwell timer, hide any prior tooltip.
+                        clearDwell();
+                        dwellShaft = d.name;
+                        tip.style.display = 'none';
+                        dwellTimer = setTimeout(() => {
+                            if (dwellShaft === d.name) showTooltip(hit, lastEv);
+                        }, HOVER_DWELL_MS);
+                    } else if (tip.style.display === 'block') {
+                        // Already showing: keep it glued to the cursor while dwelling on the same shaft.
+                        tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
+                        tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
+                    }
+                } else if (hoverActive) {
+                    tip.style.display = 'none'; dom.style.cursor = 'default'; hoverActive = false;
+                    clearDwell();
+                }
+            });
+            dom.addEventListener('mouseleave', () => {
+                tip.style.display = 'none'; hoverActive = false; clearDwell();
+            });
+            // Raycast the model meshes and return the first surface hit point (or null).
+            function pickSurface(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                const hits = raycaster.intersectObjects(modelGroup.children, true);
+                const h = hits.find(hh => hh.object.type === 'Mesh');
+                return h ? h.point : null;
+            }
+            dom.addEventListener('click', ev => {
+                if (measureMode) {
+                    const p = pickSurface(ev);
+                    if (p) addMeasurePoint(p);
+                    return;
+                }
+                if (annotateMode) {
+                    const p = pickSurface(ev);
+                    if (p) addAnnotation(p.x, p.z);
+                    return;
+                }
+                const hit = pick(ev);
+                if (!hit) return;
+                const d = hit.object.userData;
+                // Clicking a shaft only opens the info overlay — no camera fly (the guided
+                // tour is the only thing that still flies the camera, via tourFlyTo).
+                renderInfoPanel(shaftById[d.name]);       // SSOT-driven info side panel (left overlay)
+            });
+        }
+
+        // --- Feature info panel (SSOT-driven, with citations) ---
+        function statusBadge(status) {
+            const st = (MODEL_CONFIG.statusStyle || {})[status] || { color: '#888', label: status };
+            return `<span class="ip-badge" style="background:${st.color}">${st.label || status}</span>`;
+        }
+        function citeChip(pv) {
+            if (!pv || !pv.source) return '';
+            const s = SSOT.sources[pv.source];
+            const label = s ? (s.short || pv.source) : pv.source;
+            const loc = pv.loc || (s && s.locator) || '';
+            const text = label + (loc ? ' ' + loc : '');
+            const title = (s && (s.title || s.full)) ? ` title="${(s.title || s.full).replace(/"/g, '')}"` : '';
+            return `<span class="ip-cite">${s && s.url
+                ? `<a href="${s.url}" target="_blank" rel="noopener"${title}>${text}</a>`
+                : `<a${title}>${text}</a>`}</span>`;
+        }
+        function factRow(label, rec, field, unit) {
+            const raw = rec[field]; if (raw == null) return '';
+            const pv = provOf(rec, field);
+            const value = Array.isArray(raw) ? raw.join('–') : raw;
+            return `<div class="ip-row"><span class="ip-k">${label}</span>` +
+                `<span class="ip-v">${value}${unit ? ' ' + unit : ''}${statusBadge(pv.status)}</span></div>` +
+                citeChip(pv);
+        }
+        function renderInfoPanel(rec) {
+            if (!rec) return;
+            const body = document.getElementById('info-body');
+            let h = `<h3>${rec.id}</h3><div class="ip-sub">${rec.role || ''}` +
+                `${rec.existence ? ' · existence ' + rec.existence : ''}` +
+                `${rec.confidence ? ' · confidence ' + rec.confidence : ''}</div>`;
+            h += factRow('Depth', rec, 'depthM', 'm');
+            h += factRow('Gallery floor', rec, 'floorElevM', 'm a.s.l.');
+            h += factRow('Diameter', rec, 'diameterM', 'm');
+            if (rec.position && rec.position.status)
+                h += `<div class="ip-row"><span class="ip-k">Position</span>` +
+                     `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(rec.position.status)}</span></div>` +
+                     citeChip(provOf(rec.position, 'crs'));
+            if (rec.notes) { const np = provOf(rec, 'notes'); h += `<div class="ip-note">${rec.notes}</div>` + citeChip(np); }
+            if (rec.paradataRef && rec.paradataRef.length) {
+                const notes = rec.paradataRef.map(id => SSOT.paradata[id]).filter(Boolean);
+                if (notes.length) h += `<div class="ip-para"><b>Reasoning</b><br>` +
+                    notes.map(n => '‣ ' + n.rationale).join('<br><br>') + `</div>`;
+            }
+            body.innerHTML = h;
+            document.body.classList.add('info-open');
+        }
+        function initInfoPanel() {
+            document.getElementById('info-close').addEventListener('click',
+                () => document.body.classList.remove('info-open'));
+        }
+
+        // --- Data-sources modal (replaces the old inline bottom-left overlay) ---
+        function openSourcesModal() { document.body.classList.add('sources-open'); }
+        function closeSourcesModal() { document.body.classList.remove('sources-open'); }
+        function initSourcesModal() {
+            document.getElementById('btn-sources').addEventListener('click', openSourcesModal);
+            document.getElementById('sources-close').addEventListener('click', closeSourcesModal);
+            document.getElementById('sources-modal-backdrop').addEventListener('click', ev => {
+                if (ev.target.id === 'sources-modal-backdrop') closeSourcesModal();
+            });
+            window.addEventListener('keydown', ev => {
+                if (ev.key === 'Escape' && document.body.classList.contains('sources-open')) closeSourcesModal();
+            });
+        }
+
+        // --- Guided tour (fly P-7A → P9, showing each shaft's SSOT record) ---
+        const tour = { active: false, idx: 0, playing: false, timer: null };
+        let tourShafts = [];
+        const TOUR_DWELL_MS = 5000;
+        function tourFlyTo(rec) {
+            const p = (params.terrainSource === 'geodata' && rec.geo)
+                ? geoToScene(rec.geo.lat, rec.geo.lon)
+                : { x: rec.modelPos.x * QSCALE, z: rec.modelPos.z * QSCALE };
+            const sy = getTerrainHeight(p.x, p.z);
+            flyTo(new THREE.Vector3(p.x - 6, sy + 10, p.z + 26), new THREE.Vector3(p.x, sy - 1, p.z), 900);
+        }
+        function tourGoto(i) {
+            tour.idx = Math.max(0, Math.min(tourShafts.length - 1, i));
+            const rec = tourShafts[tour.idx];
+            tourFlyTo(rec);
+            renderInfoPanel(rec);
+            document.getElementById('tour-label').textContent =
+                `${rec.id}  (${tour.idx + 1}/${tourShafts.length})`;
+        }
+        function tourSchedule() {
+            clearTimeout(tour.timer);
+            if (!tour.playing) return;
+            tour.timer = setTimeout(() => {
+                if (tour.idx < tourShafts.length - 1) { tourGoto(tour.idx + 1); tourSchedule(); }
+                else { tour.playing = false; updateTourPlayBtn(); }
+            }, TOUR_DWELL_MS);
+        }
+        function updateTourPlayBtn() {
+            document.getElementById('tour-play').textContent = tour.playing ? '⏸' : '▶';
+        }
+        function startTour() {
+            if (annotateMode) document.getElementById('btn-annotate').click();
+            if (measureMode) setMeasureMode(false);
+            tour.active = true; tour.playing = true;
+            document.body.classList.add('tour-mode');
+            updateTourPlayBtn();
+            tourGoto(0); tourSchedule();
+        }
+        function stopTour() {
+            tour.active = false; tour.playing = false; clearTimeout(tour.timer);
+            document.body.classList.remove('tour-mode');
+        }
+        function initTour() {
+            tourShafts = SHAFTS.filter(s => s.modelPos).slice()
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
+            document.getElementById('btn-tour').addEventListener('click', startTour);
+            document.getElementById('tour-stop').addEventListener('click', stopTour);
+            document.getElementById('tour-next').addEventListener('click', () => { tourGoto(tour.idx + 1); tourSchedule(); });
+            document.getElementById('tour-prev').addEventListener('click', () => { tourGoto(tour.idx - 1); tourSchedule(); });
+            document.getElementById('tour-play').addEventListener('click', () => {
+                tour.playing = !tour.playing; updateTourPlayBtn(); tourSchedule();
+            });
+        }
+
+        // --- Annotations / notes system ---------------------------------------
+        let annotations = [];      // {id, x, z, title, note, feature}
+        let annotSeq = 0, selectedAnnotId = null, annotateMode = false, annotationGroup = null;
+        const ANNOT_KEY = 'raschpetzer_annotations_v1';
+
+        function saveAnnotations() {
+            try { localStorage.setItem(ANNOT_KEY, JSON.stringify(
+                annotations.map(a => ({ x: a.x, z: a.z, title: a.title, note: a.note, feature: a.feature })))); }
+            catch (e) { /* storage disabled — ignore */ }
+        }
+        function loadAnnotations() {
+            try {
+                const raw = localStorage.getItem(ANNOT_KEY);
+                if (!raw) return;
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) annotations = arr.map(a =>
+                    ({ id: ++annotSeq, x: +a.x, z: +a.z, title: a.title || '', note: a.note || '', feature: a.feature || null }));
+            } catch (e) { /* ignore corrupt storage */ }
+        }
+
+        // Nearest documented shaft to a clicked point (for anchoring), within `maxD` units.
+        function nearestShaft(x, z, maxD) {
+            let best = null, bd = Infinity;
+            pillarDefs.forEach(p => {
+                const d = Math.hypot(p.x - x, p.z - z);
+                if (d < bd) { bd = d; best = p; }
+            });
+            return (best && bd <= (maxD || 3)) ? best : null;
+        }
+
+        function initAnnotations() {
+            annotationGroup = new THREE.Group();
+            scene.add(annotationGroup);
+            const btn = document.getElementById('btn-annotate');
+            btn.addEventListener('click', () => {
+                annotateMode = !annotateMode;
+                if (annotateMode) setMeasureMode(false);
+                document.body.classList.toggle('annotate-mode', annotateMode);
+                btn.classList.toggle('active', annotateMode);
+            });
+            document.getElementById('annot-title').addEventListener('input', e => {
+                const a = annotations.find(x => x.id === selectedAnnotId);
+                if (a) { a.title = e.target.value; refreshAnnotList(); saveAnnotations(); }
+            });
+            document.getElementById('annot-note').addEventListener('input', e => {
+                const a = annotations.find(x => x.id === selectedAnnotId);
+                if (a) { a.note = e.target.value; saveAnnotations(); }
+            });
+            document.getElementById('annot-delete').addEventListener('click', deleteSelectedAnnot);
+            document.getElementById('annot-export').addEventListener('click', exportAnnotations);
+            document.getElementById('annot-import-btn').addEventListener('click',
+                () => document.getElementById('annot-import').click());
+            document.getElementById('annot-import').addEventListener('change', importAnnotations);
+
+            loadAnnotations();
+            renderAnnotationMarkers();
+            refreshAnnotList();
+        }
+
+        function addAnnotation(x, z) {
+            const shaft = nearestShaft(x, z, 3);   // snap & anchor to a shaft if close
+            const a = shaft
+                ? { id: ++annotSeq, x: shaft.x, z: shaft.z, title: '', note: '', feature: shaft.id }
+                : { id: ++annotSeq, x, z, title: '', note: '', feature: null };
+            annotations.push(a);
+            selectedAnnotId = a.id;
+            renderAnnotationMarkers(); refreshAnnotList(); openAnnotEditor(); saveAnnotations();
+            document.getElementById('annot-title').focus();
+        }
+        function selectAnnotation(id) {
+            selectedAnnotId = id;
+            renderAnnotationMarkers(); refreshAnnotList(); openAnnotEditor();
+        }
+        function openAnnotEditor() {
+            const a = annotations.find(x => x.id === selectedAnnotId);
+            const ed = document.getElementById('annot-editor');
+            if (!a) { ed.style.display = 'none'; return; }
+            ed.style.display = 'block';
+            document.getElementById('annot-title').value = a.title;
+            document.getElementById('annot-note').value = a.note;
+            const anc = document.getElementById('annot-anchor');
+            anc.textContent = a.feature ? ('⚓ anchored to shaft ' + a.feature) : '';
+        }
+        function deleteSelectedAnnot() {
+            annotations = annotations.filter(a => a.id !== selectedAnnotId);
+            selectedAnnotId = null;
+            renderAnnotationMarkers(); refreshAnnotList(); saveAnnotations();
+            document.getElementById('annot-editor').style.display = 'none';
+        }
+        function refreshAnnotList() {
+            const list = document.getElementById('annot-list');
+            list.innerHTML = '';
+            annotations.forEach((a, i) => {
+                const row = document.createElement('div');
+                row.className = 'annot-row' + (a.id === selectedAnnotId ? ' sel' : '');
+                let t = (a.title || 'Untitled').replace(/</g, '&lt;');
+                if (a.feature) t += ' <span style="opacity:.7">⚓' + a.feature + '</span>';
+                row.innerHTML = '<span class="an-num">' + (i + 1) + '</span><span class="an-t">' + t + '</span>';
+                row.addEventListener('click', () => selectAnnotation(a.id));
+                list.appendChild(row);
+            });
+        }
+        function renderAnnotationMarkers() {
+            if (!annotationGroup) return;
+            while (annotationGroup.children.length) annotationGroup.remove(annotationGroup.children[0]);
+            annotations.forEach((a, i) => {
+                const y = getTerrainHeight(a.x, a.z) + 0.4;
+                const sel = a.id === selectedAnnotId;
+                const sph = new THREE.Mesh(new THREE.SphereGeometry(sel ? 0.55 : 0.42, 16, 12),
+                    new THREE.MeshBasicMaterial({ color: sel ? COL.annotationSel : COL.annotation, depthTest: false }));
+                sph.position.set(a.x, y, a.z); sph.renderOrder = 20;
+                annotationGroup.add(sph);
+                const num = createTextSprite(String(i + 1), '#ffffff', 26);
+                num.scale.set(1.1, 1.1, 1); num.position.set(a.x, y + 0.9, a.z);
+                num.renderOrder = 21;
+                annotationGroup.add(num);
+            });
+        }
+        function exportAnnotations() {
+            const data = { site: 'Raschpëtzer Qanat', terrainSource: params.terrainSource,
+                annotations: annotations.map(a => ({ x: +a.x.toFixed(3), z: +a.z.toFixed(3),
+                    title: a.title, note: a.note, feature: a.feature })) };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const el = document.createElement('a');
+            el.href = url; el.download = 'raschpetzer-annotations.json'; el.click();
+            URL.revokeObjectURL(url);
+        }
+        function importAnnotations(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const data = JSON.parse(reader.result);
+                    const arr = Array.isArray(data) ? data : data.annotations;
+                    if (!Array.isArray(arr)) throw new Error('no annotations array');
+                    annotations = arr.map(a => ({ id: ++annotSeq, x: +a.x, z: +a.z,
+                        title: a.title || '', note: a.note || '', feature: a.feature || null }));
+                    selectedAnnotId = null;
+                    renderAnnotationMarkers(); refreshAnnotList(); saveAnnotations();
+                    document.getElementById('annot-editor').style.display = 'none';
+                    if (!annotateMode) document.getElementById('btn-annotate').click();
+                } catch (err) { alert('Could not import annotations: ' + err.message); }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        // --- Measurement tool -------------------------------------------------
+        let measureMode = false, measureGroup = null, measurePts = [];
+        function metersPerZUnit() {
+            if (params.terrainSource === 'geodata' && geodata.ready) {
+                const mPerDegLat = 111320;
+                return ((geoView.north - geoView.south) * mPerDegLat) / params.depth;
+            }
+            return metersPerXUnit(); // nominal: same as X
+        }
+        function setMeasureMode(on) {
+            measureMode = on;
+            document.body.classList.toggle('measure-mode', on);
+            document.getElementById('btn-measure').classList.toggle('active', on);
+            if (!on) { measurePts = []; clearMeasure(); document.getElementById('measure-readout').style.display = 'none'; }
+        }
+        function clearMeasure() {
+            if (!measureGroup) return;
+            while (measureGroup.children.length) measureGroup.remove(measureGroup.children[0]);
+        }
+        const MEASURE_DOT = 0xff2d55;   // vivid crimson — pops against the beige terrain
+        function measureDot(p) {
+            // dark halo behind a bright dot = a visible outlined marker on light terrain
+            const halo = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 12),
+                new THREE.MeshBasicMaterial({ color: 0x1a1a1a, depthTest: false }));
+            halo.position.copy(p); halo.renderOrder = 22; measureGroup.add(halo);
+            const m = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 12),
+                new THREE.MeshBasicMaterial({ color: MEASURE_DOT, depthTest: false }));
+            m.position.copy(p); m.renderOrder = 23; measureGroup.add(m);
+        }
+        function addMeasurePoint(p) {
+            if (measurePts.length === 2) { measurePts = []; clearMeasure(); }
+            measurePts.push(p.clone());
+            measureDot(p);
+            if (measurePts.length === 2) {
+                const a = measurePts[0], b = measurePts[1];
+                const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]),
+                    new THREE.LineBasicMaterial({ color: MEASURE_DOT, depthTest: false }));
+                ln.renderOrder = 23; measureGroup.add(ln);
+                const mpx = metersPerXUnit(), mpz = metersPerZUnit(), mpy = metersPerYUnit();
+                const dxm = (b.x - a.x) * mpx, dzm = (b.z - a.z) * mpz, dym = (b.y - a.y) * mpy;
+                const horiz = Math.hypot(dxm, dzm);
+                const slope = Math.hypot(horiz, dym);
+                const ro = document.getElementById('measure-readout');
+                ro.innerHTML = 'Horizontal <b>' + horiz.toFixed(1) + ' m</b> · ' +
+                    'Δ elevation <b>' + (dym >= 0 ? '+' : '') + dym.toFixed(1) + ' m</b> · ' +
+                    'straight-line <b>' + slope.toFixed(1) + ' m</b>';
+                ro.style.display = 'block';
+            } else {
+                document.getElementById('measure-readout').innerHTML = 'Click a second point…';
+                document.getElementById('measure-readout').style.display = 'block';
+            }
+        }
+        function initMeasure() {
+            measureGroup = new THREE.Group(); scene.add(measureGroup);
+            document.getElementById('btn-measure').addEventListener('click', () => {
+                setMeasureMode(!measureMode);
+                if (measureMode && annotateMode) document.getElementById('btn-annotate').click();
+            });
+        }
+
+        // --- Gallery longitudinal-profile chart (toggle) ---------------------
+        let profileOn = false;
+        function buildProfileSVG() {
+            // georeferenced main-line shafts, W->E; true elevations (masl)
+            const shs = SHAFTS.filter(s => s.geo && s.role !== 'auxiliary')
+                .sort((a, b) => a.geo.lon - b.geo.lon);
+            if (shs.length < 2) return '<div class="pp-sub">Profile needs georeferenced shafts.</div>';
+            const mPerDegLon = 111320 * Math.cos(GEO_BBOX.south * Math.PI / 180);
+            const lon0 = shs[0].geo.lon;
+            const pts = shs.map(s => {
+                const sc = geoToScene(s.geo.lat, s.geo.lon);
+                const surf = surfaceMeters(getTerrainHeight(sc.x, sc.z));
+                const floor = (s.floorElevM != null) ? s.floorElevM : floorMaslAtLon(s.geo.lon);
+                return { id: s.id, dist: (s.geo.lon - lon0) * mPerDegLon, surf, floor };
+            });
+            const W = 540, H = 200, mL = 40, mR = 12, mT = 26, mB = 26;
+            const maxD = pts[pts.length - 1].dist;
+            const ys = pts.flatMap(p => [p.surf, p.floor]);
+            let yMin = Math.floor(Math.min(...ys) - 3), yMax = Math.ceil(Math.max(...ys) + 3);
+            const X = d => mL + d / maxD * (W - mL - mR);
+            const Y = e => mT + (yMax - e) / (yMax - yMin) * (H - mT - mB);
+            const line = (key, col, w) => 'M' + pts.map(p => `${X(p.dist).toFixed(1)},${Y(p[key]).toFixed(1)}`).join(' L');
+            let svg = `<svg width="${W}" height="${H}">`;
+            // y gridlines (masl)
+            for (let e = Math.ceil(yMin / 10) * 10; e <= yMax; e += 10) {
+                svg += `<line x1="${mL}" y1="${Y(e)}" x2="${W - mR}" y2="${Y(e)}" stroke="#e3ddd2"/>` +
+                       `<text x="4" y="${Y(e) + 3}" fill="#8a7a63" font-size="9">${e}</text>`;
+            }
+            // shaft ticks + depth (surf->floor) + labels
+            for (const p of pts) {
+                svg += `<line x1="${X(p.dist)}" y1="${Y(p.surf)}" x2="${X(p.dist)}" y2="${Y(p.floor)}" stroke="#e0a23b" stroke-width="2"/>`;
+                svg += `<text x="${X(p.dist)}" y="${Y(p.surf) - 3}" fill="#5a4a33" font-size="8" text-anchor="middle">${p.id}</text>`;
+            }
+            svg += `<path d="${line('surf')}" fill="none" stroke="#9c8567" stroke-width="1.8"/>`;
+            svg += `<path d="${line('floor')}" fill="none" stroke="#1d6fd6" stroke-width="2.2"/>`;
+            // step markers
+            for (const st of SSOT.gallery.gallery.steps) {
+                const p = pts.find(q => q.id === st.underShaft);
+                if (p) svg += `<text x="${X(p.dist)}" y="${Y(p.floor) + 11}" fill="#1d6fd6" font-size="8" text-anchor="middle">▾${st.dropM}m</text>`;
+            }
+            // distance axis
+            svg += `<text x="${mL}" y="${H - 8}" fill="#8a7a63" font-size="9">0 m</text>` +
+                   `<text x="${W - mR}" y="${H - 8}" fill="#8a7a63" font-size="9" text-anchor="end">${Math.round(maxD)} m</text>`;
+            svg += `</svg>`;
+            const fall = (pts[pts.length - 1].floor - pts[0].floor);
+            return `<div class="pp-title">Gallery longitudinal profile — true elevation (m a.s.l.)</div>` +
+                   `<div class="pp-sub">Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
+                   `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps).</div>` + svg;
+        }
+        function toggleProfile() {
+            profileOn = !profileOn;
+            const el = document.getElementById('profile-panel');
+            document.getElementById('btn-profile').classList.toggle('active', profileOn);
+            if (profileOn) { el.innerHTML = buildProfileSVG(); el.style.display = 'block'; }
+            else el.style.display = 'none';
+        }
+
+        // --- Animated water flow ---------------------------------------------
+        let flowAnim = false, flowGroup = null, lastFlowTime = null;
+        const flowState = [];                 // {curve, mesh, phase, dir, speed}
+        let lastQanatPts = null, lastGwPts = null;
+        function initFlow() {
+            flowGroup = new THREE.Group(); scene.add(flowGroup);
+            document.getElementById('param-flowanim').addEventListener('change', e => {
+                flowAnim = e.target.checked; rebuildFlow();
+            });
+        }
+        function rebuildFlow() {
+            if (!flowGroup) return;
+            while (flowGroup.children.length) flowGroup.remove(flowGroup.children[0]);
+            flowState.length = 0;
+            if (!flowAnim) return;
+            const add = (pts, color, dir) => {
+                if (!pts || pts.length < 2) return;
+                const curve = new THREE.CatmullRomCurve3(pts.map(p => p.clone()));
+                const N = 14;
+                for (let i = 0; i < N; i++) {
+                    const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6),
+                        new THREE.MeshBasicMaterial({ color, depthTest: false }));
+                    mesh.renderOrder = 8; flowGroup.add(mesh);
+                    flowState.push({ curve, mesh, phase: i / N, dir, speed: 0.05 });
+                }
+            };
+            add(lastQanatPts, COL.flowQanat, -1);                        // qanat gallery: West
+            if (params.showGeology) add(lastGwPts, COL.flowGroundwater, +1);  // groundwater: East
+        }
+        function updateFlow(now) {
+            if (!flowState.length) { lastFlowTime = now; return; }
+            const dt = lastFlowTime ? Math.min(0.1, (now - lastFlowTime) / 1000) : 0;
+            lastFlowTime = now;
+            for (const s of flowState) {
+                s.phase = (s.phase + dt * s.speed) % 1;
+                let t = s.dir < 0 ? 1 - s.phase : s.phase;
+                const p = s.curve.getPointAt(t);
+                s.mesh.position.set(p.x, p.y + 0.05, p.z);
+            }
+        }
+
+        function onResize() {
+            const c = document.getElementById('canvas-container');
+            camera.aspect = c.clientWidth / c.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(c.clientWidth, c.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const now = performance.now();
+            if (camAnim) {
+                const k = Math.min(1, (now - camAnim.t0) / camAnim.dur);
+                const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; // easeInOutQuad
+                camera.position.lerpVectors(camAnim.fromP, camAnim.toP, e);
+                controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
+                if (k >= 1) camAnim = null;
+                _readoutDirty = true;
+            }
+            updateFlow(now);
+            controls.update();
+            renderer.render(scene, camera);
+            // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
+            // events and the fly-to animation above.
+            if (_readoutDirty && now - _readoutLastPaint > 100) {
+                updateCameraReadout();
+                _readoutDirty = false;
+                _readoutLastPaint = now;
+            }
+        }
+
+        init();
+        animate();
+    </script>
+</body>
 </html>

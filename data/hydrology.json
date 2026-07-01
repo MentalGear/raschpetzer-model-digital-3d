@@ -1,0 +1,33 @@
+{
+  "_doc": "Hydrology facts. Historical / superseded values are modeled explicitly (approx), not as error bars.",
+  "hydrology": {
+    "id": "raschpetzer-hydrology", "crm": "E16_Measurement",
+    "flowM3PerDay": 180,
+    "deviationAtP4M3PerDay": 80,
+    "seepageLossM3PerDay": 100,
+    "springInfluxNearP8M3PerDay": 25,
+    "hardnessFH": 23.4,
+    "conductivityUScm": 478,
+    "pH": 7.8,
+    "waterQuality": "drinking quality (strongly mineralised; not used)",
+    "source": "waringo2018", "status": "documented",
+    "_prov": {
+      "flowM3PerDay": { "loc": "p.4; p.29", "note": "current average; formerly ~250 m³/d (sinter line above present water)", "historical": [ { "valueM3PerDay": 250, "status": "estimated", "approx": true } ] },
+      "deviationAtP4M3PerDay": { "loc": "p.30", "note": "diverted to the lateral channel via the P-4 weir" },
+      "seepageLossM3PerDay": { "loc": "p.30" },
+      "springInfluxNearP8M3PerDay": { "loc": "p.28", "note": "2 m upstream of P8, left side" },
+      "hardnessFH": { "loc": "p.30, table 6-1" },
+      "conductivityUScm": { "loc": "p.30, table 6-1" },
+      "pH": { "loc": "p.30, table 6-1" },
+      "waterQuality": { "loc": "p.4; p.30" }
+    },
+    "catchment": [
+      { "id": "geierbierg", "name": "Geierbierg spring", "flowM3PerDay": 80 },
+      { "id": "opderrell", "name": "Op der Rëll spring", "flowM3PerDay": 220 },
+      { "id": "dauvebur", "name": "Dauvebur spring", "flowM3PerDay": 20 },
+      { "id": "raschpetzer", "name": "Raschpëtzer qanat", "flowM3PerDay": 180 },
+      { "id": "heisdorf", "name": "Heisdorf spring", "flowM3PerDay": 800 }
+    ],
+    "_catchmentProv": { "source": "waringo2018", "loc": "p.6; fig.2-1" }
+  }
+}

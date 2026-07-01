@@ -1,0 +1,48 @@
+{
+  "_doc": "Stratigraphy + structure facts. Layer NAMES/codes/roles, the ~2% dip and the cited thickness/elevation ranges are facts (Waringo 2018 fig.4-2/4-3, p.6/14/15). RENDER CAVEAT (paradata pd-strata-render): the cross-section draws the sandstone/marl interface (= groundwater table ≈ gallery floor, fig.5-24) at its REAL elevation, but the weathered-cover / marl / keuper sub-thicknesses are approximate display values, NOT the cited ranges. Colours live in model-config.json, joined by `code`.",
+  "geology": {
+    "id": "raschpetzer-geology", "crm": "E4_Period",
+    "strataDipPct": 2,
+    "dipDirection": "southeast",
+    "source": "waringo2018", "status": "documented", "paradataRef": ["pd-strata-render"],
+    "_prov": {
+      "strataDipPct": { "loc": "p.14", "note": "strata slightly inclined ~2% toward the SE; natural drainage toward Haedchen" },
+      "dipDirection": { "loc": "p.14" }
+    },
+    "strata": [
+      { "code": "cover", "name": "Weathered rock / soft ground", "role": "cover",
+        "thicknessRangeM": [2, 10],
+        "_prov": { "thicknessRangeM": { "loc": "p.15; p.18", "note": "~2 m on plateau; up to 10 m in Haedchen" } } },
+      { "code": "li2", "name": "Luxembourg sandstone (Lias)", "role": "aquifer-permeable",
+        "thicknessRangeM": [30, 80], "elevationRangeMasl": [350, 400],
+        "_prov": { "thicknessRangeM": { "loc": "p.6", "note": "country's main aquifer; at the horst crest the li2+li1 Liassic package digitises to ~50 m (fig.4-3)" },
+                   "elevationRangeMasl": { "loc": "p.6" } } },
+      { "code": "li1", "name": "Sandy marl, marl & limestone beds (Lias)", "role": "aquitard",
+        "liassicPackageM": 50,
+        "source": "fig-4-3", "status": "reconstructed", "paradataRef": ["pd-geology-digitised"],
+        "_prov": { "name": { "loc": "fig.4-3" },
+                   "liassicPackageM": { "source": "fig-4-3", "note": "digitised crest thickness of the whole Liassic package (li2 sandstone + li1 marl) above the Keuper, at the 20 m scale bar" } } },
+      { "code": "ko", "name": "Mudstone & grey conglomeratic sandstone (Keuper)", "role": "impermeable",
+        "thicknessM": 5,
+        "source": "fig-4-3", "status": "reconstructed", "paradataRef": ["pd-geology-digitised"],
+        "_prov": { "name": { "loc": "fig.4-3" },
+                   "thicknessM": { "source": "fig-4-3", "note": "digitised ~5 m (consistent across the section) against the 20 m scale bar" } } },
+      { "code": "km3", "name": "Dolomitic marl & fine dolomite beds (Keuper)", "role": "impermeable",
+        "thicknessMinM": 44,
+        "source": "fig-4-3", "status": "reconstructed", "paradataRef": ["pd-geology-digitised"],
+        "_prov": { "name": { "loc": "fig.4-3" },
+                   "thicknessMinM": { "source": "fig-4-3", "note": "digitised ≥44 m; base lies below the section, so this is a minimum" } } }
+    ],
+    "structure": {
+      "form": "horst",
+      "note": "The Pëtschend is a central horst bounded N & S by ~E–W faults where strata are re-aligned vertically; some groundwater leaks along the faults to the Dauvebur (N) and Op der Rëll (S) springs.",
+      "source": "waringo2018", "status": "documented",
+      "_prov": { "note": { "loc": "p.14; fig.4-3" } }
+    },
+    "groundwater": {
+      "accumulatesAt": "sandstone/marl interface", "flowDirection": "east (down-dip, to the mother shaft)",
+      "source": "waringo2018", "status": "documented",
+      "_prov": { "accumulatesAt": { "loc": "p.6; p.14" }, "flowDirection": { "loc": "p.14; fig.4-2" } }
+    }
+  }
+}

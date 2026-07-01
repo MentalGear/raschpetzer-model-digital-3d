@@ -1,0 +1,116 @@
+{
+  "_doc": "Bibliography / source registry. Every `source` id used across the SSOT must resolve here. Figures are sources too (partOf their publication).",
+  "waringo2018": {
+    "type": "book",
+    "crm": "E31_Document",
+    "short": "Faber/Waringo/Werner 2018",
+    "title": "The Raschpëtzer — A Roman Underground Water Supply System",
+    "authors": ["Faber, Sonja", "Waringo, Guy", "Werner, Henri"],
+    "year": 2018,
+    "publisher": "Syndicat d'initiative et de tourisme de la Commune de Walferdange",
+    "isbn": "978-2-9199454-2-9",
+    "edition": "English",
+    "pages": 40,
+    "rights": "© the authors / SIT Walferdange; figures reused for research/education",
+    "note": "Primary source; cited by page [p.N] and figure [fig.N-M]."
+  },
+  "fig-2-1": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 2-1", "locator": "fig.2-1, p.6",
+    "title": "Roman settlements, catchment areas and the explored qanat conduit"
+  },
+  "fig-3-1": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 3-1", "locator": "fig.3-1, p.7",
+    "title": "3D model of the explored qanat conduit (P-7A to P9)"
+  },
+  "fig-4-2": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 4-2", "locator": "fig.4-2, p.15",
+    "title": "Simplified geological cross-section through the catchment area"
+  },
+  "fig-4-3": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 4-3", "locator": "fig.4-3, p.15",
+    "title": "Geological structure of the Pëtschend horst (section XY), strata legend"
+  },
+  "fig-3-1b": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 3-1 (scale bar)", "locator": "fig.3-1, p.7",
+    "title": "3D block model P-7A→P9 with a 100 m scale bar",
+    "note": "The only figure showing all shaft positions along the route at a stated scale (100 m bar). Oblique 3D perspective — gives approximate along-route spacing, NOT georeferenced coordinates. Source of the schematic modelPos arrangement."
+  },
+  "fig-5-3": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 5-3", "locator": "fig.5-3, p.17",
+    "title": "Schematic longitudinal section (initial planning)",
+    "note": "Slopes 'very exaggerated for reasons of clarity' — schematic, not to scale."
+  },
+  "fig-5-4": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 5-4", "locator": "fig.5-4, p.17",
+    "title": "Photo of shaft P2 (backfilled, in original state)",
+    "note": "Corrected: fig 5-4 is a PHOTOGRAPH of P2, not a route/spacing plan. It was previously mis-cited as the source of modelPos spacing; the actual arrangement source is fig-3-1b."
+  },
+  "fig-5-11": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 5-11", "locator": "fig.5-11, p.21",
+    "title": "P-4 overflow weir and lateral channel (plan + cross sections)"
+  },
+  "fig-5-14": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 5-14", "locator": "fig.5-14, p.22",
+    "title": "P-7A debris-filled drop-shaft technique"
+  },
+  "fig-5-24": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 5-24", "locator": "fig.5-24, p.28",
+    "title": "Gallery near P7 with channel; floor at sandstone/marl boundary"
+  },
+  "fig-6-7": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 6-7", "locator": "fig.6-7, p.32",
+    "title": "View into the 36 m deep shaft P5"
+  },
+  "survey-shaft-floors": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, shaft-detail survey (wg 1:2000)",
+    "locator": "shaft detail drawings P-7A / P-5A / P-4",
+    "title": "Surveyed shaft-floor elevations (m a.s.l.)",
+    "note": "Source of REAL_FLOOR elevations P-7A 354.3, P-5A 357.5, P-4 355.4 m."
+  },
+  "osm-qanat-shafts": {
+    "type": "dataset",
+    "crm": "E73_Information_Object",
+    "short": "OpenStreetMap (qanat shaft nodes)",
+    "title": "Raschpëtzer qanat shaft nodes (historic=archaeological_site) in OpenStreetMap",
+    "url": "https://www.openstreetmap.org/",
+    "accessedVia": "Overpass API — https://overpass-api.de/api/interpreter",
+    "accessed": "2026-07-01",
+    "license": "ODbL 1.0",
+    "attribution": "© OpenStreetMap contributors",
+    "note": "14 shaft nodes 'Quanat -6..9' retrieved by Overpass query nwr(around:1200,49.668,6.139)[name~aschp|anat|ëtsch|aedch]. Community-mapped, not certified survey-grade; see data/osm-shafts.json for the raw import, node IDs and caveats."
+  },
+  "eudem-opentopodata": {
+    "type": "dataset", "crm": "E73_Information_Object",
+    "short": "EU-DEM 25 m via OpenTopoData",
+    "title": "EU-DEM v1.1 (25 m) sampled through the OpenTopoData API",
+    "url": "https://api.opentopodata.org/v1/eudem25m",
+    "accessed": "2026-07-01",
+    "license": "EU-DEM / Copernicus terms; OpenTopoData public instance",
+    "note": "Source of the current GeoData terrain grid (geodata-walferdange.js); 4x-area bbox 6.106–6.186 E, 49.656–49.680 N on a 96x40 grid. NOTE (2026-07-02): at 25 m it is systematically +10 to +21 m too high over the qanat corridor and misses the Haedchen depression; superseded for the corridor by act-lidar-2019 (below). Retained for now as broad landscape context."
+  },
+  "act-lidar-2019": {
+    "type": "dataset", "crm": "E73_Information_Object",
+    "short": "Luxembourg LiDAR 2019 DTM (0.5 m)",
+    "title": "ACT LiDAR 2019 — Modèle numérique de terrain (0.5 m), Luxembourg",
+    "url": "https://data.public.lu/en/datasets/lidar-2019-modele-numerique-de-terrain-mnt/",
+    "accessedVia": "https://map.geoportail.lu/raster (dhm), coords EPSG:2169",
+    "accessed": "2026-07-02",
+    "license": "CC0 / open data (Administration du cadastre et de la topographie)",
+    "attribution": "© Administration du cadastre et de la topographie (ACT), Luxembourg",
+    "sampling": "Point queries to map.geoportail.lu/raster?lon=&lat= (layer 'dhm'), one HTTP call per point, coords transformed WGS84→EPSG:2169 (pyproj). No bulk/WCS download (the full DTM is a 27 GB national mosaic).",
+    "resolution": "Source raster 0.5 m. The baked terrain grid (geodata-walferdange.js) is sampled on a 40×22 lattice over 6.138–6.162E / 49.6618–49.6708N ⇒ ~44 m (E–W) × ~48 m (N–S) node spacing — the mesh resolution, coarser than the source. Per-shaft surfaceElevM are exact 0.5 m point queries at the OSM coordinates. 0 voids over the area; sampled range 231.7–405.1 m.",
+    "note": "0.5 m LiDAR-derived bare-earth DTM. Sampled pointwise at the OSM shaft coordinates it matches the brochure's floor+depth surfaces to 0.5–2.5 m (vs EU-DEM's +10–21 m) and resolves the Haedchen depression — externally validating the documented depths and the near-level gallery. Highest-credibility surface source for the corridor."
+  }
+}

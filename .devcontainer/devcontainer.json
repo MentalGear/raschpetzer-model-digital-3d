@@ -1,24 +1,26 @@
 {
-  "name": "Vitrine Simulator (Bun + React Three Fiber)",
+  "name": "Devcontainer (works with github codespaces)",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  // BUN_INSTALL tells the bun installer where to put bun (persists across rebuilds).
+  // BUN_INSTALL tells the bun installer where to put bun (must be user-writable).
+  // /home/node/.bun is the default location for the non-root "node" user in this image.
   // PATH is in remoteEnv (not containerEnv) so ${containerEnv:PATH} resolves correctly
   // against the container's real PATH instead of being passed literally to docker run.
   "containerEnv": {
-    "BUN_INSTALL": "/usr/local/bun",
+    "BUN_INSTALL": "/home/node/.bun",
     "PLAYWRIGHT_BROWSERS_PATH": "/opt/pw-browsers"
   },
   "remoteEnv": {
-    "PATH": "/usr/local/bun/bin:${containerEnv:PATH}"
+    "PATH": "/home/node/.bun/bin:${containerEnv:PATH}"
   },
   // Install Bun once when the container is created.
-  "onCreateCommand": "curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local/bun bash",
+  // Explicit BUN_INSTALL=... inline so the installer never picks up a stale containerEnv value.
+  "onCreateCommand": "curl -fsSL https://bun.sh/install | BUN_INSTALL=/home/node/.bun bash",
   // Install JS deps and (best-effort) the Chromium used for browser verification.
   // Use the full path so this works before remoteEnv PATH is active.
-  "postCreateCommand": "/usr/local/bun/bin/bun install && (/usr/local/bun/bin/bunx playwright install --with-deps chromium || echo 'playwright chromium install skipped')",
+  "postCreateCommand": "/home/node/.bun/bin/bun install && (/home/node/.bun/bin/bunx playwright install --with-deps chromium || echo 'playwright chromium install skipped')",
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": {
