@@ -305,14 +305,6 @@
         </div>
 
         <div class="control-group">
-            <label>Navigation — click-drag mode</label>
-            <div class="btn-row">
-                <button id="nav-orbit" type="button" class="active" title="Left-drag orbits (rotate the model)">⟳&nbsp;Orbit</button>
-                <button id="nav-pan" type="button" title="Left-drag pans (move the view)">✋&nbsp;Pan</button>
-            </div>
-        </div>
-
-        <div class="control-group">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
         </div>
@@ -321,7 +313,7 @@
         </div>
 
         <div class="control-group btn-row">
-            <button id="btn-reset" type="button">⌂ Reset view</button>
+            <button id="btn-reset" type="button">Reset view</button>
         </div>
         <div class="control-group btn-row" style="display:none">
             <!-- Annotation mode hidden for now. -->
@@ -590,7 +582,9 @@
                 // Keep materials permanently in the transparent pass — flipping to opaque at
                 // v=1 caused a visible colour pop between 1.00 and 0.95 (opaque↔transparent).
                 m.transparent = true;
-                if (m.isMeshStandardMaterial) m.depthWrite = o >= 0.999;
+                // Surface/wall meshes write depth only when fully opaque (so the subsurface
+                // shows through when faded); lines don't manage depth.
+                if (m.isMeshStandardMaterial || m.isMeshBasicMaterial) m.depthWrite = o >= 0.999;
                 m.needsUpdate = true;
             });
         }
@@ -1030,17 +1024,20 @@
             }
             surfGeo.computeVertexNormals();
             terrainFadeMats = [];   // rebuilt fresh each model build
-            const fillMat = new THREE.MeshStandardMaterial({
-                color: 0xe7dabf, roughness: 1.0, metalness: 0.0,   // light beige (was near-white)
+            // Unlit flat beige: the scene lights (ambient+sun+fill ≈ >1.0) were over-
+            // brightening a lit surface toward white at full opacity, so it looked like a
+            // different colour once transparency revealed the true tone. MeshBasicMaterial
+            // renders the exact base colour at every opacity — one consistent beige.
+            const fillMat = new THREE.MeshBasicMaterial({
+                color: 0xe7dabf,                                   // light beige (contour-map base)
                 polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
-                side: THREE.DoubleSide, flatShading: false,
+                side: THREE.DoubleSide,
                 transparent: true, opacity: params.terrainOpacity,
-                depthWrite: params.terrainOpacity >= 0.99
+                depthWrite: params.terrainOpacity >= 0.999
             });
             fillMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(fillMat);
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
-            surfMesh.receiveShadow = true;
             modelGroup.add(surfMesh);
 
             // --- 2. CONTOUR LINES as real geometry (marching squares over the height field) ---
@@ -1130,12 +1127,15 @@
             //         so the subsurface horizon shows through (per the brief). ---
             // Walls fade with the terrain-opacity slider too (baseOpacity × slider); the
             // strata cross-section is intentionally excluded so it stays readable.
+            // The block sides stay ≥50% transparent (baseOpacity ≤ 0.5) at all times so the
+            // subsurface (shafts/gallery) always shows through them; they never write depth.
             const tOpW = params.terrainOpacity;
+            const SIDE_MAX = 0.5;
             const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
-                                                              transparent: true, opacity: 1.0 * tOpW, depthWrite: tOpW >= 0.999 });
+                                                              transparent: true, opacity: SIDE_MAX * tOpW, depthWrite: false });
             const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
                                                               transparent: true, opacity: 0.18 * tOpW, depthWrite: false });
-            sideMat.userData.baseOpacity = 1.0;
+            sideMat.userData.baseOpacity = SIDE_MAX;
             frontMat.userData.baseOpacity = 0.18;
             terrainFadeMats.push(sideMat, frontMat);
 
@@ -1403,6 +1403,19 @@
             // --- 8. 3D scale bar (accurate metres) + north arrow ---
             addScaleBarAndCompass(halfW, halfD, isGeo);
 
+            // X-ray overlays: every depthTest-off object (shafts, tunnel, flow, water,
+            // overflow, groundwater, markers) must render in the TRANSPARENT pass, above
+            // the (transparent) terrain fill, so the qanat + everything underground always
+            // shows through the terrain at any opacity. depthTest-off + renderOrder ≥ 4
+            // (fill=0, strata=2) guarantees it.
+            modelGroup.traverse(o => {
+                const m = o.material;
+                if (m && m.depthTest === false) {
+                    m.transparent = true;
+                    if (o.renderOrder === 0) o.renderOrder = 4;
+                }
+            });
+
             updateCompass();
             updateExagReadout();
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
@@ -1544,7 +1557,7 @@
             g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
             const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial(
-                { vertexColors: true, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
+                { vertexColors: true, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }));
             mesh.renderOrder = 2;
             modelGroup.add(mesh);
 
@@ -1850,26 +1863,6 @@
             updateCameraReadout();
             controls.addEventListener('change', () => { _readoutDirty = true; });
             document.getElementById('btn-level-horizon').addEventListener('click', levelHorizon);
-            setupNavMode();
-        }
-        // Drag-mode toggle: what a plain LEFT-drag does — orbit (rotate) or pan (move).
-        // Right-drag / ⌘/Ctrl+drag always pan regardless (OrbitControls default).
-        function setNavMode(mode) {
-            const orbit = mode !== 'pan';
-            controls.mouseButtons.LEFT = orbit ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN;
-            const ob = document.getElementById('nav-orbit'), pb = document.getElementById('nav-pan');
-            if (ob) ob.classList.toggle('active', orbit);
-            if (pb) pb.classList.toggle('active', !orbit);
-            const hint = document.querySelector('.instructions');
-            if (hint) hint.innerHTML = orbit
-                ? 'Left-drag to <b>orbit</b> · ⌘/Ctrl+drag or right-drag to pan · Scroll to zoom · Hover a shaft for depth · Click for info'
-                : 'Left-drag to <b>pan</b> · right-drag also pans · Scroll to zoom · Hover a shaft for depth · Click for info';
-        }
-        function setupNavMode() {
-            const ob = document.getElementById('nav-orbit'), pb = document.getElementById('nav-pan');
-            if (ob) ob.addEventListener('click', () => setNavMode('orbit'));
-            if (pb) pb.addEventListener('click', () => setNavMode('pan'));
-            setNavMode('orbit');
         }
         // "Level horizon": keep azimuth + distance, set elevation/pitch to 0° (camera.y ==
         // target.y), i.e. polar angle = 90°, animated via the existing flyTo.
