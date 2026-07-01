@@ -283,9 +283,9 @@
             <label class="check-row"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
         </div>
 
-        <div class="control-group" id="grp-intensity">
-            <label>Elevation Intensity <span class="val" id="lbl-intensity">1.0</span></label>
-            <input type="range" id="param-intensity" min="0.2" max="4.0" step="0.1" value="1.0">
+        <div class="control-group" id="grp-vexag">
+            <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
+            <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0">
             <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
         </div>
 
@@ -412,7 +412,7 @@
             depth: 26,
             baseY: -2,
             terrainSource: 'geodata',     // 'procedural' | 'geodata'
-            elevationIntensity: 1.0,      // vertical exaggeration for the GeoData surface
+            vExag: 1.0,                   // GeoData: TRUE vertical exaggeration (1.0 = true scale)
             surround: 1.0,                // GeoData: how much surrounding DEM to show (1 = qanat window, 2 = whole 4x area). Qanat stays locked to its terrain patch (modelPos scaled by 1/surround).
             qanatLayout: 'faithful',      // 'faithful' | 'schematic'
             flipWE: false,                // mirror the geodata terrain West<->East
@@ -439,7 +439,7 @@
 
         // Scene-scale slider defaults come from model-config.sceneScale (single source).
         for (const k of ['plateauHeight', 'hillsideDrop', 'depressionDepth', 'contourSpacing',
-                         'layerDepth', 'width', 'depth', 'baseY', 'elevationIntensity'])
+                         'layerDepth', 'width', 'depth', 'baseY'])
             if (MODEL_CONFIG.sceneScale && MODEL_CONFIG.sceneScale[k] != null)
                 params[k] = MODEL_CONFIG.sceneScale[k];
 
@@ -667,14 +667,23 @@
             if (cb) cb(true);
         }
 
+        // GeoData vertical multiplier: scene Y-units spanning the full DEM elevation range,
+        // chosen so the TRUE vertical exaggeration equals params.vExag (1.0 = true scale).
+        // exag = metersPerXUnit / metersPerYUnit, metersPerYUnit = span / geoVMul,
+        // so geoVMul = vExag * span / metersPerXUnit. This makes one slider (vExag) the
+        // single, honest vertical control and keeps true scale constant as the window changes.
+        function geoVMul() {
+            const span = (geodata.maxM - geodata.minM) || 1;
+            return params.vExag * span / metersPerXUnit();
+        }
+
         // Terrain dispatcher: geodata if selected & loaded, else procedural.
-        // elevationIntensity vertically exaggerates the sampled source.
         function getTerrainHeight(x, z) {
             let u = Math.min(Math.max((x + params.width / 2) / params.width, 0), 1);
             const v = Math.min(Math.max((z + params.depth / 2) / params.depth, 0), 1);
             if (params.terrainSource === 'geodata' && geodata.ready) {
                 if (params.flipWE) u = 1 - u;
-                return sampleGeo(u, v) * params.plateauHeight * params.elevationIntensity;
+                return sampleGeo(u, v) * geoVMul();
             }
             return getProceduralHeight(x, z);
         }
@@ -683,9 +692,7 @@
         // GeoData knows real metres; other sources are calibrated so the deepest shaft ~36 m.
         function metersPerYUnit() {
             if (params.terrainSource === 'geodata' && geodata.ready) {
-                const span = (geodata.maxM - geodata.minM) || 1;
-                // height = normalized(0..1) * plateauHeight * intensity  -> metres = norm*span
-                return span / (params.plateauHeight * params.elevationIntensity);
+                return metersPerXUnit() / params.vExag;   // exag = mpx/mpy = vExag
             }
             // calibrate so the tallest shaft maps to QANAT.maxDepthM
             return QANAT.maxDepthM / Math.max(0.001, maxShaftLenUnits);
@@ -699,8 +706,7 @@
         const NOMINAL_RANGE_M = DATUM.nominalPlateauMasl - DATUM.nominalValleyMasl;
         function surfaceMeters(surfaceY) {
             if (params.terrainSource === 'geodata' && geodata.ready)
-                return geodata.minM + surfaceY / (params.plateauHeight * params.elevationIntensity)
-                       * ((geodata.maxM - geodata.minM) || 1);
+                return geodata.minM + (surfaceY / geoVMul()) * ((geodata.maxM - geodata.minM) || 1);
             return DATUM.nominalValleyMasl + (surfaceY / params.plateauHeight) * NOMINAL_RANGE_M;
         }
         // Gallery (channel) floor elevation (m): the real longitudinal profile is
@@ -721,8 +727,7 @@
         // Convert a real depth (m) into model Y-units under the current vertical scale.
         function metersToYDepth(depthM) {
             if (params.terrainSource === 'geodata' && geodata.ready)
-                return depthM / (((geodata.maxM - geodata.minM) || 1)
-                       / (params.plateauHeight * params.elevationIntensity));
+                return depthM / metersPerYUnit();     // consistent with the terrain vertical scale
             return depthM * params.plateauHeight / NOMINAL_RANGE_M;
         }
 
@@ -1374,14 +1379,15 @@
             bind('param-contours',   'contourSpacing',  'lbl-contours');
             bind('param-layer',      'layerDepth',      'lbl-layer');
 
-            // Elevation intensity (vertical exaggeration for the GeoData surface)
-            const intSl = document.getElementById('param-intensity');
-            const intLb = document.getElementById('lbl-intensity');
-            intSl.value = params.elevationIntensity;
-            intLb.innerText = params.elevationIntensity.toFixed(1);
-            intSl.addEventListener('input', e => {
-                params.elevationIntensity = parseFloat(e.target.value);
-                intLb.innerText = params.elevationIntensity.toFixed(1);
+            // Vertical exaggeration (single true-scale control for the GeoData surface;
+            // 1.0 = true scale). Replaces the old redundant Vertical-Scale × Elevation-Intensity.
+            const vexSl = document.getElementById('param-vexag');
+            const vexLb = document.getElementById('lbl-vexag');
+            vexSl.value = params.vExag;
+            vexLb.innerText = params.vExag.toFixed(1) + '×';
+            vexSl.addEventListener('input', e => {
+                params.vExag = parseFloat(e.target.value);
+                vexLb.innerText = params.vExag.toFixed(1) + '×';
                 buildParametricModel();
             });
 
@@ -1456,12 +1462,13 @@
         function updateControlVisibility() {
             const ts = params.terrainSource, ql = params.qanatLayout;
             const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
-            // Hillside/Depression shape only the PROCEDURAL terrain
+            // Plateau Height + Hillside/Depression shape only the PROCEDURAL terrain
+            show('grp-plateau', ts === 'procedural');
             show('grp-hillside', ts === 'procedural');
             show('grp-depression', ts === 'procedural');
-            // Elevation intensity (vertical exaggeration) only affects sampled sources
-            show('grp-intensity', ts !== 'procedural');
-            // W↔E flip + slice pan/zoom only meaningful for the real DEM
+            // Vertical exaggeration is the single vertical control for the sampled DEM
+            show('grp-vexag', ts === 'geodata');
+            // W↔E flip + surrounding-area only meaningful for the real DEM
             show('row-flip', ts === 'geodata');
             show('grp-surround', ts === 'geodata');
             // Honesty note: surface is real DEM but shaft plan positions are schematic
@@ -1469,9 +1476,6 @@
             if (hn) hn.style.display = (ts === 'geodata') ? 'block' : 'none';
             // Tunnel-depth slider only drives the schematic gallery
             show('grp-layer', ql === 'schematic');
-            // Plateau Height doubles as the vertical scale for sampled terrains — relabel
-            const pn = document.getElementById('lbl-plateau-name');
-            if (pn) pn.textContent = (ts === 'procedural') ? 'Plateau Height' : 'Vertical Scale';
         }
 
         // --- Camera helpers: default view + smooth fly-to ---

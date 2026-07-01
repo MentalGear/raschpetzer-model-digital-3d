@@ -26,9 +26,9 @@
     "author": "project team", "date": "2026-07-01"
   },
   "pd-osm-georef": {
-    "rationale": "Real shaft coordinates were imported from OpenStreetMap (data/osm-shafts.json, source osm-qanat-shafts) as candidate georeferencing. They are recorded with lineage but NOT yet used to drive the model, because: (a) OSM's -6..9 numbering does not map 1:1 to the brochure's P-labels, and (b) sampling EU-DEM at these points does not reproduce the documented depths/surveyed floors (e.g. OSM '-4' surface 388 m vs a P-4 that is only 12 m deep to a 355.4 m floor). Confidence is low/medium per node; treat as provisional until reconciled with an authoritative survey.",
-    "basis": "OpenStreetMap contributors (ODbL); EU-DEM via OpenTopoData",
-    "author": "project team", "date": "2026-07-01"
+    "rationale": "Real shaft coordinates were imported from OpenStreetMap (data/osm-shafts.json, source osm-qanat-shafts) as candidate georeferencing. UPDATE 2026-07-02: cross-checking against the 0.5 m ACT LiDAR 2019 DTM (act-lidar-2019) VALIDATES these coordinates — LiDAR sampled at the OSM points reproduces the brochure's floor+depth surfaces to 0.5–2.5 m (P-4 366.9 vs 367.4; P1 386.1 vs 385; P3 392.5 vs 390; P5 392.1 vs 391) and resolves the Haedchen drop (P6–P9 382→377 m). The earlier apparent mismatch was an EU-DEM 25 m artifact (+10–21 m, plateau-edge averaging), NOT an OSM or brochure error. The OSM '-6..9' → P-label mapping is still inferred and the P2–P3 spacing reads ~20 m vs a documented 28 m, so per-node labels stay medium-confidence, but the coordinates are now trusted enough to drive georeferenced placement + a LiDAR-sampled surface.",
+    "basis": "OpenStreetMap contributors (ODbL); validated against ACT LiDAR 2019 (act-lidar-2019)",
+    "author": "project team", "date": "2026-07-02"
   },
   "pd-aux-system": {
     "rationale": "P-5A and P-7A belong to a separate, higher, dry auxiliary channel ~30 m north of the main line; their channel floor sits above the aquiferous qanat channel, so they were never connected to it and are drawn as a distinct dashed channel.",

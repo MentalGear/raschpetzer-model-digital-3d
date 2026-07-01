@@ -98,6 +98,17 @@
     "url": "https://api.opentopodata.org/v1/eudem25m",
     "accessed": "2026-07-01",
     "license": "EU-DEM / Copernicus terms; OpenTopoData public instance",
-    "note": "Source of the GeoData terrain grid (geodata-walferdange.js); 4x-area bbox 6.106–6.186 E, 49.656–49.680 N sampled on a 96x40 grid. The app renders a movable/zoomable sub-window ('slice') of this; default slice = the central 6.126–6.166 E, 49.662–49.674 N."
+    "note": "Source of the current GeoData terrain grid (geodata-walferdange.js); 4x-area bbox 6.106–6.186 E, 49.656–49.680 N on a 96x40 grid. NOTE (2026-07-02): at 25 m it is systematically +10 to +21 m too high over the qanat corridor and misses the Haedchen depression; superseded for the corridor by act-lidar-2019 (below). Retained for now as broad landscape context."
+  },
+  "act-lidar-2019": {
+    "type": "dataset", "crm": "E73_Information_Object",
+    "short": "Luxembourg LiDAR 2019 DTM (0.5 m)",
+    "title": "ACT LiDAR 2019 — Modèle numérique de terrain (0.5 m), Luxembourg",
+    "url": "https://data.public.lu/en/datasets/lidar-2019-modele-numerique-de-terrain-mnt/",
+    "accessedVia": "https://map.geoportail.lu/raster (dhm), coords EPSG:2169",
+    "accessed": "2026-07-02",
+    "license": "CC0 / open data (Administration du cadastre et de la topographie)",
+    "attribution": "© Administration du cadastre et de la topographie (ACT), Luxembourg",
+    "note": "0.5 m LiDAR-derived bare-earth DTM. Sampled pointwise at the OSM shaft coordinates it matches the brochure's floor+depth surfaces to 0.5–2.5 m (vs EU-DEM's +10–21 m) and resolves the Haedchen depression — externally validating the documented depths and the near-level gallery. Highest-credibility surface source for the corridor."
   }
 }
