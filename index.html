@@ -1171,6 +1171,32 @@
                 placeLabel(regionName('haedchen'),    22, 3.2, "#555555", 30);
             }
 
+            // --- 6b. In-corridor water sources (documented; regional catchment springs
+            // in hydrology.catchment are km away and shown in the data, not the corridor). ---
+            const waterMarker = (scenePos, label, sub) => {
+                const sy = getTerrainHeight(scenePos.x, scenePos.z);
+                const dot = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12),
+                    new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
+                dot.position.set(scenePos.x, sy + 0.35, scenePos.z); dot.renderOrder = 7;
+                modelGroup.add(dot);
+                const s = createTextSprite(label, '#0a6ebd', 20);
+                s.scale.set(3.4, 0.9, 1); s.position.set(scenePos.x, sy + 1.15, scenePos.z);
+                modelGroup.add(s);
+            };
+            if (params.showGeology && params.qanatLayout === 'faithful') {
+                const p9 = shaftById['P9'], p8 = shaftById['P8'];
+                // Haedchen source: the qanat's east end (gallery starts ~13 m E of P9)
+                if (p9 && p9.geo) {
+                    const e = geoToScene(p9.geo.lat, p9.geo.lon);
+                    waterMarker({ x: e.x + (params.flipWE ? -2 : 2), z: e.z }, '⌇ Haedchen source');
+                }
+                // Documented spring influx (~25 m³/d) 2 m upstream of P8
+                if (p8 && p8.geo) {
+                    const e = geoToScene(p8.geo.lat, p8.geo.lon);
+                    waterMarker({ x: e.x + (params.flipWE ? -1 : 1), z: e.z }, '+25 m³/d spring');
+                }
+            }
+
             // --- 7. Geological cross-section (strata + groundwater) ---
             addGeology(halfW, halfD);
 
