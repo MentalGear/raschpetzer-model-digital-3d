@@ -540,6 +540,9 @@
 
         // Surveyed qanat gallery-floor elevations (m a.s.l.), from the shaft detail figure.
         const REAL_FLOOR = { 'P-7A': 354.3, 'P-5A': 357.5, 'P-4': 355.4 };
+        // Documented shaft depths (m) from the brochure (Waringo/Faber/Werner 2018).
+        // P1 p.16; P3 p.17; P5 p.9/fig.6-7; P-4 p.20; P-5A p.21; P-7A p.22.
+        const REAL_DEPTH = { 'P1': 30, 'P3': 35, 'P5': 36, 'P-4': 12, 'P-5A': 8, 'P-7A': 6 };
         // Real surface elevation (m) at a model surface height: GeoData is true metres;
         // other sources use a nominal site datum (valley ~340 m, plateau ~390 m).
         function surfaceMeters(surfaceY) {
@@ -870,12 +873,19 @@
             let localMaxLen = 0;
             pillarDefs.forEach((p, i) => {
                 const sy = surf[i];
-                let len, floorM = null, depthM = null;
+                let len, floorM = null, depthM = null, documented = false;
                 if (faithful) {
-                    const sM = surfaceMeters(sy);
-                    floorM = galleryFloorMeters(p.x);
-                    if (floorM > sM - 3) floorM = sM - 3;   // gallery ≥3 m below surface
-                    depthM = sM - floorM;
+                    if (REAL_DEPTH[p.id] != null) {
+                        // Use the documented shaft depth directly
+                        depthM = REAL_DEPTH[p.id];
+                        floorM = surfaceMeters(sy) - depthM;
+                        documented = true;
+                    } else {
+                        const sM = surfaceMeters(sy);
+                        floorM = galleryFloorMeters(p.x);
+                        if (floorM > sM - 3) floorM = sM - 3;   // gallery ≥3 m below surface
+                        depthM = sM - floorM;
+                    }
                     len = metersToYDepth(depthM);
                 } else {
                     let ty = getLayerHeight(p.x, p.z);   // original flat-ish gallery
@@ -892,7 +902,7 @@
                     mesh.position.set(p.x, sy - len / 2, p.z);
                     mesh.renderOrder = 6;
                     mesh.userData = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
-                                      floorM: floorM, depthM: depthM };
+                                      floorM: floorM, depthM: depthM, documented: documented };
                     modelGroup.add(mesh);
                     shaftMeshes.push(mesh);
                 }
@@ -1246,7 +1256,8 @@
                 if (hit) {
                     const d = hit.object.userData;
                     let html = '<span class="t-name">' + d.name + '</span><br>' +
-                        '<span class="t-depth">shaft depth ≈ ' + Math.round(d.depthMeters) + ' m</span>';
+                        '<span class="t-depth">shaft depth ≈ ' + Math.round(d.depthMeters) + ' m' +
+                        (d.documented ? ' (documented)' : '') + '</span>';
                     if (d.floorM != null) {
                         const surveyed = REAL_FLOOR[d.name] != null;
                         html += '<br><span class="t-depth">gallery floor ≈ ' +
