@@ -11,9 +11,9 @@ source; documented facts are visually distinguished from inferred/schematic ones
 
 ## Features
 
-- **Two terrain sources**: procedural, and **GeoData** (default) — real
-  **ACT LiDAR 2019 (0.5 m)** elevation, with shafts placed by their
-  **georeferenced** OSM coordinates (validated to ±2 m against LiDAR) and the
+- **Real terrain (GeoData)**: **ACT LiDAR 2019 (0.5 m)** elevation, with shafts
+  placed by their **georeferenced** OSM coordinates (elevation cross-checked
+  against LiDAR to 0.5–2.5 m; plan/label confidence varies per shaft) and the
   gallery held **near-level** per the brochure. A **Surrounding area** control
   reveals more of the DEM around the qanat. See `docs/DATA_CREDIBILITY.md`.
 - **Honesty encoding**: georeferenced positions are `reconstructed` (per-shaft
@@ -120,6 +120,8 @@ at `https://<user>.github.io/<repo>/`.
 
 Facts are extracted from **Waringo, G., Faber, S. & Werner, H. (2018),
 *The Raschpëtzer — A Roman Underground Water Supply System*** (SIT Walferdange,
-ISBN 978‑2‑9199454‑2‑9); terrain from **EU‑DEM 25 m** via OpenTopoData. Full
+ISBN 978‑2‑9199454‑2‑9); terrain from **ACT LiDAR 2019 (0.5 m)** via the
+Luxembourg geoportal (EU‑DEM 25 m via OpenTopoData retained only as coarse
+context). Full
 citations in `data/sources.json`. The dataset is offered under **CC‑BY‑4.0**;
 third-party figures/imagery remain under their respective rights.

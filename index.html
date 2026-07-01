@@ -1198,16 +1198,11 @@
                 modelGroup.add(s);
             };
             if (params.showGeology && params.qanatLayout === 'faithful') {
-                const p9 = shaftById['P9'], p8 = shaftById['P8'];
+                const p9 = shaftById['P9'];
                 // Haedchen source: the qanat's east end (gallery starts ~13 m E of P9)
                 if (p9 && p9.geo) {
                     const e = geoToScene(p9.geo.lat, p9.geo.lon);
                     waterMarker({ x: e.x + (params.flipWE ? -2 : 2), z: e.z }, 'Haedchen source');
-                }
-                // Documented spring inflow (~25 m³/d) entering 2 m upstream (E) of P8, left side
-                if (p8 && p8.geo) {
-                    const e = geoToScene(p8.geo.lat, p8.geo.lon);
-                    waterMarker({ x: e.x + (params.flipWE ? -1 : 1), z: e.z }, 'spring inflow ~25 m³/d');
                 }
             }
 
