@@ -1,0 +1,73 @@
+{
+  "dataset": {
+    "identifier": "raschpetzer-qanat-ssot",
+    "title": "Raschpëtzer Qanat — Single Source of Truth dataset",
+    "doi": null,
+    "version": "1.0.0",
+    "license": "CC-BY-4.0",
+    "created": "2026-07-01",
+    "modified": "2026-07-01",
+    "creators": [{ "name": "Raschpëtzer visualization project", "orcid": null }],
+    "citation": "Raschpëtzer Qanat SSOT dataset, v1.0.0 (2026), CC-BY-4.0. Facts after Waringo, Faber & Werner 2018.",
+    "note": "Facts are cited to primary sources in sources.json. knowledgeStatus + confidence follow the London Charter / Seville Principles; entities carry lightweight CIDOC-CRM class tags."
+  },
+
+  "crsRegistry": {
+    "model-schematic": { "kind": "engineering", "unit": "scene-unit",
+      "note": "Arbitrary origin; x = W→E route axis, z = cross-axis offset. NOT georeferenced." },
+    "EPSG:4326": { "kind": "geographic", "unit": "deg", "note": "WGS84 lat/lon." },
+    "site-datum-nominal": { "kind": "vertical", "unit": "m",
+      "note": "Nominal display datum for non-GeoData modes: valley ~340 m, plateau ~390 m. Distinct from true a.s.l." },
+    "masl": { "kind": "vertical", "unit": "m", "note": "True metres above sea level." }
+  },
+
+  "site": {
+    "id": "raschpetzer",
+    "crm": "E27_Site",
+    "name": "Raschpëtzer Qanat",
+    "place": "NE of Helmsange, Municipality of Walferdange, Luxembourg",
+    "centroid": { "crs": "EPSG:4326", "latDeg": 49.668, "lonDeg": 6.139, "status": "documented" },
+    "source": "waringo2018", "status": "documented",
+
+    "channelLengthM": 720,
+    "channelExploredM": 310,
+    "shaftCountKnown": 13,
+    "shaftDepthRangeM": [6, 36],
+    "shaftDiameterRangeM": [0.8, 1.2],
+    "galleryWidthRangeM": [0.5, 2.0],
+    "galleryHeightRangeM": [0.5, 2.3],
+    "avgFlowM3PerDay": 180,
+    "totalElevationDifferentialM": 100,
+    "servicePeriod": { "fromAD": 140, "toAD": 350 },
+    "datingBeamOuterRingAD": 114,
+    "datingBeamFellingAD": 131,
+    "flowDirection": "east-to-west",
+    "_prov": {
+      "channelLengthM": { "loc": "p.4", "note": "720 m total; 310 m explored" },
+      "channelExploredM": { "loc": "p.4" },
+      "shaftCountKnown": { "loc": "p.4" },
+      "shaftDepthRangeM": { "loc": "p.4" },
+      "shaftDiameterRangeM": { "loc": "p.4" },
+      "galleryWidthRangeM": { "loc": "p.4" },
+      "galleryHeightRangeM": { "loc": "p.4", "note": "above the water-conduit covers" },
+      "avgFlowM3PerDay": { "loc": "p.4; p.29" },
+      "totalElevationDifferentialM": { "loc": "p.4" },
+      "servicePeriod": { "loc": "p.4" },
+      "datingBeamOuterRingAD": { "loc": "p.29", "note": "P8 oak beam outer ring 114 AD" },
+      "datingBeamFellingAD": { "loc": "p.29", "note": "extrapolated felling ~131 AD" },
+      "flowDirection": { "loc": "p.9", "note": "Pëtschend plateau → Alzette valley; contrary to natural strata dip" }
+    }
+  },
+
+  "regions": [
+    { "id": "alzette", "name": "Alzette hillside", "modelSide": "west",
+      "source": "waringo2018", "status": "documented",
+      "_prov": { "name": { "loc": "p.7" } } },
+    { "id": "petschend", "name": "Pëtschend Plateau", "elevationMasl": 395, "modelSide": "center",
+      "source": "waringo2018", "status": "documented",
+      "_prov": { "elevationMasl": { "loc": "p.7", "note": "mountain spur ~395 m a.s.l." } } },
+    { "id": "haedchen", "name": "Haedchen Depression", "elevationMasl": 375, "modelSide": "east",
+      "source": "waringo2018", "status": "documented",
+      "_prov": { "elevationMasl": { "loc": "p.7", "note": "marshy source area ~375 m a.s.l., 600 m E of Pëtschend" } } }
+  ]
+}

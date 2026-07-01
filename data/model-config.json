@@ -1,0 +1,33 @@
+{
+  "_doc": "VISUALIZATION-ONLY config. Nothing here is citable — it only affects how the picture looks. Facts live in the other data/*.json files and are joined here by id/code.",
+  "camera": { "fov": 13, "position": [0, 20, 96], "target": [2, 3, 0], "near": 1, "far": 1000 },
+  "background": "#f5f0ea",
+  "sceneScale": {
+    "width": 70, "depth": 26, "baseY": -2,
+    "plateauHeight": 5.0, "hillsideDrop": 4.5, "depressionDepth": 3.0,
+    "layerDepth": 5.0, "contourSpacing": 0.20, "elevationIntensity": 1.0,
+    "_note": "Display-scale knobs (scene units, not metres). Adjustable at runtime via the UI."
+  },
+  "datum": {
+    "nominalValleyMasl": 340, "nominalPlateauMasl": 390,
+    "_note": "Nominal vertical datum for non-GeoData modes (paradata pd-nominal-datum)."
+  },
+  "colors": {
+    "contour": "#9c6233", "contourIndex": "#5e3414",
+    "shaft": "#f2a93b", "qanat": "#1d6fd6", "groundwater": "#2bb0f0", "auxChannel": "#8aa0b4",
+    "annotation": "#e11d8f", "annotationSel": "#ffd23f", "measure": "#ffd23f"
+  },
+  "strataColors": {
+    "cover": "#d8c0a8", "li2": "#b9d3e8", "li1": "#8f95c4", "ko": "#e58a9a", "km3": "#f2d9a0",
+    "_note": "Keyed by geology stratum `code`; thicknesses/roles are facts in geology.json."
+  },
+  "statusStyle": {
+    "documented": { "color": "#4ade80", "label": "documented" },
+    "inferred":   { "color": "#fbbf24", "label": "inferred" },
+    "reconstructed": { "color": "#fbbf24", "label": "reconstructed" },
+    "schematic":  { "color": "#60a5fa", "label": "schematic" },
+    "estimated":  { "color": "#60a5fa", "label": "estimated" },
+    "hypothetical": { "color": "#f87171", "label": "hypothetical" },
+    "_note": "Info-panel badge colours per knowledgeStatus."
+  }
+}

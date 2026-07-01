@@ -1,0 +1,28 @@
+{
+  "_doc": "Paradata registry (London Charter / Seville Principles): the reasoning behind modeled or inferred choices. Facts reference these by id in `paradataRef` instead of repeating prose.",
+  "pd-gallery-gradient": {
+    "rationale": "The gallery is modeled near-level at ~0.1% (10 cm per 100 m), the documented constant fall from P9 to P-5, with the two documented stepped falls (1 m under P4, 1.2 m under P6). Step magnitudes are ~1 m and therefore sub-visible at scene scale, so they are shown as annotated markers rather than literal geometry.",
+    "basis": "Waringo 2018, p.26-27",
+    "author": "project team", "date": "2026-07-01"
+  },
+  "pd-schematic-positions": {
+    "rationale": "Per-shaft plan positions (modelPos) are read as relative spacing from the route figure, not from a georeferenced survey. They are declared in a `model-schematic` CRS; real WGS84 coordinates (geo) are left null until surveyed values are available.",
+    "basis": "Waringo 2018, fig.5-4",
+    "author": "project team", "date": "2026-07-01"
+  },
+  "pd-postulated-shafts": {
+    "rationale": "Shafts P-2, P-3 and P-6A are inferred from the regular inter-shaft spacing of the located shafts (in qanats the spacing often matches the depth). They are not excavated or surveyed; existence is `inferred`, position `hypothetical` and schematic.",
+    "basis": "Waringo 2018, p.21-22",
+    "author": "project team", "date": "2026-07-01"
+  },
+  "pd-nominal-datum": {
+    "rationale": "For non-GeoData terrain modes there is no real vertical datum, so a nominal site datum is used (valley ~340 m, plateau ~390 m a.s.l.) purely to place the gallery/shafts at plausible depths. GeoData mode uses true EU-DEM metres.",
+    "basis": "derived; consistent with Waringo 2018 elevations 350-405 m a.s.l.",
+    "author": "project team", "date": "2026-07-01"
+  },
+  "pd-aux-system": {
+    "rationale": "P-5A and P-7A belong to a separate, higher, dry auxiliary channel ~30 m north of the main line; their channel floor sits above the aquiferous qanat channel, so they were never connected to it and are drawn as a distinct dashed channel.",
+    "basis": "Waringo 2018, p.21-22",
+    "author": "project team", "date": "2026-07-01"
+  }
+}

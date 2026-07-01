@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "validate": "node scripts/validate.mjs",
+    "bake": "node scripts/bake.mjs",
+    "predev": "node scripts/bake.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.3",

@@ -1,0 +1,39 @@
+{
+  "_doc": "Stratigraphy + structure facts. Layer THICKNESSES/roles/codes are facts (cited); render COLORS live in model-config.json, joined by `code`.",
+  "geology": {
+    "id": "raschpetzer-geology", "crm": "E4_Period",
+    "strataDipPct": 2,
+    "dipDirection": "southeast",
+    "source": "waringo2018", "status": "documented",
+    "_prov": {
+      "strataDipPct": { "loc": "p.14", "note": "strata slightly inclined ~2% toward the SE; natural drainage toward Haedchen" },
+      "dipDirection": { "loc": "p.14" }
+    },
+    "strata": [
+      { "code": "cover", "name": "Weathered rock / soft ground", "role": "cover",
+        "thicknessRangeM": [2, 10],
+        "_prov": { "thicknessRangeM": { "loc": "p.15; p.18", "note": "~2 m on plateau; up to 10 m in Haedchen" } } },
+      { "code": "li2", "name": "Luxembourg sandstone (Lias)", "role": "aquifer-permeable",
+        "thicknessRangeM": [30, 80], "elevationRangeMasl": [350, 400],
+        "_prov": { "thicknessRangeM": { "loc": "p.6", "note": "country's main aquifer" },
+                   "elevationRangeMasl": { "loc": "p.6" } } },
+      { "code": "li1", "name": "Sandy marl, marl & limestone beds (Lias)", "role": "aquitard",
+        "_prov": { "name": { "loc": "fig.4-3" } } },
+      { "code": "ko", "name": "Mudstone & grey conglomeratic sandstone (Keuper)", "role": "impermeable",
+        "_prov": { "name": { "loc": "fig.4-3" } } },
+      { "code": "km3", "name": "Dolomitic marl & fine dolomite beds (Keuper)", "role": "impermeable",
+        "_prov": { "name": { "loc": "fig.4-3" } } }
+    ],
+    "structure": {
+      "form": "horst",
+      "note": "The Pëtschend is a central horst bounded N & S by ~E–W faults where strata are re-aligned vertically; some groundwater leaks along the faults to the Dauvebur (N) and Op der Rëll (S) springs.",
+      "source": "waringo2018", "status": "documented",
+      "_prov": { "note": { "loc": "p.14; fig.4-3" } }
+    },
+    "groundwater": {
+      "accumulatesAt": "sandstone/marl interface", "flowDirection": "east (down-dip, to the mother shaft)",
+      "source": "waringo2018", "status": "documented",
+      "_prov": { "accumulatesAt": { "loc": "p.6; p.14" }, "flowDirection": { "loc": "p.14; fig.4-2" } }
+    }
+  }
+}
