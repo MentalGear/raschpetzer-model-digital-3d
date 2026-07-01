@@ -63,14 +63,24 @@
         }
         #label-west { left: 22px; }
         #label-east { right: 22px; }
-        #honesty-note {
-            position: absolute; bottom: 20px; left: 20px; max-width: 340px;
-            background: rgba(255,255,255,0.82); border-left: 3px solid #e0a23b;
-            color: #4a3f2f; font-size: 0.72rem; line-height: 1.35;
-            padding: 7px 10px; border-radius: 4px; pointer-events: none; z-index: 5;
-            display: none;
+        /* Data-sources modal (replaces the old inline bottom-left honesty-note overlay) */
+        #sources-modal-backdrop {
+            position: fixed; inset: 0; background: rgba(10,10,14,0.62); z-index: 30;
+            display: none; align-items: center; justify-content: center;
         }
-        #honesty-note b { color: #b06a00; }
+        body.sources-open #sources-modal-backdrop { display: flex; }
+        #sources-modal {
+            position: relative; max-width: 440px; width: 90%; max-height: 82vh; overflow-y: auto;
+            background: #fbf8f3; color: #3a3226; border-radius: 12px; padding: 22px 24px 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); border-top: 4px solid #e0a23b;
+        }
+        #sources-modal h3 { font-size: 1.05rem; color: #2a2318; margin-bottom: 10px; }
+        #sources-modal p { font-size: 0.82rem; line-height: 1.45; margin-bottom: 10px; }
+        #sources-modal b { color: #b06a00; }
+        #sources-modal ul { margin: 4px 0 12px 20px; font-size: 0.8rem; line-height: 1.5; }
+        #sources-close { position: absolute; top: 10px; right: 14px; background: none; border: none;
+            color: #8a7a63; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+        #sources-close:hover { color: #2a2318; }
         #profile-panel {
             position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
             display: none; background: rgba(255,255,255,0.94); border: 1px solid rgba(0,0,0,0.15);
@@ -277,6 +287,11 @@
             <label class="check-row"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
         </div>
 
+        <div class="control-group" id="grp-terrain-opacity">
+            <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
+            <input type="range" id="param-terrain-opacity" min="0.2" max="1.0" step="0.05" value="1.0">
+        </div>
+
         <div class="control-group" id="grp-vexag">
             <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
             <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0">
@@ -290,16 +305,11 @@
         </div>
 
         <div class="control-group">
-            <label for="param-layout">Qanat Layout</label>
-            <select id="param-layout">
-                <option value="faithful">Faithful (real depths, P5 ≈ 36 m)</option>
-                <option value="schematic">Schematic (original)</option>
-            </select>
+            <label>Camera</label>
+            <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
         </div>
-
-        <div class="control-group" id="grp-layer">
-            <label>Qanat Tunnel Depth <span class="val" id="lbl-layer">5.0</span></label>
-            <input type="range" id="param-layer" min="2.5" max="7.5" step="0.1" value="5.0">
+        <div class="control-group btn-row">
+            <button id="btn-level-horizon" type="button">⊞ Level horizon (0°)</button>
         </div>
 
         <div class="control-group btn-row">
@@ -315,6 +325,9 @@
         </div>
         <div class="control-group btn-row">
             <button id="btn-profile" type="button">📈 Gallery profile</button>
+        </div>
+        <div class="control-group btn-row">
+            <button id="btn-sources" type="button">ⓘ Data sources</button>
         </div>
 
         <div class="legend">
@@ -371,12 +384,30 @@
         <div id="info-body"></div>
     </div>
 
+    <div id="sources-modal-backdrop">
+        <div id="sources-modal" role="dialog" aria-modal="true" aria-labelledby="sources-title">
+            <button id="sources-close" type="button" aria-label="Close">×</button>
+            <h3 id="sources-title">Data sources &amp; honesty note</h3>
+            <p>Surface: <b>ACT LiDAR 2019</b> (0.5&nbsp;m DTM). Shafts are placed by <b>georeferenced</b>
+               OpenStreetMap coordinates, elevation-cross-checked against the LiDAR to within
+               0.5–2.5&nbsp;m; per-shaft position/depth confidence varies (see each shaft's info
+               panel). The qanat gallery is drawn near-level, per the site brochure's surveyed
+               profile. Solid shafts have a documented depth; faded (translucent) shafts have an
+               inferred depth.</p>
+            <ul>
+                <li>Waringo/Faber/Werner (2018) — site brochure &amp; survey</li>
+                <li>ACT LiDAR 2019 — 0.5&nbsp;m digital terrain model</li>
+                <li>OpenStreetMap — qanat shaft node coordinates</li>
+                <li>EU-DEM 25&nbsp;m — regional context only</li>
+            </ul>
+        </div>
+    </div>
+
     <div id="canvas-container">
         <img id="ref-overlay" src="assets/reference-fig2.jpg" alt="reference">
         <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
-        <div id="honesty-note">Surface: <b>ACT LiDAR 2019</b> (0.5&nbsp;m). Shafts placed by <b>georeferenced</b> OSM coords (validated ±2&nbsp;m by LiDAR); gallery near‑level per the brochure. Solid shafts have a documented depth, faded ones are inferred.</div>
 
         <div id="scale-bar" style="display:none;">
             <div class="bar-line">
@@ -387,7 +418,7 @@
             <div class="bar-text">100 m</div>
         </div>
 
-        <div class="instructions">Drag to rotate · Scroll to zoom · Hover a shaft for depth · Click to focus</div>
+        <div class="instructions">Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · Scroll to zoom · Hover a shaft for depth · Click for info</div>
         <div id="measure-readout"></div>
         <div id="profile-panel"></div>
         <div id="tour-bar">
@@ -401,21 +432,20 @@
 
     <script>
         const params = {
-            plateauHeight: 5.0,           // vertical unit reference for the schematic qanat layout
+            plateauHeight: 5.0,           // vertical unit reference (non-GeoData fallback datum)
             contourSpacing: 0.20,
-            layerDepth: 5.0,
             width: 70,
             depth: 40,
             baseY: -2,
             terrainSource: 'geodata',     // GeoData (LiDAR) is the only terrain source
             vExag: 1.0,                   // TRUE vertical exaggeration (1.0 = true scale)
             surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
-            qanatLayout: 'faithful',      // 'faithful' (georeferenced) | 'schematic' (legacy)
             flipWE: false,                // mirror the terrain West<->East
-            showGeology: true             // real strata + groundwater/qanat flows
+            showGeology: true,            // real strata + groundwater/qanat flows
+            terrainOpacity: 1.0           // fill-surface opacity (contour lines stay opaque)
         };
 
-        // Real Raschpëtzer figures (for the faithful layout / depth read-outs)
+        // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
         const QANAT = { maxDepthM: 36, deepestShaft: 'P5', exploredFrac: 0.62 };
 
         // --- Single Source of Truth (data.bundle.js -> window.SSOT) ---
@@ -434,10 +464,15 @@
         }, MODEL_CONFIG.strataColors || {});
 
         // Scene-scale slider defaults come from model-config.sceneScale (single source).
-        for (const k of ['plateauHeight', 'contourSpacing',
-                         'layerDepth', 'width', 'depth', 'baseY'])
+        for (const k of ['plateauHeight', 'contourSpacing', 'width', 'depth', 'baseY'])
             if (MODEL_CONFIG.sceneScale && MODEL_CONFIG.sceneScale[k] != null)
                 params[k] = MODEL_CONFIG.sceneScale[k];
+
+        // Base (unscaled) scene dimensions from model-config.sceneScale; item (2) below
+        // scales params.width/depth by `surround` so the core stays constant scale while
+        // the terrain grows outward.
+        const BASE_WIDTH = params.width;
+        const BASE_DEPTH = params.depth;
 
         const SHAFTS = SSOT.shafts.shafts;
         const shaftById = Object.fromEntries(SHAFTS.map(s => [s.id, s]));
@@ -543,6 +578,13 @@
             geoView = { west: cLon - spanLon / 2, east: cLon + spanLon / 2,
                         south: cLat - spanLat / 2, north: cLat + spanLat / 2 };
             QSCALE = (params.terrainSource === 'geodata') ? (GEO_VIEW_SPAN.lon / spanLon) : 1;
+            // Grow the MESH outward with `surround`, instead of shrinking the core scale:
+            // scale width/depth by the same factor as the geoView window, so
+            // metersPerXUnit = (geoView lon-span × mPerDeg) / params.width stays CONSTANT
+            // (numerator and width both scale by `surround`). The qanat itself therefore
+            // stays the same on-screen size/position; only more surrounding terrain appears.
+            params.width = BASE_WIDTH * params.surround;
+            params.depth = BASE_DEPTH * params.surround;
             applyQanatScale();
             return geoView;
         }
@@ -766,13 +808,6 @@
             return geoView.west + u * (geoView.east - geoView.west);
         }
 
-        function getLayerHeight(x, z) {
-            // Flat-lying geological horizon so pillar heights directly encode
-            // terrain elevation above the layer (taller on plateau, shorter on slopes)
-            const horizonY = params.plateauHeight - params.layerDepth;
-            return horizonY + Math.sin(x * 0.08) * 0.45 + Math.cos(z * 0.1) * 0.28;
-        }
-
         function init() {
             const container = document.getElementById('canvas-container');
 
@@ -802,7 +837,15 @@
             controls.dampingFactor = 0.05;
             controls.target.set(CAM.target[0], CAM.target[1], CAM.target[2]);
             controls.maxPolarAngle = Math.PI / 2 - 0.01;
+            // Zoom-distance clamps: don't let the user dolly through the terrain or drift so
+            // far out the model becomes a speck. Scaled by `surround` (item 2 makes the block
+            // physically larger at surround=2, so the far clamp grows with it).
+            controls.minDistance = 25;
+            controls.maxDistance = 400;
+            updateZoomClamp();
             controls.update();
+            setupZoomToCursor();
+            setupCameraReadout();
 
             // Lighting — bright, daylight feel to match the reference
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -894,6 +937,7 @@
             initMeasure();
             initFlow();
             initInfoPanel();
+            initSourcesModal();
             initTour();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadGeoData(() => buildParametricModel());
@@ -921,7 +965,9 @@
             const fillMat = new THREE.MeshStandardMaterial({
                 color: 0xf4eee1, roughness: 1.0, metalness: 0.0,
                 polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
-                side: THREE.DoubleSide, flatShading: false
+                side: THREE.DoubleSide, flatShading: false,
+                transparent: true, opacity: params.terrainOpacity,
+                depthWrite: params.terrainOpacity >= 0.99
             });
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
             surfMesh.receiveShadow = true;
@@ -1046,12 +1092,11 @@
             modelGroup.add(baseMesh);
 
             // --- 3. Raschpetzer shafts + qanat tunnel ---
-            //  Faithful layout: the gallery floor follows the SURVEYED elevations
-            //  (near-level ~355 m, gentle West-down slope); shaft depth = ground surface
-            //  minus gallery floor, so the deepest shafts fall under the plateau (~36 m).
-            //  Schematic = original flat-ish gallery.
+            //  Faithful (georeferenced) layout: the gallery floor follows the SURVEYED
+            //  elevations (near-level ~355 m, gentle West-down slope); shaft depth =
+            //  ground surface minus gallery floor, so the deepest shafts fall under the
+            //  plateau (~36 m). This is now the only layout.
             shaftMeshes.length = 0;
-            const faithful = (params.qanatLayout === 'faithful');
             // Honesty encoding: a shaft whose DEPTH is documented (P5, P3, P1, P-4, P-7A,
             // P-5A) is drawn solid; one whose depth is only inferred from the gallery model
             // is drawn translucent. (Plan POSITIONS are schematic for all — see the caption.)
@@ -1065,29 +1110,23 @@
             pillarDefs.forEach((p, i) => {
                 const sy = surf[i];
                 let len, floorM = null, depthM = null, documented = false;
-                if (faithful) {
-                    const sM = surfaceMeters(sy);
-                    const rec = shaftById[p.id];
-                    if (params.terrainSource === 'geodata' && rec && rec.geo) {
-                        // Georeferenced: the gallery floor is the near-level documented profile
-                        // (or the surveyed floor); depth = LiDAR surface − floor. This makes the
-                        // tunnel near-level by construction and reproduces the documented depths.
-                        floorM = (REAL_FLOOR[p.id] != null) ? REAL_FLOOR[p.id] : floorMaslAtLon(rec.geo.lon);
-                    } else if (REAL_DEPTH[p.id] != null) {
-                        floorM = sM - REAL_DEPTH[p.id];        // schematic/procedural fallback
-                    } else {
-                        floorM = galleryFloorMeters(p.x);
-                    }
-                    if (floorM > sM - 1) floorM = sM - 1;      // gallery stays below the surface
-                    const renderedDepth = sM - floorM;
-                    depthM = (REAL_DEPTH[p.id] != null) ? REAL_DEPTH[p.id] : renderedDepth;
-                    documented = (REAL_DEPTH[p.id] != null);
-                    len = metersToYDepth(renderedDepth);
+                const sM = surfaceMeters(sy);
+                const rec = shaftById[p.id];
+                if (params.terrainSource === 'geodata' && rec && rec.geo) {
+                    // Georeferenced: the gallery floor is the near-level documented profile
+                    // (or the surveyed floor); depth = LiDAR surface − floor. This makes the
+                    // tunnel near-level by construction and reproduces the documented depths.
+                    floorM = (REAL_FLOOR[p.id] != null) ? REAL_FLOOR[p.id] : floorMaslAtLon(rec.geo.lon);
+                } else if (REAL_DEPTH[p.id] != null) {
+                    floorM = sM - REAL_DEPTH[p.id];        // schematic/procedural fallback
                 } else {
-                    let ty = getLayerHeight(p.x, p.z);   // original flat-ish gallery
-                    if (ty > sy - 0.05) ty = sy - 0.05;
-                    len = sy - ty;
+                    floorM = galleryFloorMeters(p.x);
                 }
+                if (floorM > sM - 1) floorM = sM - 1;      // gallery stays below the surface
+                const renderedDepth = sM - floorM;
+                depthM = (REAL_DEPTH[p.id] != null) ? REAL_DEPTH[p.id] : renderedDepth;
+                documented = (REAL_DEPTH[p.id] != null);
+                len = metersToYDepth(renderedDepth);
                 if (len < 0.05) len = 0.05;
                 const ty = sy - len;
                 const bp = new THREE.Vector3(p.x, ty, p.z);
@@ -1113,8 +1152,8 @@
             shaftMeshes.forEach(m => m.userData.depthMeters =
                 (m.userData.depthM != null) ? m.userData.depthM : m.userData.depthUnits * mpuNow);
 
-            // Tunnel polyline through the shaft bases. Faithful => solid explored core +
-            // dashed inferred ends; schematic => one solid tube.
+            // Tunnel polyline through the shaft bases: solid explored core +
+            // dashed inferred ends.
             function tunnelTube(points, color) {
                 if (points.length < 2) return;
                 const cv = new THREE.CatmullRomCurve3(points);
@@ -1130,7 +1169,7 @@
                     { color, dashSize: 0.7, gapSize: 0.5, depthTest: false }));
                 ln.computeLineDistances(); ln.renderOrder = 5; modelGroup.add(ln);
             }
-            if (faithful) {
+            {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
@@ -1155,8 +1194,6 @@
                     s.position.set(bp.x, bp.y + 1.35, bp.z);
                     modelGroup.add(s);
                 });
-            } else {
-                tunnelTube(basePts, COL.qanat);
             }
 
             // Qanat water flows WEST (toward the villa): arrows along the gallery.
@@ -1197,7 +1234,7 @@
                 s.scale.set(4.6, 1.0, 1); s.position.set(scenePos.x, sy + 1.15, scenePos.z);
                 modelGroup.add(s);
             };
-            if (params.showGeology && params.qanatLayout === 'faithful') {
+            if (params.showGeology) {
                 const p9 = shaftById['P9'];
                 // Haedchen source: the qanat's east end (gallery starts ~13 m E of P9)
                 if (p9 && p9.geo) {
@@ -1401,7 +1438,6 @@
                 });
             }
             bind('param-contours',   'contourSpacing',  'lbl-contours');
-            bind('param-layer',      'layerDepth',      'lbl-layer');
 
             // Vertical exaggeration (single true-scale control for the GeoData surface;
             // 1.0 = true scale). Replaces the old redundant Vertical-Scale × Elevation-Intensity.
@@ -1434,15 +1470,9 @@
                 surLb.innerText = params.surround.toFixed(1) + '×';
                 sliceReadout();
                 buildParametricModel();
+                updateZoomClamp();   // maxDistance scales with the physically-larger block
             });
             sliceReadout();
-
-            // Qanat layout (faithful real depths vs original schematic)
-            document.getElementById('param-layout').addEventListener('change', e => {
-                params.qanatLayout = e.target.value;
-                updateControlVisibility();
-                buildParametricModel();
-            });
 
             // Flip West <-> East (GeoData)
             document.getElementById('param-flip').addEventListener('change', e => {
@@ -1453,6 +1483,17 @@
             // Toggle geological strata + water flows
             document.getElementById('param-geology').addEventListener('change', e => {
                 params.showGeology = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Terrain opacity: lets shafts/gallery show through the fill surface.
+            const opSl = document.getElementById('param-terrain-opacity');
+            const opLb = document.getElementById('lbl-terrain-opacity');
+            opSl.value = params.terrainOpacity;
+            opLb.innerText = params.terrainOpacity.toFixed(2);
+            opSl.addEventListener('input', e => {
+                params.terrainOpacity = parseFloat(e.target.value);
+                opLb.innerText = params.terrainOpacity.toFixed(2);
                 buildParametricModel();
             });
 
@@ -1472,12 +1513,9 @@
 
         // Show only the controls that affect the current view.
         function updateControlVisibility() {
-            const ql = params.qanatLayout;
-            const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
-            const hn = document.getElementById('honesty-note');
-            if (hn) hn.style.display = 'block';
-            // Tunnel-depth slider only drives the legacy schematic gallery
-            show('grp-layer', ql === 'schematic');
+            // Reserved for future conditional control visibility (the schematic qanat
+            // layout — the only thing this used to gate — has been removed; the faithful
+            // georeferenced layout is now the only mode).
         }
 
         // --- Camera helpers: default view + smooth fly-to ---
@@ -1491,13 +1529,121 @@
         }
         function resetView() { flyTo(DEFAULT_CAM.pos, DEFAULT_CAM.target, 700); }
 
-        // --- Shaft hover (tooltip) + click (focus) ---
+        // --- Zoom-to-pointer: dolly toward the mouse cursor instead of the orbit target ---
+        // three r128's vendored OrbitControls has no `zoomToCursor` option, so when it's
+        // absent we replace the wheel handler: raycast the pointer onto the model, then
+        // move BOTH the camera and the orbit target toward that world point by the same
+        // fraction (so orbiting after zooming still feels natural), scaled by the zoom step.
+        // Base zoom-distance clamps (surround=1); maxDistance grows with `surround` so the
+        // physically-larger block (item 2) still fits comfortably at full zoom-out.
+        const BASE_MIN_DISTANCE = 25, BASE_MAX_DISTANCE = 400;
+        function updateZoomClamp() {
+            if (!controls) return;
+            controls.minDistance = BASE_MIN_DISTANCE;
+            controls.maxDistance = BASE_MAX_DISTANCE * params.surround;
+            const d = camera.position.distanceTo(controls.target);
+            const clamped = Math.min(controls.maxDistance, Math.max(controls.minDistance, d));
+            if (clamped !== d) {
+                const dir = new THREE.Vector3().subVectors(camera.position, controls.target).setLength(clamped);
+                camera.position.copy(controls.target).add(dir);
+            }
+        }
+
+        function setupZoomToCursor() {
+            if (controls.zoomToCursor !== undefined) { controls.zoomToCursor = true; return; }
+            const dom = renderer.domElement;
+            const zRaycaster = new THREE.Raycaster();
+            const zNdc = new THREE.Vector2();
+            function pointerWorldPoint(ev) {
+                const r = dom.getBoundingClientRect();
+                zNdc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                zNdc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                zRaycaster.setFromCamera(zNdc, camera);
+                const hits = zRaycaster.intersectObjects(modelGroup.children, true)
+                    .filter(h => h.object.type === 'Mesh');
+                if (hits.length) return hits[0].point;
+                // Fall back to intersecting the y=target.y ground plane under the cursor.
+                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -controls.target.y);
+                const pt = new THREE.Vector3();
+                return zRaycaster.ray.intersectPlane(plane, pt) ? pt : null;
+            }
+            dom.addEventListener('wheel', ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                // Respect the same OrbitControls.min/maxDistance clamps as native zoom
+                // (item 9) — including the surround-scaled maxDistance.
+                const minD = controls.minDistance, maxD = controls.maxDistance;
+                const focus = pointerWorldPoint(ev);
+                const step = Math.min(Math.abs(ev.deltaY) / 400, 0.6);
+                const zoomIn = ev.deltaY < 0;
+                const scale = zoomIn ? (1 - step) : (1 + step);
+                const camToTarget = camera.position.distanceTo(controls.target);
+                const newDist = Math.min(maxD, Math.max(minD, camToTarget * scale));
+                const clampedScale = newDist / camToTarget;
+                if (focus) {
+                    // Shift camera + target toward the cursor's world point by the same
+                    // fraction the distance is shrinking (or away from it, if zooming out).
+                    const frac = 1 - clampedScale;
+                    camera.position.lerp(focus, frac);
+                    controls.target.lerp(focus, frac);
+                }
+                // Re-apply the distance change along the (possibly re-centred) view direction.
+                const dir = new THREE.Vector3().subVectors(camera.position, controls.target);
+                const dist = dir.length();
+                const finalDist = Math.min(maxD, Math.max(minD, dist));
+                dir.setLength(finalDist);
+                camera.position.copy(controls.target).add(dir);
+                controls.update();
+            }, { passive: false, capture: true });
+        }
+
+        // --- Super-key (Ctrl/Cmd) + left-drag pans; plain left-drag still rotates. ---
+        // three r128's vendored OrbitControls already builds this in: with the default
+        // mouseButtons.LEFT = ROTATE, holding ctrlKey/metaKey/shiftKey during a left-drag
+        // makes it pan instead (see onMouseDown's ROTATE case). Right-drag pans by default
+        // too (mouseButtons.RIGHT = PAN). Nothing to wire up beyond the on-screen hint.
+
+        // --- Camera readout (azimuth / elevation / distance) + "Level horizon" button ---
+        let _readoutDirty = true, _readoutLastPaint = 0;
+        function updateCameraReadout() {
+            const el = document.getElementById('camera-readout');
+            if (!el) return;
+            const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+            const dist = off.length();
+            const azimuthRad = Math.atan2(off.x, off.z);              // 0° = looking from +Z (south)
+            const azimuthDeg = (THREE.MathUtils.radToDeg(azimuthRad) + 360) % 360;
+            const elevationDeg = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(off.y / (dist || 1), -1, 1)));
+            el.textContent = 'Azimuth ' + azimuthDeg.toFixed(0) + '°  ·  Elevation ' +
+                elevationDeg.toFixed(0) + '°  ·  Distance ' + dist.toFixed(1) + ' u';
+        }
+        function setupCameraReadout() {
+            updateCameraReadout();
+            controls.addEventListener('change', () => { _readoutDirty = true; });
+            document.getElementById('btn-level-horizon').addEventListener('click', levelHorizon);
+        }
+        // "Level horizon": keep azimuth + distance, set elevation/pitch to 0° (camera.y ==
+        // target.y), i.e. polar angle = 90°, animated via the existing flyTo.
+        function levelHorizon() {
+            const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+            const dist = off.length();
+            const horiz = Math.hypot(off.x, off.z) || 1;
+            const scale = dist / horiz;             // stretch the horizontal projection back out to `dist`
+            const levelPos = new THREE.Vector3(
+                controls.target.x + off.x * scale,
+                controls.target.y,
+                controls.target.z + off.z * scale);
+            flyTo(levelPos, controls.target.clone(), 700);
+        }
+
+        // --- Shaft hover (tooltip, shown only after a long dwell) + click (info panel) ---
         const raycaster = new THREE.Raycaster();
         const ndc = new THREE.Vector2();
         let hoverActive = false;
+        const HOVER_DWELL_MS = 600;
         function setupShaftInteraction() {
             const dom = renderer.domElement;
             const tip = document.getElementById('shaft-tooltip');
+            let dwellTimer = null, dwellShaft = null, lastEv = null;
             function pick(ev) {
                 const r = dom.getBoundingClientRect();
                 ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
@@ -1505,30 +1651,54 @@
                 raycaster.setFromCamera(ndc, camera);
                 return raycaster.intersectObjects(shaftMeshes, false)[0];
             }
+            function showTooltip(hit, ev) {
+                const d = hit.object.userData;
+                let html = '<span class="t-name">' + d.name + '</span><br>' +
+                    '<span class="t-depth">shaft depth ≈ ' + Math.round(d.depthMeters) + ' m' +
+                    (d.documented ? ' (documented)' : '') + '</span>';
+                if (d.floorM != null) {
+                    const surveyed = REAL_FLOOR[d.name] != null;
+                    html += '<br><span class="t-depth">gallery floor ≈ ' +
+                        (surveyed ? REAL_FLOOR[d.name].toFixed(1) + ' m (surveyed)'
+                                  : d.floorM.toFixed(1) + ' m') + '</span>';
+                }
+                tip.innerHTML = html;
+                tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
+                tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
+                tip.style.display = 'block';
+            }
+            function clearDwell() {
+                if (dwellTimer) { clearTimeout(dwellTimer); dwellTimer = null; }
+                dwellShaft = null;
+            }
             dom.addEventListener('mousemove', ev => {
                 const hit = pick(ev);
                 if (hit) {
                     const d = hit.object.userData;
-                    let html = '<span class="t-name">' + d.name + '</span><br>' +
-                        '<span class="t-depth">shaft depth ≈ ' + Math.round(d.depthMeters) + ' m' +
-                        (d.documented ? ' (documented)' : '') + '</span>';
-                    if (d.floorM != null) {
-                        const surveyed = REAL_FLOOR[d.name] != null;
-                        html += '<br><span class="t-depth">gallery floor ≈ ' +
-                            (surveyed ? REAL_FLOOR[d.name].toFixed(1) + ' m (surveyed)'
-                                      : d.floorM.toFixed(1) + ' m') + '</span>';
-                    }
-                    tip.innerHTML = html;
-                    tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
-                    tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
-                    tip.style.display = 'block';
                     dom.style.cursor = 'pointer';
                     hoverActive = true;
+                    lastEv = ev;
+                    if (dwellShaft !== d.name) {
+                        // Entered a (new) shaft: reset the dwell timer, hide any prior tooltip.
+                        clearDwell();
+                        dwellShaft = d.name;
+                        tip.style.display = 'none';
+                        dwellTimer = setTimeout(() => {
+                            if (dwellShaft === d.name) showTooltip(hit, lastEv);
+                        }, HOVER_DWELL_MS);
+                    } else if (tip.style.display === 'block') {
+                        // Already showing: keep it glued to the cursor while dwelling on the same shaft.
+                        tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
+                        tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
+                    }
                 } else if (hoverActive) {
                     tip.style.display = 'none'; dom.style.cursor = 'default'; hoverActive = false;
+                    clearDwell();
                 }
             });
-            dom.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+            dom.addEventListener('mouseleave', () => {
+                tip.style.display = 'none'; hoverActive = false; clearDwell();
+            });
             // Raycast the model meshes and return the first surface hit point (or null).
             function pickSurface(ev) {
                 const r = dom.getBoundingClientRect();
@@ -1553,10 +1723,9 @@
                 const hit = pick(ev);
                 if (!hit) return;
                 const d = hit.object.userData;
-                renderInfoPanel(shaftById[d.name]);       // SSOT-driven info side panel
-                const tgt = new THREE.Vector3(d.x, d.topY - 1, d.z);
-                const pos = new THREE.Vector3(d.x - 6, d.topY + 10, d.z + 26);
-                flyTo(pos, tgt, 800);
+                // Clicking a shaft only opens the info overlay — no camera fly (the guided
+                // tour is the only thing that still flies the camera, via tourFlyTo).
+                renderInfoPanel(shaftById[d.name]);       // SSOT-driven info side panel (left overlay)
             });
         }
 
@@ -1609,6 +1778,20 @@
         function initInfoPanel() {
             document.getElementById('info-close').addEventListener('click',
                 () => document.body.classList.remove('info-open'));
+        }
+
+        // --- Data-sources modal (replaces the old inline bottom-left overlay) ---
+        function openSourcesModal() { document.body.classList.add('sources-open'); }
+        function closeSourcesModal() { document.body.classList.remove('sources-open'); }
+        function initSourcesModal() {
+            document.getElementById('btn-sources').addEventListener('click', openSourcesModal);
+            document.getElementById('sources-close').addEventListener('click', closeSourcesModal);
+            document.getElementById('sources-modal-backdrop').addEventListener('click', ev => {
+                if (ev.target.id === 'sources-modal-backdrop') closeSourcesModal();
+            });
+            window.addEventListener('keydown', ev => {
+                if (ev.key === 'Escape' && document.body.classList.contains('sources-open')) closeSourcesModal();
+            });
         }
 
         // --- Guided tour (fly P-7A → P9, showing each shaft's SSOT record) ---
@@ -1981,10 +2164,18 @@
                 camera.position.lerpVectors(camAnim.fromP, camAnim.toP, e);
                 controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
                 if (k >= 1) camAnim = null;
+                _readoutDirty = true;
             }
             updateFlow(now);
             controls.update();
             renderer.render(scene, camera);
+            // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
+            // events and the fly-to animation above.
+            if (_readoutDirty && now - _readoutLastPaint > 100) {
+                updateCameraReadout();
+                _readoutDirty = false;
+                _readoutLastPaint = now;
+            }
         }
 
         init();
