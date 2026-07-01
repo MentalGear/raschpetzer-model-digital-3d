@@ -153,6 +153,41 @@
         }
         #shaft-tooltip .t-name { font-weight: 700; color: var(--accent-orange); }
         #shaft-tooltip .t-depth { color: #cbd5e1; }
+
+        /* Annotations side panel (left) */
+        #annot-panel {
+            position: absolute; top: 20px; left: 20px; width: 270px; z-index: 11;
+            background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 18px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4); max-height: 90vh; overflow-y: auto;
+            display: none;
+        }
+        body.annotate-mode #annot-panel { display: block; }
+        body.annotate-mode #canvas-container { cursor: crosshair; }
+        #annot-panel h3 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; margin-bottom: 6px; }
+        .annot-hint { font-size: 0.72rem; color: #9ca3af; margin-bottom: 12px; line-height: 1.4; }
+        #annot-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+        .annot-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 7px;
+            background: #2b2f3a; cursor: pointer; font-size: 0.8rem; color: #d1d5db; }
+        .annot-row:hover { background: #363b47; }
+        .annot-row.sel { background: var(--accent-orange); color: #1a1a1a; font-weight: 600; }
+        .annot-row .an-num { display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%; background: #e11d8f; color: #fff;
+            font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
+        .annot-row.sel .an-num { background: #1a1a1a; }
+        .annot-row .an-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #annot-editor { display: none; margin-bottom: 12px; }
+        #annot-editor input, #annot-editor textarea {
+            width: 100%; background: #374151; color: #f3f4f6; border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px; padding: 7px 9px; font-size: 0.8rem; margin-bottom: 7px; resize: vertical; }
+        #annot-editor input:focus, #annot-editor textarea:focus { outline: none; border-color: var(--accent-orange); }
+        #annot-delete { width: 100%; background: #7f1d1d; color: #fecaca; border: none;
+            border-radius: 6px; padding: 7px; font-size: 0.76rem; cursor: pointer; }
+        #annot-delete:hover { background: #991b1b; }
+        .annot-io { display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
+        .annot-io button { flex: 1; background: #374151; color: #f3f4f6; border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px; padding: 8px; font-size: 0.78rem; cursor: pointer; }
+        .annot-io button:hover { background: #4b5563; }
     </style>
     <script src="three.min.js"></script>
     <script src="OrbitControls.js"></script>
@@ -215,6 +250,9 @@
             <button id="btn-reset" type="button">Reset view</button>
             <button id="btn-overlay" type="button">Reference overlay</button>
         </div>
+        <div class="control-group btn-row">
+            <button id="btn-annotate" type="button">✎ Annotate mode</button>
+        </div>
 
         <div class="legend">
             <div class="legend-item">
@@ -230,6 +268,10 @@
                 Groundwater — flows East (in sandstone)
             </div>
             <div class="legend-item">
+                <div class="color-box" style="background: #8aa0b4;"></div>
+                Auxiliary dry channel (P-7A/P-5A)
+            </div>
+            <div class="legend-item">
                 <div class="color-box" style="background: #d8c0a8;"></div>
                 Weathered rock / soft ground
             </div>
@@ -241,6 +283,22 @@
                 <div class="color-box" style="background: #8f95c4;"></div>
                 Marl &amp; limestone strata
             </div>
+        </div>
+    </div>
+
+    <div id="annot-panel">
+        <h3>Annotations</h3>
+        <p class="annot-hint">Click anywhere on the model to drop a numbered point, then write a note. Export to share, or import a saved file.</p>
+        <div id="annot-list"></div>
+        <div id="annot-editor">
+            <input id="annot-title" type="text" placeholder="Title" maxlength="80">
+            <textarea id="annot-note" rows="4" placeholder="Notes…"></textarea>
+            <button id="annot-delete" type="button">Delete point</button>
+        </div>
+        <div class="annot-io">
+            <button id="annot-export" type="button">Export</button>
+            <button id="annot-import-btn" type="button">Import</button>
+            <input id="annot-import" type="file" accept="application/json,.json" hidden>
         </div>
     </div>
 
@@ -551,9 +609,16 @@
                        * ((geodata.maxM - geodata.minM) || 1);
             return 340 + (surfaceY / params.plateauHeight) * 45;
         }
-        // Gallery (channel) floor elevation (m), anchored to surveyed floors P-7A & P-4,
-        // gently rising eastward so water runs West toward the villa.
-        function galleryFloorMeters(x) { return 354.3 + 0.122 * (x + 21); }
+        // Gallery (channel) floor elevation (m): the real longitudinal profile is
+        // near-level — a constant ~0.1% grade (10 cm / 100 m) rising gently eastward so
+        // water runs West to the villa — plus two documented stepped falls: 1 m under P4
+        // and 1.2 m under P6 [brochure p.26-27]. Anchored ~354 m at P-7A.
+        function galleryFloorMeters(x) {
+            let e = 354.0 + 0.001 * metersPerXUnit() * (x + 21); // 0.1% grade
+            if (x > 13) e += 1.0;   // stepped fall under P4
+            if (x > 21) e += 1.2;   // stepped fall under P6
+            return e;
+        }
         // Convert a real depth (m) into model Y-units under the current vertical scale.
         function metersToYDepth(depthM) {
             if (params.terrainSource === 'geodata' && geodata.ready)
@@ -711,6 +776,7 @@
             modelGroup = new THREE.Group();
             scene.add(modelGroup);
 
+            initAnnotations();
             // Default to the real Walferdange DEM (baked grid loads synchronously).
             if (params.terrainSource === 'geodata') loadGeoData(() => buildParametricModel());
             else buildParametricModel();
@@ -871,7 +937,10 @@
             const pillarMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, depthTest: false });
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
-            const basePts = [];
+            // P-5A & P-7A form a separate, higher "auxiliary" dry channel (not connected
+            // to the main gallery) [brochure p.21-22].
+            const AUX_SHAFTS = { 'P-5A': true, 'P-7A': true };
+            const basePts = [], auxPts = [], shaftBaseById = {};
             let localMaxLen = 0;
             pillarDefs.forEach((p, i) => {
                 const sy = surf[i];
@@ -896,7 +965,9 @@
                 }
                 if (len < 0.05) len = 0.05;
                 const ty = sy - len;
-                basePts.push(new THREE.Vector3(p.x, ty, p.z));
+                const bp = new THREE.Vector3(p.x, ty, p.z);
+                shaftBaseById[p.id] = bp;
+                (AUX_SHAFTS[p.id] ? auxPts : basePts).push(bp);
                 if (len > localMaxLen) localMaxLen = len;
                 if (len > 0.12) {
                     const geo = new THREE.CylinderGeometry(0.30, 0.30, len, 14);
@@ -941,6 +1012,23 @@
                 tunnelTube(basePts.slice(start, end), 0x1d6fd6);          // explored (solid)
                 tunnelDashed(basePts.slice(0, start + 1), 0x1d6fd6);      // inferred west (dashed)
                 tunnelDashed(basePts.slice(end - 1), 0x1d6fd6);          // inferred east (dashed)
+
+                // Auxiliary dry channel (P-7A → P-5A), higher & unconnected: grey dashed
+                if (auxPts.length >= 2) tunnelDashed(auxPts, 0x8aa0b4);
+
+                // Stepped-fall markers (steps are ~1 m — sub-visible — so annotate them)
+                [['P6', '1.2 m step'], ['P4', '1.0 m step']].forEach(([id, txt]) => {
+                    const bp = shaftBaseById[id];
+                    if (!bp) return;
+                    const top = new THREE.Vector3(bp.x, bp.y + 0.9, bp.z);
+                    modelGroup.add(new THREE.Line(
+                        new THREE.BufferGeometry().setFromPoints([bp, top]),
+                        new THREE.LineBasicMaterial({ color: 0x1d6fd6, depthTest: false })));
+                    const s = createTextSprite(txt, '#1d6fd6', 20);
+                    s.scale.set(3.0, 0.8, 1);
+                    s.position.set(bp.x, bp.y + 1.35, bp.z);
+                    modelGroup.add(s);
+                });
             } else {
                 tunnelTube(basePts, 0x1d6fd6);
             }
@@ -1008,6 +1096,7 @@
 
             updateCompass();
             updateExagReadout();
+            renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
         }
 
         // Real ground metres per model X-unit (GeoData uses the bbox; else nominal ~1 km block).
@@ -1278,6 +1367,17 @@
             });
             dom.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
             dom.addEventListener('click', ev => {
+                if (annotateMode) {
+                    // Drop an annotation point at the clicked surface location
+                    const r = dom.getBoundingClientRect();
+                    ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                    ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                    raycaster.setFromCamera(ndc, camera);
+                    const hits = raycaster.intersectObjects(modelGroup.children, true);
+                    const h = hits.find(hh => hh.object.type === 'Mesh');
+                    if (h) addAnnotation(h.point.x, h.point.z);
+                    return;
+                }
                 const hit = pick(ev);
                 if (!hit) return;
                 const d = hit.object.userData;
@@ -1285,6 +1385,115 @@
                 const pos = new THREE.Vector3(d.x - 6, d.topY + 10, d.z + 26);
                 flyTo(pos, tgt, 800);
             });
+        }
+
+        // --- Annotations / notes system ---------------------------------------
+        let annotations = [];      // {id, x, z, title, note}
+        let annotSeq = 0, selectedAnnotId = null, annotateMode = false, annotationGroup = null;
+
+        function initAnnotations() {
+            annotationGroup = new THREE.Group();
+            scene.add(annotationGroup);
+            const btn = document.getElementById('btn-annotate');
+            btn.addEventListener('click', () => {
+                annotateMode = !annotateMode;
+                document.body.classList.toggle('annotate-mode', annotateMode);
+                btn.classList.toggle('active', annotateMode);
+            });
+            document.getElementById('annot-title').addEventListener('input', e => {
+                const a = annotations.find(x => x.id === selectedAnnotId);
+                if (a) { a.title = e.target.value; refreshAnnotList(); }
+            });
+            document.getElementById('annot-note').addEventListener('input', e => {
+                const a = annotations.find(x => x.id === selectedAnnotId);
+                if (a) a.note = e.target.value;
+            });
+            document.getElementById('annot-delete').addEventListener('click', deleteSelectedAnnot);
+            document.getElementById('annot-export').addEventListener('click', exportAnnotations);
+            document.getElementById('annot-import-btn').addEventListener('click',
+                () => document.getElementById('annot-import').click());
+            document.getElementById('annot-import').addEventListener('change', importAnnotations);
+        }
+
+        function addAnnotation(x, z) {
+            const a = { id: ++annotSeq, x, z, title: '', note: '' };
+            annotations.push(a);
+            selectedAnnotId = a.id;
+            renderAnnotationMarkers(); refreshAnnotList(); openAnnotEditor();
+            document.getElementById('annot-title').focus();
+        }
+        function selectAnnotation(id) {
+            selectedAnnotId = id;
+            renderAnnotationMarkers(); refreshAnnotList(); openAnnotEditor();
+        }
+        function openAnnotEditor() {
+            const a = annotations.find(x => x.id === selectedAnnotId);
+            const ed = document.getElementById('annot-editor');
+            if (!a) { ed.style.display = 'none'; return; }
+            ed.style.display = 'block';
+            document.getElementById('annot-title').value = a.title;
+            document.getElementById('annot-note').value = a.note;
+        }
+        function deleteSelectedAnnot() {
+            annotations = annotations.filter(a => a.id !== selectedAnnotId);
+            selectedAnnotId = null;
+            renderAnnotationMarkers(); refreshAnnotList();
+            document.getElementById('annot-editor').style.display = 'none';
+        }
+        function refreshAnnotList() {
+            const list = document.getElementById('annot-list');
+            list.innerHTML = '';
+            annotations.forEach((a, i) => {
+                const row = document.createElement('div');
+                row.className = 'annot-row' + (a.id === selectedAnnotId ? ' sel' : '');
+                const t = (a.title || 'Untitled').replace(/</g, '&lt;');
+                row.innerHTML = '<span class="an-num">' + (i + 1) + '</span><span class="an-t">' + t + '</span>';
+                row.addEventListener('click', () => selectAnnotation(a.id));
+                list.appendChild(row);
+            });
+        }
+        function renderAnnotationMarkers() {
+            if (!annotationGroup) return;
+            while (annotationGroup.children.length) annotationGroup.remove(annotationGroup.children[0]);
+            annotations.forEach((a, i) => {
+                const y = getTerrainHeight(a.x, a.z) + 0.4;
+                const sel = a.id === selectedAnnotId;
+                const sph = new THREE.Mesh(new THREE.SphereGeometry(sel ? 0.55 : 0.42, 16, 12),
+                    new THREE.MeshBasicMaterial({ color: sel ? 0xffd23f : 0xe11d8f, depthTest: false }));
+                sph.position.set(a.x, y, a.z); sph.renderOrder = 20;
+                annotationGroup.add(sph);
+                const num = createTextSprite(String(i + 1), '#ffffff', 26);
+                num.scale.set(1.1, 1.1, 1); num.position.set(a.x, y + 0.9, a.z);
+                num.renderOrder = 21;
+                annotationGroup.add(num);
+            });
+        }
+        function exportAnnotations() {
+            const data = { site: 'Raschpetzer Qanat', terrainSource: params.terrainSource,
+                annotations: annotations.map(a => ({ x: +a.x.toFixed(3), z: +a.z.toFixed(3), title: a.title, note: a.note })) };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const el = document.createElement('a');
+            el.href = url; el.download = 'raschpetzer-annotations.json'; el.click();
+            URL.revokeObjectURL(url);
+        }
+        function importAnnotations(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const data = JSON.parse(reader.result);
+                    const arr = Array.isArray(data) ? data : data.annotations;
+                    if (!Array.isArray(arr)) throw new Error('no annotations array');
+                    annotations = arr.map(a => ({ id: ++annotSeq, x: +a.x, z: +a.z, title: a.title || '', note: a.note || '' }));
+                    selectedAnnotId = null;
+                    renderAnnotationMarkers(); refreshAnnotList();
+                    document.getElementById('annot-editor').style.display = 'none';
+                    if (!annotateMode) document.getElementById('btn-annotate').click();
+                } catch (err) { alert('Could not import annotations: ' + err.message); }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
         }
 
         function onResize() {
