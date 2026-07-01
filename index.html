@@ -318,6 +318,9 @@
         <div class="control-group btn-row">
             <button id="btn-reset" type="button">Reset view</button>
         </div>
+        <div class="control-group btn-row">
+            <button id="btn-top-view" type="button">⬇ Top view</button>
+        </div>
         <div class="control-group btn-row" style="display:none">
             <!-- Annotation mode hidden for now. -->
             <button id="btn-annotate" type="button">✎ Annotate mode</button>
@@ -1765,6 +1768,7 @@
             // Action buttons
             document.getElementById('btn-profile').addEventListener('click', toggleProfile);
             document.getElementById('btn-reset').addEventListener('click', resetView);
+            document.getElementById('btn-top-view').addEventListener('click', topView);
 
             setupShaftInteraction();
             updateControlVisibility();
@@ -1844,6 +1848,19 @@
                         t0: performance.now(), dur: ms || 700 };
         }
         function resetView() { flyTo(DEFAULT_CAM.pos, DEFAULT_CAM.target, 700); }
+        // "Top view": look straight down on the qanat, keeping the current zoom distance.
+        // A tiny 2° tilt off vertical avoids OrbitControls' gimbal singularity (view dir ∥
+        // camera.up) and keeps north (−Z) at the top of the screen.
+        function topView() {
+            const target = DEFAULT_CAM.target.clone();
+            const dist = camera.position.distanceTo(controls.target) || 120;
+            const tilt = THREE.MathUtils.degToRad(2);
+            const pos = new THREE.Vector3(
+                target.x,
+                target.y + dist * Math.cos(tilt),
+                target.z + dist * Math.sin(tilt));
+            flyTo(pos, target, 700);
+        }
 
         // --- Zoom-to-pointer: dolly toward the mouse cursor instead of the orbit target ---
         // three r128's vendored OrbitControls has no `zoomToCursor` option, so when it's
