@@ -275,7 +275,7 @@
             <label for="param-source">Terrain Source</label>
             <select id="param-source">
                 <option value="procedural">Procedural (original)</option>
-                <option value="geodata" selected>GeoData (Walferdange DEM)</option>
+                <option value="geodata" selected>GeoData (LiDAR + georeferenced)</option>
             </select>
             <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1em;"></div>
             <label class="check-row" id="row-flip"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
@@ -379,7 +379,7 @@
         <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
-        <div id="honesty-note">Surface: EU‑DEM 25 m (context). Shaft plan positions are <b>schematic</b> (fig.&nbsp;3‑1), not surveyed; solid shafts have a documented depth, faded ones are inferred.</div>
+        <div id="honesty-note">Surface: <b>ACT LiDAR 2019</b> (0.5&nbsp;m). Shafts placed by <b>georeferenced</b> OSM coords (validated ±2&nbsp;m by LiDAR); gallery near‑level per the brochure. Solid shafts have a documented depth, faded ones are inferred.</div>
 
         <div id="scale-bar" style="display:none;">
             <div class="bar-line">
@@ -451,8 +451,25 @@
         const SHAFT_BASE = SHAFTS.filter(s => s.modelPos)
             .map(s => ({ id: s.id, x: s.modelPos.x, z: s.modelPos.z }));
         let pillarDefs = SHAFT_BASE.map(p => ({ id: p.id, x: p.x, z: p.z }));
+        // Map a real WGS84 coordinate into the current scene window (georeferenced placement).
+        function geoToScene(lat, lon) {
+            let u = (lon - geoView.west) / (geoView.east - geoView.west);
+            if (params.flipWE) u = 1 - u;
+            const v = (geoView.north - lat) / (geoView.north - geoView.south);
+            return { x: u * params.width - params.width / 2, z: v * params.depth - params.depth / 2 };
+        }
+        // In GeoData mode shafts sit at their real geo coords on the LiDAR terrain; otherwise
+        // they fall back to the schematic modelPos (scaled by QSCALE).
         function applyQanatScale() {
-            pillarDefs = SHAFT_BASE.map(p => ({ id: p.id, x: p.x * QSCALE, z: p.z * QSCALE }));
+            const geo = (params.terrainSource === 'geodata');
+            pillarDefs = SHAFT_BASE.map(p => {
+                const rec = shaftById[p.id];
+                if (geo && rec && rec.geo) {
+                    const s = geoToScene(rec.geo.lat, rec.geo.lon);
+                    return { id: p.id, x: s.x, z: s.z };
+                }
+                return { id: p.id, x: p.x * QSCALE, z: p.z * QSCALE };
+            });
         }
         const REAL_DEPTH = Object.fromEntries(
             SHAFTS.filter(s => s.depthM != null).map(s => [s.id, s.depthM]));
@@ -508,20 +525,20 @@
         // "slice" (sub-window) of this; the Slice controls pan/zoom that window.
         // West edge sits in the Alzette valley (~226 m), east on the Pëtschend
         // plateau (~440 m). Matches geodata-walferdange.js.
-        const GEO_BBOX = { west: 6.106, east: 6.186, south: 49.656, north: 49.680 };
-        const GEO_COLS = 96, GEO_ROWS = 40;
+        // LiDAR corridor grid (ACT 2019 0.5 m DTM, re-baked). Full sampled extent:
+        const GEO_BBOX = { west: 6.138, east: 6.162, south: 49.6618, north: 49.6708 };
+        const GEO_COLS = 40, GEO_ROWS = 22;
 
-        // Default rendered slice = the original (pre-4x) bbox: 0.040° lon x 0.012° lat,
-        // i.e. exactly the centre quarter of the full grid, so default view is unchanged.
-        const GEO_VIEW_SPAN = { lon: 0.040, lat: 0.012 };
+        // Default rendered window = central half of the grid (~866 × 501 m), framing the
+        // ~300 m qanat; "Surrounding area" grows it to the full sampled extent.
+        const GEO_VIEW_SPAN = { lon: 0.012, lat: 0.0045 };
         // Cached view window (WGS84 bbox); recomputed whenever "Surrounding area" moves.
-        // The window is always CENTERED on the full grid (= centred on the qanat's terrain
-        // patch); `surround` grows it out to the full 4x extent. The qanat is scaled by
-        // 1/surround (QSCALE) so it keeps covering the SAME real-world patch — increasing
-        // `surround` reveals more surrounding DEM around a fixed qanat, it does not rescale
-        // the terrain under the qanat.
-        let geoView = { west: 6.126, east: 6.166, south: 49.662, north: 49.674 };
-        let QSCALE = 1;   // qanat modelPos scale = (default window) / (current window) = 1/surround
+        // The window is always CENTERED on the full grid; `surround` grows it out to the full
+        // sampled extent. In GeoData mode shafts are placed by their real geo coordinates
+        // (geoToScene), so they stay locked to the LiDAR terrain as the window changes.
+        // QSCALE only scales the schematic modelPos fallback (procedural mode).
+        let geoView = { west: 6.144, east: 6.156, south: 49.66405, north: 49.66855 };
+        let QSCALE = 1;   // schematic-modelPos scale (procedural fallback only)
         function recomputeGeoView() {
             const fullLon = GEO_BBOX.east - GEO_BBOX.west, fullLat = GEO_BBOX.north - GEO_BBOX.south;
             const spanLon = Math.min(GEO_VIEW_SPAN.lon * params.surround, fullLon);
@@ -625,9 +642,9 @@
 
             // 1) Baked real DEM shipped with the page => instant, offline, no API risk.
             if (window.BAKED_GEODATA && window.BAKED_GEODATA.meters) {
-                adoptMeterGrid(window.BAKED_GEODATA, 'baked EU-DEM 25 m');
+                adoptMeterGrid(window.BAKED_GEODATA, 'baked ACT LiDAR 0.5 m');
                 geodata.loading = false;
-                setGeoStatus('EU-DEM 25 m (OpenTopoData) · ' +
+                setGeoStatus('ACT LiDAR 2019 (0.5 m) · ' +
                              Math.round(geodata.minM) + '–' + Math.round(geodata.maxM) + ' m');
                 if (cb) cb(true); return;
             }
@@ -721,6 +738,20 @@
                 const sx = shaftById[step.underShaft] && shaftById[step.underShaft].modelPos
                     ? shaftById[step.underShaft].modelPos.x * QSCALE : null;
                 if (sx != null && x > sx) e += step.dropM;
+            }
+            return e;
+        }
+        // Near-level gallery floor (masl) from REAL longitude, for georeferenced (GeoData)
+        // placement. Anchored at P-4's surveyed floor (355.4 m), constant 0.1% grade rising
+        // eastward, plus the two documented stepped falls (1 m under P4, 1.2 m under P6).
+        const FLOOR_ANCHOR = { lon: 6.148369, masl: 355.4 };   // P-4 surveyed
+        function floorMaslAtLon(lon) {
+            const g = SSOT.gallery.gallery;
+            const mPerDegLon = 111320 * Math.cos(GEO_BBOX.south * Math.PI / 180);
+            let e = FLOOR_ANCHOR.masl + (g.gradientPct / 100) * (lon - FLOOR_ANCHOR.lon) * mPerDegLon;
+            for (const step of g.steps) {                 // floor is higher east of each step
+                const sr = shaftById[step.underShaft];
+                if (sr && sr.geo && lon > sr.geo.lon) e += step.dropM;
             }
             return e;
         }
@@ -1056,18 +1087,23 @@
                 const sy = surf[i];
                 let len, floorM = null, depthM = null, documented = false;
                 if (faithful) {
-                    if (REAL_DEPTH[p.id] != null) {
-                        // Use the documented shaft depth directly
-                        depthM = REAL_DEPTH[p.id];
-                        floorM = surfaceMeters(sy) - depthM;
-                        documented = true;
+                    const sM = surfaceMeters(sy);
+                    const rec = shaftById[p.id];
+                    if (params.terrainSource === 'geodata' && rec && rec.geo) {
+                        // Georeferenced: the gallery floor is the near-level documented profile
+                        // (or the surveyed floor); depth = LiDAR surface − floor. This makes the
+                        // tunnel near-level by construction and reproduces the documented depths.
+                        floorM = (REAL_FLOOR[p.id] != null) ? REAL_FLOOR[p.id] : floorMaslAtLon(rec.geo.lon);
+                    } else if (REAL_DEPTH[p.id] != null) {
+                        floorM = sM - REAL_DEPTH[p.id];        // schematic/procedural fallback
                     } else {
-                        const sM = surfaceMeters(sy);
                         floorM = galleryFloorMeters(p.x);
-                        if (floorM > sM - 3) floorM = sM - 3;   // gallery ≥3 m below surface
-                        depthM = sM - floorM;
                     }
-                    len = metersToYDepth(depthM);
+                    if (floorM > sM - 1) floorM = sM - 1;      // gallery stays below the surface
+                    const renderedDepth = sM - floorM;
+                    depthM = (REAL_DEPTH[p.id] != null) ? REAL_DEPTH[p.id] : renderedDepth;
+                    documented = (REAL_DEPTH[p.id] != null);
+                    len = metersToYDepth(renderedDepth);
                 } else {
                     let ty = getLayerHeight(p.x, p.z);   // original flat-ish gallery
                     if (ty > sy - 0.05) ty = sy - 0.05;
@@ -1392,15 +1428,15 @@
             });
 
             // GeoData "Surrounding area": grow the rendered window from the qanat footprint
-            // (1.0x) out to the full 4x sampled extent (2.0x). The qanat stays locked to its
-            // terrain patch (QSCALE), so this only reveals more surrounding DEM.
+            // (1.0x corridor) out to the full sampled extent (2.0x). Shafts are georeferenced,
+            // so they stay locked to the LiDAR terrain; this only reveals more surrounding DEM.
             const sliceReadout = () => {
                 const vb = recomputeGeoView();
                 const mLon = (vb.east - vb.west) * 111320 * Math.cos(vb.south * Math.PI / 180);
                 const mLat = (vb.north - vb.south) * 111320;
                 const el = document.getElementById('slice-readout');
                 if (el) el.textContent = 'Visible ≈ ' + Math.round(mLon) + ' × ' + Math.round(mLat) +
-                    ' m (qanat ≈ ' + Math.round(mLon * QSCALE) + ' m of it)';
+                    ' m · qanat ≈ 306 m (georeferenced)';
             };
             const surSl = document.getElementById('param-surround');
             const surLb = document.getElementById('lbl-surround');
@@ -1614,8 +1650,11 @@
         let tourShafts = [];
         const TOUR_DWELL_MS = 5000;
         function tourFlyTo(rec) {
-            const x = rec.modelPos.x * QSCALE, z = rec.modelPos.z * QSCALE, sy = getTerrainHeight(x, z);
-            flyTo(new THREE.Vector3(x - 6, sy + 10, z + 26), new THREE.Vector3(x, sy - 1, z), 900);
+            const p = (params.terrainSource === 'geodata' && rec.geo)
+                ? geoToScene(rec.geo.lat, rec.geo.lon)
+                : { x: rec.modelPos.x * QSCALE, z: rec.modelPos.z * QSCALE };
+            const sy = getTerrainHeight(p.x, p.z);
+            flyTo(new THREE.Vector3(p.x - 6, sy + 10, p.z + 26), new THREE.Vector3(p.x, sy - 1, p.z), 900);
         }
         function tourGoto(i) {
             tour.idx = Math.max(0, Math.min(tourShafts.length - 1, i));

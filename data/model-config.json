@@ -1,12 +1,12 @@
 {
   "_doc": "VISUALIZATION-ONLY config. Nothing here is citable — it only affects how the picture looks. Facts live in the other data/*.json files and are joined here by id/code.",
-  "camera": { "fov": 13, "position": [0, 20, 96], "target": [2, 3, 0], "near": 1, "far": 1000 },
+  "camera": { "fov": 14, "position": [0, 24, 104], "target": [0, 6, 0], "near": 1, "far": 1000 },
   "background": "#f5f0ea",
   "sceneScale": {
-    "width": 70, "depth": 32, "baseY": -2,
+    "width": 70, "depth": 40, "baseY": -2,
     "plateauHeight": 5.0, "hillsideDrop": 4.5, "depressionDepth": 3.0,
     "layerDepth": 5.0, "contourSpacing": 0.20,
-    "_note": "Display-scale knobs (scene units, not metres). Adjustable at runtime via the UI. width:depth = 70:32 ≈ 2.16 matches the default GeoData window's real E-W:N-S metre ratio (2882:1336 m), so the horizontal plan is ~isotropic (was 70:26, a ~25% N-S stretch). GeoData vertical uses a single true-scale 'Vertical exaggeration' control (default 1.0×), not plateauHeight/elevationIntensity."
+    "_note": "Display-scale knobs (scene units, not metres). Adjustable at runtime via the UI. width:depth = 70:40 = 1.75 matches the default GeoData (LiDAR corridor) window's real E-W:N-S metre ratio (~866:501 m = 1.73), so the horizontal plan is ~isotropic. GeoData vertical uses a single true-scale 'Vertical exaggeration' control (default 1.0×)."
   },
   "datum": {
     "nominalValleyMasl": 340, "nominalPlateauMasl": 385,

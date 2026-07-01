@@ -12,14 +12,18 @@
       },
       "position": {
         "crm": "E53_Place",
-        "crs": "model-schematic",
-        "status": "schematic",
-        "source": "fig-3-1b",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
         "paradataRef": [
-          "pd-schematic-positions"
+          "pd-osm-georef"
         ]
       },
-      "geo": null,
+      "geo": {
+        "lat": 49.666682,
+        "lon": 6.1479,
+        "crs": "EPSG:4326"
+      },
       "depthM": 6,
       "floorElevM": 354.3,
       "floorElevCrs": "masl",
@@ -37,8 +41,19 @@
         "floorElevM": {
           "source": "survey-shaft-floors",
           "note": "surveyed floor 354.3 m a.s.l."
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "derived from P-5 (OSM) + documented ~25 m NW offset (p.22)"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR at the derived coordinate"
         }
-      }
+      },
+      "surfaceElevM": 366.8,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "low"
     },
     {
       "id": "P-5A",
@@ -51,14 +66,18 @@
       },
       "position": {
         "crm": "E53_Place",
-        "crs": "model-schematic",
-        "status": "schematic",
-        "source": "fig-3-1b",
+        "crs": "EPSG:4326",
+        "status": "reconstructed",
+        "source": "osm-qanat-shafts",
         "paradataRef": [
-          "pd-schematic-positions"
+          "pd-osm-georef"
         ]
       },
-      "geo": null,
+      "geo": {
+        "lat": 49.666599,
+        "lon": 6.148027,
+        "crs": "EPSG:4326"
+      },
       "depthM": 8,
       "floorElevM": 357.5,
       "floorElevCrs": "masl",
@@ -75,8 +94,19 @@
         "floorElevM": {
           "source": "survey-shaft-floors",
           "note": "surveyed floor 357.5 m a.s.l."
+        },
+        "geo": {
+          "source": "osm-qanat-shafts",
+          "note": "derived from P-5 (OSM) + ~12 m NW (aux channel, vicinity of P-5)"
+        },
+        "surfaceElevM": {
+          "source": "act-lidar-2019",
+          "note": "0.5 m LiDAR at the derived coordinate"
         }
-      }
+      },
+      "surfaceElevM": 365.5,
+      "surfaceElevCrs": "masl",
+      "geoConfidence": "low"
     },
     {
       "id": "P-5",

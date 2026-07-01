@@ -11,13 +11,14 @@ source; documented facts are visually distinguished from inferred/schematic ones
 
 ## Features
 
-- **Two terrain sources**: procedural, and **GeoData** — real EU‑DEM 25 m
-  elevation for the site (default), sampled over a 4×-area grid with a
-  **Surrounding area** control that reveals more of the DEM around the qanat
-  while keeping the qanat locked to its terrain.
-- **Honesty encoding**: the DEM surface is real, but shaft *plan positions* are
-  schematic (the brochure carries no coordinates) — flagged on-canvas, with
-  documented-depth shafts drawn solid and inferred ones faded.
+- **Two terrain sources**: procedural, and **GeoData** (default) — real
+  **ACT LiDAR 2019 (0.5 m)** elevation, with shafts placed by their
+  **georeferenced** OSM coordinates (validated to ±2 m against LiDAR) and the
+  gallery held **near-level** per the brochure. A **Surrounding area** control
+  reveals more of the DEM around the qanat. See `docs/DATA_CREDIBILITY.md`.
+- **Honesty encoding**: georeferenced positions are `reconstructed` (per-shaft
+  confidence), documented-depth shafts are drawn solid and inferred ones faded,
+  and the source is flagged on-canvas.
 - **Contour-map rendering** with bold index contours + elevation labels.
 - **Faithful qanat**: documented shaft depths (P5 ≈ 36 m), near‑level gallery at
   the real ~0.1 % gradient with the P6/P4 steps, separate auxiliary channel.

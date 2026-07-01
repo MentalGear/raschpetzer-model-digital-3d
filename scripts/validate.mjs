@@ -92,12 +92,15 @@ if (g) {
     // floor-band: surveyed floors sit in the near-level corridor
     if (typeof s.floorElevM === 'number' && (s.floorElevM < FLOOR_BAND[0] || s.floorElevM > FLOOR_BAND[1]))
       errs.push(`constraint[floor-band]: ${s.id} floorElevM ${s.floorElevM} outside ${FLOOR_BAND[0]}–${FLOOR_BAND[1]} m`);
-    // cross-source: LiDAR surface must reconcile with brochure floor+depth
+    // cross-source: LiDAR surface must reconcile with brochure floor+depth.
+    // Auxiliary / drop-shafts are a documented exception (P-7A's depthM is the
+    // rubble-fill extent, not surface-to-floor), so they only warn.
     if (typeof s.surfaceElevM === 'number' && typeof s.depthM === 'number') {
       if (typeof s.floorElevM === 'number') {
         const d = Math.abs(s.surfaceElevM - (s.floorElevM + s.depthM));
-        if (d > 5) errs.push(`constraint[lidar≈floor+depth]: ${s.id} |LiDAR ${s.surfaceElevM} − (floor ${s.floorElevM}+depth ${s.depthM})| = ${d.toFixed(1)} m > 5`);
-        else if (d > 2.5) warns.push(`constraint[lidar≈floor+depth]: ${s.id} off by ${d.toFixed(1)} m (>2.5)`);
+        const hard = s.role !== 'auxiliary';
+        if (d > 5 && hard) errs.push(`constraint[lidar≈floor+depth]: ${s.id} |LiDAR ${s.surfaceElevM} − (floor ${s.floorElevM}+depth ${s.depthM})| = ${d.toFixed(1)} m > 5`);
+        else if (d > 2.5) warns.push(`constraint[lidar≈floor+depth]: ${s.id} off by ${d.toFixed(1)} m${hard ? ' (>2.5)' : ' (aux/drop-shaft exception)'}`);
       } else {
         // no surveyed floor → the floor implied by LiDAR−depth must stay near-level
         const impl = s.surfaceElevM - s.depthM;
