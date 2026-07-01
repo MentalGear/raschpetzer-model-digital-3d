@@ -1359,23 +1359,34 @@
                     s.scale.set(6.0, 1.0, 1);
                     s.position.set(end.x, end.y + 1.0, end.z);
                     modelGroup.add(s);
-                    // Surface spring where the diverted surplus resurfaces (SSOT: surfaceOutlet;
-                    // flow-matched to the Geierbierg spring). Riser from the channel end up to
-                    // the surface + a spring dot + label.
+                    // Surface spring: the diverted surplus does NOT rise straight up — it stays
+                    // a subterranean drain near the channel level (~355 m) and DAYLIGHTS
+                    // downslope (west), where the falling hillside drops to that level. March
+                    // west until the surface meets the channel level and put the spring there.
                     const so = oc.surfaceOutlet;
                     if (so) {
-                        const spSurfY = getTerrainHeight(end.x, end.z);
-                        const top = new THREE.Vector3(end.x, spSurfY + 0.3, end.z);
-                        const riser = new THREE.Line(new THREE.BufferGeometry().setFromPoints([end, top]),
-                            new THREE.LineDashedMaterial({ color: COL.groundwater, dashSize: 0.5, gapSize: 0.35,
-                                transparent: true, depthTest: false }));
-                        riser.computeLineDistances(); riser.renderOrder = 6; modelGroup.add(riser);
-                        const spDot = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12),
-                            new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
-                        spDot.position.copy(top); spDot.renderOrder = 7; modelGroup.add(spDot);
-                        const spl = createTextSprite(so.associatedSpring + ' (~' + so.flowM3PerDay + ' m³/d, inferred)', '#0a6ebd', 20);
-                        spl.scale.set(7.4, 1.05, 1); spl.position.set(end.x, spSurfY + 1.1, end.z);
-                        modelGroup.add(spl);
+                        const chY = end.y;                       // channel level (scene Y)
+                        const wdir = (isGeo && params.flipWE) ? 1 : -1;   // downslope = valley/west
+                        const step = params.width / 160;
+                        let sp = null;
+                        for (let dx = step; dx < params.width * 1.3; dx += step) {
+                            const x = end.x + wdir * dx;
+                            if (Math.abs(x) > halfW) break;
+                            if (getTerrainHeight(x, 0) <= chY) { sp = new THREE.Vector3(x, chY, 0); break; }
+                        }
+                        if (sp) {
+                            const drain = new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+                                [end, new THREE.Vector3(sp.x, chY, 0)]),
+                                new THREE.LineDashedMaterial({ color: COL.groundwater, dashSize: 0.6, gapSize: 0.4,
+                                    transparent: true, depthTest: false }));
+                            drain.computeLineDistances(); drain.renderOrder = 6; modelGroup.add(drain);
+                            const spDot = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12),
+                                new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
+                            spDot.position.set(sp.x, sp.y + 0.32, sp.z); spDot.renderOrder = 7; modelGroup.add(spDot);
+                            const spl = createTextSprite(so.associatedSpring + ' (~' + so.flowM3PerDay + ' m³/d, inferred)', '#0a6ebd', 20);
+                            spl.scale.set(7.4, 1.05, 1); spl.position.set(sp.x, sp.y + 1.2, sp.z);
+                            modelGroup.add(spl);
+                        }
                     }
                 }
             }
@@ -1631,10 +1642,15 @@
 
         function createTextSprite(text, colorStr = '#111', size = 24) {
             const canvas = document.createElement('canvas');
-            canvas.width = 320; canvas.height = 72;
             const ctx = canvas.getContext('2d');
+            const font = `600 ${size}px -apple-system, sans-serif`;
+            // Size the canvas to the text so long labels aren't clipped (min 320 keeps
+            // short labels identical to before). Sprite scale (set by callers) is unchanged.
+            ctx.font = font;
+            canvas.width = Math.max(320, Math.ceil(ctx.measureText(text).width) + 28);
+            canvas.height = 72;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = `600 ${size}px -apple-system, sans-serif`;
+            ctx.font = font;   // re-apply: resizing the canvas resets the context
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const cx = canvas.width / 2, cy = canvas.height / 2;
@@ -1846,7 +1862,10 @@
         function updateZoomClamp() {
             if (!controls) return;
             controls.minDistance = BASE_MIN_DISTANCE;
-            controls.maxDistance = BASE_MAX_DISTANCE * params.surround;
+            // The qanat is a fixed on-screen size regardless of `surround`, so the far clamp
+            // must never drop below the base (else at 0.2× it collapses to ~80 and traps the
+            // camera short of the ~120 default framing distance). Only GROW it above 1×.
+            controls.maxDistance = BASE_MAX_DISTANCE * Math.max(1, params.surround);
             const d = camera.position.distanceTo(controls.target);
             const clamped = Math.min(controls.maxDistance, Math.max(controls.minDistance, d));
             if (clamped !== d) {

@@ -54,7 +54,7 @@
         "flowM3PerDay": 80,
         "associatedSpring": "Geierbierg spring",
         "status": "inferred",
-        "note": "The ~80 m³/d diverted at the P-4 weir leaves the qanat and resurfaces; the volume matches the Geierbierg spring (80 m³/d, fig.2-1), so the outlet is associated with it — inferred from the flow match, not a surveyed/excavated connection.",
+        "note": "The ~80 m³/d diverted at the P-4 weir stays a subterranean lateral drain near the channel level (~355 m) and resurfaces DOWNSLOPE, where the falling hillside drops to that level — not straight up above the weir. The volume matches the Geierbierg spring (80 m³/d, fig.2-1), so the outlet is associated with it — inferred from the flow match, not a surveyed/excavated connection; the daylight point is illustrative.",
         "_prov": {
           "flowM3PerDay": { "loc": "p.30", "note": "= hydrology.deviationAtP4M3PerDay" },
           "associatedSpring": { "loc": "p.6; fig.2-1", "note": "Geierbierg spring 80 m³/d — flow-match inference" }
