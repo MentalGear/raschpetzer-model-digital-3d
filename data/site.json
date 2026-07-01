@@ -73,5 +73,30 @@
     { "id": "haedchen", "name": "Haedchen Depression", "elevationMasl": 375, "modelSide": "east",
       "source": "waringo2018", "status": "documented",
       "_prov": { "elevationMasl": { "loc": "p.7", "note": "marshy source area ~375 m a.s.l., 600 m E of Pëtschend" } } }
-  ]
+  ],
+
+  "timeline": {
+    "_doc": "Significant dates/periods (AD/CE) for the time slider: Roman construction + use, dormancy, and the modern excavation campaigns. From Waringo 2018 ch.3 'Chronicle of the excavations' (p.11-13) and the excavation-period brackets in fig 3-1 (p.7). Campaign→shaft assignment is per those group brackets (see shafts[].dates).",
+    "spanAD": [100, 2025],
+    "source": "waringo2018", "status": "documented",
+    "events": [
+      { "id": "construction", "label": "Qanat constructed", "kind": "build", "fromAD": 131, "toAD": 140,
+        "_prov": { "fromAD": { "loc": "p.29", "note": "P8 oak beam felled ~131 AD (outer ring 114 AD)" },
+                   "toAD": { "loc": "p.4", "note": "in service from ~140 AD" } } },
+      { "id": "service", "label": "In service — Roman water supply", "kind": "use", "fromAD": 140, "toAD": 350,
+        "_prov": { "toAD": { "loc": "p.4", "note": "service period ~140–350 AD" } } },
+      { "id": "dormant", "label": "Abandoned / silted up", "kind": "dormant", "fromAD": 350, "toAD": 1913, "status": "inferred",
+        "_prov": { "fromAD": { "loc": "p.4; p.11", "note": "no record between late-Roman abandonment and the 20th-c. rediscovery" } } },
+      { "id": "first-excav", "label": "First excavations (P1, P5)", "kind": "rediscovery", "fromAD": 1913, "toAD": 1914,
+        "_prov": { "fromAD": { "loc": "p.11", "note": "P1 & P5 cleared to ~10 m; abandoned 1914" } } },
+      { "id": "speleo", "label": "Speleologist / SIT clearance of P5", "kind": "investigation", "fromAD": 1964, "toAD": 1970,
+        "_prov": { "fromAD": { "loc": "p.11", "note": "Groupe Spéléologique Luxembourgeois (1967) + SIT 1968–70" } } },
+      { "id": "rediscovery", "label": "Gallery rediscovered (P5 base, 3 Oct 1986)", "kind": "rediscovery", "fromAD": 1986, "toAD": 1986,
+        "_prov": { "fromAD": { "loc": "p.11-12", "note": "EFCO from 4 Aug 1986; gallery reached 3 Oct 1986" } } },
+      { "id": "explore-east", "label": "Eastern gallery explored (P3→P9)", "kind": "exploration", "fromAD": 1987, "toAD": 1991,
+        "_prov": { "fromAD": { "loc": "p.12; fig.3-1", "note": "P8 oak beam (114 AD) found by 1991" } } },
+      { "id": "explore-west", "label": "Western continuation (→P-7A)", "kind": "exploration", "fromAD": 1992, "toAD": 2000,
+        "_prov": { "fromAD": { "loc": "p.12; fig.3-1" } } }
+    ]
+  }
 }

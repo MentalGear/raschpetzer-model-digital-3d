@@ -49,11 +49,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR at the derived coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.12; fig.3-1",
+          "note": "western continuation 1992-2000 (auxiliary drop-shaft)"
         }
       },
       "surfaceElevM": 366.8,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "low"
+      "geoConfidence": "low",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1994,
+        "campaign": "explore-west"
+      }
     },
     {
       "id": "P-5A",
@@ -102,11 +112,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR at the derived coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "western continuation 1992-2000 (auxiliary)"
         }
       },
       "surfaceElevM": 365.5,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "low"
+      "geoConfidence": "low",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1994,
+        "campaign": "explore-west"
+      }
     },
     {
       "id": "P-5",
@@ -147,11 +167,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "western continuation 1992-2000"
         }
       },
       "surfaceElevM": 365.2,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "low"
+      "geoConfidence": "low",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1993,
+        "campaign": "explore-west"
+      }
     },
     {
       "id": "P-4",
@@ -204,11 +234,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.12; fig.3-1",
+          "note": "western continuation 1992-2000"
         }
       },
       "surfaceElevM": 366.9,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "medium",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1992,
+        "campaign": "explore-west"
+      }
     },
     {
       "id": "P-1",
@@ -249,11 +289,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "western continuation 1992-2000"
         }
       },
       "surfaceElevM": 374.2,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "medium",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1992,
+        "campaign": "explore-west"
+      }
     },
     {
       "id": "P0",
@@ -294,11 +344,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.20",
+          "note": "not excavated — marked only with a surface panel"
         }
       },
       "surfaceElevM": 379.4,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "medium",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": null,
+        "campaign": null
+      }
     },
     {
       "id": "P1",
@@ -342,11 +402,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.11",
+          "note": "cleared 1913 (initial excavations)"
         }
       },
       "surfaceElevM": 386.1,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium"
+      "geoConfidence": "medium",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1913,
+        "campaign": "first-excav"
+      }
     },
     {
       "id": "P2",
@@ -387,11 +457,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991 (fig 3-1 excavation-period bracket)"
         }
       },
       "surfaceElevM": 391.8,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "low"
+      "geoConfidence": "low",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1987,
+        "campaign": "explore-east"
+      }
     },
     {
       "id": "P3",
@@ -435,11 +515,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991"
         }
       },
       "surfaceElevM": 392.5,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "high"
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1987,
+        "campaign": "explore-east"
+      }
     },
     {
       "id": "P4",
@@ -480,11 +570,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991"
         }
       },
       "surfaceElevM": 391.7,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "high"
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1987,
+        "campaign": "explore-east"
+      }
     },
     {
       "id": "P5",
@@ -536,11 +636,22 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.9; p.11-12",
+          "note": "cleared ~10 m in 1913; base reached 3 Oct 1986 — the gallery was rediscovered here"
         }
       },
       "surfaceElevM": 392.1,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "high"
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1913,
+        "campaign": "rediscovery",
+        "rediscoveredAD": 1986
+      }
     },
     {
       "id": "P6",
@@ -581,11 +692,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991"
         }
       },
       "surfaceElevM": 382.1,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "high"
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1988,
+        "campaign": "explore-east"
+      }
     },
     {
       "id": "P7",
@@ -626,11 +747,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991"
         }
       },
       "surfaceElevM": 378.2,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "high"
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1988,
+        "campaign": "explore-east"
+      }
     },
     {
       "id": "P8",
@@ -671,11 +802,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.29; fig.3-1",
+          "note": "eastern campaign; oak beam (114 AD) found near its base by 1991"
         }
       },
       "surfaceElevM": 377.1,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "high"
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1989,
+        "campaign": "explore-east"
+      }
     },
     {
       "id": "P9",
@@ -716,11 +857,21 @@
         "surfaceElevM": {
           "source": "act-lidar-2019",
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "fig.3-1",
+          "note": "eastern campaign 1987-1991 (mother shaft)"
         }
       },
       "surfaceElevM": 377.2,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "high"
+      "geoConfidence": "high",
+      "dates": {
+        "builtAD": 135,
+        "excavatedAD": 1990,
+        "campaign": "explore-east"
+      }
     },
     {
       "id": "P-2",
@@ -747,7 +898,17 @@
       "_prov": {
         "notes": {
           "loc": "p.21"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.21",
+          "note": "postulated; never located"
         }
+      },
+      "dates": {
+        "builtAD": null,
+        "excavatedAD": null,
+        "campaign": null
       }
     },
     {
@@ -775,7 +936,17 @@
       "_prov": {
         "notes": {
           "loc": "p.21"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.21",
+          "note": "postulated; never located"
         }
+      },
+      "dates": {
+        "builtAD": null,
+        "excavatedAD": null,
+        "campaign": null
       }
     },
     {
@@ -803,7 +974,17 @@
       "_prov": {
         "notes": {
           "loc": "p.22"
+        },
+        "dates": {
+          "source": "waringo2018",
+          "loc": "p.22",
+          "note": "postulated; never located"
         }
+      },
+      "dates": {
+        "builtAD": null,
+        "excavatedAD": null,
+        "campaign": null
       }
     }
   ]
