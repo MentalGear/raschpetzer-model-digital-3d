@@ -4,7 +4,7 @@
     {
       "id": "P-7A", "crm": "E22_Human-Made_Object", "order": 1, "role": "auxiliary",
       "modelPos": { "x": -21, "z": -1.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": 6, "floorElevM": 354.3, "floorElevCrs": "masl",
       "notes": "Auxiliary debris-filled drop-shaft ~25 m NW of P-5; rubble backfill from 3 m depth, +3 m deeper; dry channel, restored to original state.",
@@ -17,7 +17,7 @@
     {
       "id": "P-5A", "crm": "E22_Human-Made_Object", "order": 2, "role": "auxiliary",
       "modelPos": { "x": -18, "z": -0.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": 8, "floorElevM": 357.5, "floorElevCrs": "masl",
       "notes": "Auxiliary shaft ~30 m N of P-4; dry channel at 8 m, 2 m higher than the main channel, so never connected to it; dug in marl, sand-filled.",
@@ -30,7 +30,7 @@
     {
       "id": "P-5", "crm": "E22_Human-Made_Object", "order": 3, "role": "main",
       "modelPos": { "x": -15, "z": 1 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "Yellow-sand filled; channel found at 10 m. Site of the 'geological accident' — channel floor breached, water lost into limestone fissures; rebuilt in concrete.",
@@ -40,7 +40,7 @@
     {
       "id": "P-4", "crm": "E22_Human-Made_Object", "order": 4, "role": "main",
       "modelPos": { "x": -12, "z": 2.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": 12, "floorElevM": 355.4, "floorElevCrs": "masl", "diameterM": 0.8,
       "notes": "Dry-stone lined (0.8 m wall, 3 concentric rows); base widened to 1.4 m cone; overflow weir diverts water to a lateral channel when the level exceeds 12 cm.",
@@ -55,7 +55,7 @@
     {
       "id": "P-1", "crm": "E22_Human-Made_Object", "order": 5, "role": "main",
       "modelPos": { "x": -5, "z": 3 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "Circular shaft in marl, sand-filled; secured with concrete segments; not used for access.",
@@ -64,7 +64,7 @@
     {
       "id": "P0", "crm": "E22_Human-Made_Object", "order": 6, "role": "not-excavated",
       "modelPos": { "x": -2, "z": 2.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "Marked only with a surface panel; not excavated.",
@@ -73,7 +73,7 @@
     {
       "id": "P1", "crm": "E22_Human-Made_Object", "order": 7, "role": "main",
       "modelPos": { "x": 1, "z": 1.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": 30, "floorElevM": null,
       "notes": "At the bend in the route; likely the first shaft sunk; 6 m below the plateau edge in a natural depression. Total depth 30 m; an intermediate 'sounding' gallery at 20 m has no channel.",
@@ -83,7 +83,7 @@
     {
       "id": "P2", "crm": "E22_Human-Made_Object", "order": 8, "role": "main",
       "modelPos": { "x": 4, "z": 0.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "Western edge of the Pëtschend plateau; still backfilled in its original state; unusually close to P1 for survey reasons.",
@@ -92,7 +92,7 @@
     {
       "id": "P3", "crm": "E22_Human-Made_Object", "order": 9, "role": "main",
       "modelPos": { "x": 8, "z": 0 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": 35, "floorElevM": null,
       "notes": "Exactly on the P1–P5 line, 28 m from P2; crosses the plateau at its narrowest to minimise >30 m shafts; still in original state.",
@@ -102,7 +102,7 @@
     {
       "id": "P4", "crm": "E22_Human-Made_Object", "order": 10, "role": "main",
       "modelPos": { "x": 13, "z": 1 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "Half-way between P3 and P5; mouth first excavated with P5; concrete rings + slab cap; base later tunnelled through to link P5→P3.",
@@ -111,7 +111,7 @@
     {
       "id": "P5", "crm": "E22_Human-Made_Object", "order": 11, "role": "main",
       "modelPos": { "x": 18, "z": 2 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": 36, "floorElevM": null, "diameterM": [0.85, 1.2],
       "notes": "Deepest shaft; eastern plateau edge; first cleared to base (3 Oct 1986). Diameter 1.2 m, narrowing to 0.85 m at torus bulges; the channel passes tangentially.",
@@ -125,7 +125,7 @@
     {
       "id": "P6", "crm": "E22_Human-Made_Object", "order": 12, "role": "main",
       "modelPos": { "x": 21, "z": 0.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "First Haedchen shaft surveyed from below ground. A 1.2 m stepped fall in the gallery at its base is a provision for level adjustment; debris/sinter cone with iron oxide. Rock bed ~10 m under ~10 m of soft ground.",
@@ -134,7 +134,7 @@
     {
       "id": "P7", "crm": "E22_Human-Made_Object", "order": 13, "role": "main",
       "modelPos": { "x": 23, "z": -0.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "Located from below ground along the eastbound gallery; cleared with heavy machinery; counter-excavation between P7 and P8.",
@@ -143,7 +143,7 @@
     {
       "id": "P8", "crm": "E22_Human-Made_Object", "order": 14, "role": "main",
       "modelPos": { "x": 25, "z": -1.5 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "Cleared normally; a spring influx ~25 m³/d enters 2 m upstream on the left. An oak beam dated to 114 AD (felling ~131 AD) was found near its base.",
@@ -152,7 +152,7 @@
     {
       "id": "P9", "crm": "E22_Human-Made_Object", "order": 15, "role": "mother",
       "modelPos": { "x": 27, "z": -3 },
-      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-5-4", "paradataRef": ["pd-schematic-positions"] },
+      "position": { "crm": "E53_Place", "crs": "model-schematic", "status": "schematic", "source": "fig-3-1b", "paradataRef": ["pd-schematic-positions"] },
       "geo": null,
       "depthM": null, "floorElevM": null,
       "notes": "The 'mother shaft' — most upstream/easternmost. The gallery ends 6 m east of P9; there is no channel for the first ~13 m. A portal niche with a seepage gutter; oak shovels were found in the mud nearby.",

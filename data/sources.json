@@ -34,11 +34,23 @@
     "short": "Waringo 2018, fig. 4-3", "locator": "fig.4-3, p.15",
     "title": "Geological structure of the Pëtschend horst (section XY), strata legend"
   },
+  "fig-3-1b": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 3-1 (scale bar)", "locator": "fig.3-1, p.7",
+    "title": "3D block model P-7A→P9 with a 100 m scale bar",
+    "note": "The only figure showing all shaft positions along the route at a stated scale (100 m bar). Oblique 3D perspective — gives approximate along-route spacing, NOT georeferenced coordinates. Source of the schematic modelPos arrangement."
+  },
+  "fig-5-3": {
+    "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
+    "short": "Waringo 2018, fig. 5-3", "locator": "fig.5-3, p.17",
+    "title": "Schematic longitudinal section (initial planning)",
+    "note": "Slopes 'very exaggerated for reasons of clarity' — schematic, not to scale."
+  },
   "fig-5-4": {
     "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
     "short": "Waringo 2018, fig. 5-4", "locator": "fig.5-4, p.17",
-    "title": "Route / shaft-spacing plan of the qanat",
-    "note": "Source of schematic shaft spacing used for modelPos; NOT a georeferenced survey."
+    "title": "Photo of shaft P2 (backfilled, in original state)",
+    "note": "Corrected: fig 5-4 is a PHOTOGRAPH of P2, not a route/spacing plan. It was previously mis-cited as the source of modelPos spacing; the actual arrangement source is fig-3-1b."
   },
   "fig-5-11": {
     "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",

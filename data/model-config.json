@@ -3,10 +3,10 @@
   "camera": { "fov": 13, "position": [0, 20, 96], "target": [2, 3, 0], "near": 1, "far": 1000 },
   "background": "#f5f0ea",
   "sceneScale": {
-    "width": 70, "depth": 26, "baseY": -2,
+    "width": 70, "depth": 32, "baseY": -2,
     "plateauHeight": 5.0, "hillsideDrop": 4.5, "depressionDepth": 3.0,
     "layerDepth": 5.0, "contourSpacing": 0.20, "elevationIntensity": 1.0,
-    "_note": "Display-scale knobs (scene units, not metres). Adjustable at runtime via the UI."
+    "_note": "Display-scale knobs (scene units, not metres). Adjustable at runtime via the UI. width:depth = 70:32 ≈ 2.16 matches the default GeoData window's real E-W:N-S metre ratio (2882:1336 m), so the horizontal plan is ~isotropic (was 70:26, a ~25% N-S stretch)."
   },
   "datum": {
     "nominalValleyMasl": 340, "nominalPlateauMasl": 385,

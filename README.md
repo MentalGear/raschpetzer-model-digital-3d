@@ -12,7 +12,11 @@ source; documented facts are visually distinguished from inferred/schematic ones
 ## Features
 
 - **Three terrain sources**: procedural, a grayscale heightmap, and **GeoData** —
-  real EU‑DEM 25 m elevation for the site (default).
+  real EU‑DEM 25 m elevation for the site (default), sampled over a 4×-area grid
+  with **pan/zoom slice controls** to reposition the rendered window.
+- **Honesty encoding**: the DEM surface is real, but shaft *plan positions* are
+  schematic (the brochure carries no coordinates) — flagged on-canvas, with
+  documented-depth shafts drawn solid and inferred ones faded.
 - **Contour-map rendering** with bold index contours + elevation labels.
 - **Faithful qanat**: documented shaft depths (P5 ≈ 36 m), near‑level gallery at
   the real ~0.1 % gradient with the P6/P4 steps, separate auxiliary channel.

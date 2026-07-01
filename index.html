@@ -59,6 +59,14 @@
         }
         #label-west { left: 22px; }
         #label-east { right: 362px; }
+        #honesty-note {
+            position: absolute; bottom: 20px; left: 20px; max-width: 340px;
+            background: rgba(255,255,255,0.82); border-left: 3px solid #e0a23b;
+            color: #4a3f2f; font-size: 0.72rem; line-height: 1.35;
+            padding: 7px 10px; border-radius: 4px; pointer-events: none; z-index: 5;
+            display: none;
+        }
+        #honesty-note b { color: #b06a00; }
 
         /* Scale bar */
         #scale-bar {
@@ -378,6 +386,7 @@
         <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
+        <div id="honesty-note">Surface: EU‑DEM 25 m (context). Shaft plan positions are <b>schematic</b> (fig.&nbsp;3‑1), not surveyed; solid shafts have a documented depth, faded ones are inferred.</div>
 
         <div id="scale-bar" style="display:none;">
             <div class="bar-line">
@@ -1067,7 +1076,11 @@
             //  Schematic = original flat-ish gallery.
             shaftMeshes.length = 0;
             const faithful = (params.qanatLayout === 'faithful');
+            // Honesty encoding: a shaft whose DEPTH is documented (P5, P3, P1, P-4, P-7A,
+            // P-5A) is drawn solid; one whose depth is only inferred from the gallery model
+            // is drawn translucent. (Plan POSITIONS are schematic for all — see the caption.)
             const pillarMat = new THREE.MeshBasicMaterial({ color: COL.shaft, depthTest: false });
+            const pillarMatInferred = new THREE.MeshBasicMaterial({ color: COL.shaft, depthTest: false, transparent: true, opacity: 0.4 });
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -1102,7 +1115,7 @@
                 if (len > localMaxLen) localMaxLen = len;
                 if (len > 0.12) {
                     const geo = new THREE.CylinderGeometry(0.30, 0.30, len, 14);
-                    const mesh = new THREE.Mesh(geo, pillarMat);
+                    const mesh = new THREE.Mesh(geo, documented ? pillarMat : pillarMatInferred);
                     mesh.position.set(p.x, sy - len / 2, p.z);
                     mesh.renderOrder = 6;
                     mesh.userData = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
@@ -1514,6 +1527,9 @@
             // W↔E flip + slice pan/zoom only meaningful for the real DEM
             show('row-flip', ts === 'geodata');
             show('grp-slice', ts === 'geodata');
+            // Honesty note: surface is real DEM but shaft plan positions are schematic
+            const hn = document.getElementById('honesty-note');
+            if (hn) hn.style.display = (ts === 'geodata') ? 'block' : 'none';
             // Tunnel-depth slider only drives the schematic gallery
             show('grp-layer', ql === 'schematic');
             // Plateau Height doubles as the vertical scale for sampled terrains — relabel

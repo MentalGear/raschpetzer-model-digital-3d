@@ -6,8 +6,13 @@
     "author": "project team", "date": "2026-07-01"
   },
   "pd-schematic-positions": {
-    "rationale": "Per-shaft plan positions (modelPos) are read as relative spacing from the route figure, not from a georeferenced survey. They are declared in a `model-schematic` CRS; real WGS84 coordinates (geo) are left null until surveyed values are available.",
-    "basis": "Waringo 2018, fig.5-4",
+    "rationale": "Per-shaft plan positions (modelPos) are read as relative along-route spacing from fig.3-1 (the 3D block model, which carries a 100 m scale bar) and cross-checked against fig.5-3 (schematic longitudinal section) and the documented inter-shaft distances (see gallery.documentedDistances, e.g. P2–P3 = 28 m). fig.3-1 is an oblique 3D perspective, so the spacing is approximate, NOT georeferenced. Positions are declared in a `model-schematic` CRS; real WGS84 coordinates (geo) are left null (see pd-source-precedence). Correction: these positions were previously mis-cited to fig.5-4, which is actually a photograph of shaft P2.",
+    "basis": "Waringo 2018, fig.3-1 (p.7, 100 m scale bar); fig.5-3 (p.17); documented distances p.17, p.22",
+    "author": "project team", "date": "2026-07-01"
+  },
+  "pd-source-precedence": {
+    "rationale": "Source-of-truth hierarchy for this model: (1) the official SIT brochure (Waringo/Faber/Werner 2018) is authoritative for ALL qanat facts — shaft depths, surveyed floor elevations, gallery gradient and steps, geology, hydrology, and the route/spacing arrangement; (2) EU-DEM 25 m (OpenTopoData) is external CONTEXT terrain only — it supplies the surrounding landscape surface, not the qanat, and where it disagrees with the brochure the brochure wins; (3) OpenStreetMap shaft nodes are the lowest-authority, provisional cross-check. Critically, the brochure contains NO coordinate grid on any figure (fig.3-1 has only a 100 m scale bar on an oblique 3D view; fig.5-3 is explicitly exaggerated), so true WGS84 georeferencing CANNOT be derived from it. Therefore per-shaft `geo` stays null and OSM remains the only (provisional) georeference candidate — see pd-osm-georef. This is why the EU-DEM surface at OSM points does not reconcile with the brochure's documented depths: they are different, unmerged sources at different authority levels, not an error to 'fix' in the qanat data.",
+    "basis": "Waringo 2018 (primary); EU-DEM via OpenTopoData (context); OpenStreetMap (provisional)",
     "author": "project team", "date": "2026-07-01"
   },
   "pd-postulated-shafts": {
@@ -16,8 +21,8 @@
     "author": "project team", "date": "2026-07-01"
   },
   "pd-nominal-datum": {
-    "rationale": "For non-GeoData terrain modes there is no real vertical datum, so a nominal site datum is used (valley ~340 m, plateau ~390 m a.s.l.) purely to place the gallery/shafts at plausible depths. GeoData mode uses true EU-DEM metres.",
-    "basis": "derived; consistent with Waringo 2018 elevations 350-405 m a.s.l.",
+    "rationale": "Vertical authority is the brochure: the surveyed shaft-floor elevations (P-7A 354.3, P-5A 357.5, P-4 355.4 m a.s.l.) and the documented depths are the true datum for the qanat. For non-GeoData terrain modes there is no real surface datum, so a nominal site datum is used (valley ~340 m, plateau ~385 m a.s.l.) purely to place the gallery/shafts at plausible depths. GeoData mode draws the SURFACE from EU-DEM metres (context), but the qanat depths/floors remain those documented by the brochure (see pd-source-precedence).",
+    "basis": "Waringo 2018 (floors/depths); nominal surface consistent with Waringo 2018 elevations 350-405 m a.s.l.",
     "author": "project team", "date": "2026-07-01"
   },
   "pd-osm-georef": {

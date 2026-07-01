@@ -40,6 +40,21 @@
       "shafts": ["P-7A", "P-5A"], "type": "dry", "relationToMain": "higher, unconnected",
       "source": "waringo2018", "status": "documented", "paradataRef": ["pd-aux-system"],
       "_prov": { "relationToMain": { "loc": "p.21-22" } }
+    },
+    "documentedDistances": {
+      "_doc": "The only metric horizontal distances the brochure states in text (used to sanity-check the schematic modelPos spacing; see pd-schematic-positions). The brochure gives NO shaft coordinates, so these plus fig.3-1's 100 m scale bar are the whole positional record.",
+      "items": [
+        { "from": "P2", "to": "P3", "distanceM": 28, "along": "P1–P5 straight line",
+          "source": "waringo2018", "status": "documented",
+          "_prov": { "distanceM": { "loc": "p.17", "note": "P3 exactly on the P1–P5 line, 28 m from P2, depth 35 m" } } },
+        { "from": "P-5", "to": "P-7A", "distanceM": 25, "direction": "NW", "approx": true,
+          "source": "waringo2018", "status": "documented",
+          "_prov": { "distanceM": { "loc": "p.22", "note": "P-7A located about 25 m northwest of P-5" } } },
+        { "from": "Petschend-spur", "to": "Haedchen-source", "distanceM": 600, "direction": "E",
+          "note": "Haedchen marshy source area ~375 masl, 600 m east of the Pëtschend spur (~395 masl).",
+          "source": "waringo2018", "status": "documented",
+          "_prov": { "distanceM": { "loc": "p.6" } } }
+      ]
     }
   }
 }
