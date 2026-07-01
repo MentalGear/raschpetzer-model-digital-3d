@@ -273,10 +273,11 @@
         <div class="control-group">
             <label>Terrain</label>
             <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
-            <label class="check-row" id="row-flip"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
+            <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
-            <label class="check-row"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
+            <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
             <label class="check-row"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
+            <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
         </div>
 
         <div class="control-group" id="grp-terrain-opacity">
@@ -444,7 +445,8 @@
             showGeology: true,            // real strata + groundwater/qanat flows
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
             year: 2025,                   // timeline slider: shown state at this year AD (present)
-            showOverflow: false           // P-4 overflow / lateral (deviation) channel (optional)
+            showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
+            showVilla: false              // inferred recipient villa marker (optional)
         };
 
         // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
@@ -1403,10 +1405,16 @@
             // The qanat fed a Roman estate downslope to the west; the exact site is not
             // established, so it's drawn as a faded box with a dashed (inferred) outline. ---
             const villa = SSOT.site.villa;
-            if (villa) {
-                const Sv = (isGeo && params.flipWE) ? -1 : 1;   // valley is west (−x), flip-aware
-                const vx = -halfW * 0.82 * Sv;
-                const vy = getTerrainHeight(vx, 0);
+            const shaftXs = [...basePts, ...auxPts].map(v => v.x);
+            if (villa && params.showVilla && shaftXs.length) {
+                // Anchor to the WEST-most shaft + a fixed metric offset (≈130 m downslope),
+                // so the villa stays put relative to the qanat as `surround` grows/shrinks
+                // (metersPerXUnit is constant, so a fixed metre offset = fixed scene offset).
+                const flipV = isGeo && params.flipWE;           // flipped ⇒ west is +x
+                const westX = flipV ? Math.max(...shaftXs) : Math.min(...shaftXs);
+                const offU = 75 / metersPerXUnit();   // ~75 m downslope beyond the west-most shaft
+                const vx = westX + (flipV ? offU : -offU);
+                const vy = getTerrainHeight(Math.max(-halfW, Math.min(halfW, vx)), 0);
                 const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6),
                     new THREE.MeshBasicMaterial({ color: 0xb08d57, transparent: true, opacity: 0.45, depthTest: false }));
                 box.position.set(vx, vy + 0.6, 0); box.renderOrder = 9;
@@ -1717,6 +1725,12 @@
             // Toggle the optional P-4 overflow / lateral (deviation) channel
             document.getElementById('param-overflow').addEventListener('change', e => {
                 params.showOverflow = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the optional inferred recipient villa marker
+            document.getElementById('param-villa').addEventListener('change', e => {
+                params.showVilla = e.target.checked;
                 buildParametricModel();
             });
 
