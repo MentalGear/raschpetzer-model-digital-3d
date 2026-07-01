@@ -512,12 +512,17 @@
         // Terrain opacity drives the fill surface AND the contour lines together, live
         // (no full rebuild). Fill keeps depthWrite only when fully opaque so the subsurface
         // shows through when faded.
+        // Each faded material keeps its own baseOpacity (fill/contours/side-walls = 1.0;
+        // the front wall is designed see-through at 0.18) and is scaled by the slider.
+        // The geological strata are deliberately NOT registered here, so they stay put.
         function applyTerrainOpacity(v) {
             params.terrainOpacity = v;
             terrainFadeMats.forEach(m => {
-                m.opacity = v;
-                m.transparent = v < 0.999;
-                if (m.isMeshStandardMaterial) m.depthWrite = v >= 0.999;
+                const base = m.userData.baseOpacity != null ? m.userData.baseOpacity : 1;
+                const o = base * v;
+                m.opacity = o;
+                m.transparent = o < 0.999;
+                if (m.isMeshStandardMaterial) m.depthWrite = o >= 0.999;
                 m.needsUpdate = true;
             });
         }
@@ -964,6 +969,7 @@
                 transparent: true, opacity: params.terrainOpacity,
                 depthWrite: params.terrainOpacity >= 0.99
             });
+            fillMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(fillMat);
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
             surfMesh.receiveShadow = true;
@@ -1032,6 +1038,8 @@
             idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
             const idxMat = new THREE.LineBasicMaterial({ color: COL.contourIndex, transparent: tOp < 0.999, opacity: tOp });
             modelGroup.add(new THREE.LineSegments(idxGeo, idxMat));
+            regMat.userData.baseOpacity = 1.0;
+            idxMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(regMat, idxMat);
 
             // Elevation labels on index contours (real metres, GeoData only)
@@ -1048,9 +1056,16 @@
 
             // --- 3. Thin block skirt. Camera-facing front wall is semi-transparent
             //         so the subsurface horizon shows through (per the brief). ---
-            const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide });
+            // Walls fade with the terrain-opacity slider too (baseOpacity × slider); the
+            // strata cross-section is intentionally excluded so it stays readable.
+            const tOpW = params.terrainOpacity;
+            const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
+                                                              transparent: true, opacity: 1.0 * tOpW, depthWrite: tOpW >= 0.999 });
             const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
-                                                              transparent: true, opacity: 0.18, depthWrite: false });
+                                                              transparent: true, opacity: 0.18 * tOpW, depthWrite: false });
+            sideMat.userData.baseOpacity = 1.0;
+            frontMat.userData.baseOpacity = 0.18;
+            terrainFadeMats.push(sideMat, frontMat);
 
             function buildWall(pts, isX, fixed, mat) {
                 const geo = new THREE.BufferGeometry();
