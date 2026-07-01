@@ -276,6 +276,7 @@
             <label class="check-row" id="row-flip"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
             <label class="check-row"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
+            <label class="check-row"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
         </div>
 
         <div class="control-group" id="grp-terrain-opacity">
@@ -441,7 +442,8 @@
             flipWE: false,                // mirror the terrain West<->East
             showGeology: true,            // real strata + groundwater/qanat flows
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
-            year: 2025                    // timeline slider: shown state at this year AD (present)
+            year: 2025,                   // timeline slider: shown state at this year AD (present)
+            showOverflow: false           // P-4 overflow / lateral (deviation) channel (optional)
         };
 
         // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
@@ -456,7 +458,8 @@
             contour: '#9c6233', contourIndex: '#5e3414', shaft: '#f2a93b', qanat: '#1d6fd6',
             groundwater: '#2bb0f0', auxChannel: '#8aa0b4', flowQanat: '#2fa8ff',
             flowGroundwater: '#67d0ff', wall: '#cdb595', base: '#9c8567',
-            annotation: '#e11d8f', annotationSel: '#ffd23f', measure: '#ffd23f'
+            annotation: '#e11d8f', annotationSel: '#ffd23f', measure: '#ffd23f',
+            overflow: '#35c4e8'
         }, MODEL_CONFIG.colors || {});
         const STRATA = Object.assign({
             cover: '#d8c0a8', li2: '#b9d3e8', li1: '#8f95c4', ko: '#e58a9a', km3: '#f2d9a0'
@@ -1285,6 +1288,33 @@
             }
             lastQanatPts = inService ? basePts : [];   // animated flow: only while in service
 
+            // Overflow / lateral (deviation) channel at the P-4 weir (optional; SSOT-driven).
+            // Ø80 cm branch that carries surplus (~80 m³/d) away when the main channel dams
+            // above ~12 cm. The brochure gives no surveyed plan geometry (fig 5-11/5-14), so
+            // the route here is a SCHEMATIC short lateral drain — labelled as reconstructed.
+            if (params.showOverflow && galleryBuilt) {
+                const oc = SSOT.gallery.gallery.overflowChannel;
+                const bp = oc && shaftBaseById[oc.atShaft];
+                if (bp) {
+                    const flowM = inService ? oc.divertedFlowM3PerDay : 0;
+                    const start = new THREE.Vector3(bp.x, bp.y + 0.02, bp.z);
+                    const mid   = new THREE.Vector3(bp.x + 1.0, bp.y - 0.25, bp.z + 2.2);
+                    const end   = new THREE.Vector3(bp.x + 1.7, bp.y - 0.6, bp.z + 5.0);
+                    const cv = new THREE.CatmullRomCurve3([start, mid, end]);
+                    const g = new THREE.TubeGeometry(cv, 40, 0.16, 8, false);
+                    const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
+                    mm.renderOrder = 5; modelGroup.add(mm);
+                    // Weir tap marker at the branch point
+                    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10),
+                        new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
+                    dot.position.copy(start); dot.renderOrder = 6; modelGroup.add(dot);
+                    const s = createTextSprite('overflow weir (P‑4, Ø80 cm)', '#0a9bc4', 20);
+                    s.scale.set(6.0, 1.0, 1);
+                    s.position.set(end.x, end.y + 1.0, end.z);
+                    modelGroup.add(s);
+                }
+            }
+
             // Default / reset camera: an edge-on side elevation at 0° horizon, centred on
             // the qanat, so the near-level tunnel and the horizontal strata / aquifer-bottom
             // bands line up. Looks north (−Z) from the south at the tunnel's own height.
@@ -1587,6 +1617,12 @@
             // Toggle geological strata + water flows
             document.getElementById('param-geology').addEventListener('change', e => {
                 params.showGeology = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the optional P-4 overflow / lateral (deviation) channel
+            document.getElementById('param-overflow').addEventListener('change', e => {
+                params.showOverflow = e.target.checked;
                 buildParametricModel();
             });
 
