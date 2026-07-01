@@ -52,12 +52,13 @@
       "surfaceOutlet": {
         "name": "surface spring (overflow resurgence)",
         "flowM3PerDay": 80,
-        "associatedSpring": "Geierbierg spring",
         "status": "inferred",
-        "note": "The ~80 m³/d diverted at the P-4 weir stays a subterranean lateral drain near the channel level (~355 m) and resurfaces DOWNSLOPE, where the falling hillside drops to that level — not straight up above the weir. The volume matches the Geierbierg spring (80 m³/d, fig.2-1), so the outlet is associated with it — inferred from the flow match, not a surveyed/excavated connection; the daylight point is illustrative.",
+        "gps": null,
+        "gpsStatus": "needed",
+        "note": "The ~80 m³/d diverted at the P-4 weir stays a subterranean lateral drain near the channel level (~355 m) and resurfaces DOWNSLOPE, where the falling hillside drops to that level — not straight up above the weir; the daylight point drawn is illustrative. The exact resurgence has NO confirmed coordinates: the brochure gives none, and the OSM spring 'source Geierbierg 2' (node 5768923730, 49.6558/6.1455, ~600 m S of the qanat) was checked and is NOT this outlet. GPS still needed.",
         "_prov": {
           "flowM3PerDay": { "loc": "p.30", "note": "= hydrology.deviationAtP4M3PerDay" },
-          "associatedSpring": { "loc": "p.6; fig.2-1", "note": "Geierbierg spring 80 m³/d — flow-match inference" }
+          "gpsStatus": { "note": "no documented coordinates; OSM 'source Geierbierg 2' ruled out; field GPS required" }
         }
       },
       "source": "waringo2018", "status": "documented", "paradataRef": ["pd-overflow-channel"],

@@ -73,7 +73,7 @@
     "status": "inferred",
     "confidence": "low",
     "source": "waringo2018",
-    "note": "The qanat carried water east→west toward the Alzette valley to supply a Roman estate; the conduit's western continuation beyond P-7A is unexcavated and the villa's exact site is not established. Placement here is schematic (valley/west end) and shown as inferred.",
+    "note": "The qanat carried water east→west toward the Alzette valley to supply a Roman estate. The villa's location is NOT established (no coordinates, no confirmed site) and is likely several hundred metres downslope in the valley — not adjacent to the qanat. The marker is drawn ~200 m west of the west-most shaft purely as a schematic 'downslope' placeholder; distance and position are illustrative, not surveyed.",
     "_prov": {
       "role": { "loc": "p.4; p.9", "note": "flow toward the Alzette valley to serve a Roman settlement downslope" },
       "status": { "note": "position not surveyed — rendered as an inferred marker, not a located building" }

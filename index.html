@@ -276,6 +276,8 @@
             <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
             <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
+            <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
+            <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
             <label class="check-row"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
             <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
         </div>
@@ -446,7 +448,9 @@
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
             year: 2025,                   // timeline slider: shown state at this year AD (present)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
-            showVilla: false              // inferred recipient villa marker (optional)
+            showVilla: false,             // inferred recipient villa marker (optional)
+            showUnderground: true,        // qanat shafts + gallery + flow (subsurface structures)
+            showSides: true               // terrain block side walls
         };
 
         // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
@@ -1172,10 +1176,12 @@
             for (let i = 0; i <= segX; i++) xSteps.push(-halfW + (i / segX) * params.width);
             for (let i = 0; i <= segZ; i++) zSteps.push(-halfD + (i / segZ) * params.depth);
 
-            buildWall(xSteps, false, -halfD, sideMat);   // back
-            buildWall(xSteps, false,  halfD, frontMat);  // front (camera-facing, transparent)
-            buildWall(zSteps, true,  -halfW, sideMat);   // west
-            buildWall(zSteps, true,   halfW, sideMat);   // east
+            if (params.showSides) {
+                buildWall(xSteps, false, -halfD, sideMat);   // back
+                buildWall(xSteps, false,  halfD, frontMat);  // front (camera-facing, transparent)
+                buildWall(zSteps, true,  -halfW, sideMat);   // west
+                buildWall(zSteps, true,   halfW, sideMat);   // east
+            }
 
             // Base
             const baseGeo = new THREE.PlaneGeometry(params.width, params.depth);
@@ -1247,6 +1253,7 @@
                 // over the terrain (inferred shafts included — they were previously hidden
                 // as sub-surface translucent pillars that blended into the contours).
                 const CAP = 0.7;                              // above-ground stub height (units)
+                if (!params.showUnderground) return;          // subsurface structures hidden
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
                 const solid = documented && st.solid;         // solid pillar vs stripped-volume cage
@@ -1298,7 +1305,7 @@
             }
             // The gallery + channel exist only once the qanat is built (≥131 AD).
             const galleryBuilt = params.year >= 131;
-            if (galleryBuilt) {
+            if (galleryBuilt && params.showUnderground) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
@@ -1328,18 +1335,18 @@
             // Static flow-direction arrows show once the gallery exists (didactic);
             // animated *moving* water only during the Roman service period (140–350).
             const inService = params.year >= 140 && params.year <= 350;
-            if (galleryBuilt && params.showGeology) {
+            if (galleryBuilt && params.showGeology && params.showUnderground) {
                 for (let i = basePts.length - 2; i >= 1; i -= 2) {
                     flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, COL.qanat, 0.9);
                 }
             }
-            lastQanatPts = inService ? basePts : [];   // animated flow: only while in service
+            lastQanatPts = (inService && params.showUnderground) ? basePts : [];   // animated flow: in-service only
 
             // Overflow / lateral (deviation) channel at the P-4 weir (optional; SSOT-driven).
             // Ø80 cm branch that carries surplus (~80 m³/d) away when the main channel dams
             // above ~12 cm. The brochure gives no surveyed plan geometry (fig 5-11/5-14), so
             // the route here is a SCHEMATIC short lateral drain — labelled as reconstructed.
-            if (params.showOverflow && galleryBuilt) {
+            if (params.showOverflow && galleryBuilt && params.showUnderground) {
                 const oc = SSOT.gallery.gallery.overflowChannel;
                 const bp = oc && shaftBaseById[oc.atShaft];
                 if (bp) {
@@ -1359,35 +1366,8 @@
                     s.scale.set(6.0, 1.0, 1);
                     s.position.set(end.x, end.y + 1.0, end.z);
                     modelGroup.add(s);
-                    // Surface spring: the diverted surplus does NOT rise straight up — it stays
-                    // a subterranean drain near the channel level (~355 m) and DAYLIGHTS
-                    // downslope (west), where the falling hillside drops to that level. March
-                    // west until the surface meets the channel level and put the spring there.
-                    const so = oc.surfaceOutlet;
-                    if (so) {
-                        const chY = end.y;                       // channel level (scene Y)
-                        const wdir = (isGeo && params.flipWE) ? 1 : -1;   // downslope = valley/west
-                        const step = params.width / 160;
-                        let sp = null;
-                        for (let dx = step; dx < params.width * 1.3; dx += step) {
-                            const x = end.x + wdir * dx;
-                            if (Math.abs(x) > halfW) break;
-                            if (getTerrainHeight(x, 0) <= chY) { sp = new THREE.Vector3(x, chY, 0); break; }
-                        }
-                        if (sp) {
-                            const drain = new THREE.Line(new THREE.BufferGeometry().setFromPoints(
-                                [end, new THREE.Vector3(sp.x, chY, 0)]),
-                                new THREE.LineDashedMaterial({ color: COL.groundwater, dashSize: 0.6, gapSize: 0.4,
-                                    transparent: true, depthTest: false }));
-                            drain.computeLineDistances(); drain.renderOrder = 6; modelGroup.add(drain);
-                            const spDot = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12),
-                                new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
-                            spDot.position.set(sp.x, sp.y + 0.32, sp.z); spDot.renderOrder = 7; modelGroup.add(spDot);
-                            const spl = createTextSprite(so.associatedSpring + ' (~' + so.flowM3PerDay + ' m³/d, inferred)', '#0a6ebd', 20);
-                            spl.scale.set(7.4, 1.05, 1); spl.position.set(sp.x, sp.y + 1.2, sp.z);
-                            modelGroup.add(spl);
-                        }
-                    }
+                    // (Surface resurgence spring not drawn — its exact outlet has no confirmed
+                    //  GPS; kept in the SSOT as gallery.overflowChannel.surfaceOutlet only.)
                 }
             }
 
@@ -1437,7 +1417,9 @@
             // so it appears/disappears with the surrounding-area slider, like the terrain itself.
             const flipV = isGeo && params.flipWE;               // flipped ⇒ west is +x
             const westX = shaftXs.length ? (flipV ? Math.max(...shaftXs) : Math.min(...shaftXs)) : 0;
-            const villaX = westX + (flipV ? 1 : -1) * (75 / metersPerXUnit());
+            // ~200 m downslope: the recipient estate lay in the Alzette valley, not adjacent
+            // to the qanat's west end. Exact site is undocumented (see site.villa) — schematic.
+            const villaX = westX + (flipV ? 1 : -1) * (200 / metersPerXUnit());
             if (villa && params.showVilla && shaftXs.length && Math.abs(villaX) <= halfW) {
                 const vx = villaX;
                 const vy = getTerrainHeight(vx, 0);
@@ -1450,8 +1432,8 @@
                         transparent: true, opacity: 0.9, depthTest: false }));
                 edges.position.copy(box.position); edges.computeLineDistances(); edges.renderOrder = 10;
                 modelGroup.add(edges);
-                const vs = createTextSprite('Roman villa (inferred)', '#6b4f2a', 20);
-                vs.scale.set(6.2, 1.1, 1); vs.position.set(vx, vy + 2.1, 0);
+                const vs = createTextSprite('Roman villa (inferred, location unknown)', '#6b4f2a', 18);
+                vs.scale.set(9.0, 1.05, 1); vs.position.set(vx, vy + 2.1, 0);
                 modelGroup.add(vs);
             }
 
@@ -1675,6 +1657,7 @@
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
                 map: tex, transparent: true, depthTest: false, depthWrite: false }));
             sprite.renderOrder = 30;
+            sprite.raycast = () => {};   // labels are never pickable (no zoom-target / rotation-centre)
             sprite.scale.set(6, 1.35, 1);
             return sprite;
         }
@@ -1751,6 +1734,18 @@
             // Toggle the optional inferred recipient villa marker
             document.getElementById('param-villa').addEventListener('change', e => {
                 params.showVilla = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle subsurface qanat structures (shafts + gallery + flow + overflow)
+            document.getElementById('param-underground').addEventListener('change', e => {
+                params.showUnderground = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the terrain block side walls
+            document.getElementById('param-sides').addEventListener('change', e => {
+                params.showSides = e.target.checked;
                 buildParametricModel();
             });
 
