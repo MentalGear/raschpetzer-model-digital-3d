@@ -189,6 +189,7 @@
             </select>
             <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1em;"></div>
             <label class="check-row"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
+            <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
         </div>
 
         <div class="control-group">
@@ -222,7 +223,23 @@
             </div>
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-blue);"></div>
-                Qanat Tunnel / Water Gallery
+                Qanat gallery — flows West → villa
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #2bb0f0;"></div>
+                Groundwater — flows East (in sandstone)
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #d8c0a8;"></div>
+                Weathered rock / soft ground
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #b9d3e8;"></div>
+                Luxembourg sandstone (water-bearing)
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #8f95c4;"></div>
+                Marl &amp; limestone strata
             </div>
         </div>
     </div>
@@ -258,7 +275,8 @@
             terrainSource: 'procedural',  // 'procedural' | 'heightmap' | 'geodata'
             elevationIntensity: 1.0,      // vertical exaggeration for heightmap/geodata
             qanatLayout: 'faithful',      // 'faithful' | 'schematic'
-            flipWE: false                 // mirror the geodata terrain West<->East
+            flipWE: false,                // mirror the geodata terrain West<->East
+            showGeology: true             // real strata + groundwater/qanat flows
         };
 
         // Real Raschpëtzer figures (for the faithful layout / depth read-outs)
@@ -896,6 +914,13 @@
                 tunnelTube(basePts, 0x1d6fd6);
             }
 
+            // Qanat water flows WEST (toward the villa): arrows along the gallery.
+            if (params.showGeology) {
+                for (let i = basePts.length - 2; i >= 1; i -= 2) {
+                    flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, 0x1d6fd6, 0.9);
+                }
+            }
+
             // --- 5. Dashed geological zone boundary lines on the terrain surface ---
             const dashMat = new THREE.LineDashedMaterial({ color: 0x333333, dashSize: 1.2, gapSize: 0.7, linewidth: 1 });
 
@@ -944,7 +969,10 @@
                 placeLabel("Haedchen Depression",   22, 3.2, "#555555", 30);
             }
 
-            // --- 7. 3D scale bar (accurate metres) + north arrow ---
+            // --- 7. Geological cross-section (strata + groundwater) ---
+            addGeology(halfW, halfD);
+
+            // --- 8. 3D scale bar (accurate metres) + north arrow ---
             addScaleBarAndCompass(halfW, halfD, isGeo);
 
             updateCompass();
@@ -1002,6 +1030,76 @@
             const vEx = metersPerXUnit() / metersPerYUnit(); // vertical:horizontal scale ratio
             el.textContent = 'Vertical exaggeration ≈ ' + vEx.toFixed(1) + '×' +
                              (Math.abs(vEx - 1) < 0.15 ? '  (true scale)' : '');
+        }
+
+        // Small flow-direction arrow (cone) along +x (east, dir>0) or -x (west, dir<0).
+        function flowArrow(x, y, z, dir, color, size) {
+            size = size || 0.9;
+            const cone = new THREE.Mesh(
+                new THREE.ConeGeometry(0.36 * size, 1.1 * size, 8),
+                new THREE.MeshBasicMaterial({ color, depthTest: false }));
+            cone.rotation.z = dir > 0 ? -Math.PI / 2 : Math.PI / 2;
+            cone.position.set(x, y, z);
+            cone.renderOrder = 7;
+            modelGroup.add(cone);
+        }
+
+        // Geological cross-section on the camera-facing cut plane: real strata bands
+        // (weathered rock / Luxembourg sandstone / marl+limestone / keuper) plus the
+        // groundwater band that flows East toward the mother shaft. Semi-transparent so
+        // the shafts & gallery still read in front of it.
+        function addGeology(halfW, halfD) {
+            if (!params.showGeology) return;
+            const zF = halfD - 0.03;
+            const N = 96;
+            const C = {
+                weath: [0.847, 0.753, 0.659],  // weathered rock / soft ground
+                sand:  [0.725, 0.827, 0.910],  // Luxembourg sandstone (water-bearing)
+                marl:  [0.561, 0.584, 0.769],  // blue-grey marl & limestone
+                ko:    [0.898, 0.541, 0.604],  // red mudstone (keuper)
+                km:    [0.949, 0.851, 0.627]   // dolomitic marl (keuper)
+            };
+            const wThk = 0.45, marlThk = 2.6, koThk = 0.30, base = params.baseY;
+            const gwY = x => 2.7 - x * 0.02;    // groundwater table / top of marl (gentle E dip)
+
+            const pos = [], col = [], gwPts = [];
+            const push = (x1, x2, t1, b1, t2, b2, c) => {
+                if (t1 - b1 < 0.01 && t2 - b2 < 0.01) return;
+                pos.push(x1, t1, zF, x1, b1, zF, x2, t2, zF,  x2, t2, zF, x1, b1, zF, x2, b2, zF);
+                for (let k = 0; k < 6; k++) col.push(c[0], c[1], c[2]);
+            };
+            const xs = [];
+            for (let i = 0; i <= N; i++) xs.push(-halfW + i / N * params.width);
+            for (let i = 0; i < N; i++) {
+                const xa = xs[i], xb = xs[i + 1];
+                const sA = getTerrainHeight(xa, 0), sB = getTerrainHeight(xb, 0);
+                const wA = sA - wThk, wB = sB - wThk;
+                const gA = Math.min(gwY(xa), wA - 0.05), gB = Math.min(gwY(xb), wB - 0.05);
+                const mA = Math.max(gA - marlThk, base + 0.6), mB = Math.max(gB - marlThk, base + 0.6);
+                const kA = Math.max(mA - koThk, base + 0.3), kB = Math.max(mB - koThk, base + 0.3);
+                push(xa, xb, sA, wA, sB, wB, C.weath);   // weathered
+                push(xa, xb, wA, gA, wB, gB, C.sand);    // sandstone
+                push(xa, xb, gA, mA, gB, mB, C.marl);    // marl & limestone
+                push(xa, xb, mA, kA, mB, kB, C.ko);      // red mudstone
+                push(xa, xb, kA, base, kB, base, C.km);  // dolomitic marl
+                gwPts.push(new THREE.Vector3(xa, gA, zF));
+                if (i === N - 1) gwPts.push(new THREE.Vector3(xb, gB, zF));
+            }
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+            const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial(
+                { vertexColors: true, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
+            mesh.renderOrder = 2;
+            modelGroup.add(mesh);
+
+            // Bright groundwater band + eastward flow arrows along the sandstone base
+            modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwPts),
+                new THREE.LineBasicMaterial({ color: 0x2bb0f0, depthTest: false })));
+            for (let x = -halfW * 0.35; x < halfW * 0.9; x += params.width / 9) {
+                const y = gwY(x);
+                if (y < getTerrainHeight(x, 0) - wThk) flowArrow(x, y + 0.12, zF, +1, 0x2bb0f0, 0.8);
+            }
         }
 
         function createTextSprite(text, colorStr = '#111', size = 24) {
@@ -1079,6 +1177,12 @@
             // Flip West <-> East (GeoData)
             document.getElementById('param-flip').addEventListener('change', e => {
                 params.flipWE = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle geological strata + water flows
+            document.getElementById('param-geology').addEventListener('change', e => {
+                params.showGeology = e.target.checked;
                 buildParametricModel();
             });
 
