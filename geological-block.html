@@ -223,6 +223,19 @@
             font-size: 0.82rem; box-shadow: 0 6px 18px rgba(0,0,0,0.45); white-space: nowrap;
         }
         #measure-readout b { color: #ffd23f; }
+
+        #tour-bar {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 12; display: none; align-items: center; gap: 6px;
+            background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 24px; padding: 6px 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        }
+        body.tour-mode #tour-bar { display: flex; }
+        #tour-bar button { background: #374151; color: #f3f4f6; border: none; border-radius: 50%;
+            width: 30px; height: 30px; font-size: 0.85rem; cursor: pointer; }
+        #tour-bar button:hover { background: #4b5563; }
+        #tour-label { color: #f3f4f6; font-size: 0.82rem; min-width: 120px; text-align: center; font-weight: 600; }
     </style>
     <script src="three.min.js"></script>
     <script src="OrbitControls.js"></script>
@@ -292,6 +305,7 @@
         </div>
         <div class="control-group btn-row">
             <button id="btn-measure" type="button">📏 Measure</button>
+            <button id="btn-tour" type="button">▶ Guided tour</button>
         </div>
 
         <div class="legend">
@@ -366,6 +380,13 @@
 
     <div class="instructions">Drag to rotate · Scroll to zoom · Hover a shaft for depth · Click to focus</div>
     <div id="measure-readout"></div>
+    <div id="tour-bar">
+        <button id="tour-prev" type="button" aria-label="Previous">⏮</button>
+        <button id="tour-play" type="button" aria-label="Play/pause">⏸</button>
+        <span id="tour-label">—</span>
+        <button id="tour-next" type="button" aria-label="Next">⏭</button>
+        <button id="tour-stop" type="button" aria-label="Stop">✕</button>
+    </div>
 
     <script>
         const params = {
@@ -390,6 +411,24 @@
         // --- Single Source of Truth (data.bundle.js -> window.SSOT) ---
         const SSOT = window.SSOT;
         const MODEL_CONFIG = SSOT.modelConfig || SSOT['model-config'] || {};
+
+        // Visualization colours (single source: model-config.json), with safe fallbacks.
+        const COL = Object.assign({
+            contour: '#9c6233', contourIndex: '#5e3414', shaft: '#f2a93b', qanat: '#1d6fd6',
+            groundwater: '#2bb0f0', auxChannel: '#8aa0b4', flowQanat: '#2fa8ff',
+            flowGroundwater: '#67d0ff', wall: '#cdb595', base: '#9c8567',
+            annotation: '#e11d8f', annotationSel: '#ffd23f', measure: '#ffd23f'
+        }, MODEL_CONFIG.colors || {});
+        const STRATA = Object.assign({
+            cover: '#d8c0a8', li2: '#b9d3e8', li1: '#8f95c4', ko: '#e58a9a', km3: '#f2d9a0'
+        }, MODEL_CONFIG.strataColors || {});
+
+        // Scene-scale slider defaults come from model-config.sceneScale (single source).
+        for (const k of ['plateauHeight', 'hillsideDrop', 'depressionDepth', 'contourSpacing',
+                         'layerDepth', 'width', 'depth', 'baseY', 'elevationIntensity'])
+            if (MODEL_CONFIG.sceneScale && MODEL_CONFIG.sceneScale[k] != null)
+                params[k] = MODEL_CONFIG.sceneScale[k];
+
         const SHAFTS = SSOT.shafts.shafts;
         const shaftById = Object.fromEntries(SHAFTS.map(s => [s.id, s]));
         // Derived model constants (facts now come from the SSOT, not hardcoded here):
@@ -834,6 +873,7 @@
             initMeasure();
             initFlow();
             initInfoPanel();
+            initTour();
             // Default to the real Walferdange DEM (baked grid loads synchronously).
             if (params.terrainSource === 'geodata') loadGeoData(() => buildParametricModel());
             else buildParametricModel();
@@ -922,17 +962,17 @@
             }
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
-            modelGroup.add(new THREE.LineSegments(regGeo, new THREE.LineBasicMaterial({ color: 0x9c6233 })));
+            modelGroup.add(new THREE.LineSegments(regGeo, new THREE.LineBasicMaterial({ color: COL.contour })));
             const idxGeo = new THREE.BufferGeometry();
             idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
-            modelGroup.add(new THREE.LineSegments(idxGeo, new THREE.LineBasicMaterial({ color: 0x5e3414 })));
+            modelGroup.add(new THREE.LineSegments(idxGeo, new THREE.LineBasicMaterial({ color: COL.contourIndex })));
 
             // Elevation labels on index contours (real metres, GeoData only)
             if (isGeo) {
                 Object.keys(idxLabel).forEach(L => {
                     const p = idxLabel[L];
                     const metres = Math.round(geodata.minM + p.y * mpu);
-                    const s = createTextSprite(metres + ' m', '#5e3414', 20);
+                    const s = createTextSprite(metres + ' m', COL.contourIndex, 20);
                     s.scale.set(3.4, 0.85, 1);
                     s.position.set(p.x, p.y + 0.18, p.z);
                     modelGroup.add(s);
@@ -941,8 +981,8 @@
 
             // --- 3. Thin block skirt. Camera-facing front wall is semi-transparent
             //         so the subsurface horizon shows through (per the brief). ---
-            const sideMat  = new THREE.MeshStandardMaterial({ color: 0xcdb595, roughness: 0.95, side: THREE.DoubleSide });
-            const frontMat = new THREE.MeshStandardMaterial({ color: 0xcdb595, roughness: 0.95, side: THREE.DoubleSide,
+            const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide });
+            const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
                                                               transparent: true, opacity: 0.18, depthWrite: false });
 
             function buildWall(pts, isX, fixed, mat) {
@@ -980,7 +1020,7 @@
             // Base
             const baseGeo = new THREE.PlaneGeometry(params.width, params.depth);
             baseGeo.rotateX(Math.PI / 2);
-            const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({ color: 0x9c8567 }));
+            const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({ color: COL.base }));
             baseMesh.position.y = params.baseY;
             modelGroup.add(baseMesh);
 
@@ -991,7 +1031,7 @@
             //  Schematic = original flat-ish gallery.
             shaftMeshes.length = 0;
             const faithful = (params.qanatLayout === 'faithful');
-            const pillarMat = new THREE.MeshBasicMaterial({ color: 0xf2a93b, depthTest: false });
+            const pillarMat = new THREE.MeshBasicMaterial({ color: COL.shaft, depthTest: false });
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -1064,12 +1104,12 @@
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
-                tunnelTube(basePts.slice(start, end), 0x1d6fd6);          // explored (solid)
-                tunnelDashed(basePts.slice(0, start + 1), 0x1d6fd6);      // inferred west (dashed)
-                tunnelDashed(basePts.slice(end - 1), 0x1d6fd6);          // inferred east (dashed)
+                tunnelTube(basePts.slice(start, end), COL.qanat);          // explored (solid)
+                tunnelDashed(basePts.slice(0, start + 1), COL.qanat);      // inferred west (dashed)
+                tunnelDashed(basePts.slice(end - 1), COL.qanat);          // inferred east (dashed)
 
                 // Auxiliary dry channel (P-7A → P-5A), higher & unconnected: grey dashed
-                if (auxPts.length >= 2) tunnelDashed(auxPts, 0x8aa0b4);
+                if (auxPts.length >= 2) tunnelDashed(auxPts, COL.auxChannel);
 
                 // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate)
                 SSOT.gallery.gallery.steps.forEach(step => {
@@ -1079,20 +1119,20 @@
                     const top = new THREE.Vector3(bp.x, bp.y + 0.9, bp.z);
                     modelGroup.add(new THREE.Line(
                         new THREE.BufferGeometry().setFromPoints([bp, top]),
-                        new THREE.LineBasicMaterial({ color: 0x1d6fd6, depthTest: false })));
+                        new THREE.LineBasicMaterial({ color: COL.qanat, depthTest: false })));
                     const s = createTextSprite(txt, '#1d6fd6', 20);
                     s.scale.set(3.0, 0.8, 1);
                     s.position.set(bp.x, bp.y + 1.35, bp.z);
                     modelGroup.add(s);
                 });
             } else {
-                tunnelTube(basePts, 0x1d6fd6);
+                tunnelTube(basePts, COL.qanat);
             }
 
             // Qanat water flows WEST (toward the villa): arrows along the gallery.
             if (params.showGeology) {
                 for (let i = basePts.length - 2; i >= 1; i -= 2) {
-                    flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, 0x1d6fd6, 0.9);
+                    flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, COL.qanat, 0.9);
                 }
             }
             lastQanatPts = basePts;   // path for animated flow
@@ -1233,11 +1273,11 @@
             const zF = halfD - 0.03;
             const N = 96;
             const C = {
-                weath: [0.847, 0.753, 0.659],  // weathered rock / soft ground
-                sand:  [0.725, 0.827, 0.910],  // Luxembourg sandstone (water-bearing)
-                marl:  [0.561, 0.584, 0.769],  // blue-grey marl & limestone
-                ko:    [0.898, 0.541, 0.604],  // red mudstone (keuper)
-                km:    [0.949, 0.851, 0.627]   // dolomitic marl (keuper)
+                weath: new THREE.Color(STRATA.cover).toArray(),  // weathered rock / soft ground
+                sand:  new THREE.Color(STRATA.li2).toArray(),    // Luxembourg sandstone (water-bearing)
+                marl:  new THREE.Color(STRATA.li1).toArray(),    // blue-grey marl & limestone
+                ko:    new THREE.Color(STRATA.ko).toArray(),     // red mudstone (keuper)
+                km:    new THREE.Color(STRATA.km3).toArray()     // dolomitic marl (keuper)
             };
             const wThk = 0.45, marlThk = 2.6, koThk = 0.30, base = params.baseY;
             const gwY = x => 2.7 - x * 0.02;    // groundwater table / top of marl (gentle E dip)
@@ -1275,10 +1315,10 @@
 
             // Bright groundwater band + eastward flow arrows along the sandstone base
             modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwPts),
-                new THREE.LineBasicMaterial({ color: 0x2bb0f0, depthTest: false })));
+                new THREE.LineBasicMaterial({ color: COL.groundwater, depthTest: false })));
             for (let x = -halfW * 0.35; x < halfW * 0.9; x += params.width / 9) {
                 const y = gwY(x);
-                if (y < getTerrainHeight(x, 0) - wThk) flowArrow(x, y + 0.12, zF, +1, 0x2bb0f0, 0.8);
+                if (y < getTerrainHeight(x, 0) - wThk) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
             }
             lastGwPts = gwPts;   // path for animated groundwater flow
         }
@@ -1305,6 +1345,8 @@
             function bind(id, key, lblId) {
                 const sl = document.getElementById(id);
                 const lb = document.getElementById(lblId);
+                sl.value = params[key];                 // init from model-config sceneScale
+                lb.innerText = Number(params[key]).toFixed(2);
                 sl.addEventListener('input', e => {
                     const v = parseFloat(e.target.value);
                     params[key] = v;
@@ -1322,6 +1364,8 @@
             // Elevation intensity (vertical exaggeration for heightmap & geodata)
             const intSl = document.getElementById('param-intensity');
             const intLb = document.getElementById('lbl-intensity');
+            intSl.value = params.elevationIntensity;
+            intLb.innerText = params.elevationIntensity.toFixed(1);
             intSl.addEventListener('input', e => {
                 params.elevationIntensity = parseFloat(e.target.value);
                 intLb.innerText = params.elevationIntensity.toFixed(1);
@@ -1510,6 +1554,57 @@
                 () => document.body.classList.remove('info-open'));
         }
 
+        // --- Guided tour (fly P-7A → P9, showing each shaft's SSOT record) ---
+        const tour = { active: false, idx: 0, playing: false, timer: null };
+        let tourShafts = [];
+        const TOUR_DWELL_MS = 5000;
+        function tourFlyTo(rec) {
+            const x = rec.modelPos.x, z = rec.modelPos.z, sy = getTerrainHeight(x, z);
+            flyTo(new THREE.Vector3(x - 6, sy + 10, z + 26), new THREE.Vector3(x, sy - 1, z), 900);
+        }
+        function tourGoto(i) {
+            tour.idx = Math.max(0, Math.min(tourShafts.length - 1, i));
+            const rec = tourShafts[tour.idx];
+            tourFlyTo(rec);
+            renderInfoPanel(rec);
+            document.getElementById('tour-label').textContent =
+                `${rec.id}  (${tour.idx + 1}/${tourShafts.length})`;
+        }
+        function tourSchedule() {
+            clearTimeout(tour.timer);
+            if (!tour.playing) return;
+            tour.timer = setTimeout(() => {
+                if (tour.idx < tourShafts.length - 1) { tourGoto(tour.idx + 1); tourSchedule(); }
+                else { tour.playing = false; updateTourPlayBtn(); }
+            }, TOUR_DWELL_MS);
+        }
+        function updateTourPlayBtn() {
+            document.getElementById('tour-play').textContent = tour.playing ? '⏸' : '▶';
+        }
+        function startTour() {
+            if (annotateMode) document.getElementById('btn-annotate').click();
+            if (measureMode) setMeasureMode(false);
+            tour.active = true; tour.playing = true;
+            document.body.classList.add('tour-mode');
+            updateTourPlayBtn();
+            tourGoto(0); tourSchedule();
+        }
+        function stopTour() {
+            tour.active = false; tour.playing = false; clearTimeout(tour.timer);
+            document.body.classList.remove('tour-mode');
+        }
+        function initTour() {
+            tourShafts = SHAFTS.filter(s => s.modelPos).slice()
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
+            document.getElementById('btn-tour').addEventListener('click', startTour);
+            document.getElementById('tour-stop').addEventListener('click', stopTour);
+            document.getElementById('tour-next').addEventListener('click', () => { tourGoto(tour.idx + 1); tourSchedule(); });
+            document.getElementById('tour-prev').addEventListener('click', () => { tourGoto(tour.idx - 1); tourSchedule(); });
+            document.getElementById('tour-play').addEventListener('click', () => {
+                tour.playing = !tour.playing; updateTourPlayBtn(); tourSchedule();
+            });
+        }
+
         // --- Annotations / notes system ---------------------------------------
         let annotations = [];      // {id, x, z, title, note, feature}
         let annotSeq = 0, selectedAnnotId = null, annotateMode = false, annotationGroup = null;
@@ -1619,7 +1714,7 @@
                 const y = getTerrainHeight(a.x, a.z) + 0.4;
                 const sel = a.id === selectedAnnotId;
                 const sph = new THREE.Mesh(new THREE.SphereGeometry(sel ? 0.55 : 0.42, 16, 12),
-                    new THREE.MeshBasicMaterial({ color: sel ? 0xffd23f : 0xe11d8f, depthTest: false }));
+                    new THREE.MeshBasicMaterial({ color: sel ? COL.annotationSel : COL.annotation, depthTest: false }));
                 sph.position.set(a.x, y, a.z); sph.renderOrder = 20;
                 annotationGroup.add(sph);
                 const num = createTextSprite(String(i + 1), '#ffffff', 26);
@@ -1679,7 +1774,7 @@
         }
         function measureDot(p) {
             const m = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 10),
-                new THREE.MeshBasicMaterial({ color: 0xffd23f, depthTest: false }));
+                new THREE.MeshBasicMaterial({ color: COL.measure, depthTest: false }));
             m.position.copy(p); m.renderOrder = 22; measureGroup.add(m);
         }
         function addMeasurePoint(p) {
@@ -1689,7 +1784,7 @@
             if (measurePts.length === 2) {
                 const a = measurePts[0], b = measurePts[1];
                 measureGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]),
-                    new THREE.LineBasicMaterial({ color: 0xffd23f, depthTest: false })));
+                    new THREE.LineBasicMaterial({ color: COL.measure, depthTest: false })));
                 const mpx = metersPerXUnit(), mpz = metersPerZUnit(), mpy = metersPerYUnit();
                 const dxm = (b.x - a.x) * mpx, dzm = (b.z - a.z) * mpz, dym = (b.y - a.y) * mpy;
                 const horiz = Math.hypot(dxm, dzm);
@@ -1738,8 +1833,8 @@
                     flowState.push({ curve, mesh, phase: i / N, dir, speed: 0.05 });
                 }
             };
-            add(lastQanatPts, 0x2fa8ff, -1);                        // qanat gallery: West
-            if (params.showGeology) add(lastGwPts, 0x67d0ff, +1);  // groundwater: East
+            add(lastQanatPts, COL.flowQanat, -1);                        // qanat gallery: West
+            if (params.showGeology) add(lastGwPts, COL.flowGroundwater, +1);  // groundwater: East
         }
         function updateFlow(now) {
             if (!flowState.length) { lastFlowTime = now; return; }
