@@ -123,6 +123,12 @@
             border-radius: 50%; background: var(--accent-orange); cursor: pointer; transition: transform 0.1s; }
         input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
+        /* Timeline event bands under the year slider (piecewise-scaled year axis) */
+        #timeline-track { position: relative; height: 9px; margin-top: 6px;
+            border-radius: 3px; background: #2b3341; overflow: hidden; }
+        #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; }
+        #timeline-readout b { color: var(--accent-orange); font-weight: 600; }
+
         select {
             width: 100%;
             background: #374151;
@@ -289,6 +295,13 @@
             <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
         </div>
 
+        <div class="control-group" id="grp-timeline">
+            <label>Timeline <span class="val" id="lbl-year">present</span></label>
+            <input type="range" id="param-year" min="0" max="1000" step="1" value="1000">
+            <div id="timeline-track" aria-hidden="true"></div>
+            <div id="timeline-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1.1em;"></div>
+        </div>
+
         <div class="control-group">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
@@ -427,7 +440,8 @@
             surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
             flipWE: false,                // mirror the terrain West<->East
             showGeology: true,            // real strata + groundwater/qanat flows
-            terrainOpacity: 1.0           // fill-surface opacity (contour lines stay opaque)
+            terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
+            year: 2025                    // timeline slider: shown state at this year AD (present)
         };
 
         // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
@@ -461,6 +475,46 @@
 
         const SHAFTS = SSOT.shafts.shafts;
         const shaftById = Object.fromEntries(SHAFTS.map(s => [s.id, s]));
+
+        // --- Timeline (SSOT site.timeline + shafts[].dates) --------------------
+        // Piecewise-linear year axis so each era gets fair slider room (the ~1500-yr
+        // dormancy would otherwise swallow the whole track). Slider t∈[0,1] ⇄ year AD.
+        const TIMELINE = SSOT.site.timeline || { spanAD: [100, 2025], events: [] };
+        const TL_STOPS = [[100, 0.00], [350, 0.36], [1913, 0.56], [2025, 1.00]];
+        function sliderToYear(t) {
+            t = Math.max(0, Math.min(1, t));
+            for (let i = 0; i < TL_STOPS.length - 1; i++) {
+                const [y0, t0] = TL_STOPS[i], [y1, t1] = TL_STOPS[i + 1];
+                if (t <= t1) return Math.round(y0 + (y1 - y0) * (t - t0) / (t1 - t0));
+            }
+            return TL_STOPS[TL_STOPS.length - 1][0];
+        }
+        function yearToSlider(y) {
+            for (let i = 0; i < TL_STOPS.length - 1; i++) {
+                const [y0, t0] = TL_STOPS[i], [y1, t1] = TL_STOPS[i + 1];
+                if (y <= y1) return t0 + (t1 - t0) * (y - y0) / (y1 - y0);
+            }
+            return 1;
+        }
+        // Per-shaft render state at a given year: hidden (not yet built), faded
+        // (dormant / not-yet-rediscovered / postulated / unexcavated), or solid.
+        function shaftTimeState(rec, year) {
+            const d = rec.dates || {};
+            const built = d.builtAD;                          // null ⇒ postulated (unconfirmed)
+            if (rec.role === 'postulated' || built == null)   // hypothesised: never assert solidly
+                return { show: year >= 100, solid: false };
+            if (year < built) return { show: false, solid: false };   // not yet built
+            if (year < 350)  return { show: true,  solid: true };     // Roman construction + service
+            if (year < 1913) return { show: true,  solid: false };    // dormant / silted / lost
+            const disc = d.excavatedAD;                       // modern rediscovery
+            if (disc == null) return { show: true, solid: false };    // known to exist, never dug (P0)
+            return { show: true, solid: year >= disc };
+        }
+        // Which timeline event/period contains this year (for the readout).
+        function timelineEventAt(year) {
+            const evs = (TIMELINE.events || []).filter(e => year >= e.fromAD && year <= e.toAD);
+            return evs.length ? evs[evs.length - 1] : null;   // last-declared wins on overlap
+        }
         // Derived model constants (facts now come from the SSOT, not hardcoded here):
         // Base (unscaled) schematic shaft positions; pillarDefs is the QSCALE-scaled view
         // that geometry actually uses (see recomputeGeoView / applyQanatScale).
@@ -1127,6 +1181,9 @@
                 let len, floorM = null, depthM = null, documented = false;
                 const sM = surfaceMeters(sy);
                 const rec = shaftById[p.id];
+                // Timeline: skip shafts not yet built at the selected year.
+                const st = rec ? shaftTimeState(rec, params.year) : { show: true, solid: true };
+                if (!st.show) return;
                 if (params.terrainSource === 'geodata' && rec && rec.geo) {
                     // Georeferenced: the gallery floor is the near-level documented profile
                     // (or the surveyed floor); depth = LiDAR surface − floor. This makes the
@@ -1154,7 +1211,9 @@
                 const CAP = 0.7;                              // above-ground stub height (units)
                 const totalLen = len + CAP;                   // spans [sy − len, sy + CAP]
                 const geo = new THREE.CylinderGeometry(0.30, 0.30, totalLen, 14);
-                const mesh = new THREE.Mesh(geo, documented ? pillarMat : pillarMatInferred);
+                // Solid only when the shaft is both depth-documented AND in a "known" era
+                // (Roman service or already rediscovered); otherwise faded.
+                const mesh = new THREE.Mesh(geo, (documented && st.solid) ? pillarMat : pillarMatInferred);
                 mesh.position.set(p.x, sy + (CAP - len) / 2, p.z);
                 mesh.renderOrder = 6;
                 mesh.userData = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
@@ -1187,7 +1246,9 @@
                     { color, dashSize: 0.7, gapSize: 0.5, depthTest: false }));
                 ln.computeLineDistances(); ln.renderOrder = 5; modelGroup.add(ln);
             }
-            {
+            // The gallery + channel exist only once the qanat is built (≥131 AD).
+            const galleryBuilt = params.year >= 131;
+            if (galleryBuilt) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
@@ -1214,13 +1275,15 @@
                 });
             }
 
-            // Qanat water flows WEST (toward the villa): arrows along the gallery.
-            if (params.showGeology) {
+            // Static flow-direction arrows show once the gallery exists (didactic);
+            // animated *moving* water only during the Roman service period (140–350).
+            const inService = params.year >= 140 && params.year <= 350;
+            if (galleryBuilt && params.showGeology) {
                 for (let i = basePts.length - 2; i >= 1; i -= 2) {
                     flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, COL.qanat, 0.9);
                 }
             }
-            lastQanatPts = basePts;   // path for animated flow
+            lastQanatPts = inService ? basePts : [];   // animated flow: only while in service
 
             // Default / reset camera: an edge-on side elevation at 0° horizon, centred on
             // the qanat, so the near-level tunnel and the horizontal strata / aquifer-bottom
@@ -1538,12 +1601,72 @@
                 applyTerrainOpacity(v);   // fill + contour lines, live (no rebuild)
             });
 
+            // Timeline year slider (piecewise-scaled axis; see sliderToYear).
+            setupTimeline();
+
             // Action buttons
             document.getElementById('btn-profile').addEventListener('click', toggleProfile);
             document.getElementById('btn-reset').addEventListener('click', resetView);
 
             setupShaftInteraction();
             updateControlVisibility();
+        }
+
+        // --- Timeline slider: colour bands per era + a live year/period readout ------
+        const TL_KIND_COLORS = {
+            build: '#e08a2b', use: '#2f7fd6', dormant: '#4b5563',
+            rediscovery: '#2fae66', investigation: '#2aa6a0', exploration: '#8b5cf6'
+        };
+        function buildTimelineBands() {
+            const track = document.getElementById('timeline-track');
+            if (!track) return;
+            track.innerHTML = '';
+            (TIMELINE.events || []).forEach(e => {
+                const l = yearToSlider(e.fromAD), r = yearToSlider(e.toAD);
+                const d = document.createElement('div');
+                d.className = 'tl-band';
+                d.style.left = (l * 100).toFixed(2) + '%';
+                d.style.width = Math.max(0.6, (r - l) * 100).toFixed(2) + '%';
+                d.style.background = TL_KIND_COLORS[e.kind] || '#6b7280';
+                d.title = e.label + ' (' + e.fromAD + '–' + e.toAD + ' AD)';
+                track.appendChild(d);
+            });
+        }
+        function updateTimelineReadout() {
+            const lbl = document.getElementById('lbl-year');
+            const ro = document.getElementById('timeline-readout');
+            const y = params.year;
+            const yTxt = y >= 2025 ? 'present' : (y + ' AD');
+            if (lbl) lbl.textContent = yTxt;
+            if (!ro) return;
+            const ev = timelineEventAt(y);
+            const lastEnd = Math.max(...(TIMELINE.events || [{ toAD: 2000 }]).map(e => e.toAD));
+            if (ev) {
+                const span = (ev.fromAD === ev.toAD) ? (ev.fromAD + ' AD') : (ev.fromAD + '–' + ev.toAD + ' AD');
+                ro.innerHTML = '<b>' + ev.label + '</b> · ' + span +
+                    (ev.status === 'inferred' ? ' · inferred' : '');
+            } else if (y < TIMELINE.spanAD[0] + 31) {
+                ro.innerHTML = '<b>Before construction</b> · plateau not yet worked';
+            } else if (y > lastEnd) {
+                ro.innerHTML = '<b>Present day</b> · excavated & conserved (~310 m explored)';
+            } else {
+                ro.textContent = '—';
+            }
+        }
+        function setupTimeline() {
+            const sl = document.getElementById('param-year');
+            if (!sl) return;
+            buildTimelineBands();
+            sl.value = Math.round(yearToSlider(params.year) * 1000);
+            let raf = null;
+            sl.addEventListener('input', e => {
+                params.year = sliderToYear(parseFloat(e.target.value) / 1000);
+                updateTimelineReadout();
+                // Debounce the (heavier) model rebuild to one per animation frame.
+                if (raf) cancelAnimationFrame(raf);
+                raf = requestAnimationFrame(() => { raf = null; buildParametricModel(); });
+            });
+            updateTimelineReadout();
         }
 
         // Show only the controls that affect the current view.
