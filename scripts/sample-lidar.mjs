@@ -155,22 +155,21 @@ function makeAgent() {
 }
 const AGENT = makeAgent();
 
+// Fetch via curl, which honors the environment's HTTPS_PROXY egress proxy.
+// (Node's https module connects directly and is blocked by the host allowlist;
+// the geoportal is only reachable through the proxy — same path curl/python use.)
 function fetchDhm(x, y) {
-  const url = `${ENDPOINT}?lon=${encodeURIComponent(x)}&lat=${encodeURIComponent(y)}`;
+  const url = `${ENDPOINT}?lon=${x}&lat=${y}`;
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { agent: AGENT, headers: { 'User-Agent': UA, 'Accept': 'application/json' } }, res => {
-      let buf = '';
-      res.on('data', d => (buf += d));
-      res.on('end', () => {
-        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}: ${buf.slice(0, 200)}`));
-        try {
-          const j = JSON.parse(buf);
-          resolve(typeof j.dhm === 'number' ? j.dhm : null);
-        } catch (e) { reject(new Error('bad JSON: ' + buf.slice(0, 200))); }
-      });
-    });
-    req.on('error', reject);
-    req.setTimeout(15000, () => req.destroy(new Error('timeout')));
+    const cargs = ['-s', '--max-time', '20', '-A', UA];
+    if (existsSync(CA_BUNDLE)) cargs.push('--cacert', CA_BUNDLE);
+    cargs.push(url);
+    const r = spawnSync('curl', cargs, { encoding: 'utf8' });
+    if (r.status !== 0) return reject(new Error(`curl exit ${r.status}: ${(r.stderr || '').slice(0, 160)}`));
+    try {
+      const j = JSON.parse(r.stdout);
+      resolve(typeof j.dhm === 'number' ? j.dhm : null);
+    } catch (e) { reject(new Error('bad JSON: ' + (r.stdout || '').slice(0, 160))); }
   });
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
