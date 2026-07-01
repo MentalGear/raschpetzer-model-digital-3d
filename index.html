@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D geological Raschpetzer visualization</title>
+    <title>3d geological raschpëtzer visualization</title>
     <!-- Inline SVG favicon: keeps the site self-contained and avoids a /favicon.ico 404. -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232a3b4d'/%3E%3Crect y='10' width='16' height='6' fill='%237a5c3e'/%3E%3Crect x='7' y='3' width='2' height='11' fill='%2358a6ff'/%3E%3C/svg%3E">
     <style>
@@ -109,7 +109,7 @@
         }
 
         h1 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px;
-             text-transform: uppercase; color: #fff; }
+             text-transform: lowercase; color: #fff; }
         h2 { font-size: 0.8rem; color: #9ca3af; margin-bottom: 18px; font-weight: 400; }
 
         .control-group { margin-bottom: 16px; }
@@ -263,7 +263,7 @@
 <body>
 
     <div id="ui-panel">
-        <h1>3D Geological Raschpetzer Visualization</h1>
+        <h1>3D geological Raschpëtzer visualization</h1>
         <h2>Roman qanat · Walferdange, Luxembourg</h2>
 
         <div class="control-group">
@@ -337,7 +337,7 @@
         <div class="legend">
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-orange);"></div>
-                Raschpetzer Shafts (P-7A to P9)
+                Raschpëtzer Shafts (P-7A to P9)
             </div>
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-blue);"></div>
@@ -1190,7 +1190,7 @@
             baseMesh.position.y = params.baseY;
             modelGroup.add(baseMesh);
 
-            // --- 3. Raschpetzer shafts + qanat tunnel ---
+            // --- 3. Raschpëtzer shafts + qanat tunnel ---
             //  Faithful (georeferenced) layout: the gallery floor follows the SURVEYED
             //  elevations (near-level ~355 m, gentle West-down slope); shaft depth =
             //  ground surface minus gallery floor, so the deepest shafts fall under the
@@ -1253,30 +1253,29 @@
                 // over the terrain (inferred shafts included — they were previously hidden
                 // as sub-surface translucent pillars that blended into the contours).
                 const CAP = 0.7;                              // above-ground stub height (units)
-                if (!params.showUnderground) return;          // subsurface structures hidden
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
                 const solid = documented && st.solid;         // solid pillar vs stripped-volume cage
-                if (solid) {
-                    // Above-ground cap (bright) + fainter below-ground body.
-                    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, CAP, 16), capSolidMat);
-                    cap.position.set(p.x, sy + CAP / 2, p.z); cap.renderOrder = 13; cap.userData = ud;
-                    modelGroup.add(cap); shaftMeshes.push(cap);
-                    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, len, 16), belowFaintMat);
-                    body.position.set(p.x, sy - len / 2, p.z); body.renderOrder = 12; body.userData = ud;
-                    modelGroup.add(body); shaftMeshes.push(body);
-                } else {
-                    // Inferred: same-size cylinder, volume stripped → ghost fill + wireframe cage.
-                    const fullLen = len + CAP;
-                    const cyl = new THREE.CylinderGeometry(0.30, 0.30, fullLen, 16);
-                    const cy = sy + (CAP - len) / 2;
-                    const ghost = new THREE.Mesh(cyl, ghostFillMat);
-                    ghost.position.set(p.x, cy, p.z); ghost.renderOrder = 11; ghost.userData = ud;
-                    modelGroup.add(ghost); shaftMeshes.push(ghost);   // hover/pick target
-                    const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), cageMat);
-                    cage.position.set(p.x, cy, p.z); cage.renderOrder = 13;
-                    modelGroup.add(cage);
-                }
+                // Build one shaft segment (solid cylinder, or ghost-fill + wireframe cage).
+                const addSeg = (h, cyY, order) => {
+                    const cyl = new THREE.CylinderGeometry(0.30, 0.30, h, 16);
+                    if (solid) {
+                        const m = new THREE.Mesh(cyl, order === 'cap' ? capSolidMat : belowFaintMat);
+                        m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
+                        modelGroup.add(m); shaftMeshes.push(m);
+                    } else {
+                        const g = new THREE.Mesh(cyl, ghostFillMat);
+                        g.position.set(p.x, cyY, p.z); g.renderOrder = 11; g.userData = ud;
+                        modelGroup.add(g); shaftMeshes.push(g);   // hover/pick target
+                        const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), cageMat);
+                        cage.position.set(p.x, cyY, p.z); cage.renderOrder = 13;
+                        modelGroup.add(cage);
+                    }
+                };
+                // Above-ground cap is ALWAYS shown (surface marker, even with underground off);
+                // the below-ground body only when subsurface structures are enabled.
+                addSeg(CAP, sy + CAP / 2, 'cap');
+                if (params.showUnderground) addSeg(len, sy - len / 2, 'body');
                 const lbl = createTextSprite(p.id, '#1a1a1a', 24);
                 lbl.position.set(p.x, sy + CAP + 0.5, p.z);
                 modelGroup.add(lbl);
@@ -2287,7 +2286,7 @@
             });
         }
         function exportAnnotations() {
-            const data = { site: 'Raschpetzer Qanat', terrainSource: params.terrainSource,
+            const data = { site: 'Raschpëtzer Qanat', terrainSource: params.terrainSource,
                 annotations: annotations.map(a => ({ x: +a.x.toFixed(3), z: +a.z.toFixed(3),
                     title: a.title, note: a.note, feature: a.feature })) };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
