@@ -305,6 +305,14 @@
         </div>
 
         <div class="control-group">
+            <label>Navigation — click-drag mode</label>
+            <div class="btn-row">
+                <button id="nav-orbit" type="button" class="active" title="Left-drag orbits (rotate the model)">⟳&nbsp;Orbit</button>
+                <button id="nav-pan" type="button" title="Left-drag pans (move the view)">✋&nbsp;Pan</button>
+            </div>
+        </div>
+
+        <div class="control-group">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
         </div>
@@ -313,7 +321,7 @@
         </div>
 
         <div class="control-group btn-row">
-            <button id="btn-reset" type="button">Reset view</button>
+            <button id="btn-reset" type="button">⌂ Reset view</button>
         </div>
         <div class="control-group btn-row" style="display:none">
             <!-- Annotation mode hidden for now. -->
@@ -1842,6 +1850,26 @@
             updateCameraReadout();
             controls.addEventListener('change', () => { _readoutDirty = true; });
             document.getElementById('btn-level-horizon').addEventListener('click', levelHorizon);
+            setupNavMode();
+        }
+        // Drag-mode toggle: what a plain LEFT-drag does — orbit (rotate) or pan (move).
+        // Right-drag / ⌘/Ctrl+drag always pan regardless (OrbitControls default).
+        function setNavMode(mode) {
+            const orbit = mode !== 'pan';
+            controls.mouseButtons.LEFT = orbit ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN;
+            const ob = document.getElementById('nav-orbit'), pb = document.getElementById('nav-pan');
+            if (ob) ob.classList.toggle('active', orbit);
+            if (pb) pb.classList.toggle('active', !orbit);
+            const hint = document.querySelector('.instructions');
+            if (hint) hint.innerHTML = orbit
+                ? 'Left-drag to <b>orbit</b> · ⌘/Ctrl+drag or right-drag to pan · Scroll to zoom · Hover a shaft for depth · Click for info'
+                : 'Left-drag to <b>pan</b> · right-drag also pans · Scroll to zoom · Hover a shaft for depth · Click for info';
+        }
+        function setupNavMode() {
+            const ob = document.getElementById('nav-orbit'), pb = document.getElementById('nav-pan');
+            if (ob) ob.addEventListener('click', () => setNavMode('orbit'));
+            if (pb) pb.addEventListener('click', () => setNavMode('pan'));
+            setNavMode('orbit');
         }
         // "Level horizon": keep azimuth + distance, set elevation/pitch to 0° (camera.y ==
         // target.y), i.e. polar angle = 90°, animated via the existing flyTo.
