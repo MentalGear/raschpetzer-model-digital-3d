@@ -1359,6 +1359,24 @@
                     s.scale.set(6.0, 1.0, 1);
                     s.position.set(end.x, end.y + 1.0, end.z);
                     modelGroup.add(s);
+                    // Surface spring where the diverted surplus resurfaces (SSOT: surfaceOutlet;
+                    // flow-matched to the Geierbierg spring). Riser from the channel end up to
+                    // the surface + a spring dot + label.
+                    const so = oc.surfaceOutlet;
+                    if (so) {
+                        const spSurfY = getTerrainHeight(end.x, end.z);
+                        const top = new THREE.Vector3(end.x, spSurfY + 0.3, end.z);
+                        const riser = new THREE.Line(new THREE.BufferGeometry().setFromPoints([end, top]),
+                            new THREE.LineDashedMaterial({ color: COL.groundwater, dashSize: 0.5, gapSize: 0.35,
+                                transparent: true, depthTest: false }));
+                        riser.computeLineDistances(); riser.renderOrder = 6; modelGroup.add(riser);
+                        const spDot = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12),
+                            new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
+                        spDot.position.copy(top); spDot.renderOrder = 7; modelGroup.add(spDot);
+                        const spl = createTextSprite(so.associatedSpring + ' (~' + so.flowM3PerDay + ' m³/d, inferred)', '#0a6ebd', 20);
+                        spl.scale.set(7.4, 1.05, 1); spl.position.set(end.x, spSurfY + 1.1, end.z);
+                        modelGroup.add(spl);
+                    }
                 }
             }
 
@@ -1497,18 +1515,7 @@
             barLbl.scale.set(isGeo ? 3.2 : 5.0, 0.9, 1);
             barLbl.position.set(x0 + barLenUnits / 2, yb - 1.0, z);
             modelGroup.add(barLbl);
-
-            // North arrow: north is -Z (back). Show it as a ground arrow with an "N".
-            const flipped = params.flipWE && params.terrainSource === 'geodata';
-            const dir = new THREE.Vector3(0, 0, -1);
-            const origin = new THREE.Vector3(halfW - 2.5, params.baseY + 0.4, halfD + 0.6);
-            const arrow = new THREE.ArrowHelper(dir, origin, 4, 0x333333, 1.3, 0.9);
-            arrow.line.material.depthTest = false; arrow.cone.material.depthTest = false;
-            modelGroup.add(arrow);
-            const nLbl = createTextSprite('N', '#333333', 26);
-            nLbl.scale.set(1.1, 1.1, 1);
-            nLbl.position.copy(origin).add(new THREE.Vector3(0, 0, -5));
-            modelGroup.add(nLbl);
+            // (North arrow removed; W/E corner labels convey orientation.)
         }
 
         function updateCompass() {

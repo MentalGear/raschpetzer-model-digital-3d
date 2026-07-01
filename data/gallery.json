@@ -49,6 +49,17 @@
       "triggerLevelCm": 12,
       "divertedFlowM3PerDay": 80,
       "relationToMain": "branches off the main channel at the P-4 overflow weir; when the main channel dams up above ~12 cm, the surplus spills over the weir into this lateral (deviation) channel",
+      "surfaceOutlet": {
+        "name": "surface spring (overflow resurgence)",
+        "flowM3PerDay": 80,
+        "associatedSpring": "Geierbierg spring",
+        "status": "inferred",
+        "note": "The ~80 m³/d diverted at the P-4 weir leaves the qanat and resurfaces; the volume matches the Geierbierg spring (80 m³/d, fig.2-1), so the outlet is associated with it — inferred from the flow match, not a surveyed/excavated connection.",
+        "_prov": {
+          "flowM3PerDay": { "loc": "p.30", "note": "= hydrology.deviationAtP4M3PerDay" },
+          "associatedSpring": { "loc": "p.6; fig.2-1", "note": "Geierbierg spring 80 m³/d — flow-match inference" }
+        }
+      },
       "source": "waringo2018", "status": "documented", "paradataRef": ["pd-overflow-channel"],
       "_prov": {
         "diameterCm": { "loc": "fig.5-11", "note": "Ø 80 cm lateral channel at the P-4 weir" },
