@@ -1271,10 +1271,11 @@
             // top" + faded parts dropping out). High renderOrder keeps them above the
             // terrain/strata/walls in the transparent pass — visible full-length, above and
             // below ground. Inferred shafts differ by opacity only.
-            // Documented shafts are SOLID cylinders (bright above-ground cap + fainter
-            // below-ground body). Inferred shafts are the SAME-size cylinder but "volume
-            // stripped" — a crisp wireframe cage (rim rings + vertical seams) over a faint
-            // ghost fill, so they're obviously shafts yet clearly distinct from the solid ones.
+            // Every shaft's below-ground body is a fainter solid cylinder (belowFaintMat), so
+            // the subsurface reads consistently. The documented/inferred distinction lives in
+            // the ABOVE-GROUND cap: documented shafts get a bright solid cap; inferred ones get
+            // a "volume-stripped" cap — a crisp wireframe cage (rim rings + vertical seams) over
+            // a faint ghost fill — so they're clearly marked as inferred at the surface.
             const mkShaftMat = op => new THREE.MeshBasicMaterial({
                 color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
             const capSolidMat = mkShaftMat(1.0);
@@ -1322,11 +1323,14 @@
                 const CAP = 0.7;                              // above-ground stub height (units)
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
-                const solid = documented && st.solid;         // solid pillar vs stripped-volume cage
-                // Build one shaft segment (solid cylinder, or ghost-fill + wireframe cage).
+                const solid = documented && st.solid;         // documented pillar vs inferred cap-cage
+                // Build one shaft segment. The BELOW-GROUND body is always the faded solid
+                // (belowFaintMat), documented or inferred, so every shaft reads the same way
+                // underground. The documented/inferred distinction is carried by the ABOVE-
+                // GROUND cap only: a bright solid cap vs a ghost-fill + wireframe cage cap.
                 const addSeg = (h, cyY, order) => {
                     const cyl = new THREE.CylinderGeometry(0.30, 0.30, h, 16);
-                    if (solid) {
+                    if (solid || order === 'body') {
                         const m = new THREE.Mesh(cyl, order === 'cap' ? capSolidMat : belowFaintMat);
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
                         modelGroup.add(m); shaftMeshes.push(m);
