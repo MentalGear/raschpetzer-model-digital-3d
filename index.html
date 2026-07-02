@@ -1271,18 +1271,22 @@
             // top" + faded parts dropping out). High renderOrder keeps them above the
             // terrain/strata/walls in the transparent pass — visible full-length, above and
             // below ground. Inferred shafts differ by opacity only.
-            // Every shaft's below-ground body is a fainter solid cylinder (belowFaintMat), so
-            // the subsurface reads consistently. The documented/inferred distinction lives in
-            // the ABOVE-GROUND cap: documented shafts get a bright solid cap; inferred ones get
-            // a "volume-stripped" cap — a crisp wireframe cage (rim rings + vertical seams) over
-            // a faint ghost fill — so they're clearly marked as inferred at the surface.
+            // Documented shafts are SOLID cylinders (bright above-ground cap + fainter
+            // below-ground body). Inferred shafts are the SAME-size cylinder but "volume
+            // stripped" — a crisp wireframe cage (rim rings + vertical seams) over a faint
+            // ghost fill — so they're obviously shafts yet clearly distinct from the solid
+            // ones. Their below-ground body is faded relative to the cap (fainter fill +
+            // cage), giving inferred shafts the same bright-cap / faint-body gradient.
             const mkShaftMat = op => new THREE.MeshBasicMaterial({
                 color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
             const capSolidMat = mkShaftMat(1.0);
             const belowFaintMat = mkShaftMat(0.4);
-            const ghostFillMat = mkShaftMat(0.12);
-            const cageMat = new THREE.LineBasicMaterial({
-                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: 0.95 });
+            const ghostFillMat = mkShaftMat(0.12);        // inferred cap ghost fill
+            const ghostFillFaintMat = mkShaftMat(0.06);   // inferred below-ground ghost fill (faded)
+            const mkCageMat = op => new THREE.LineBasicMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
+            const cageMat = mkCageMat(0.95);              // inferred cap cage (crisp)
+            const cageFaintMat = mkCageMat(0.4);          // inferred below-ground cage (faded)
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -1323,22 +1327,23 @@
                 const CAP = 0.7;                              // above-ground stub height (units)
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
-                const solid = documented && st.solid;         // documented pillar vs inferred cap-cage
-                // Build one shaft segment. The BELOW-GROUND body is always the faded solid
-                // (belowFaintMat), documented or inferred, so every shaft reads the same way
-                // underground. The documented/inferred distinction is carried by the ABOVE-
-                // GROUND cap only: a bright solid cap vs a ghost-fill + wireframe cage cap.
+                const solid = documented && st.solid;         // documented solid pillar vs inferred ghost+cage
+                // Build one shaft segment. Documented shafts: bright solid cap + faded solid
+                // body. Inferred shafts keep their ghost-fill + wireframe-cage MESH style, but
+                // the below-ground body is faded relative to the above-ground cap — the same
+                // bright-cap / faint-body gradient the documented shafts have.
                 const addSeg = (h, cyY, order) => {
                     const cyl = new THREE.CylinderGeometry(0.30, 0.30, h, 16);
-                    if (solid || order === 'body') {
-                        const m = new THREE.Mesh(cyl, order === 'cap' ? capSolidMat : belowFaintMat);
+                    const isCap = (order === 'cap');
+                    if (solid) {
+                        const m = new THREE.Mesh(cyl, isCap ? capSolidMat : belowFaintMat);
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
                         modelGroup.add(m); shaftMeshes.push(m);
                     } else {
-                        const g = new THREE.Mesh(cyl, ghostFillMat);
+                        const g = new THREE.Mesh(cyl, isCap ? ghostFillMat : ghostFillFaintMat);
                         g.position.set(p.x, cyY, p.z); g.renderOrder = 11; g.userData = ud;
                         modelGroup.add(g); shaftMeshes.push(g);   // hover/pick target
-                        const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), cageMat);
+                        const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), isCap ? cageMat : cageFaintMat);
                         cage.position.set(p.x, cyY, p.z); cage.renderOrder = 13;
                         modelGroup.add(cage);
                     }
