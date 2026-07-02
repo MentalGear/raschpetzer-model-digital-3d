@@ -280,6 +280,9 @@
             <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
             <label class="check-row"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
             <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
+            <label class="check-row"><input type="checkbox" id="param-aux" checked> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
+            <label class="check-row"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
+            <label class="check-row"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
         </div>
 
         <div class="control-group" id="grp-terrain-opacity">
@@ -321,13 +324,21 @@
         <div class="control-group btn-row">
             <button id="btn-top-view" type="button">⬇ Top view</button>
         </div>
-        <div class="control-group btn-row" style="display:none">
-            <!-- Annotation mode hidden for now. -->
-            <button id="btn-annotate" type="button">✎ Annotate mode</button>
+        <div class="control-group btn-row">
+            <button id="btn-iso" type="button">◳ Isometric view</button>
+        </div>
+        <div class="control-group btn-row" id="preset-cardinals">
+            <button id="btn-view-n" type="button" title="Look from the south, facing north">N</button>
+            <button id="btn-view-e" type="button" title="Look from the west, facing east">E</button>
+            <button id="btn-view-s" type="button" title="Look from the north, facing south">S</button>
+            <button id="btn-view-w" type="button" title="Look from the east, facing west">W</button>
+        </div>
+        <div class="control-group btn-row">
+            <button id="btn-measure" type="button">📏 Measure</button>
         </div>
         <div class="control-group btn-row" style="display:none">
-            <!-- Measure + Guided tour hidden for now (both need rework — see BACKLOG). -->
-            <button id="btn-measure" type="button">📏 Measure</button>
+            <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
+            <button id="btn-annotate" type="button">✎ Annotate mode</button>
             <button id="btn-tour" type="button">▶ Guided tour</button>
         </div>
         <div class="control-group btn-row">
@@ -353,6 +364,10 @@
             <div class="legend-item">
                 <div class="color-box" style="background: #8aa0b4;"></div>
                 Auxiliary dry channel (P-7A/P-5A)
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #d23b3b;"></div>
+                Horst bounding faults (illustrative)
             </div>
             <div class="legend-item">
                 <div class="color-box" style="background: #d8c0a8;"></div>
@@ -453,7 +468,10 @@
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
             showVilla: false,             // inferred recipient villa marker (optional)
             showUnderground: true,        // qanat shafts + gallery + flow (subsurface structures)
-            showSides: true               // terrain block side walls
+            showSides: true,              // terrain block side walls
+            showAux: true,                // auxiliary dry channel (P-7A/P-5A), detached from main
+            showPerched: false,           // perched pre-construction water table + drawdown band
+            showFaults: false             // Pëtschend horst bounding faults (illustrative)
         };
 
         // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
@@ -1315,8 +1333,18 @@
                 tunnelDashed(basePts.slice(0, start + 1), COL.qanat);      // inferred west (dashed)
                 tunnelDashed(basePts.slice(end - 1), COL.qanat);          // inferred east (dashed)
 
-                // Auxiliary dry channel (P-7A → P-5A), higher & unconnected: grey dashed
-                if (auxPts.length >= 2) tunnelDashed(auxPts, COL.auxChannel);
+                // Auxiliary dry channel (P-7A → P-5A): a separate, higher, DRY conduit with
+                // "no relationship discovered" to the main gallery (fig 5-14). Drawn detached
+                // (its own grey dashed polyline through the shallower aux shafts, never joined
+                // to the main tube) with an on-model caveat. Optional (params.showAux).
+                if (params.showAux && auxPts.length >= 2) {
+                    tunnelDashed(auxPts, COL.auxChannel);
+                    const mid = auxPts[Math.floor(auxPts.length / 2)];
+                    const s = createTextSprite('auxiliary dry channel — no relationship to main (fig 5-14)', '#5d7387', 16);
+                    s.scale.set(11, 1.0, 1);
+                    s.position.set(mid.x, mid.y + 1.1, mid.z);
+                    modelGroup.add(s);
+                }
 
                 // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate)
                 SSOT.gallery.gallery.steps.forEach(step => {
@@ -1462,6 +1490,7 @@
 
             // --- 7. Geological cross-section (strata + groundwater) ---
             addGeology(halfW, halfD);
+            addFaults(halfW, halfD);
 
             // --- 8. 3D scale bar (accurate metres) + north arrow ---
             addScaleBarAndCompass(halfW, halfD, isGeo);
@@ -1622,6 +1651,102 @@
                 if (y < getTerrainHeight(x, zF) - coverY) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
             }
             lastGwPts = gwPts;   // path for animated groundwater flow
+
+            // --- Perched pre-construction water table + drawdown (optional) ---------------
+            // The bright line above is the DRAINED (post-qanat) table ≈ gallery floor. Before
+            // the qanat, the table mounded higher in the sandstone between the natural
+            // drainage boundaries (fig 4-2 / 5-3); the qanat lowered it — that vertical gap is
+            // the DRAWDOWN. The mound magnitude here is illustrative (not surveyed), so it's
+            // labelled as such. Only meaningful with the strata shown (this runs inside addGeology).
+            if (params.showPerched && geoMode && gwPts.length >= 2) {
+                const MOUND_MAX_M = 6;                       // illustrative peak mounding
+                const perchedPts = [];
+                for (let k = 0; k < gwPts.length; k++) {
+                    const gp = gwPts[k];
+                    const t = k / (gwPts.length - 1);        // 0..1 across the section
+                    const hump = Math.sin(Math.PI * t);      // 0 at the drainage edges, 1 mid
+                    const ceil = getTerrainHeight(gp.x, zF) - metersToYDepth(COVER_M) - 0.02;
+                    const yTop = Math.min(gp.y + metersToYDepth(MOUND_MAX_M * hump), ceil);
+                    perchedPts.push(new THREE.Vector3(gp.x, Math.max(yTop, gp.y), zF));
+                }
+                // Drawdown band: translucent fill between perched (top) and drained (bottom).
+                const fillPos = [];
+                for (let k = 0; k < gwPts.length - 1; k++) {
+                    const a = gwPts[k], b = gwPts[k + 1], pa = perchedPts[k], pb = perchedPts[k + 1];
+                    fillPos.push(a.x, pa.y, zF,  a.x, a.y, zF,  b.x, pb.y, zF,
+                                 b.x, pb.y, zF,  a.x, a.y, zF,  b.x, b.y, zF);
+                }
+                const fg = new THREE.BufferGeometry();
+                fg.setAttribute('position', new THREE.Float32BufferAttribute(fillPos, 3));
+                const fm = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({
+                    color: COL.groundwater, transparent: true, opacity: 0.20,
+                    side: THREE.DoubleSide, depthWrite: false }));
+                fm.renderOrder = 3; modelGroup.add(fm);
+                // Perched table line (dashed, above the drained line).
+                const pl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(perchedPts),
+                    new THREE.LineDashedMaterial({ color: COL.groundwater,
+                        dashSize: 1.6, gapSize: 1.0, depthTest: false }));
+                pl.computeLineDistances(); pl.renderOrder = 4; modelGroup.add(pl);
+                // Labels: the perched table + a drawdown callout.
+                const mid = perchedPts[Math.floor(perchedPts.length / 2)];
+                const lab = createTextSprite('pre-construction water table (perched, illustrative)', '#0a6ebd', 17);
+                lab.scale.set(12, 1.1, 1); lab.position.set(mid.x, mid.y + 0.9, zF); modelGroup.add(lab);
+                const di = Math.floor(gwPts.length * 0.32);
+                const dd = createTextSprite('↕ drawdown (lowered by the qanat)', '#0a6ebd', 15);
+                dd.scale.set(8, 0.95, 1);
+                dd.position.set(gwPts[di].x, (gwPts[di].y + perchedPts[di].y) / 2, zF);
+                modelGroup.add(dd);
+            }
+        }
+
+        // The Pëtschend is a central horst bounded N & S by ~E–W faults where groundwater
+        // leaks to the Dauvebur (N) and Op der Rëll (S) springs (geology.structure, Waringo
+        // p.14 / fig 4-3). The brochure gives NO surveyed fault coordinates, so each fault is
+        // drawn as a dashed surface trace + downthrow hachures at the north/south edges of the
+        // modelled corridor — an ILLUSTRATIVE marker of the structure, clearly labelled.
+        function addFaults(halfW, halfD) {
+            if (!params.showFaults) return;
+            if (!(params.terrainSource === 'geodata' && geodata.ready)) return;
+            const RED = 0xd23b3b;
+            // north = −Z (back), south = +Z (front) — see geoToScene v-mapping.
+            const faults = [
+                { z: -halfD * 0.82, name: 'N bounding fault', spring: 'Dauvebur spring' },
+                { z:  halfD * 0.82, name: 'S bounding fault', spring: 'Op der Rëll spring' }
+            ];
+            const NX = 40;
+            faults.forEach(f => {
+                // Dashed surface trace (E–W) following the terrain.
+                const trace = [];
+                for (let i = 0; i <= NX; i++) {
+                    const x = -halfW + i / NX * params.width;
+                    trace.push(new THREE.Vector3(x, getTerrainHeight(x, f.z) + 0.06, f.z));
+                }
+                const tl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(trace),
+                    new THREE.LineDashedMaterial({ color: RED, dashSize: 1.4, gapSize: 0.9, depthTest: false }));
+                tl.computeLineDistances(); tl.renderOrder = 6; modelGroup.add(tl);
+                // Downthrow hachures (short verticals) marking the fault plane.
+                for (let i = 2; i < NX; i += 4) {
+                    const x = -halfW + i / NX * params.width;
+                    const sy = getTerrainHeight(x, f.z);
+                    modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(x, sy + 0.06, f.z),
+                        new THREE.Vector3(x, sy - metersToYDepth(3), f.z)]),
+                        new THREE.LineBasicMaterial({ color: RED, depthTest: false, transparent: true, opacity: 0.55 })));
+                }
+                // Spring outlet the fault feeds (down-dip / east end).
+                const sx = halfW * 0.72, sy = getTerrainHeight(sx, f.z);
+                const dot = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12),
+                    new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
+                dot.position.set(sx, sy + 0.34, f.z); dot.renderOrder = 7; modelGroup.add(dot);
+                const lab = createTextSprite(f.name + ' → ' + f.spring, '#c0392b', 18);
+                const lx = -halfW * 0.15;
+                lab.scale.set(9, 1.05, 1); lab.position.set(lx, getTerrainHeight(lx, f.z) + 1.6, f.z);
+                modelGroup.add(lab);
+            });
+            const cav = createTextSprite('Pëtschend horst faults — illustrative (no surveyed coords)', '#c0392b', 15);
+            cav.scale.set(12, 0.95, 1);
+            cav.position.set(0, getTerrainHeight(0, halfD * 0.82) + 3.2, halfD * 0.82);
+            modelGroup.add(cav);
         }
 
         function createTextSprite(text, colorStr = '#111', size = 24) {
@@ -1739,6 +1864,24 @@
                 buildParametricModel();
             });
 
+            // Toggle the detached auxiliary dry channel (P-7A/P-5A)
+            document.getElementById('param-aux').addEventListener('change', e => {
+                params.showAux = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the perched pre-construction water table + drawdown band
+            document.getElementById('param-perched').addEventListener('change', e => {
+                params.showPerched = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the Pëtschend horst bounding faults (illustrative)
+            document.getElementById('param-faults').addEventListener('change', e => {
+                params.showFaults = e.target.checked;
+                buildParametricModel();
+            });
+
             // Toggle subsurface qanat structures (shafts + gallery + flow + overflow)
             document.getElementById('param-underground').addEventListener('change', e => {
                 params.showUnderground = e.target.checked;
@@ -1769,6 +1912,11 @@
             document.getElementById('btn-profile').addEventListener('click', toggleProfile);
             document.getElementById('btn-reset').addEventListener('click', resetView);
             document.getElementById('btn-top-view').addEventListener('click', topView);
+            document.getElementById('btn-iso').addEventListener('click', () => presetView('iso'));
+            document.getElementById('btn-view-n').addEventListener('click', () => presetView('north'));
+            document.getElementById('btn-view-e').addEventListener('click', () => presetView('east'));
+            document.getElementById('btn-view-s').addEventListener('click', () => presetView('south'));
+            document.getElementById('btn-view-w').addEventListener('click', () => presetView('west'));
 
             setupShaftInteraction();
             updateControlVisibility();
@@ -1859,6 +2007,26 @@
                 target.x,
                 target.y + dist * Math.cos(tilt),
                 target.z + dist * Math.sin(tilt));
+            flyTo(pos, target, 700);
+        }
+        // Preset camera angles, centred on the qanat, preserving the current zoom distance.
+        // Azimuth convention matches the readout: 0° = viewed from +Z (south), looking north.
+        function presetView(kind) {
+            const target = DEFAULT_CAM.target.clone();
+            const dist = camera.position.distanceTo(controls.target) || 120;
+            const P = {
+                iso:   { az:  35, el: 28 },   // three-quarter oblique
+                north: { az:   0, el: 12 },   // camera south of the qanat, facing north
+                south: { az: 180, el: 12 },
+                east:  { az:  90, el: 12 },
+                west:  { az: 270, el: 12 }
+            }[kind] || { az: 35, el: 28 };
+            const az = THREE.MathUtils.degToRad(P.az), el = THREE.MathUtils.degToRad(P.el);
+            const h = dist * Math.cos(el);
+            const pos = new THREE.Vector3(
+                target.x + h * Math.sin(az),
+                target.y + dist * Math.sin(el),
+                target.z + h * Math.cos(az));
             flyTo(pos, target, 700);
         }
 
