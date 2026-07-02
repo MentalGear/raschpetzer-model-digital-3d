@@ -2,6 +2,43 @@
 
 Planned / deferred ideas for `index.html`.
 
+## Next — integrated map & data layers (geoportail.lu)
+
+All layers below are Luxembourg open data (geoportail.lu WMTS / WMS / WFS), so each
+plugs into the existing bake pipeline: raster drapes via `scripts/bake-ortho.mjs`,
+vector features via `scripts/bake-vectors.mjs`.
+**Done so far:** satellite base layer (ACT 2019 ortho drape) · surveyed springs +
+boreholes (WFS 3D vector features).
+
+### Tier 1 — highest value (serve the science / retire "illustrative" caveats)
+- **LiDAR hillshade / local-relief model** from `lidar_2019_mnt` — reveals shaft-funnel
+  depressions and earthworks; the cheapest non-invasive test for the unlocated shafts
+  (P-2 / P-3 / P-6A). Add as a base-layer option (drape) or a relief overlay.
+- **Surveyed geological faults + bedrock geology map** (`ge:GE.GeologicFault` + geology
+  WMS) — would replace the ILLUSTRATIVE horst faults with mapped ones. NOTE: the WFS
+  returned zero faults inside the qanat window (checked 2026-07-02) — the Pëtschend
+  horst faults may lie outside the ACT fault dataset's coverage here; confirm extent
+  before wiring, else keep the illustrative faults.
+- **Aquifer extent** (`ge:GE.Aquifer` / `GE.Aquifer.Type`) — draw the Luxembourg
+  Sandstone aquifer body under the qanat.
+- **Watercourses + catchments** (`hy` WFS) — the Alzette + tributaries and the catchment
+  polygons. NOTE: watercourses come as polygons (area), so drape as filled/outlined
+  ribbons on the terrain, not polylines.
+
+### Tier 2 — context & storytelling
+- **Historical ortho time-slider** (`ortho_1967` → `ortho_2025`) — land-use change over
+  the plateau; pairs with the existing timeline mechanic.
+- **Topographic base map** (`topomap` / `topo_20k`) — a classic-map base-layer
+  alternative to satellite, with place-names and trails.
+- **Borehole logs** — upgrade the current surface markers to real cores if depth/log
+  data becomes available (the WFS `GE.Borehole` carries no depth attribute today).
+
+### Tier 3 — niche
+- Infrared ortho (`ortho_irc`) for vegetation/moisture · land cover (forest vs open —
+  explains where the LiDAR DTM sees ground) · flood hazard / Alzette floodplain (the
+  valley / villa-recipient end) · geophysics grids
+  (`ge:GE.RectifiedGridCoverage_GEOPHY…` — gravity / magnetics).
+
 ## Open — UI / interaction
 
 - **Timeline slider — hidden for now** (`#grp-timeline` display:none). The build →

@@ -13,6 +13,7 @@
     "seed:lidar": "node scripts/sample-lidar.mjs --seed",
     "bake:lidar": "node scripts/bake-lidar.mjs",
     "bake:ortho": "node scripts/bake-ortho.mjs",
+    "bake:vectors": "node scripts/bake-vectors.mjs",
     "build": "node scripts/build.mjs",
     "prebuild": "node scripts/validate.mjs",
     "serve": "vite preview"
