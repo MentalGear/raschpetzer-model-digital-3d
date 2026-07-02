@@ -14,6 +14,19 @@
     "rights": "© the authors / SIT Walferdange; figures reused for research/education",
     "note": "Primary source; cited by page [p.N] and figure [fig.N-M]."
   },
+  "geoportail_lu": {
+    "type": "dataset",
+    "crm": "E73_Information_Object",
+    "short": "ACT / geoportail.lu",
+    "title": "Luxembourg national orthophoto (RGB), 2019 edition",
+    "authors": ["Administration du cadastre et de la topographie (ACT)"],
+    "year": 2019,
+    "publisher": "geoportail.lu (Luxembourg open data)",
+    "url": "https://data.public.lu/en/datasets/orthophoto-officielle-du-grand-duche-de-luxembourg-edition-2019/",
+    "accessed": "2026-07-02",
+    "rights": "Luxembourg open data (CC0 1.0)",
+    "note": "Aerial base-map imagery draped for spatial context; INSPIRE WMS layer OI_OrthoimageCoverage_RGB_2019. Matches the 2019 ACT LiDAR terrain epoch."
+  },
   "fig-2-1": {
     "type": "figure", "partOf": "waringo2018", "crm": "E36_Visual_Item",
     "short": "Waringo 2018, fig. 2-1", "locator": "fig.2-1, p.6",

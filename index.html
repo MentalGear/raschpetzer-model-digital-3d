@@ -274,6 +274,14 @@
             <label>Terrain</label>
             <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
             <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
+            <label class="check-row" style="justify-content:space-between;gap:8px">
+                <span>Base&nbsp;layer</span>
+                <select id="param-baselayer" style="flex:0 0 auto;background:#1a2230;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:2px 4px;font-size:0.75rem">
+                    <option value="contours">Contour lines</option>
+                    <option value="satellite">Satellite (ACT 2019)</option>
+                    <option value="none">Plain</option>
+                </select>
+            </label>
             <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
             <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
             <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
@@ -441,6 +449,7 @@
 
         <div class="instructions">Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · Scroll to zoom · Hover a shaft for depth · Click for info</div>
         <div id="measure-readout"></div>
+        <div id="ortho-attrib" style="display:none;position:absolute;left:10px;bottom:10px;z-index:5;font-size:0.68rem;color:#e5e7eb;background:rgba(15,20,30,0.66);padding:3px 7px;border-radius:4px;pointer-events:none;">Aerial imagery © ACT · geoportail.lu (2019) · Luxembourg open data</div>
         <div id="profile-panel"></div>
         <div id="tour-bar">
             <button id="tour-prev" type="button" aria-label="Previous">⏮</button>
@@ -462,6 +471,7 @@
             vExag: 1.0,                   // TRUE vertical exaggeration (1.0 = true scale)
             surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
             flipWE: false,                // mirror the terrain West<->East
+            baseLayer: 'contours',        // terrain surface graphic: 'contours' | 'satellite' | 'none'
             showGeology: true,            // real strata + groundwater/qanat flows
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
             year: 2025,                   // timeline slider: shown state at this year AD (present)
@@ -622,6 +632,20 @@
         // grid: normalized 0..1 elevation, `cols` west->east, `rows` north->south.
         const geodata = { ready: false, loading: false, source: '', data: null,
                           cols: 0, rows: 0, minM: 0, maxM: 0 };
+
+        // --- Base-map ortho drape (optional): the ACT 2019 orthophoto baked for GEO_BBOX
+        //     (see scripts/bake-ortho.mjs). Loaded once; a rebuild is triggered on arrival
+        //     if the satellite base layer is already selected. ---
+        let orthoTexture = null, orthoReady = false;
+        function loadOrtho() {
+            new THREE.TextureLoader().load('assets/ortho-walferdange.jpg', tex => {
+                tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+                tex.minFilter = THREE.LinearFilter;
+                tex.generateMipmaps = false;
+                orthoTexture = tex; orthoReady = true;
+                if (params.baseLayer === 'satellite') buildParametricModel();
+            }, undefined, () => console.warn('base-map ortho texture failed to load'));
+        }
 
         // Bilinear sample of the geodata grid, mapped THROUGH the current view window.
         //   u: west->east in [0,1] across the rendered slice
@@ -1029,6 +1053,7 @@
             initTour();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadGeoData(() => buildParametricModel());
+            loadOrtho();   // base-map ortho drape (async; rebuilds if 'satellite' is active)
             setupUI();
 
             window.addEventListener('resize', onResize);
@@ -1064,6 +1089,23 @@
             });
             fillMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(fillMat);
+            // Satellite base layer: drape the ACT ortho on the fill surface. Per-vertex UV =
+            // lon/lat fraction within the FULL GEO_BBOX, so the current geoView sub-window
+            // (Surrounding-area slider) and West↔East flip both map correctly to the image.
+            if (params.baseLayer === 'satellite' && orthoReady) {
+                const uv = surfGeo.attributes.uv;
+                const bboxLon = GEO_BBOX.east - GEO_BBOX.west, bboxLat = GEO_BBOX.north - GEO_BBOX.south;
+                for (let i = 0; i < pos.count; i++) {
+                    const lon = sceneXToLon(pos.getX(i));                 // handles flipWE + geoView
+                    const vloc = (pos.getZ(i) + halfD) / params.depth;    // 0 (north) .. 1 (south)
+                    const lat = geoView.north - vloc * (geoView.north - geoView.south);
+                    uv.setXY(i, (lon - GEO_BBOX.west) / bboxLon, (lat - GEO_BBOX.south) / bboxLat);
+                }
+                uv.needsUpdate = true;
+                fillMat.map = orthoTexture;
+                fillMat.color.set(0xffffff);   // show the imagery's true colour, unmodulated
+                fillMat.needsUpdate = true;
+            }
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
             modelGroup.add(surfMesh);
 
@@ -1121,7 +1163,10 @@
                     }
                 }
             }
+            // Contour lines belong to the 'contours' base layer only (hidden under the
+            // satellite drape or the plain base, which would otherwise clash with the lines).
             const tOp = params.terrainOpacity;
+            if (params.baseLayer === 'contours') {
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
             const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
@@ -1149,6 +1194,7 @@
                     modelGroup.add(s);
                 });
             }
+            }   // end base-layer 'contours' gate
 
             // --- 3. Thin block skirt. Camera-facing front wall is semi-transparent
             //         so the subsurface horizon shows through (per the brief). ---
@@ -1843,6 +1889,14 @@
             // Flip West <-> East (GeoData)
             document.getElementById('param-flip').addEventListener('change', e => {
                 params.flipWE = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Base map layer: contour lines / satellite ortho / plain
+            const attribEl = document.getElementById('ortho-attrib');
+            document.getElementById('param-baselayer').addEventListener('change', e => {
+                params.baseLayer = e.target.value;
+                attribEl.style.display = (params.baseLayer === 'satellite') ? 'block' : 'none';
                 buildParametricModel();
             });
 
