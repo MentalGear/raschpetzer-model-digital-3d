@@ -48,6 +48,23 @@
         }
         #label-west { left: 22px; }
         #label-east { right: 22px; }
+        /* Compass widget: a rotating north arrow; click to face north. */
+        #compass {
+            position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 6;
+            border-radius: 50%; background: rgba(15,20,30,0.55);
+            border: 1px solid rgba(255,255,255,0.20); cursor: pointer;
+        }
+        #compass .rose { position: absolute; inset: 0; will-change: transform; }
+        #compass .arrow { position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
+            border-bottom: 17px solid #e0554a; }
+        #compass .tail { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
+            border-top: 17px solid #6b7280; }
+        #compass .lbl { position: absolute; left: 50%; top: 2px; transform: translateX(-50%);
+            font-size: 0.62rem; font-weight: 700; color: #fff; }
+        #compass .hub { position: absolute; left: 50%; top: 50%; width: 5px; height: 5px;
+            margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: #e5e7eb; }
         /* Data-sources modal (replaces the old inline bottom-left honesty-note overlay) */
         #sources-modal-backdrop {
             position: fixed; inset: 0; background: rgba(10,10,14,0.62); z-index: 30;
@@ -274,7 +291,7 @@
         <h1>3D geological Raschpëtzer visualization</h1>
         <h2>Roman qanat · Walferdange, Luxembourg</h2>
 
-        <div class="control-group">
+        <div class="control-group" id="grp-contours">
             <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
             <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
         </div>
@@ -289,6 +306,7 @@
                     <option value="topo">Topographic map</option>
                     <option value="satellite">Satellite (ACT 2019)</option>
                     <option value="winter">Satellite — winter (leaf-off)</option>
+                    <option value="ortho1967">Satellite — historical (1967)</option>
                     <option value="hillshade">LiDAR relief (2019)</option>
                     <option value="none">Plain</option>
                 </select>
@@ -454,6 +472,12 @@
         <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
+        <div id="compass" title="Face north">
+            <div class="rose" id="compass-rose">
+                <div class="arrow"></div><span class="lbl">N</span><div class="tail"></div>
+            </div>
+            <div class="hub"></div>
+        </div>
 
         <div id="scale-bar" style="display:none;">
             <div class="bar-line">
@@ -673,6 +697,7 @@
             loadBaseTexture('hillshade', 'assets/hillshade-walferdange.jpg');
             loadBaseTexture('topo', 'assets/topomap-walferdange.jpg');
             loadBaseTexture('winter', 'assets/ortho-winter-walferdange.jpg');
+            loadBaseTexture('ortho1967', 'assets/ortho-1967-walferdange.jpg');
         }
 
         // Bilinear sample of the geodata grid, mapped THROUGH the current view window.
@@ -2020,16 +2045,24 @@
             const ATTRIB = {
                 satellite: 'Aerial imagery © ACT · geoportail.lu (2019) · Luxembourg open data',
                 winter: 'Winter (leaf-off) aerial © ACT · geoportail.lu (2019) · Luxembourg open data',
+                ortho1967: 'Historical aerial © ACT · geoportail.lu (1967) · Luxembourg open data',
                 topo: 'Topographic map © ACT · geoportail.lu · Luxembourg open data',
                 hillshade: 'LiDAR relief © ACT · geoportail.lu (DTM 2019) · Luxembourg open data'
             };
-            document.getElementById('param-baselayer').addEventListener('change', e => {
-                params.baseLayer = e.target.value;
+            const grpContours = document.getElementById('grp-contours');
+            const syncBaseLayerUI = () => {
                 const credit = ATTRIB[params.baseLayer];
                 attribEl.textContent = credit || '';
                 attribEl.style.display = credit ? 'block' : 'none';
+                // The contour-spacing slider only affects the Contour-lines base layer.
+                grpContours.style.display = (params.baseLayer === 'contours') ? '' : 'none';
+            };
+            document.getElementById('param-baselayer').addEventListener('change', e => {
+                params.baseLayer = e.target.value;
+                syncBaseLayerUI();
                 buildParametricModel();
             });
+            syncBaseLayerUI();   // initial state (contours by default → slider shown)
 
             // Toggle geological strata + water flows
             document.getElementById('param-geology').addEventListener('change', e => {
@@ -2288,12 +2321,11 @@
             flyTo(pos, target, 700);
         }
 
-        // --- Zoom-to-pointer (recentring): zoom in on the point under the cursor and bring
-        // it toward the middle of the screen. We raycast the pointer onto the model, then on
-        // zoom IN ease the orbit target toward that world point — since OrbitControls always
-        // keeps `target` screen-centred, the pointed node drifts to the centre as you zoom in
-        // (so a node at the screen edge no longer stays stuck at the edge). Zoom out keeps the
-        // current centre and just pulls back.
+        // --- Zoom-to-pointer: dolly toward the mouse cursor instead of the orbit target ---
+        // three r128's vendored OrbitControls has no `zoomToCursor` option, so when it's
+        // absent we replace the wheel handler: raycast the pointer onto the model, then
+        // move BOTH the camera and the orbit target toward that world point by the same
+        // fraction (so orbiting after zooming still feels natural), scaled by the zoom step.
         // Base zoom-distance clamps (surround=1); maxDistance grows with `surround` so the
         // physically-larger block (item 2) still fits comfortably at full zoom-out.
         const BASE_MIN_DISTANCE = 25, BASE_MAX_DISTANCE = 400;
@@ -2340,17 +2372,21 @@
                 const step = Math.min(Math.abs(ev.deltaY) / 400, 0.6);
                 const zoomIn = ev.deltaY < 0;
                 const scale = zoomIn ? (1 - step) : (1 + step);
-                const dir = new THREE.Vector3().subVectors(camera.position, controls.target);
-                const camToTarget = dir.length();
+                const camToTarget = camera.position.distanceTo(controls.target);
                 const newDist = Math.min(maxD, Math.max(minD, camToTarget * scale));
-                // Zoom IN recentres: ease the orbit target toward the point under the cursor so
-                // the pointed node drifts to the middle of the screen. Zoom OUT keeps the centre.
-                if (zoomIn && focus) {
-                    controls.target.lerp(focus, Math.min(1, step * 1.8));
+                const clampedScale = newDist / camToTarget;
+                if (focus) {
+                    // Shift camera + target toward the cursor's world point by the same
+                    // fraction the distance is shrinking (or away from it, if zooming out).
+                    const frac = 1 - clampedScale;
+                    camera.position.lerp(focus, frac);
+                    controls.target.lerp(focus, frac);
                 }
-                // Preserve the view direction; re-apply the (clamped) zoom distance about the
-                // (possibly re-centred) target.
-                dir.setLength(newDist);
+                // Re-apply the distance change along the (possibly re-centred) view direction.
+                const dir = new THREE.Vector3().subVectors(camera.position, controls.target);
+                const dist = dir.length();
+                const finalDist = Math.min(maxD, Math.max(minD, dist));
+                dir.setLength(finalDist);
                 camera.position.copy(controls.target).add(dir);
                 controls.update();
             }, { passive: false, capture: true });
@@ -2377,8 +2413,21 @@
         }
         function setupCameraReadout() {
             updateCameraReadout();
-            controls.addEventListener('change', () => { _readoutDirty = true; });
+            updateCompassNeedle();
+            controls.addEventListener('change', () => { _readoutDirty = true; updateCompassNeedle(); });
             document.getElementById('btn-level-horizon').addEventListener('click', levelHorizon);
+            const cc = document.getElementById('compass');
+            if (cc) cc.addEventListener('click', () => presetView('north'));
+        }
+        // Rotate the compass rose so the N arrow points to where north (−Z) is on screen.
+        // rose rotation = the view azimuth (atan2(offX, offZ)); flipWE mirrors it.
+        function updateCompassNeedle() {
+            const rose = document.getElementById('compass-rose');
+            if (!rose || !camera || !controls) return;
+            const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+            let azimuthDeg = THREE.MathUtils.radToDeg(Math.atan2(off.x, off.z));
+            if (params.flipWE && params.terrainSource === 'geodata') azimuthDeg = -azimuthDeg;
+            rose.style.transform = 'rotate(' + azimuthDeg.toFixed(1) + 'deg)';
         }
         // "Level horizon": keep azimuth + distance, set elevation/pitch to 0° (camera.y ==
         // target.y), i.e. polar angle = 90°, animated via the existing flyTo.

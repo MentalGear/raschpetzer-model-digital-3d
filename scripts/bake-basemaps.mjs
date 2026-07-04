@@ -42,11 +42,14 @@ const topoUrl = 'https://wmts.geoportail.lu/mapproxy_4_v3/service'
   + '&format=image/jpeg';
 await grab('topographic map (topomap)', topoUrl, 'topomap-walferdange.jpg');
 
-// --- Winter (leaf-off) ortho (INSPIRE WMS, EPSG:4326 lat,lon axis order) ---
-const winUrl = 'https://wms.inspire.geoportail.lu/geoserver/oi/ows'
-  + '?service=WMS&version=1.3.0&request=GetMap&layers=OI_OrthoimageCoverage_RGB_2019_winter&styles='
-  + '&crs=EPSG:4326&bbox=' + [GEO_BBOX.south, GEO_BBOX.west, GEO_BBOX.north, GEO_BBOX.east].join(',')
-  + '&width=' + WIDTH + '&height=' + HEIGHT + '&format=image/jpeg';
-await grab('winter ortho (ACT 2019 leaf-off)', winUrl, 'ortho-winter-walferdange.jpg');
+// --- Ortho epochs (INSPIRE WMS, EPSG:4326 lat,lon axis order) ---
+const bbox4326 = [GEO_BBOX.south, GEO_BBOX.west, GEO_BBOX.north, GEO_BBOX.east].join(',');
+function orthoUrl(layer) {
+  return 'https://wms.inspire.geoportail.lu/geoserver/oi/ows'
+    + '?service=WMS&version=1.3.0&request=GetMap&layers=' + layer + '&styles='
+    + '&crs=EPSG:4326&bbox=' + bbox4326 + '&width=' + WIDTH + '&height=' + HEIGHT + '&format=image/jpeg';
+}
+await grab('winter ortho (ACT 2019 leaf-off)', orthoUrl('OI_OrthoimageCoverage_RGB_2019_winter'), 'ortho-winter-walferdange.jpg');
+await grab('historical ortho (1967)', orthoUrl('OI_OrthoimageCoverage_RGB_1967'), 'ortho-1967-walferdange.jpg');
 
 console.log('✓ base-maps baked (' + WIDTH + '×' + HEIGHT + ')');
