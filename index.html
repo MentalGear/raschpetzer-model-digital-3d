@@ -324,6 +324,14 @@
             <label class="check-row"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
         </div>
 
+        <div class="control-group">
+            <label>Overlays (geoportail)</label>
+            <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
+            <label class="check-row"><input type="checkbox" id="ov-contours"> Official&nbsp;contour&nbsp;lines</label>
+            <label class="check-row"><input type="checkbox" id="ov-spot"> Spot&nbsp;elevations</label>
+            <label class="check-row"><input type="checkbox" id="ov-break"> Break&nbsp;lines</label>
+        </div>
+
         <div class="control-group" id="grp-terrain-opacity">
             <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
             <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0">
@@ -513,6 +521,7 @@
             surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
             flipWE: false,                // mirror the terrain West<->East
             baseLayer: 'contours',        // terrain surface graphic: 'contours' | 'satellite' | 'none'
+            overlay: { aquifer: false, contours: false, spot: false, break: false },  // draped thematic overlays
             showGeology: true,            // real strata + groundwater/qanat flows
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
             year: 2025,                   // timeline slider: shown state at this year AD (present)
@@ -698,6 +707,23 @@
             loadBaseTexture('topo', 'assets/topomap-walferdange.jpg');
             loadBaseTexture('winter', 'assets/ortho-winter-walferdange.jpg');
             loadBaseTexture('ortho1967', 'assets/ortho-1967-walferdange.jpg');
+        }
+        // Thematic overlays draped over the base (transparent PNGs; see bake-overlays.mjs).
+        const overlayTextures = {};
+        function loadOverlayTexture(key, file) {
+            overlayTextures[key] = { tex: null, ready: false };
+            new THREE.TextureLoader().load(file, tex => {
+                tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+                tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+                overlayTextures[key].tex = tex; overlayTextures[key].ready = true;
+                if (params.overlay[key]) buildParametricModel();
+            }, undefined, () => console.warn('overlay texture failed: ' + file));
+        }
+        function loadOverlayTextures() {
+            loadOverlayTexture('aquifer', 'assets/ov-aquifer-walferdange.png');
+            loadOverlayTexture('contours', 'assets/ov-contours-walferdange.png');
+            loadOverlayTexture('spot', 'assets/ov-spot-walferdange.png');
+            loadOverlayTexture('break', 'assets/ov-break-walferdange.png');
         }
 
         // Bilinear sample of the geodata grid, mapped THROUGH the current view window.
@@ -1107,6 +1133,7 @@
             // Load the baked LiDAR terrain (synchronous), then build.
             loadGeoData(() => buildParametricModel());
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
+            loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
             setupUI();
 
             window.addEventListener('resize', onResize);
@@ -1631,6 +1658,7 @@
             // --- 7. Geological cross-section (strata + groundwater) ---
             addGeology(halfW, halfD);
             addFaults(halfW, halfD);
+            addOverlays(halfW, halfD);   // draped thematic overlays (aquifer / contours / spot / break)
 
             // --- 8. 3D scale bar (accurate metres) + north arrow ---
             addScaleBarAndCompass(halfW, halfD, isGeo);
@@ -1898,6 +1926,38 @@
         // source area. The remaining WFS springs are regional catchment points, km away.
         const SPRING_KEEP = /raschp|haedchen/i;
 
+        // Draped thematic overlays (transparent geoportail rasters conformed to the terrain
+        // surface via per-vertex lon/lat UVs). Aquifer under the elevation line-work.
+        const OVERLAY_ORDER = ['aquifer', 'break', 'contours', 'spot'];
+        const OVERLAY_OPACITY = { aquifer: 0.38, break: 0.85, contours: 0.9, spot: 0.95 };
+        function addOverlays(halfW, halfD) {
+            if (!(params.terrainSource === 'geodata' && geodata.ready)) return;
+            const bboxLon = GEO_BBOX.east - GEO_BBOX.west, bboxLat = GEO_BBOX.north - GEO_BBOX.south;
+            let lift = 0.05, order = 2;
+            for (const key of OVERLAY_ORDER) {
+                if (!params.overlay[key]) continue;
+                const ot = overlayTextures[key];
+                if (!ot || !ot.ready) continue;
+                const g = new THREE.PlaneGeometry(params.width, params.depth, 120, 54);
+                g.rotateX(-Math.PI / 2);
+                const pos = g.attributes.position, uv = g.attributes.uv;
+                for (let i = 0; i < pos.count; i++) {
+                    const x = pos.getX(i), z = pos.getZ(i);
+                    pos.setY(i, getTerrainHeight(x, z) + lift);
+                    const lon = sceneXToLon(x);
+                    const vloc = (z + halfD) / params.depth;
+                    const lat = geoView.north - vloc * (geoView.north - geoView.south);
+                    uv.setXY(i, (lon - GEO_BBOX.west) / bboxLon, (lat - GEO_BBOX.south) / bboxLat);
+                }
+                const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+                    map: ot.tex, transparent: true, opacity: OVERLAY_OPACITY[key] || 0.9,
+                    depthWrite: false, side: THREE.DoubleSide,
+                    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+                m.renderOrder = order; modelGroup.add(m);
+                lift += 0.03; order += 1;
+            }
+        }
+
         function addFaults(halfW, halfD) {
             if (!params.showFaults) return;
             if (!(params.terrainSource === 'geodata' && geodata.ready)) return;
@@ -2109,6 +2169,13 @@
                 params.showFaults = e.target.checked;
                 buildParametricModel();
             });
+
+            // Draped thematic overlays (aquifer / official contours / spot heights / break lines)
+            [['ov-aquifer', 'aquifer'], ['ov-contours', 'contours'], ['ov-spot', 'spot'], ['ov-break', 'break']]
+                .forEach(([id, key]) => document.getElementById(id).addEventListener('change', e => {
+                    params.overlay[key] = e.target.checked;
+                    buildParametricModel();
+                }));
 
             // Toggle subsurface qanat structures (shafts + gallery + flow + overflow)
             document.getElementById('param-underground').addEventListener('change', e => {
