@@ -42,15 +42,14 @@ vector features via `scripts/bake-vectors.mjs`.
 
 ## Open — UI / interaction
 
-- **Timeline slider — hidden for now** (`#grp-timeline` display:none). The build →
-  dormancy → rediscovery mechanic works (piecewise era axis, event bands, per-shaft
-  states), but it needs UX polish before re-exposing: clearer era labelling on the
-  track, snap-to-event affordance, and a decision on whether the modern-excavation
-  reveal reads clearly at a glance.
+- ~~**Timeline slider — hidden for now**~~ — DONE: re-exposed with animated playback
+  (Play/Pause sweeps the era-weighted axis; rebuilds only on state change), clickable
+  event bands (snap-to-event), axis tick labels (131 AD / 350 / 1913 / present), a
+  playhead, and a "Present" jump. Follow-up: a small per-era legend/caption could make
+  the six event kinds legible without hovering.
 
-- **Measure tool — hidden for now** (`#btn-measure` row display:none). Markers were
-  "not showing correctly"; revisit the marker/line rendering (visibility, depth
-  overlay, and the two-point readout) and re-expose once reliable.
+- ~~**Measure tool — hidden for now**~~ — DONE: re-exposed and verified (markers +
+  two-point readout work).
 
 - **Rework the guided tour.** Hidden in the UI for now (`#btn-tour` display:none). Its
   waypoints were keyed off the removed schematic `modelPos`; rebuild it against the

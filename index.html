@@ -124,9 +124,16 @@
         input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
         /* Timeline event bands under the year slider (piecewise-scaled year axis) */
-        #timeline-track { position: relative; height: 9px; margin-top: 6px;
-            border-radius: 3px; background: #2b3341; overflow: hidden; }
-        #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; }
+        #timeline-track { position: relative; height: 14px; margin-top: 6px;
+            border-radius: 3px; background: #2b3341; overflow: hidden; cursor: pointer; }
+        #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; opacity: 0.82;
+            transition: opacity 0.12s; }
+        #timeline-track .tl-band:hover { opacity: 1; }
+        #tl-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
+            background: #fff; box-shadow: 0 0 4px rgba(0,0,0,0.7); pointer-events: none; }
+        #timeline-axis { position: relative; height: 12px; margin-top: 3px;
+            font-size: 0.6rem; color: #6b7280; }
+        #timeline-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
         #timeline-readout b { color: var(--accent-orange); font-weight: 600; }
 
         select {
@@ -316,11 +323,15 @@
             <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
         </div>
 
-        <div class="control-group" id="grp-timeline" style="display:none">
-            <!-- Timeline slider hidden for now — see BACKLOG. -->
+        <div class="control-group" id="grp-timeline">
             <label>Timeline <span class="val" id="lbl-year">present</span></label>
             <input type="range" id="param-year" min="0" max="1000" step="1" value="1000">
             <div id="timeline-track" aria-hidden="true"></div>
+            <div id="timeline-axis" aria-hidden="true"></div>
+            <div class="btn-row" style="margin-top:8px">
+                <button id="tl-play" type="button">▶ Play</button>
+                <button id="tl-present" type="button">⏭ Present</button>
+            </div>
             <div id="timeline-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1.1em;"></div>
         </div>
 
@@ -2120,18 +2131,33 @@
                 const d = document.createElement('div');
                 d.className = 'tl-band';
                 d.style.left = (l * 100).toFixed(2) + '%';
-                d.style.width = Math.max(0.6, (r - l) * 100).toFixed(2) + '%';
+                d.style.width = Math.max(0.8, (r - l) * 100).toFixed(2) + '%';
                 d.style.background = TL_KIND_COLORS[e.kind] || '#6b7280';
-                d.title = e.label + ' (' + e.fromAD + '–' + e.toAD + ' AD)';
+                d.title = e.label + ' (' + e.fromAD + '–' + e.toAD + ' AD) — click to jump';
+                d.addEventListener('click', () => { tlPause(); tlSetT(yearToSlider(e.fromAD), true); });
                 track.appendChild(d);
             });
+            const ph = document.createElement('div'); ph.id = 'tl-playhead'; track.appendChild(ph);
+            // Axis tick labels at the era boundaries (piecewise-scaled positions).
+            const axis = document.getElementById('timeline-axis');
+            if (axis) {
+                axis.innerHTML = '';
+                [[131, '131 AD'], [350, '350'], [1913, '1913'], [2025, 'present']].forEach(([y, lab]) => {
+                    const s = document.createElement('span');
+                    s.textContent = lab;
+                    s.style.left = (yearToSlider(y) * 100).toFixed(2) + '%';
+                    axis.appendChild(s);
+                });
+            }
         }
         function updateTimelineReadout() {
             const lbl = document.getElementById('lbl-year');
             const ro = document.getElementById('timeline-readout');
+            const ph = document.getElementById('tl-playhead');
             const y = params.year;
             const yTxt = y >= 2025 ? 'present' : (y + ' AD');
             if (lbl) lbl.textContent = yTxt;
+            if (ph) ph.style.left = (yearToSlider(y) * 100).toFixed(2) + '%';
             if (!ro) return;
             const ev = timelineEventAt(y);
             const lastEnd = Math.max(...(TIMELINE.events || [{ toAD: 2000 }]).map(e => e.toAD));
@@ -2147,19 +2173,67 @@
                 ro.textContent = '—';
             }
         }
+
+        // --- Timeline playback: smooth animated year sweep -------------------------------
+        // The slider fraction t (0..1) advances at a constant rate, so the piecewise year
+        // axis gives each era screen-time proportional to its track width (the Roman era gets
+        // the most). The heavy model rebuild only fires when the discrete shaft/gallery STATE
+        // actually changes (state signature), so playback stays smooth between transitions.
+        let tlT = 1, tlPlaying = false, tlRAF = null, tlLastTs = 0, tlSig = null;
+        const TL_SWEEP_MS = 16000;
+        function tlStateSig(year) {
+            let s = (year >= 131 ? 'G' : '') + (year >= 140 && year <= 350 ? 'S' : '');
+            for (const sh of SHAFTS) {
+                if (!sh.dates) continue;
+                const st = shaftTimeState(sh, year);
+                s += st.show ? (st.solid ? '2' : '1') : '0';
+            }
+            return s;
+        }
+        function setPlayLabel() {
+            const b = document.getElementById('tl-play');
+            if (b) { b.textContent = tlPlaying ? '⏸ Pause' : '▶ Play'; b.classList.toggle('active', tlPlaying); }
+        }
+        function tlApply(year, force) {
+            params.year = year;
+            updateTimelineReadout();
+            const sig = tlStateSig(year);
+            if (force || sig !== tlSig) { tlSig = sig; buildParametricModel(); }
+        }
+        function tlSetT(t, force) {
+            tlT = Math.max(0, Math.min(1, t));
+            const sl = document.getElementById('param-year');
+            if (sl) sl.value = Math.round(tlT * 1000);
+            tlApply(sliderToYear(tlT), force);
+        }
+        function tlTick(ts) {
+            if (!tlPlaying) return;
+            if (!tlLastTs) tlLastTs = ts;
+            const dt = ts - tlLastTs; tlLastTs = ts;
+            const t = tlT + dt / TL_SWEEP_MS;
+            if (t >= 1) { tlSetT(1, false); tlPause(); return; }
+            tlSetT(t, false);
+            tlRAF = requestAnimationFrame(tlTick);
+        }
+        function tlPlay() {
+            if (tlT >= 1) tlSetT(0, true);   // restart from the beginning if parked at the end
+            tlPlaying = true; tlLastTs = 0; setPlayLabel();
+            tlRAF = requestAnimationFrame(tlTick);
+        }
+        function tlPause() {
+            tlPlaying = false;
+            if (tlRAF) { cancelAnimationFrame(tlRAF); tlRAF = null; }
+            setPlayLabel();
+        }
         function setupTimeline() {
             const sl = document.getElementById('param-year');
             if (!sl) return;
             buildTimelineBands();
-            sl.value = Math.round(yearToSlider(params.year) * 1000);
-            let raf = null;
-            sl.addEventListener('input', e => {
-                params.year = sliderToYear(parseFloat(e.target.value) / 1000);
-                updateTimelineReadout();
-                // Debounce the (heavier) model rebuild to one per animation frame.
-                if (raf) cancelAnimationFrame(raf);
-                raf = requestAnimationFrame(() => { raf = null; buildParametricModel(); });
-            });
+            tlT = yearToSlider(params.year);
+            sl.value = Math.round(tlT * 1000);
+            sl.addEventListener('input', e => { tlPause(); tlSetT(parseFloat(e.target.value) / 1000, false); });
+            document.getElementById('tl-play').addEventListener('click', () => tlPlaying ? tlPause() : tlPlay());
+            document.getElementById('tl-present').addEventListener('click', () => { tlPause(); tlSetT(1, true); });
             updateTimelineReadout();
         }
 
