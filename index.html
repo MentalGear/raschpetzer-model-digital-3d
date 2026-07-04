@@ -279,7 +279,9 @@
                 <span>Base&nbsp;layer</span>
                 <select id="param-baselayer" style="flex:0 0 auto;background:#1a2230;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:2px 4px;font-size:0.75rem">
                     <option value="contours">Contour lines</option>
+                    <option value="topo">Topographic map</option>
                     <option value="satellite">Satellite (ACT 2019)</option>
+                    <option value="winter">Satellite — winter (leaf-off)</option>
                     <option value="hillshade">LiDAR relief (2019)</option>
                     <option value="none">Plain</option>
                 </select>
@@ -657,6 +659,8 @@
         function loadBaseTextures() {
             loadBaseTexture('satellite', 'assets/ortho-walferdange.jpg');
             loadBaseTexture('hillshade', 'assets/hillshade-walferdange.jpg');
+            loadBaseTexture('topo', 'assets/topomap-walferdange.jpg');
+            loadBaseTexture('winter', 'assets/ortho-winter-walferdange.jpg');
         }
 
         // Bilinear sample of the geodata grid, mapped THROUGH the current view window.
@@ -1971,6 +1975,8 @@
             const attribEl = document.getElementById('ortho-attrib');
             const ATTRIB = {
                 satellite: 'Aerial imagery © ACT · geoportail.lu (2019) · Luxembourg open data',
+                winter: 'Winter (leaf-off) aerial © ACT · geoportail.lu (2019) · Luxembourg open data',
+                topo: 'Topographic map © ACT · geoportail.lu · Luxembourg open data',
                 hillshade: 'LiDAR relief © ACT · geoportail.lu (DTM 2019) · Luxembourg open data'
             };
             document.getElementById('param-baselayer').addEventListener('change', e => {
