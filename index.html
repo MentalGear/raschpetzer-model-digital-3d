@@ -611,6 +611,7 @@
         let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
         let initialViewSet = false; // snap camera to the computed 0°-horizon default on first build
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
+        const spotMeshes = [];    // springs / boreholes / resurgence pins, for click raycasting
 
         // Terrain opacity drives the fill surface AND the contour lines together, live
         // (no full rebuild). Fill keeps depthWrite only when fully opaque so the subsurface
@@ -1077,6 +1078,7 @@
 
         function buildParametricModel() {
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
+            spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
             recomputeGeoView();   // refresh geoView + QSCALE + scaled pillarDefs
 
             const segX = 100, segZ = 46;
@@ -1453,24 +1455,48 @@
                 const oc = SSOT.gallery.gallery.overflowChannel;
                 const bp = oc && shaftBaseById[oc.atShaft];
                 if (bp) {
-                    const flowM = inService ? oc.divertedFlowM3PerDay : 0;
                     const start = new THREE.Vector3(bp.x, bp.y + 0.02, bp.z);
-                    const mid   = new THREE.Vector3(bp.x + 1.0, bp.y - 0.25, bp.z + 2.2);
-                    const end   = new THREE.Vector3(bp.x + 1.7, bp.y - 0.6, bp.z + 5.0);
+                    // The lateral drain daylights at the SURVEYED resurgence GPS (downslope /
+                    // west of the weir), if present; else fall back to the old schematic point.
+                    const out = oc.surfaceOutlet && oc.surfaceOutlet.gps;
+                    let end, outY = null, outSc = null;
+                    if (out && out.lon != null) {
+                        outSc = geoToScene(out.lat, out.lon);
+                        outY = getTerrainHeight(outSc.x, outSc.z);
+                        end = new THREE.Vector3(outSc.x, outY + 0.05, outSc.z);
+                    } else {
+                        end = new THREE.Vector3(bp.x + 1.7, bp.y - 0.6, bp.z + 5.0);
+                    }
+                    // Dip below ground, then rise to daylight at the outlet.
+                    const mid = new THREE.Vector3((start.x + end.x) / 2,
+                        Math.min(start.y, end.y) - 0.5, (start.z + end.z) / 2);
                     const cv = new THREE.CatmullRomCurve3([start, mid, end]);
-                    const g = new THREE.TubeGeometry(cv, 40, 0.16, 8, false);
+                    const g = new THREE.TubeGeometry(cv, 56, 0.16, 8, false);
                     const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
                     mm.renderOrder = 5; modelGroup.add(mm);
-                    // Weir tap marker at the branch point
+                    // Weir tap marker + label at the branch point.
                     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10),
                         new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
                     dot.position.copy(start); dot.renderOrder = 6; modelGroup.add(dot);
                     const s = createTextSprite('overflow weir (P‑4, Ø80 cm)', '#0a9bc4', 20);
                     s.scale.set(6.0, 1.0, 1);
-                    s.position.set(end.x, end.y + 1.0, end.z);
+                    s.position.set(start.x, start.y + 1.0, start.z);
                     modelGroup.add(s);
-                    // (Surface resurgence spring not drawn — its exact outlet has no confirmed
-                    //  GPS; kept in the SSOT as gallery.overflowChannel.surfaceOutlet only.)
+                    // Surveyed resurgence outlet: a clickable spring marker at the daylight GPS.
+                    if (out && out.lon != null) {
+                        const rm = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12),
+                            new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
+                        rm.position.set(end.x, outY + 0.34, end.z); rm.renderOrder = 8;
+                        rm.userData = { spot: true, kind: 'resurgence',
+                            name: 'Overflow resurgence (P-4 deviation)',
+                            lat: out.lat, lon: out.lon, luref: out.luref,
+                            source: 'field GPS', note: oc.surfaceOutlet.note };
+                        modelGroup.add(rm); spotMeshes.push(rm);
+                        const rl = createTextSprite('overflow resurgence (surveyed)', '#0a9bc4', 18);
+                        rl.scale.set(8.0, 0.95, 1);
+                        rl.position.set(end.x, outY + 1.1, end.z);
+                        modelGroup.add(rl);
+                    }
                 }
             }
 
@@ -1793,14 +1819,17 @@
             const inWindow = sc => Math.abs(sc.x) <= halfW && Math.abs(sc.z) <= halfD;
 
             if (params.showSprings) {
-                (V.springs || []).forEach(sp => {
+                // Only the qanat-relevant springs (Raschpëtzer / Haedchen source area); the
+                // other regional catchment springs (Heisdorf, Geierbierg, …) are dropped.
+                (V.springs || []).filter(sp => SPRING_KEEP.test(sp.name)).forEach(sp => {
                     const sc = geoToScene(sp.lat, sp.lon);
                     if (!inWindow(sc)) return;
                     const sy = getTerrainHeight(sc.x, sc.z);
                     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12),
                         new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
                     dot.position.set(sc.x, sy + 0.34, sc.z); dot.renderOrder = 8;
-                    modelGroup.add(dot);
+                    dot.userData = { spot: true, kind: 'spring', name: sp.name, lat: sp.lat, lon: sp.lon };
+                    modelGroup.add(dot); spotMeshes.push(dot);
                     const lbl = createTextSprite(sp.name, '#0a6ebd', 18);
                     lbl.scale.set(Math.min(9, 2.4 + sp.name.length * 0.16), 0.95, 1);
                     lbl.position.set(sc.x, sy + 1.05, sc.z);
@@ -1820,7 +1849,8 @@
                     modelGroup.add(stub);
                     const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.24, 0.5), boreMat);
                     head.position.set(sc.x, sy + 0.12, sc.z); head.renderOrder = 8;
-                    modelGroup.add(head);
+                    head.userData = { spot: true, kind: 'borehole', name: bh.name, lat: bh.lat, lon: bh.lon };
+                    modelGroup.add(head); spotMeshes.push(head);
                     const lbl = createTextSprite(bh.name, '#6b4f2a', 16);
                     lbl.scale.set(Math.min(9, 2.4 + bh.name.length * 0.16), 0.9, 1);
                     lbl.position.set(sc.x, sy + 0.95, sc.z);
@@ -1828,6 +1858,9 @@
                 });
             }
         }
+        // Springs worth showing on the model: the qanat's own (Raschpëtzer) + the Haedchen
+        // source area. The remaining WFS springs are regional catchment points, km away.
+        const SPRING_KEEP = /raschp|haedchen/i;
 
         function addFaults(halfW, halfD) {
             if (!params.showFaults) return;
@@ -2303,6 +2336,13 @@
                 raycaster.setFromCamera(ndc, camera);
                 return raycaster.intersectObjects(shaftMeshes, false)[0];
             }
+            function pickSpot(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                return raycaster.intersectObjects(spotMeshes, false)[0];
+            }
             function showTooltip(hit, ev) {
                 const d = hit.object.userData;
                 let html = '<span class="t-name">' + d.name + '</span><br>' +
@@ -2343,9 +2383,10 @@
                         tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
                         tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
                     }
-                } else if (hoverActive) {
-                    tip.style.display = 'none'; dom.style.cursor = 'default'; hoverActive = false;
-                    clearDwell();
+                } else {
+                    // No shaft under the cursor: show a pointer over clickable spots too.
+                    dom.style.cursor = pickSpot(ev) ? 'pointer' : 'default';
+                    if (hoverActive) { tip.style.display = 'none'; hoverActive = false; clearDwell(); }
                 }
             });
             dom.addEventListener('mouseleave', () => {
@@ -2373,11 +2414,13 @@
                     return;
                 }
                 const hit = pick(ev);
-                if (!hit) return;
-                const d = hit.object.userData;
-                // Clicking a shaft only opens the info overlay — no camera fly (the guided
-                // tour is the only thing that still flies the camera, via tourFlyTo).
-                renderInfoPanel(shaftById[d.name]);       // SSOT-driven info side panel (left overlay)
+                if (hit) {
+                    // Clicking a shaft opens the info overlay (no camera fly).
+                    renderInfoPanel(shaftById[hit.object.userData.name]);
+                    return;
+                }
+                const shit = pickSpot(ev);   // springs / boreholes / resurgence
+                if (shit) renderSpotPanel(shit.object.userData);
             });
         }
 
@@ -2431,6 +2474,27 @@
                 if (notes.length) h += `<div class="ip-para"><b>Reasoning</b><br>` +
                     notes.map(n => '‣ ' + n.rationale).join('<br><br>') + `</div>`;
             }
+            body.innerHTML = h;
+            document.body.classList.add('info-open');
+        }
+        // Info panel for a surveyed "spot" (spring / borehole / overflow resurgence).
+        function renderSpotPanel(spot) {
+            if (!spot) return;
+            const body = document.getElementById('info-body');
+            const kindLabel = { spring: 'Spring (surveyed)',
+                borehole: 'Borehole / piezometer (surveyed)',
+                resurgence: 'Overflow resurgence (P-4 deviation)' }[spot.kind] || 'Feature';
+            let h = `<h3>${spot.name}</h3><div class="ip-sub">${kindLabel}</div>`;
+            const lat = spot.lat.toFixed(6), lon = spot.lon.toFixed(6);
+            const osm = `https://www.openstreetmap.org/?mlat=${spot.lat}&mlon=${spot.lon}#map=18/${spot.lat}/${spot.lon}`;
+            h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
+                 `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>`;
+            if (Array.isArray(spot.luref))
+                h += `<div class="ip-row"><span class="ip-k">LUREF (EPSG:2169)</span>` +
+                     `<span class="ip-v">${spot.luref[0]} E · ${spot.luref[1]} N</span></div>`;
+            h += `<div class="ip-row"><span class="ip-k">Source</span>` +
+                 `<span class="ip-v">${spot.source || 'geoportail.lu (WFS)'}</span></div>`;
+            if (spot.note) h += `<div class="ip-note">${spot.note}</div>`;
             body.innerHTML = h;
             document.body.classList.add('info-open');
         }
