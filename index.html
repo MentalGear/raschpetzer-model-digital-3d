@@ -152,6 +152,10 @@
             font-size: 0.6rem; color: #6b7280; }
         #timeline-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
         #timeline-readout b { color: var(--accent-orange); font-weight: 600; }
+        #timeline-legend { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 6px;
+            font-size: 0.58rem; color: #9ca3af; }
+        #timeline-legend span { display: inline-flex; align-items: center; gap: 3px; }
+        #timeline-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 
         select {
             width: 100%;
@@ -359,6 +363,7 @@
                 <button id="tl-present" type="button">⏭ Present</button>
             </div>
             <div id="timeline-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1.1em;"></div>
+            <div id="timeline-legend" aria-hidden="true"></div>
         </div>
 
         <div class="control-group">
@@ -2247,6 +2252,18 @@
                     s.textContent = lab;
                     s.style.left = (yearToSlider(y) * 100).toFixed(2) + '%';
                     axis.appendChild(s);
+                });
+            }
+            // Per-era legend (colour key for the band kinds actually present).
+            const legend = document.getElementById('timeline-legend');
+            if (legend) {
+                legend.innerHTML = '';
+                const KIND_LABEL = { build: 'Built', use: 'In service', dormant: 'Dormant',
+                    rediscovery: 'Rediscovery', investigation: 'Investigation', exploration: 'Exploration' };
+                [...new Set((TIMELINE.events || []).map(e => e.kind))].forEach(k => {
+                    const s = document.createElement('span');
+                    s.innerHTML = '<i style="background:' + (TL_KIND_COLORS[k] || '#6b7280') + '"></i>' + (KIND_LABEL[k] || k);
+                    legend.appendChild(s);
                 });
             }
         }
