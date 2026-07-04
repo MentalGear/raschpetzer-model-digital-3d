@@ -2408,6 +2408,13 @@
             h += factRow('Depth', rec, 'depthM', 'm');
             h += factRow('Gallery floor', rec, 'floorElevM', 'm a.s.l.');
             h += factRow('Diameter', rec, 'diameterM', 'm');
+            // GPS coordinates (WGS84 lat/lon, OSM-sourced) — clickable to open a map.
+            if (rec.geo && rec.geo.lat != null && rec.geo.lon != null) {
+                const lat = rec.geo.lat.toFixed(6), lon = rec.geo.lon.toFixed(6);
+                const osm = `https://www.openstreetmap.org/?mlat=${rec.geo.lat}&mlon=${rec.geo.lon}#map=18/${rec.geo.lat}/${rec.geo.lon}`;
+                h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
+                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>`;
+            }
             if (rec.position && rec.position.status)
                 h += `<div class="ip-row"><span class="ip-k">Position</span>` +
                      `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(rec.position.status)}</span></div>` +
