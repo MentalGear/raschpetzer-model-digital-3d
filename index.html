@@ -280,6 +280,7 @@
                 <select id="param-baselayer" style="flex:0 0 auto;background:#1a2230;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:2px 4px;font-size:0.75rem">
                     <option value="contours">Contour lines</option>
                     <option value="satellite">Satellite (ACT 2019)</option>
+                    <option value="hillshade">LiDAR relief (2019)</option>
                     <option value="none">Plain</option>
                 </select>
             </label>
@@ -638,18 +639,24 @@
         const geodata = { ready: false, loading: false, source: '', data: null,
                           cols: 0, rows: 0, minM: 0, maxM: 0 };
 
-        // --- Base-map ortho drape (optional): the ACT 2019 orthophoto baked for GEO_BBOX
-        //     (see scripts/bake-ortho.mjs). Loaded once; a rebuild is triggered on arrival
-        //     if the satellite base layer is already selected. ---
-        let orthoTexture = null, orthoReady = false;
-        function loadOrtho() {
-            new THREE.TextureLoader().load('assets/ortho-walferdange.jpg', tex => {
+        // --- Base-map drape textures (optional): georeferenced rasters baked for GEO_BBOX,
+        //     draped on the terrain via per-vertex lon/lat UVs. Each maps a `baseLayer` value
+        //     to a texture; loaded once, and a rebuild is triggered on arrival if that layer
+        //     is already selected. See scripts/bake-ortho.mjs / bake-hillshade.mjs. ---
+        const baseTextures = {};   // baseLayer value -> { tex, ready }
+        function loadBaseTexture(key, file) {
+            baseTextures[key] = { tex: null, ready: false };
+            new THREE.TextureLoader().load(file, tex => {
                 tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
                 tex.minFilter = THREE.LinearFilter;
                 tex.generateMipmaps = false;
-                orthoTexture = tex; orthoReady = true;
-                if (params.baseLayer === 'satellite') buildParametricModel();
-            }, undefined, () => console.warn('base-map ortho texture failed to load'));
+                baseTextures[key].tex = tex; baseTextures[key].ready = true;
+                if (params.baseLayer === key) buildParametricModel();
+            }, undefined, () => console.warn('base-map texture failed to load: ' + file));
+        }
+        function loadBaseTextures() {
+            loadBaseTexture('satellite', 'assets/ortho-walferdange.jpg');
+            loadBaseTexture('hillshade', 'assets/hillshade-walferdange.jpg');
         }
 
         // Bilinear sample of the geodata grid, mapped THROUGH the current view window.
@@ -1058,7 +1065,7 @@
             initTour();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadGeoData(() => buildParametricModel());
-            loadOrtho();   // base-map ortho drape (async; rebuilds if 'satellite' is active)
+            loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
             setupUI();
 
             window.addEventListener('resize', onResize);
@@ -1094,10 +1101,12 @@
             });
             fillMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(fillMat);
-            // Satellite base layer: drape the ACT ortho on the fill surface. Per-vertex UV =
-            // lon/lat fraction within the FULL GEO_BBOX, so the current geoView sub-window
-            // (Surrounding-area slider) and West↔East flip both map correctly to the image.
-            if (params.baseLayer === 'satellite' && orthoReady) {
+            // Raster base layer (satellite ortho / LiDAR relief): drape the baked texture on
+            // the fill surface. Per-vertex UV = lon/lat fraction within the FULL GEO_BBOX, so
+            // the current geoView sub-window (Surrounding-area slider) and West↔East flip both
+            // map correctly to the image.
+            const drape = baseTextures[params.baseLayer];
+            if (drape && drape.ready) {
                 const uv = surfGeo.attributes.uv;
                 const bboxLon = GEO_BBOX.east - GEO_BBOX.west, bboxLat = GEO_BBOX.north - GEO_BBOX.south;
                 for (let i = 0; i < pos.count; i++) {
@@ -1107,8 +1116,8 @@
                     uv.setXY(i, (lon - GEO_BBOX.west) / bboxLon, (lat - GEO_BBOX.south) / bboxLat);
                 }
                 uv.needsUpdate = true;
-                fillMat.map = orthoTexture;
-                fillMat.color.set(0xffffff);   // show the imagery's true colour, unmodulated
+                fillMat.map = drape.tex;
+                fillMat.color.set(0xffffff);   // show the raster's true colour, unmodulated
                 fillMat.needsUpdate = true;
             }
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
@@ -1958,11 +1967,17 @@
                 buildParametricModel();
             });
 
-            // Base map layer: contour lines / satellite ortho / plain
+            // Base map layer: contour lines / satellite ortho / LiDAR relief / plain
             const attribEl = document.getElementById('ortho-attrib');
+            const ATTRIB = {
+                satellite: 'Aerial imagery © ACT · geoportail.lu (2019) · Luxembourg open data',
+                hillshade: 'LiDAR relief © ACT · geoportail.lu (DTM 2019) · Luxembourg open data'
+            };
             document.getElementById('param-baselayer').addEventListener('change', e => {
                 params.baseLayer = e.target.value;
-                attribEl.style.display = (params.baseLayer === 'satellite') ? 'block' : 'none';
+                const credit = ATTRIB[params.baseLayer];
+                attribEl.textContent = credit || '';
+                attribEl.style.display = credit ? 'block' : 'none';
                 buildParametricModel();
             });
 

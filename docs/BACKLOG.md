@@ -7,13 +7,14 @@ Planned / deferred ideas for `index.html`.
 All layers below are Luxembourg open data (geoportail.lu WMTS / WMS / WFS), so each
 plugs into the existing bake pipeline: raster drapes via `scripts/bake-ortho.mjs`,
 vector features via `scripts/bake-vectors.mjs`.
-**Done so far:** satellite base layer (ACT 2019 ortho drape) · surveyed springs +
-boreholes (WFS 3D vector features).
+**Done so far:** satellite base layer (ACT 2019 ortho drape) · LiDAR relief base layer
+(2019 hillshaded DTM) · surveyed springs + boreholes (WFS 3D vector features).
 
 ### Tier 1 — highest value (serve the science / retire "illustrative" caveats)
-- **LiDAR hillshade / local-relief model** from `lidar_2019_mnt` — reveals shaft-funnel
-  depressions and earthworks; the cheapest non-invasive test for the unlocated shafts
-  (P-2 / P-3 / P-6A). Add as a base-layer option (drape) or a relief overlay.
+- ~~**LiDAR hillshade / local-relief model**~~ — DONE: added as the "LiDAR relief (2019)"
+  base-layer option (`scripts/bake-hillshade.mjs`, hillshaded DTM 2019). Follow-up: a true
+  local-relief model (LRM) or slope render would sharpen the shaft-funnel depressions
+  (P-2 / P-3 / P-6A) further than the default hillshade.
 - **Surveyed geological faults + bedrock geology map** (`ge:GE.GeologicFault` + geology
   WMS) — would replace the ILLUSTRATIVE horst faults with mapped ones. NOTE: the WFS
   returned zero faults inside the qanat window (checked 2026-07-02) — the Pëtschend
