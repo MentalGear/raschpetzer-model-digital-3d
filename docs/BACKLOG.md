@@ -2,17 +2,58 @@
 
 Planned / deferred ideas for `index.html`.
 
+## Next — integrated map & data layers (geoportail.lu)
+
+All layers below are Luxembourg open data (geoportail.lu WMTS / WMS / WFS), so each
+plugs into the existing bake pipeline: raster drapes via `scripts/bake-ortho.mjs`,
+vector features via `scripts/bake-vectors.mjs`.
+**Done so far:** base layers — Contour lines · Topographic map (`topomap`) · Satellite
+(ACT 2019) · Winter leaf-off (2019) · Historical (1967) · LiDAR relief (hillshaded DTM
+2019). Overlays — Aquifer extent (`GE.Aquifer`) · Official contours (`EL.ContourLine`) ·
+Spot elevations (`EL.SpotElevation`) · Break lines (`EL.BreakLine`). Vectors — surveyed
+springs + boreholes (WFS) · surveyed P-4 overflow resurgence. UI — compass widget,
+animated timeline, clickable spots + GPS.
+
+### Tier 1 — highest value (serve the science / retire "illustrative" caveats)
+- ~~**LiDAR hillshade / local-relief model**~~ — DONE ("LiDAR relief (2019)" base layer,
+  `scripts/bake-hillshade.mjs`). Follow-up: a true LRM / slope render would sharpen the
+  shaft-funnel depressions (P-2 / P-3 / P-6A) further than the default hillshade.
+- **Surveyed geological faults** (`ge:GE.GeologicFault`) — would replace the ILLUSTRATIVE
+  horst faults, BUT the WFS has zero faults within ~3 km of the qanat (nearest ~3.9 km,
+  checked 2026-07-02): the Pëtschend horst faults are below the national map's scale, so
+  the illustrative faults stay. A regional-geology **map** drape (WMS) is still possible.
+- ~~**Aquifer extent**~~ — DONE (`GE.Aquifer` overlay, `scripts/bake-overlays.mjs`).
+- **Watercourses + catchments** (`hy` WFS) — the Alzette + tributaries and the catchment
+  polygons. NOTE: watercourses come as polygons (area), so drape as filled/outlined
+  ribbons on the terrain, not polylines.
+- ~~**Forest paths toggle**~~ — DONE via **OpenStreetMap** (`scripts/bake-paths.mjs`,
+  highway=path/track/footway/bridleway) — geoportail has no clean path vector (only the
+  `topo_tour_20k` tourist raster). Swap to `topo_tour_20k` if a geoportail-only source is
+  preferred.
+
+### Tier 2 — context & storytelling
+- ~~**Historical ortho**~~ — DONE (1967 base layer). Follow-up: a multi-epoch ortho
+  slider (1967 → 2025) tied to the timeline would show land-use change over the plateau.
+- ~~**Topographic base map**~~ — DONE (`topomap` base layer).
+- **Borehole logs** — upgrade the current surface markers to real cores if depth/log
+  data becomes available (the WFS `GE.Borehole` carries no depth attribute today).
+
+### Tier 3 — niche
+- Infrared ortho (`ortho_irc`) for vegetation/moisture · land cover (forest vs open —
+  explains where the LiDAR DTM sees ground) · flood hazard / Alzette floodplain (the
+  valley / villa-recipient end) · geophysics grids
+  (`ge:GE.RectifiedGridCoverage_GEOPHY…` — gravity / magnetics).
+
 ## Open — UI / interaction
 
-- **Timeline slider — hidden for now** (`#grp-timeline` display:none). The build →
-  dormancy → rediscovery mechanic works (piecewise era axis, event bands, per-shaft
-  states), but it needs UX polish before re-exposing: clearer era labelling on the
-  track, snap-to-event affordance, and a decision on whether the modern-excavation
-  reveal reads clearly at a glance.
+- ~~**Timeline slider — hidden for now**~~ — DONE: re-exposed with animated playback
+  (Play/Pause sweeps the era-weighted axis; rebuilds only on state change), clickable
+  event bands (snap-to-event), axis tick labels (131 AD / 350 / 1913 / present), a
+  playhead, and a "Present" jump. Follow-up: a small per-era legend/caption could make
+  the six event kinds legible without hovering.
 
-- **Measure tool — hidden for now** (`#btn-measure` row display:none). Markers were
-  "not showing correctly"; revisit the marker/line rendering (visibility, depth
-  overlay, and the two-point readout) and re-expose once reliable.
+- ~~**Measure tool — hidden for now**~~ — DONE: re-exposed and verified (markers +
+  two-point readout work).
 
 - **Rework the guided tour.** Hidden in the UI for now (`#btn-tour` display:none). Its
   waypoints were keyed off the removed schematic `modelPos`; rebuild it against the

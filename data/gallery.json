@@ -52,13 +52,13 @@
       "surfaceOutlet": {
         "name": "surface spring (overflow resurgence)",
         "flowM3PerDay": 80,
-        "status": "inferred",
-        "gps": null,
-        "gpsStatus": "needed",
-        "note": "The ~80 m³/d diverted at the P-4 weir stays a subterranean lateral drain near the channel level (~355 m) and resurfaces DOWNSLOPE, where the falling hillside drops to that level — not straight up above the weir; the daylight point drawn is illustrative. The exact resurgence has NO confirmed coordinates: the brochure gives none, and the OSM spring 'source Geierbierg 2' (node 5768923730, 49.6558/6.1455, ~600 m S of the qanat) was checked and is NOT this outlet. GPS still needed.",
+        "status": "documented",
+        "gps": { "lon": 6.147987, "lat": 49.666272, "luref": [78546, 81300], "utm32n": [294207, 5505432] },
+        "gpsStatus": "surveyed",
+        "note": "The ~80 m³/d diverted at the P-4 weir stays a subterranean lateral drain near the channel level (~355 m) and resurfaces DOWNSLOPE of the weir. Field-surveyed outlet: 6.147987 E / 49.666272 N (WGS84); LUREF 78546 E / 81300 N; UTM32N 294207 / 5505432. Supersedes the earlier illustrative daylight point.",
         "_prov": {
           "flowM3PerDay": { "loc": "p.30", "note": "= hydrology.deviationAtP4M3PerDay" },
-          "gpsStatus": { "note": "no documented coordinates; OSM 'source Geierbierg 2' ruled out; field GPS required" }
+          "gpsStatus": { "note": "field-surveyed GPS of the resurgence outlet (WGS84 / LUREF / UTM32N provided)" }
         }
       },
       "source": "waringo2018", "status": "documented", "paradataRef": ["pd-overflow-channel"],

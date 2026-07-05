@@ -48,6 +48,23 @@
         }
         #label-west { left: 22px; }
         #label-east { right: 22px; }
+        /* Compass widget: a rotating north arrow; click to face north. */
+        #compass {
+            position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 6;
+            border-radius: 50%; background: rgba(15,20,30,0.55);
+            border: 1px solid rgba(255,255,255,0.20); cursor: pointer;
+        }
+        #compass .rose { position: absolute; inset: 0; will-change: transform; }
+        #compass .arrow { position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
+            border-bottom: 17px solid #e0554a; }
+        #compass .tail { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
+            border-top: 17px solid #6b7280; }
+        #compass .lbl { position: absolute; left: 50%; top: 2px; transform: translateX(-50%);
+            font-size: 0.62rem; font-weight: 700; color: #fff; }
+        #compass .hub { position: absolute; left: 50%; top: 50%; width: 5px; height: 5px;
+            margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: #e5e7eb; }
         /* Data-sources modal (replaces the old inline bottom-left honesty-note overlay) */
         #sources-modal-backdrop {
             position: fixed; inset: 0; background: rgba(10,10,14,0.62); z-index: 30;
@@ -124,10 +141,21 @@
         input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
         /* Timeline event bands under the year slider (piecewise-scaled year axis) */
-        #timeline-track { position: relative; height: 9px; margin-top: 6px;
-            border-radius: 3px; background: #2b3341; overflow: hidden; }
-        #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; }
+        #timeline-track { position: relative; height: 14px; margin-top: 6px;
+            border-radius: 3px; background: #2b3341; overflow: hidden; cursor: pointer; }
+        #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; opacity: 0.82;
+            transition: opacity 0.12s; }
+        #timeline-track .tl-band:hover { opacity: 1; }
+        #tl-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
+            background: #fff; box-shadow: 0 0 4px rgba(0,0,0,0.7); pointer-events: none; }
+        #timeline-axis { position: relative; height: 12px; margin-top: 3px;
+            font-size: 0.6rem; color: #6b7280; }
+        #timeline-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
         #timeline-readout b { color: var(--accent-orange); font-weight: 600; }
+        #timeline-legend { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 6px;
+            font-size: 0.58rem; color: #9ca3af; }
+        #timeline-legend span { display: inline-flex; align-items: center; gap: 3px; }
+        #timeline-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 
         select {
             width: 100%;
@@ -162,6 +190,15 @@
         }
         .btn-row button:hover { background: #4b5563; }
         .btn-row button.active { background: var(--accent-orange); border-color: var(--accent-orange); color: #1a1a1a; font-weight: 600; }
+        /* Collapsible control sections */
+        #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
+        #ui-panel details > summary { list-style: none; cursor: pointer; padding: 9px 0 5px;
+            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
+            color: #9ca3af; font-weight: 700; user-select: none; display: flex; align-items: center; gap: 6px; }
+        #ui-panel details > summary::-webkit-details-marker { display: none; }
+        #ui-panel details > summary::before { content: '▸'; font-size: 0.65rem; transition: transform 0.12s; }
+        #ui-panel details[open] > summary::before { transform: rotate(90deg); }
+        #ui-panel details > .control-group:first-of-type { margin-top: 2px; }
 
         #shaft-tooltip {
             position: absolute; z-index: 8; pointer-events: none; display: none;
@@ -259,6 +296,8 @@
     <script src="vendor/OrbitControls.js"></script>
     <script src="assets/geodata-walferdange.js"></script>
     <script src="assets/data.bundle.js"></script>
+    <script src="assets/vectors-walferdange.js"></script>
+    <script src="assets/paths-walferdange.js"></script>
 </head>
 <body>
 
@@ -266,45 +305,92 @@
         <h1>3D geological Raschpëtzer visualization</h1>
         <h2>Roman qanat · Walferdange, Luxembourg</h2>
 
-        <div class="control-group">
-            <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
-            <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
-        </div>
-        <div class="control-group">
-            <label>Terrain</label>
-            <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
-            <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
-            <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
-            <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
-            <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
-            <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
-            <label class="check-row"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
-            <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
-        </div>
+        <details open>
+            <summary>Map &amp; imagery</summary>
+            <div class="control-group">
+                <label class="check-row" style="justify-content:space-between;gap:8px">
+                    <span>Base&nbsp;layer</span>
+                    <select id="param-baselayer" style="flex:0 0 auto;background:#1a2230;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:2px 4px;font-size:0.75rem">
+                        <option value="contours">Contour lines</option>
+                        <option value="topo">Topographic map</option>
+                        <option value="satellite">Satellite (ACT 2019)</option>
+                        <option value="winter">Satellite — winter (leaf-off)</option>
+                        <option value="ortho1967">Satellite — historical (1967)</option>
+                        <option value="hillshade">LiDAR relief (2019)</option>
+                        <option value="none">Plain</option>
+                    </select>
+                </label>
+                <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
+            </div>
+            <div class="control-group" id="grp-contours">
+                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
+                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
+            </div>
+            <div class="control-group">
+                <label>Overlays (geoportail)</label>
+                <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
+                <label class="check-row"><input type="checkbox" id="ov-contours"> Official&nbsp;contour&nbsp;lines</label>
+                <label class="check-row"><input type="checkbox" id="ov-spot"> Spot&nbsp;elevations</label>
+                <label class="check-row"><input type="checkbox" id="ov-break"> Break&nbsp;lines</label>
+            </div>
+        </details>
 
-        <div class="control-group" id="grp-terrain-opacity">
-            <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
-            <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0">
-        </div>
+        <details open>
+            <summary>Qanat &amp; subsurface</summary>
+            <div class="control-group">
+                <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
+                <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
+                <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
+                <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
+                <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
+                <label class="check-row" id="row-faults"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
+                <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
+                <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
+            </div>
+        </details>
 
-        <div class="control-group" id="grp-vexag">
-            <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
-            <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0">
-            <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-        </div>
+        <details>
+            <summary>Surveyed features (geoportail)</summary>
+            <div class="control-group">
+                <label class="check-row"><input type="checkbox" id="param-springs" checked> Springs&nbsp;(surveyed)</label>
+                <label class="check-row"><input type="checkbox" id="param-boreholes"> Boreholes&nbsp;(surveyed)</label>
+            </div>
+        </details>
 
-        <div class="control-group" id="grp-surround">
-            <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
-            <input type="range" id="param-surround" min="0.2" max="2.0" step="0.05" value="1.0">
-            <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-        </div>
+        <details>
+            <summary>Terrain</summary>
+            <div class="control-group">
+                <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
+                <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
+                <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
+            </div>
+            <div class="control-group" id="grp-terrain-opacity">
+                <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
+                <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0">
+            </div>
+            <div class="control-group" id="grp-vexag">
+                <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
+                <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0">
+                <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            </div>
+            <div class="control-group" id="grp-surround">
+                <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
+                <input type="range" id="param-surround" min="0.2" max="2.0" step="0.05" value="1.0">
+                <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            </div>
+        </details>
 
-        <div class="control-group" id="grp-timeline" style="display:none">
-            <!-- Timeline slider hidden for now — see BACKLOG. -->
+        <div class="control-group" id="grp-timeline">
             <label>Timeline <span class="val" id="lbl-year">present</span></label>
             <input type="range" id="param-year" min="0" max="1000" step="1" value="1000">
             <div id="timeline-track" aria-hidden="true"></div>
+            <div id="timeline-axis" aria-hidden="true"></div>
+            <div class="btn-row" style="margin-top:8px">
+                <button id="tl-play" type="button">▶ Play</button>
+                <button id="tl-present" type="button">⏭ Present</button>
+            </div>
             <div id="timeline-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1.1em;"></div>
+            <div id="timeline-legend" aria-hidden="true"></div>
         </div>
 
         <div class="control-group">
@@ -321,13 +407,21 @@
         <div class="control-group btn-row">
             <button id="btn-top-view" type="button">⬇ Top view</button>
         </div>
-        <div class="control-group btn-row" style="display:none">
-            <!-- Annotation mode hidden for now. -->
-            <button id="btn-annotate" type="button">✎ Annotate mode</button>
+        <div class="control-group btn-row">
+            <button id="btn-iso" type="button">◳ Isometric view</button>
+        </div>
+        <div class="control-group btn-row" id="preset-cardinals">
+            <button id="btn-view-n" type="button" title="Look from the south, facing north">N</button>
+            <button id="btn-view-e" type="button" title="Look from the west, facing east">E</button>
+            <button id="btn-view-s" type="button" title="Look from the north, facing south">S</button>
+            <button id="btn-view-w" type="button" title="Look from the east, facing west">W</button>
+        </div>
+        <div class="control-group btn-row">
+            <button id="btn-measure" type="button">📏 Measure</button>
         </div>
         <div class="control-group btn-row" style="display:none">
-            <!-- Measure + Guided tour hidden for now (both need rework — see BACKLOG). -->
-            <button id="btn-measure" type="button">📏 Measure</button>
+            <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
+            <button id="btn-annotate" type="button">✎ Annotate mode</button>
             <button id="btn-tour" type="button">▶ Guided tour</button>
         </div>
         <div class="control-group btn-row">
@@ -353,6 +447,10 @@
             <div class="legend-item">
                 <div class="color-box" style="background: #8aa0b4;"></div>
                 Auxiliary dry channel (P-7A/P-5A)
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #d23b3b;"></div>
+                Horst bounding faults (illustrative)
             </div>
             <div class="legend-item">
                 <div class="color-box" style="background: #d8c0a8;"></div>
@@ -414,6 +512,12 @@
         <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
+        <div id="compass" title="Face north">
+            <div class="rose" id="compass-rose">
+                <div class="arrow"></div><span class="lbl">N</span><div class="tail"></div>
+            </div>
+            <div class="hub"></div>
+        </div>
 
         <div id="scale-bar" style="display:none;">
             <div class="bar-line">
@@ -426,6 +530,7 @@
 
         <div class="instructions">Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · Scroll to zoom · Hover a shaft for depth · Click for info</div>
         <div id="measure-readout"></div>
+        <div id="ortho-attrib" style="display:none;position:absolute;left:10px;bottom:10px;z-index:5;font-size:0.68rem;color:#e5e7eb;background:rgba(15,20,30,0.66);padding:3px 7px;border-radius:4px;pointer-events:none;">Aerial imagery © ACT · geoportail.lu (2019) · Luxembourg open data</div>
         <div id="profile-panel"></div>
         <div id="tour-bar">
             <button id="tour-prev" type="button" aria-label="Previous">⏮</button>
@@ -447,13 +552,21 @@
             vExag: 1.0,                   // TRUE vertical exaggeration (1.0 = true scale)
             surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
             flipWE: false,                // mirror the terrain West<->East
+            baseLayer: 'contours',        // terrain surface graphic: 'contours' | 'satellite' | 'none'
+            overlay: { aquifer: false, contours: false, spot: false, break: false },  // draped thematic overlays
             showGeology: true,            // real strata + groundwater/qanat flows
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
-            year: 2025,                   // timeline slider: shown state at this year AD (present)
+            year: 131,                    // timeline slider default: the qanat as freshly built (131 AD)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
             showVilla: false,             // inferred recipient villa marker (optional)
             showUnderground: true,        // qanat shafts + gallery + flow (subsurface structures)
-            showSides: true               // terrain block side walls
+            showSides: true,              // terrain block side walls
+            showSprings: true,            // real named springs (geoportail.lu WFS) as 3D pins
+            showBoreholes: false,         // real borehole/piezometer locations (geoportail.lu WFS)
+            showPaths: false,             // forest/hiking paths (OpenStreetMap)
+            showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
+            showPerched: false,           // perched pre-construction water table + drawdown band
+            showFaults: false             // Pëtschend horst bounding faults (illustrative)
         };
 
         // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
@@ -469,7 +582,7 @@
             groundwater: '#2bb0f0', auxChannel: '#8aa0b4', flowQanat: '#2fa8ff',
             flowGroundwater: '#67d0ff', wall: '#cdb595', base: '#9c8567',
             annotation: '#e11d8f', annotationSel: '#ffd23f', measure: '#ffd23f',
-            overflow: '#35c4e8'
+            overflow: '#35c4e8', qanatDry: '#9a8f76'   // silted / dry gallery (out of service)
         }, MODEL_CONFIG.colors || {});
         const STRATA = Object.assign({
             cover: '#d8c0a8', li2: '#b9d3e8', li1: '#8f95c4', ko: '#e58a9a', km3: '#f2d9a0'
@@ -575,6 +688,7 @@
         let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
         let initialViewSet = false; // snap camera to the computed 0°-horizon default on first build
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
+        const spotMeshes = [];    // springs / boreholes / resurgence pins, for click raycasting
 
         // Terrain opacity drives the fill surface AND the contour lines together, live
         // (no full rebuild). Fill keeps depthWrite only when fully opaque so the subsurface
@@ -604,6 +718,46 @@
         // grid: normalized 0..1 elevation, `cols` west->east, `rows` north->south.
         const geodata = { ready: false, loading: false, source: '', data: null,
                           cols: 0, rows: 0, minM: 0, maxM: 0 };
+
+        // --- Base-map drape textures (optional): georeferenced rasters baked for GEO_BBOX,
+        //     draped on the terrain via per-vertex lon/lat UVs. Each maps a `baseLayer` value
+        //     to a texture; loaded once, and a rebuild is triggered on arrival if that layer
+        //     is already selected. See scripts/bake-ortho.mjs / bake-hillshade.mjs. ---
+        const baseTextures = {};   // baseLayer value -> { tex, ready }
+        function loadBaseTexture(key, file) {
+            baseTextures[key] = { tex: null, ready: false };
+            new THREE.TextureLoader().load(file, tex => {
+                tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+                tex.minFilter = THREE.LinearFilter;
+                tex.generateMipmaps = false;
+                baseTextures[key].tex = tex; baseTextures[key].ready = true;
+                if (params.baseLayer === key) buildParametricModel();
+            }, undefined, () => console.warn('base-map texture failed to load: ' + file));
+        }
+        function loadBaseTextures() {
+            loadBaseTexture('satellite', 'assets/ortho-walferdange.jpg');
+            loadBaseTexture('hillshade', 'assets/hillshade-walferdange.jpg');
+            loadBaseTexture('topo', 'assets/topomap-walferdange.jpg');
+            loadBaseTexture('winter', 'assets/ortho-winter-walferdange.jpg');
+            loadBaseTexture('ortho1967', 'assets/ortho-1967-walferdange.jpg');
+        }
+        // Thematic overlays draped over the base (transparent PNGs; see bake-overlays.mjs).
+        const overlayTextures = {};
+        function loadOverlayTexture(key, file) {
+            overlayTextures[key] = { tex: null, ready: false };
+            new THREE.TextureLoader().load(file, tex => {
+                tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+                tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+                overlayTextures[key].tex = tex; overlayTextures[key].ready = true;
+                if (params.overlay[key]) buildParametricModel();
+            }, undefined, () => console.warn('overlay texture failed: ' + file));
+        }
+        function loadOverlayTextures() {
+            loadOverlayTexture('aquifer', 'assets/ov-aquifer-walferdange.png');
+            loadOverlayTexture('contours', 'assets/ov-contours-walferdange.png');
+            loadOverlayTexture('spot', 'assets/ov-spot-walferdange.png');
+            loadOverlayTexture('break', 'assets/ov-break-walferdange.png');
+        }
 
         // Bilinear sample of the geodata grid, mapped THROUGH the current view window.
         //   u: west->east in [0,1] across the rendered slice
@@ -1011,6 +1165,8 @@
             initTour();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadGeoData(() => buildParametricModel());
+            loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
+            loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
             setupUI();
 
             window.addEventListener('resize', onResize);
@@ -1018,6 +1174,7 @@
 
         function buildParametricModel() {
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
+            spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
             recomputeGeoView();   // refresh geoView + QSCALE + scaled pillarDefs
 
             const segX = 100, segZ = 46;
@@ -1046,6 +1203,25 @@
             });
             fillMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(fillMat);
+            // Raster base layer (satellite ortho / LiDAR relief): drape the baked texture on
+            // the fill surface. Per-vertex UV = lon/lat fraction within the FULL GEO_BBOX, so
+            // the current geoView sub-window (Surrounding-area slider) and West↔East flip both
+            // map correctly to the image.
+            const drape = baseTextures[params.baseLayer];
+            if (drape && drape.ready) {
+                const uv = surfGeo.attributes.uv;
+                const bboxLon = GEO_BBOX.east - GEO_BBOX.west, bboxLat = GEO_BBOX.north - GEO_BBOX.south;
+                for (let i = 0; i < pos.count; i++) {
+                    const lon = sceneXToLon(pos.getX(i));                 // handles flipWE + geoView
+                    const vloc = (pos.getZ(i) + halfD) / params.depth;    // 0 (north) .. 1 (south)
+                    const lat = geoView.north - vloc * (geoView.north - geoView.south);
+                    uv.setXY(i, (lon - GEO_BBOX.west) / bboxLon, (lat - GEO_BBOX.south) / bboxLat);
+                }
+                uv.needsUpdate = true;
+                fillMat.map = drape.tex;
+                fillMat.color.set(0xffffff);   // show the raster's true colour, unmodulated
+                fillMat.needsUpdate = true;
+            }
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
             modelGroup.add(surfMesh);
 
@@ -1103,7 +1279,10 @@
                     }
                 }
             }
+            // Contour lines belong to the 'contours' base layer only (hidden under the
+            // satellite drape or the plain base, which would otherwise clash with the lines).
             const tOp = params.terrainOpacity;
+            if (params.baseLayer === 'contours') {
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
             const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
@@ -1131,6 +1310,7 @@
                     modelGroup.add(s);
                 });
             }
+            }   // end base-layer 'contours' gate
 
             // --- 3. Thin block skirt. Camera-facing front wall is semi-transparent
             //         so the subsurface horizon shows through (per the brief). ---
@@ -1210,14 +1390,19 @@
             // Documented shafts are SOLID cylinders (bright above-ground cap + fainter
             // below-ground body). Inferred shafts are the SAME-size cylinder but "volume
             // stripped" — a crisp wireframe cage (rim rings + vertical seams) over a faint
-            // ghost fill, so they're obviously shafts yet clearly distinct from the solid ones.
+            // ghost fill — so they're obviously shafts yet clearly distinct from the solid
+            // ones. Their below-ground body is faded relative to the cap (fainter fill +
+            // cage), giving inferred shafts the same bright-cap / faint-body gradient.
             const mkShaftMat = op => new THREE.MeshBasicMaterial({
                 color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
             const capSolidMat = mkShaftMat(1.0);
             const belowFaintMat = mkShaftMat(0.4);
-            const ghostFillMat = mkShaftMat(0.12);
-            const cageMat = new THREE.LineBasicMaterial({
-                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: 0.95 });
+            const ghostFillMat = mkShaftMat(0.12);        // inferred cap ghost fill
+            const ghostFillFaintMat = mkShaftMat(0.06);   // inferred below-ground ghost fill (faded)
+            const mkCageMat = op => new THREE.LineBasicMaterial({
+                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
+            const cageMat = mkCageMat(0.95);              // inferred cap cage (crisp)
+            const cageFaintMat = mkCageMat(0.4);          // inferred below-ground cage (faded)
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -1258,19 +1443,23 @@
                 const CAP = 0.7;                              // above-ground stub height (units)
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
-                const solid = documented && st.solid;         // solid pillar vs stripped-volume cage
-                // Build one shaft segment (solid cylinder, or ghost-fill + wireframe cage).
+                const solid = documented && st.solid;         // documented solid pillar vs inferred ghost+cage
+                // Build one shaft segment. Documented shafts: bright solid cap + faded solid
+                // body. Inferred shafts keep their ghost-fill + wireframe-cage MESH style, but
+                // the below-ground body is faded relative to the above-ground cap — the same
+                // bright-cap / faint-body gradient the documented shafts have.
                 const addSeg = (h, cyY, order) => {
                     const cyl = new THREE.CylinderGeometry(0.30, 0.30, h, 16);
+                    const isCap = (order === 'cap');
                     if (solid) {
-                        const m = new THREE.Mesh(cyl, order === 'cap' ? capSolidMat : belowFaintMat);
+                        const m = new THREE.Mesh(cyl, isCap ? capSolidMat : belowFaintMat);
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
                         modelGroup.add(m); shaftMeshes.push(m);
                     } else {
-                        const g = new THREE.Mesh(cyl, ghostFillMat);
+                        const g = new THREE.Mesh(cyl, isCap ? ghostFillMat : ghostFillFaintMat);
                         g.position.set(p.x, cyY, p.z); g.renderOrder = 11; g.userData = ud;
                         modelGroup.add(g); shaftMeshes.push(g);   // hover/pick target
-                        const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), cageMat);
+                        const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), isCap ? cageMat : cageFaintMat);
                         cage.position.set(p.x, cyY, p.z); cage.renderOrder = 13;
                         modelGroup.add(cage);
                     }
@@ -1305,18 +1494,38 @@
                     { color, dashSize: 2.8, gapSize: 2.0, depthTest: false }));   // 4× larger dashes
                 ln.computeLineDistances(); ln.renderOrder = 5; modelGroup.add(ln);
             }
-            // The gallery + channel exist only once the qanat is built (≥131 AD).
+            function tunnelFatTube(points, color, radius) {
+                if (points.length < 2) return;
+                const cv = new THREE.CatmullRomCurve3(points);
+                const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), radius, 8, false);
+                const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: false }));
+                mm.renderOrder = 5; modelGroup.add(mm);
+            }
+            // The gallery + channel exist only once the qanat is built (≥131 AD). The gallery
+            // is coloured by era: blue while in Roman service (water), silted-grey otherwise.
             const galleryBuilt = params.year >= 131;
+            const inService = params.year >= 140 && params.year <= 350;
+            const galleryColor = inService ? COL.qanat : COL.qanatDry;
             if (galleryBuilt && params.showUnderground) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
-                tunnelTube(basePts.slice(start, end), COL.qanat);          // explored (solid)
-                tunnelDashed(basePts.slice(0, start + 1), COL.qanat);      // inferred west (dashed)
-                tunnelDashed(basePts.slice(end - 1), COL.qanat);          // inferred east (dashed)
+                tunnelTube(basePts.slice(start, end), galleryColor);       // explored (solid)
+                tunnelDashed(basePts.slice(0, start + 1), galleryColor);   // inferred west (dashed)
+                tunnelDashed(basePts.slice(end - 1), galleryColor);       // inferred east (dashed)
 
-                // Auxiliary dry channel (P-7A → P-5A), higher & unconnected: grey dashed
-                if (auxPts.length >= 2) tunnelDashed(auxPts, COL.auxChannel);
+                // Auxiliary dry channel (P-7A → P-5A): a separate, higher, DRY conduit with
+                // "no relationship discovered" to the main gallery (fig 5-14). Drawn detached
+                // (its own thick grey tube through the shallower aux shafts, never joined to
+                // the main tube) with a two-line on-model caveat. Optional (params.showAux).
+                if (params.showAux && auxPts.length >= 2) {
+                    tunnelFatTube(auxPts, COL.auxChannel, 0.34);
+                    const mid = auxPts[Math.floor(auxPts.length / 2)];
+                    const s = createTextSprite('Auxiliary dry channel\n(no relationship to main · fig 5-14)', '#5d7387', 16);
+                    s.scale.set(9, 1.9, 1);
+                    s.position.set(mid.x, mid.y + 1.6, mid.z);
+                    modelGroup.add(s);
+                }
 
                 // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate)
                 SSOT.gallery.gallery.steps.forEach(step => {
@@ -1326,7 +1535,7 @@
                     const top = new THREE.Vector3(bp.x, bp.y + 0.9, bp.z);
                     modelGroup.add(new THREE.Line(
                         new THREE.BufferGeometry().setFromPoints([bp, top]),
-                        new THREE.LineBasicMaterial({ color: COL.qanat, depthTest: false })));
+                        new THREE.LineBasicMaterial({ color: galleryColor, depthTest: false })));
                     const s = createTextSprite(txt, '#1d6fd6', 20);
                     s.scale.set(3.0, 0.8, 1);
                     s.position.set(bp.x, bp.y + 1.35, bp.z);
@@ -1334,10 +1543,9 @@
                 });
             }
 
-            // Static flow-direction arrows show once the gallery exists (didactic);
-            // animated *moving* water only during the Roman service period (140–350).
-            const inService = params.year >= 140 && params.year <= 350;
-            if (galleryBuilt && params.showGeology && params.showUnderground) {
+            // Gallery flow arrows only while the qanat is carrying water (Roman service,
+            // 140–350); once dormant/dry the gallery is silted so no flow is shown.
+            if (inService && params.showGeology && params.showUnderground) {
                 for (let i = basePts.length - 2; i >= 1; i -= 2) {
                     flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, COL.qanat, 0.9);
                 }
@@ -1352,24 +1560,48 @@
                 const oc = SSOT.gallery.gallery.overflowChannel;
                 const bp = oc && shaftBaseById[oc.atShaft];
                 if (bp) {
-                    const flowM = inService ? oc.divertedFlowM3PerDay : 0;
                     const start = new THREE.Vector3(bp.x, bp.y + 0.02, bp.z);
-                    const mid   = new THREE.Vector3(bp.x + 1.0, bp.y - 0.25, bp.z + 2.2);
-                    const end   = new THREE.Vector3(bp.x + 1.7, bp.y - 0.6, bp.z + 5.0);
+                    // The lateral drain daylights at the SURVEYED resurgence GPS (downslope /
+                    // west of the weir), if present; else fall back to the old schematic point.
+                    const out = oc.surfaceOutlet && oc.surfaceOutlet.gps;
+                    let end, outY = null, outSc = null;
+                    if (out && out.lon != null) {
+                        outSc = geoToScene(out.lat, out.lon);
+                        outY = getTerrainHeight(outSc.x, outSc.z);
+                        end = new THREE.Vector3(outSc.x, outY + 0.05, outSc.z);
+                    } else {
+                        end = new THREE.Vector3(bp.x + 1.7, bp.y - 0.6, bp.z + 5.0);
+                    }
+                    // Dip below ground, then rise to daylight at the outlet.
+                    const mid = new THREE.Vector3((start.x + end.x) / 2,
+                        Math.min(start.y, end.y) - 0.5, (start.z + end.z) / 2);
                     const cv = new THREE.CatmullRomCurve3([start, mid, end]);
-                    const g = new THREE.TubeGeometry(cv, 40, 0.16, 8, false);
+                    const g = new THREE.TubeGeometry(cv, 56, 0.16, 8, false);
                     const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
                     mm.renderOrder = 5; modelGroup.add(mm);
-                    // Weir tap marker at the branch point
+                    // Weir tap marker + label at the branch point.
                     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10),
                         new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
                     dot.position.copy(start); dot.renderOrder = 6; modelGroup.add(dot);
                     const s = createTextSprite('overflow weir (P‑4, Ø80 cm)', '#0a9bc4', 20);
                     s.scale.set(6.0, 1.0, 1);
-                    s.position.set(end.x, end.y + 1.0, end.z);
+                    s.position.set(start.x, start.y + 1.0, start.z);
                     modelGroup.add(s);
-                    // (Surface resurgence spring not drawn — its exact outlet has no confirmed
-                    //  GPS; kept in the SSOT as gallery.overflowChannel.surfaceOutlet only.)
+                    // Surveyed resurgence outlet: a clickable spring marker at the daylight GPS.
+                    if (out && out.lon != null) {
+                        const rm = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12),
+                            new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
+                        rm.position.set(end.x, outY + 0.34, end.z); rm.renderOrder = 8;
+                        rm.userData = { spot: true, kind: 'resurgence',
+                            name: 'Overflow resurgence (P-4 deviation)',
+                            lat: out.lat, lon: out.lon, luref: out.luref,
+                            source: 'field GPS', note: oc.surfaceOutlet.note };
+                        modelGroup.add(rm); spotMeshes.push(rm);
+                        const rl = createTextSprite('overflow resurgence (surveyed)', '#0a9bc4', 18);
+                        rl.scale.set(8.0, 0.95, 1);
+                        rl.position.set(end.x, outY + 1.1, end.z);
+                        modelGroup.add(rl);
+                    }
                 }
             }
 
@@ -1451,7 +1683,9 @@
                 s.scale.set(4.6, 1.0, 1); s.position.set(scenePos.x, sy + 1.15, scenePos.z);
                 modelGroup.add(s);
             };
-            if (params.showGeology) {
+            // Schematic single "Haedchen source" marker — shown only when the real surveyed
+            // springs layer is off (or its data is unavailable); the WFS springs supersede it.
+            if (params.showGeology && !(params.showSprings && window.RASCH_VECTORS)) {
                 const p9 = shaftById['P9'];
                 // Haedchen source: the qanat's east end (gallery starts ~13 m E of P9)
                 if (p9 && p9.geo) {
@@ -1460,8 +1694,14 @@
                 }
             }
 
+            // --- 6c. Real surveyed vector features (geoportail.lu WFS): springs + boreholes ---
+            addVectorFeatures(halfW, halfD);
+            addPaths(halfW, halfD);   // forest/hiking paths (OSM), draped on the terrain
+
             // --- 7. Geological cross-section (strata + groundwater) ---
             addGeology(halfW, halfD);
+            addFaults(halfW, halfD);
+            addOverlays(halfW, halfD);   // draped thematic overlays (aquifer / contours / spot / break)
 
             // --- 8. 3D scale bar (accurate metres) + north arrow ---
             addScaleBarAndCompass(halfW, halfD, isGeo);
@@ -1622,17 +1862,231 @@
                 if (y < getTerrainHeight(x, zF) - coverY) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
             }
             lastGwPts = gwPts;   // path for animated groundwater flow
+
+            // --- Perched pre-construction water table + drawdown (optional) ---------------
+            // The bright line above is the DRAINED (post-qanat) table ≈ gallery floor. Before
+            // the qanat, the table mounded higher in the sandstone between the natural
+            // drainage boundaries (fig 4-2 / 5-3); the qanat lowered it — that vertical gap is
+            // the DRAWDOWN. The mound magnitude here is illustrative (not surveyed), so it's
+            // labelled as such. Only meaningful with the strata shown (this runs inside addGeology).
+            if (params.showPerched && geoMode && gwPts.length >= 2) {
+                const MOUND_MAX_M = 6;                       // illustrative peak mounding
+                const perchedPts = [];
+                for (let k = 0; k < gwPts.length; k++) {
+                    const gp = gwPts[k];
+                    const t = k / (gwPts.length - 1);        // 0..1 across the section
+                    const hump = Math.sin(Math.PI * t);      // 0 at the drainage edges, 1 mid
+                    const ceil = getTerrainHeight(gp.x, zF) - metersToYDepth(COVER_M) - 0.02;
+                    const yTop = Math.min(gp.y + metersToYDepth(MOUND_MAX_M * hump), ceil);
+                    perchedPts.push(new THREE.Vector3(gp.x, Math.max(yTop, gp.y), zF));
+                }
+                // Drawdown band: translucent fill between perched (top) and drained (bottom).
+                const fillPos = [];
+                for (let k = 0; k < gwPts.length - 1; k++) {
+                    const a = gwPts[k], b = gwPts[k + 1], pa = perchedPts[k], pb = perchedPts[k + 1];
+                    fillPos.push(a.x, pa.y, zF,  a.x, a.y, zF,  b.x, pb.y, zF,
+                                 b.x, pb.y, zF,  a.x, a.y, zF,  b.x, b.y, zF);
+                }
+                const fg = new THREE.BufferGeometry();
+                fg.setAttribute('position', new THREE.Float32BufferAttribute(fillPos, 3));
+                const fm = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({
+                    color: COL.groundwater, transparent: true, opacity: 0.20,
+                    side: THREE.DoubleSide, depthWrite: false }));
+                fm.renderOrder = 3; modelGroup.add(fm);
+                // Perched table line (dashed, above the drained line).
+                const pl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(perchedPts),
+                    new THREE.LineDashedMaterial({ color: COL.groundwater,
+                        dashSize: 1.6, gapSize: 1.0, depthTest: false }));
+                pl.computeLineDistances(); pl.renderOrder = 4; modelGroup.add(pl);
+                // Labels: the perched table + a drawdown callout.
+                const mid = perchedPts[Math.floor(perchedPts.length / 2)];
+                const lab = createTextSprite('pre-construction water table (perched, illustrative)', '#0a6ebd', 17);
+                lab.scale.set(12, 1.1, 1); lab.position.set(mid.x, mid.y + 0.9, zF); modelGroup.add(lab);
+                const di = Math.floor(gwPts.length * 0.32);
+                const dd = createTextSprite('↕ drawdown (lowered by the qanat)', '#0a6ebd', 15);
+                dd.scale.set(8, 0.95, 1);
+                dd.position.set(gwPts[di].x, (gwPts[di].y + perchedPts[di].y) / 2, zF);
+                modelGroup.add(dd);
+            }
+        }
+
+        // The Pëtschend is a central horst bounded N & S by ~E–W faults where groundwater
+        // leaks to the Dauvebur (N) and Op der Rëll (S) springs (geology.structure, Waringo
+        // p.14 / fig 4-3). The brochure gives NO surveyed fault coordinates, so each fault is
+        // drawn as a dashed surface trace + downthrow hachures at the north/south edges of the
+        // modelled corridor — an ILLUSTRATIVE marker of the structure, clearly labelled.
+        // Real surveyed GIS vector features from geoportail.lu (baked into window.RASCH_VECTORS
+        // by scripts/bake-vectors.mjs): named springs as 3D pins, boreholes/piezometers as
+        // surface markers. Only features whose geo coords fall inside the current terrain window
+        // are drawn (so they appear/disappear with the Surrounding-area slider, like the villa).
+        // Boreholes carry no depth in the source, so they are drawn as honest surface markers.
+        function addVectorFeatures(halfW, halfD) {
+            const V = window.RASCH_VECTORS;
+            if (!V || !(params.terrainSource === 'geodata' && geodata.ready)) return;
+            const inWindow = sc => Math.abs(sc.x) <= halfW && Math.abs(sc.z) <= halfD;
+
+            if (params.showSprings) {
+                // Only the qanat-relevant springs (Raschpëtzer / Haedchen source area); the
+                // other regional catchment springs (Heisdorf, Geierbierg, …) are dropped.
+                (V.springs || []).filter(sp => SPRING_KEEP.test(sp.name)).forEach(sp => {
+                    const sc = geoToScene(sp.lat, sp.lon);
+                    if (!inWindow(sc)) return;
+                    const sy = getTerrainHeight(sc.x, sc.z);
+                    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12),
+                        new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
+                    dot.position.set(sc.x, sy + 0.34, sc.z); dot.renderOrder = 8;
+                    dot.userData = { spot: true, kind: 'spring', name: sp.name, lat: sp.lat, lon: sp.lon };
+                    modelGroup.add(dot); spotMeshes.push(dot);
+                    const lbl = createTextSprite(sp.name, '#0a6ebd', 18);
+                    lbl.scale.set(Math.min(9, 2.4 + sp.name.length * 0.16), 0.95, 1);
+                    lbl.position.set(sc.x, sy + 1.05, sc.z);
+                    modelGroup.add(lbl);
+                });
+            }
+
+            if (params.showBoreholes) {
+                const boreMat = new THREE.MeshBasicMaterial({ color: 0x8a6d3b, depthTest: false });
+                (V.boreholes || []).forEach(bh => {
+                    const sc = geoToScene(bh.lat, bh.lon);
+                    if (!inWindow(sc)) return;
+                    const sy = getTerrainHeight(sc.x, sc.z);
+                    // Honest surface marker + short stub (no depth in the source data).
+                    const stub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 10), boreMat);
+                    stub.position.set(sc.x, sy - 0.3, sc.z); stub.renderOrder = 8;
+                    modelGroup.add(stub);
+                    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.24, 0.5), boreMat);
+                    head.position.set(sc.x, sy + 0.12, sc.z); head.renderOrder = 8;
+                    head.userData = { spot: true, kind: 'borehole', name: bh.name, lat: bh.lat, lon: bh.lon };
+                    modelGroup.add(head); spotMeshes.push(head);
+                    const lbl = createTextSprite(bh.name, '#6b4f2a', 16);
+                    lbl.scale.set(Math.min(9, 2.4 + bh.name.length * 0.16), 0.9, 1);
+                    lbl.position.set(sc.x, sy + 0.95, sc.z);
+                    modelGroup.add(lbl);
+                });
+            }
+        }
+        // Springs worth showing on the model: the qanat's own (Raschpëtzer) + the Haedchen
+        // source area. The remaining WFS springs are regional catchment points, km away.
+        const SPRING_KEEP = /raschp|haedchen/i;
+
+        // Forest/hiking paths (OpenStreetMap, baked into window.RASCH_PATHS). Each path is a
+        // draped polyline that follows the terrain; segments are split as they cross the
+        // visible window so nothing shoots off to an out-of-frame vertex.
+        function addPaths(halfW, halfD) {
+            const P = window.RASCH_PATHS;
+            if (!params.showPaths || !P || !(params.terrainSource === 'geodata' && geodata.ready)) return;
+            // Draped as tubes (not hairline THREE.Line, which ignores linewidth in WebGL) so
+            // the paths read clearly; a bright tan over any base layer, always-on-top.
+            const mat = new THREE.MeshBasicMaterial({ color: 0xc07a2e, transparent: true, opacity: 0.92, depthTest: false });
+            const inWin = sc => Math.abs(sc.x) <= halfW && Math.abs(sc.z) <= halfD;
+            (P.paths || []).forEach(way => {
+                let seg = [];
+                const flush = () => {
+                    if (seg.length >= 2) {
+                        const cv = new THREE.CatmullRomCurve3(seg);
+                        const g = new THREE.TubeGeometry(cv, Math.max(4, seg.length * 3), 0.13, 5, false);
+                        const m = new THREE.Mesh(g, mat); m.renderOrder = 4; modelGroup.add(m);
+                    }
+                    seg = [];
+                };
+                for (const [lon, lat] of way) {
+                    const sc = geoToScene(lat, lon);
+                    if (inWin(sc)) {
+                        seg.push(new THREE.Vector3(sc.x, getTerrainHeight(sc.x, sc.z) + 0.15, sc.z));
+                    } else { flush(); }
+                }
+                flush();
+            });
+        }
+
+        // Draped thematic overlays (transparent geoportail rasters conformed to the terrain
+        // surface via per-vertex lon/lat UVs). Aquifer under the elevation line-work.
+        const OVERLAY_ORDER = ['aquifer', 'break', 'contours', 'spot'];
+        const OVERLAY_OPACITY = { aquifer: 0.38, break: 0.85, contours: 0.9, spot: 0.95 };
+        function addOverlays(halfW, halfD) {
+            if (!(params.terrainSource === 'geodata' && geodata.ready)) return;
+            const bboxLon = GEO_BBOX.east - GEO_BBOX.west, bboxLat = GEO_BBOX.north - GEO_BBOX.south;
+            let lift = 0.05, order = 2;
+            for (const key of OVERLAY_ORDER) {
+                if (!params.overlay[key]) continue;
+                const ot = overlayTextures[key];
+                if (!ot || !ot.ready) continue;
+                const g = new THREE.PlaneGeometry(params.width, params.depth, 120, 54);
+                g.rotateX(-Math.PI / 2);
+                const pos = g.attributes.position, uv = g.attributes.uv;
+                for (let i = 0; i < pos.count; i++) {
+                    const x = pos.getX(i), z = pos.getZ(i);
+                    pos.setY(i, getTerrainHeight(x, z) + lift);
+                    const lon = sceneXToLon(x);
+                    const vloc = (z + halfD) / params.depth;
+                    const lat = geoView.north - vloc * (geoView.north - geoView.south);
+                    uv.setXY(i, (lon - GEO_BBOX.west) / bboxLon, (lat - GEO_BBOX.south) / bboxLat);
+                }
+                const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+                    map: ot.tex, transparent: true, opacity: OVERLAY_OPACITY[key] || 0.9,
+                    depthWrite: false, side: THREE.DoubleSide,
+                    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+                m.renderOrder = order; modelGroup.add(m);
+                lift += 0.03; order += 1;
+            }
+        }
+
+        function addFaults(halfW, halfD) {
+            if (!params.showFaults) return;
+            if (!(params.terrainSource === 'geodata' && geodata.ready)) return;
+            const RED = 0xd23b3b;
+            // north = −Z (back), south = +Z (front) — see geoToScene v-mapping.
+            const faults = [
+                { z: -halfD * 0.82, name: 'N bounding fault', spring: 'Dauvebur spring' },
+                { z:  halfD * 0.82, name: 'S bounding fault', spring: 'Op der Rëll spring' }
+            ];
+            const NX = 40;
+            faults.forEach(f => {
+                // Dashed surface trace (E–W) following the terrain.
+                const trace = [];
+                for (let i = 0; i <= NX; i++) {
+                    const x = -halfW + i / NX * params.width;
+                    trace.push(new THREE.Vector3(x, getTerrainHeight(x, f.z) + 0.06, f.z));
+                }
+                const tl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(trace),
+                    new THREE.LineDashedMaterial({ color: RED, dashSize: 1.4, gapSize: 0.9, depthTest: false }));
+                tl.computeLineDistances(); tl.renderOrder = 6; modelGroup.add(tl);
+                // Downthrow hachures (short verticals) marking the fault plane.
+                for (let i = 2; i < NX; i += 4) {
+                    const x = -halfW + i / NX * params.width;
+                    const sy = getTerrainHeight(x, f.z);
+                    modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(x, sy + 0.06, f.z),
+                        new THREE.Vector3(x, sy - metersToYDepth(3), f.z)]),
+                        new THREE.LineBasicMaterial({ color: RED, depthTest: false, transparent: true, opacity: 0.55 })));
+                }
+                // Spring outlet the fault feeds (down-dip / east end).
+                const sx = halfW * 0.72, sy = getTerrainHeight(sx, f.z);
+                const dot = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12),
+                    new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
+                dot.position.set(sx, sy + 0.34, f.z); dot.renderOrder = 7; modelGroup.add(dot);
+                const lab = createTextSprite(f.name + ' → ' + f.spring, '#c0392b', 18);
+                const lx = -halfW * 0.15;
+                lab.scale.set(9, 1.05, 1); lab.position.set(lx, getTerrainHeight(lx, f.z) + 1.6, f.z);
+                modelGroup.add(lab);
+            });
+            const cav = createTextSprite('Pëtschend horst faults — illustrative (no surveyed coords)', '#c0392b', 15);
+            cav.scale.set(12, 0.95, 1);
+            cav.position.set(0, getTerrainHeight(0, halfD * 0.82) + 3.2, halfD * 0.82);
+            modelGroup.add(cav);
         }
 
         function createTextSprite(text, colorStr = '#111', size = 24) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
+            const lines = String(text).split('\n');   // supports multi-line labels
             const font = `600 ${size}px -apple-system, sans-serif`;
             // Size the canvas to the text so long labels aren't clipped (min 320 keeps
             // short labels identical to before). Sprite scale (set by callers) is unchanged.
             ctx.font = font;
-            canvas.width = Math.max(320, Math.ceil(ctx.measureText(text).width) + 28);
-            canvas.height = 72;
+            const lineH = Math.round(size * 1.35);
+            canvas.width = Math.max(320, Math.ceil(Math.max(...lines.map(l => ctx.measureText(l).width))) + 28);
+            canvas.height = Math.max(72, lineH * lines.length + 16);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = font;   // re-apply: resizing the canvas resets the context
             ctx.textAlign = 'center';
@@ -1644,9 +2098,13 @@
             ctx.lineJoin = 'round';
             ctx.lineWidth = 5;
             ctx.strokeStyle = 'rgba(245,240,234,0.92)';
-            ctx.strokeText(text, cx, cy);
             ctx.fillStyle = colorStr;
-            ctx.fillText(text, cx, cy);
+            const totalH = lineH * lines.length;
+            lines.forEach((ln, i) => {
+                const y = cy - totalH / 2 + lineH * (i + 0.5);
+                ctx.strokeText(ln, cx, y);
+                ctx.fillText(ln, cx, y);
+            });
             const tex = new THREE.CanvasTexture(canvas);
             // NPOT canvas (320×72): force no-mipmap linear sampling so WebGL doesn't
             // resize-to-power-of-two, which was smearing a horizontal streak across labels.
@@ -1660,7 +2118,7 @@
                 map: tex, transparent: true, depthTest: false, depthWrite: false }));
             sprite.renderOrder = 30;
             sprite.raycast = () => {};   // labels are never pickable (no zoom-target / rotation-centre)
-            sprite.scale.set(6, 1.35, 1);
+            sprite.scale.set(6, 1.35 * lines.length, 1);
             return sprite;
         }
 
@@ -1721,9 +2179,46 @@
                 buildParametricModel();
             });
 
+            // Base map layer: contour lines / satellite ortho / LiDAR relief / plain
+            const attribEl = document.getElementById('ortho-attrib');
+            const ATTRIB = {
+                satellite: 'Aerial imagery © ACT · geoportail.lu (2019) · Luxembourg open data',
+                winter: 'Winter (leaf-off) aerial © ACT · geoportail.lu (2019) · Luxembourg open data',
+                ortho1967: 'Historical aerial © ACT · geoportail.lu (1967) · Luxembourg open data',
+                topo: 'Topographic map © ACT · geoportail.lu · Luxembourg open data',
+                hillshade: 'LiDAR relief © ACT · geoportail.lu (DTM 2019) · Luxembourg open data'
+            };
+            const grpContours = document.getElementById('grp-contours');
+            const syncBaseLayerUI = () => {
+                const credit = ATTRIB[params.baseLayer];
+                attribEl.textContent = credit || '';
+                attribEl.style.display = credit ? 'block' : 'none';
+                // The contour-spacing slider only affects the Contour-lines base layer.
+                grpContours.style.display = (params.baseLayer === 'contours') ? '' : 'none';
+            };
+            document.getElementById('param-baselayer').addEventListener('change', e => {
+                params.baseLayer = e.target.value;
+                syncBaseLayerUI();
+                buildParametricModel();
+            });
+            syncBaseLayerUI();   // initial state (contours by default → slider shown)
+
+            // Only expose options that do something in the current state: the geology
+            // overlays (perched table / horst faults) need "Show geology"; the subsurface
+            // conduits (aux / overflow) need "Underground structures".
+            const syncConditionalOptions = () => {
+                const u = params.showUnderground, g = params.showGeology;
+                document.getElementById('row-aux').style.display = u ? '' : 'none';
+                document.getElementById('row-overflow').style.display = u ? '' : 'none';
+                document.getElementById('row-perched').style.display = g ? '' : 'none';
+                document.getElementById('row-faults').style.display = g ? '' : 'none';
+            };
+            syncConditionalOptions();   // initial state
+
             // Toggle geological strata + water flows
             document.getElementById('param-geology').addEventListener('change', e => {
                 params.showGeology = e.target.checked;
+                syncConditionalOptions();
                 buildParametricModel();
             });
 
@@ -1739,9 +2234,49 @@
                 buildParametricModel();
             });
 
+            // Toggle real surveyed springs / boreholes (geoportail.lu WFS)
+            document.getElementById('param-springs').addEventListener('change', e => {
+                params.showSprings = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-boreholes').addEventListener('change', e => {
+                params.showBoreholes = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-paths').addEventListener('change', e => {
+                params.showPaths = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the detached auxiliary dry channel (P-7A/P-5A)
+            document.getElementById('param-aux').addEventListener('change', e => {
+                params.showAux = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the perched pre-construction water table + drawdown band
+            document.getElementById('param-perched').addEventListener('change', e => {
+                params.showPerched = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Toggle the Pëtschend horst bounding faults (illustrative)
+            document.getElementById('param-faults').addEventListener('change', e => {
+                params.showFaults = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Draped thematic overlays (aquifer / official contours / spot heights / break lines)
+            [['ov-aquifer', 'aquifer'], ['ov-contours', 'contours'], ['ov-spot', 'spot'], ['ov-break', 'break']]
+                .forEach(([id, key]) => document.getElementById(id).addEventListener('change', e => {
+                    params.overlay[key] = e.target.checked;
+                    buildParametricModel();
+                }));
+
             // Toggle subsurface qanat structures (shafts + gallery + flow + overflow)
             document.getElementById('param-underground').addEventListener('change', e => {
                 params.showUnderground = e.target.checked;
+                syncConditionalOptions();
                 buildParametricModel();
             });
 
@@ -1769,6 +2304,11 @@
             document.getElementById('btn-profile').addEventListener('click', toggleProfile);
             document.getElementById('btn-reset').addEventListener('click', resetView);
             document.getElementById('btn-top-view').addEventListener('click', topView);
+            document.getElementById('btn-iso').addEventListener('click', () => presetView('iso'));
+            document.getElementById('btn-view-n').addEventListener('click', () => presetView('north'));
+            document.getElementById('btn-view-e').addEventListener('click', () => presetView('east'));
+            document.getElementById('btn-view-s').addEventListener('click', () => presetView('south'));
+            document.getElementById('btn-view-w').addEventListener('click', () => presetView('west'));
 
             setupShaftInteraction();
             updateControlVisibility();
@@ -1788,18 +2328,45 @@
                 const d = document.createElement('div');
                 d.className = 'tl-band';
                 d.style.left = (l * 100).toFixed(2) + '%';
-                d.style.width = Math.max(0.6, (r - l) * 100).toFixed(2) + '%';
+                d.style.width = Math.max(0.8, (r - l) * 100).toFixed(2) + '%';
                 d.style.background = TL_KIND_COLORS[e.kind] || '#6b7280';
-                d.title = e.label + ' (' + e.fromAD + '–' + e.toAD + ' AD)';
+                d.title = e.label + ' (' + e.fromAD + '–' + e.toAD + ' AD) — click to jump';
+                d.addEventListener('click', () => { tlPause(); tlSetT(yearToSlider(e.fromAD), true); });
                 track.appendChild(d);
             });
+            const ph = document.createElement('div'); ph.id = 'tl-playhead'; track.appendChild(ph);
+            // Axis tick labels at the era boundaries (piecewise-scaled positions).
+            const axis = document.getElementById('timeline-axis');
+            if (axis) {
+                axis.innerHTML = '';
+                [[131, '131 AD'], [350, '350'], [1913, '1913'], [2025, 'present']].forEach(([y, lab]) => {
+                    const s = document.createElement('span');
+                    s.textContent = lab;
+                    s.style.left = (yearToSlider(y) * 100).toFixed(2) + '%';
+                    axis.appendChild(s);
+                });
+            }
+            // Per-era legend (colour key for the band kinds actually present).
+            const legend = document.getElementById('timeline-legend');
+            if (legend) {
+                legend.innerHTML = '';
+                const KIND_LABEL = { build: 'Built', use: 'In service', dormant: 'Dormant',
+                    rediscovery: 'Rediscovery', investigation: 'Investigation', exploration: 'Exploration' };
+                [...new Set((TIMELINE.events || []).map(e => e.kind))].forEach(k => {
+                    const s = document.createElement('span');
+                    s.innerHTML = '<i style="background:' + (TL_KIND_COLORS[k] || '#6b7280') + '"></i>' + (KIND_LABEL[k] || k);
+                    legend.appendChild(s);
+                });
+            }
         }
         function updateTimelineReadout() {
             const lbl = document.getElementById('lbl-year');
             const ro = document.getElementById('timeline-readout');
+            const ph = document.getElementById('tl-playhead');
             const y = params.year;
             const yTxt = y >= 2025 ? 'present' : (y + ' AD');
             if (lbl) lbl.textContent = yTxt;
+            if (ph) ph.style.left = (yearToSlider(y) * 100).toFixed(2) + '%';
             if (!ro) return;
             const ev = timelineEventAt(y);
             const lastEnd = Math.max(...(TIMELINE.events || [{ toAD: 2000 }]).map(e => e.toAD));
@@ -1815,19 +2382,67 @@
                 ro.textContent = '—';
             }
         }
+
+        // --- Timeline playback: smooth animated year sweep -------------------------------
+        // The slider fraction t (0..1) advances at a constant rate, so the piecewise year
+        // axis gives each era screen-time proportional to its track width (the Roman era gets
+        // the most). The heavy model rebuild only fires when the discrete shaft/gallery STATE
+        // actually changes (state signature), so playback stays smooth between transitions.
+        let tlT = 1, tlPlaying = false, tlRAF = null, tlLastTs = 0, tlSig = null;
+        const TL_SWEEP_MS = 16000;
+        function tlStateSig(year) {
+            let s = (year >= 131 ? 'G' : '') + (year >= 140 && year <= 350 ? 'S' : '');
+            for (const sh of SHAFTS) {
+                if (!sh.dates) continue;
+                const st = shaftTimeState(sh, year);
+                s += st.show ? (st.solid ? '2' : '1') : '0';
+            }
+            return s;
+        }
+        function setPlayLabel() {
+            const b = document.getElementById('tl-play');
+            if (b) { b.textContent = tlPlaying ? '⏸ Pause' : '▶ Play'; b.classList.toggle('active', tlPlaying); }
+        }
+        function tlApply(year, force) {
+            params.year = year;
+            updateTimelineReadout();
+            const sig = tlStateSig(year);
+            if (force || sig !== tlSig) { tlSig = sig; buildParametricModel(); }
+        }
+        function tlSetT(t, force) {
+            tlT = Math.max(0, Math.min(1, t));
+            const sl = document.getElementById('param-year');
+            if (sl) sl.value = Math.round(tlT * 1000);
+            tlApply(sliderToYear(tlT), force);
+        }
+        function tlTick(ts) {
+            if (!tlPlaying) return;
+            if (!tlLastTs) tlLastTs = ts;
+            const dt = ts - tlLastTs; tlLastTs = ts;
+            const t = tlT + dt / TL_SWEEP_MS;
+            if (t >= 1) { tlSetT(1, false); tlPause(); return; }
+            tlSetT(t, false);
+            tlRAF = requestAnimationFrame(tlTick);
+        }
+        function tlPlay() {
+            if (tlT >= 1) tlSetT(0, true);   // restart from the beginning if parked at the end
+            tlPlaying = true; tlLastTs = 0; setPlayLabel();
+            tlRAF = requestAnimationFrame(tlTick);
+        }
+        function tlPause() {
+            tlPlaying = false;
+            if (tlRAF) { cancelAnimationFrame(tlRAF); tlRAF = null; }
+            setPlayLabel();
+        }
         function setupTimeline() {
             const sl = document.getElementById('param-year');
             if (!sl) return;
             buildTimelineBands();
-            sl.value = Math.round(yearToSlider(params.year) * 1000);
-            let raf = null;
-            sl.addEventListener('input', e => {
-                params.year = sliderToYear(parseFloat(e.target.value) / 1000);
-                updateTimelineReadout();
-                // Debounce the (heavier) model rebuild to one per animation frame.
-                if (raf) cancelAnimationFrame(raf);
-                raf = requestAnimationFrame(() => { raf = null; buildParametricModel(); });
-            });
+            tlT = yearToSlider(params.year);
+            sl.value = Math.round(tlT * 1000);
+            sl.addEventListener('input', e => { tlPause(); tlSetT(parseFloat(e.target.value) / 1000, false); });
+            document.getElementById('tl-play').addEventListener('click', () => tlPlaying ? tlPause() : tlPlay());
+            document.getElementById('tl-present').addEventListener('click', () => { tlPause(); tlSetT(1, true); });
             updateTimelineReadout();
         }
 
@@ -1859,6 +2474,26 @@
                 target.x,
                 target.y + dist * Math.cos(tilt),
                 target.z + dist * Math.sin(tilt));
+            flyTo(pos, target, 700);
+        }
+        // Preset camera angles, centred on the qanat, preserving the current zoom distance.
+        // Azimuth convention matches the readout: 0° = viewed from +Z (south), looking north.
+        function presetView(kind) {
+            const target = DEFAULT_CAM.target.clone();
+            const dist = camera.position.distanceTo(controls.target) || 120;
+            const P = {
+                iso:   { az:  35, el: 28 },   // three-quarter oblique
+                north: { az:   0, el: 12 },   // camera south of the qanat, facing north
+                south: { az: 180, el: 12 },
+                east:  { az:  90, el: 12 },
+                west:  { az: 270, el: 12 }
+            }[kind] || { az: 35, el: 28 };
+            const az = THREE.MathUtils.degToRad(P.az), el = THREE.MathUtils.degToRad(P.el);
+            const h = dist * Math.cos(el);
+            const pos = new THREE.Vector3(
+                target.x + h * Math.sin(az),
+                target.y + dist * Math.sin(el),
+                target.z + h * Math.cos(az));
             flyTo(pos, target, 700);
         }
 
@@ -1954,8 +2589,21 @@
         }
         function setupCameraReadout() {
             updateCameraReadout();
-            controls.addEventListener('change', () => { _readoutDirty = true; });
+            updateCompassNeedle();
+            controls.addEventListener('change', () => { _readoutDirty = true; updateCompassNeedle(); });
             document.getElementById('btn-level-horizon').addEventListener('click', levelHorizon);
+            const cc = document.getElementById('compass');
+            if (cc) cc.addEventListener('click', () => presetView('north'));
+        }
+        // Rotate the compass rose so the N arrow points to where north (−Z) is on screen.
+        // rose rotation = the view azimuth (atan2(offX, offZ)); flipWE mirrors it.
+        function updateCompassNeedle() {
+            const rose = document.getElementById('compass-rose');
+            if (!rose || !camera || !controls) return;
+            const off = new THREE.Vector3().subVectors(camera.position, controls.target);
+            let azimuthDeg = THREE.MathUtils.radToDeg(Math.atan2(off.x, off.z));
+            if (params.flipWE && params.terrainSource === 'geodata') azimuthDeg = -azimuthDeg;
+            rose.style.transform = 'rotate(' + azimuthDeg.toFixed(1) + 'deg)';
         }
         // "Level horizon": keep azimuth + distance, set elevation/pitch to 0° (camera.y ==
         // target.y), i.e. polar angle = 90°, animated via the existing flyTo.
@@ -1986,6 +2634,13 @@
                 ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
                 raycaster.setFromCamera(ndc, camera);
                 return raycaster.intersectObjects(shaftMeshes, false)[0];
+            }
+            function pickSpot(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                return raycaster.intersectObjects(spotMeshes, false)[0];
             }
             function showTooltip(hit, ev) {
                 const d = hit.object.userData;
@@ -2027,9 +2682,10 @@
                         tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
                         tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
                     }
-                } else if (hoverActive) {
-                    tip.style.display = 'none'; dom.style.cursor = 'default'; hoverActive = false;
-                    clearDwell();
+                } else {
+                    // No shaft under the cursor: show a pointer over clickable spots too.
+                    dom.style.cursor = pickSpot(ev) ? 'pointer' : 'default';
+                    if (hoverActive) { tip.style.display = 'none'; hoverActive = false; clearDwell(); }
                 }
             });
             dom.addEventListener('mouseleave', () => {
@@ -2057,11 +2713,13 @@
                     return;
                 }
                 const hit = pick(ev);
-                if (!hit) return;
-                const d = hit.object.userData;
-                // Clicking a shaft only opens the info overlay — no camera fly (the guided
-                // tour is the only thing that still flies the camera, via tourFlyTo).
-                renderInfoPanel(shaftById[d.name]);       // SSOT-driven info side panel (left overlay)
+                if (hit) {
+                    // Clicking a shaft opens the info overlay (no camera fly).
+                    renderInfoPanel(shaftById[hit.object.userData.name]);
+                    return;
+                }
+                const shit = pickSpot(ev);   // springs / boreholes / resurgence
+                if (shit) renderSpotPanel(shit.object.userData);
             });
         }
 
@@ -2098,6 +2756,13 @@
             h += factRow('Depth', rec, 'depthM', 'm');
             h += factRow('Gallery floor', rec, 'floorElevM', 'm a.s.l.');
             h += factRow('Diameter', rec, 'diameterM', 'm');
+            // GPS coordinates (WGS84 lat/lon, OSM-sourced) — clickable to open a map.
+            if (rec.geo && rec.geo.lat != null && rec.geo.lon != null) {
+                const lat = rec.geo.lat.toFixed(6), lon = rec.geo.lon.toFixed(6);
+                const osm = `https://www.openstreetmap.org/?mlat=${rec.geo.lat}&mlon=${rec.geo.lon}#map=18/${rec.geo.lat}/${rec.geo.lon}`;
+                h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
+                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>`;
+            }
             if (rec.position && rec.position.status)
                 h += `<div class="ip-row"><span class="ip-k">Position</span>` +
                      `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(rec.position.status)}</span></div>` +
@@ -2108,6 +2773,27 @@
                 if (notes.length) h += `<div class="ip-para"><b>Reasoning</b><br>` +
                     notes.map(n => '‣ ' + n.rationale).join('<br><br>') + `</div>`;
             }
+            body.innerHTML = h;
+            document.body.classList.add('info-open');
+        }
+        // Info panel for a surveyed "spot" (spring / borehole / overflow resurgence).
+        function renderSpotPanel(spot) {
+            if (!spot) return;
+            const body = document.getElementById('info-body');
+            const kindLabel = { spring: 'Spring (surveyed)',
+                borehole: 'Borehole / piezometer (surveyed)',
+                resurgence: 'Overflow resurgence (P-4 deviation)' }[spot.kind] || 'Feature';
+            let h = `<h3>${spot.name}</h3><div class="ip-sub">${kindLabel}</div>`;
+            const lat = spot.lat.toFixed(6), lon = spot.lon.toFixed(6);
+            const osm = `https://www.openstreetmap.org/?mlat=${spot.lat}&mlon=${spot.lon}#map=18/${spot.lat}/${spot.lon}`;
+            h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
+                 `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>`;
+            if (Array.isArray(spot.luref))
+                h += `<div class="ip-row"><span class="ip-k">LUREF (EPSG:2169)</span>` +
+                     `<span class="ip-v">${spot.luref[0]} E · ${spot.luref[1]} N</span></div>`;
+            h += `<div class="ip-row"><span class="ip-k">Source</span>` +
+                 `<span class="ip-v">${spot.source || 'geoportail.lu (WFS)'}</span></div>`;
+            if (spot.note) h += `<div class="ip-note">${spot.note}</div>`;
             body.innerHTML = h;
             document.body.classList.add('info-open');
         }

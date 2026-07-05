@@ -60,7 +60,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "low",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1994,
         "campaign": "explore-west"
       }
@@ -123,7 +123,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "low",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1994,
         "campaign": "explore-west"
       }
@@ -178,7 +178,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "low",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1993,
         "campaign": "explore-west"
       }
@@ -245,7 +245,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "medium",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1992,
         "campaign": "explore-west"
       }
@@ -300,7 +300,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "medium",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1992,
         "campaign": "explore-west"
       }
@@ -355,7 +355,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "medium",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": null,
         "campaign": null
       }
@@ -413,7 +413,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "medium",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1913,
         "campaign": "first-excav"
       }
@@ -468,7 +468,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "low",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1987,
         "campaign": "explore-east"
       }
@@ -526,7 +526,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1987,
         "campaign": "explore-east"
       }
@@ -581,7 +581,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1987,
         "campaign": "explore-east"
       }
@@ -647,7 +647,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1913,
         "campaign": "rediscovery",
         "rediscoveredAD": 1986
@@ -703,7 +703,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1988,
         "campaign": "explore-east"
       }
@@ -758,7 +758,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1988,
         "campaign": "explore-east"
       }
@@ -813,7 +813,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1989,
         "campaign": "explore-east"
       }
@@ -868,7 +868,7 @@
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
-        "builtAD": 135,
+        "builtAD": 131,
         "excavatedAD": 1990,
         "campaign": "explore-east"
       }
