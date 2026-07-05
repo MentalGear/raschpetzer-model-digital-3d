@@ -26,9 +26,10 @@ animated timeline, clickable spots + GPS.
 - **Watercourses + catchments** (`hy` WFS) — the Alzette + tributaries and the catchment
   polygons. NOTE: watercourses come as polygons (area), so drape as filled/outlined
   ribbons on the terrain, not polylines.
-- **Forest paths toggle** — NO clean geoportail *vector* exists (only the `topo_tour_20k`
-  tourist raster map). Options: drape `topo_tour_20k`, or bake OSM `highway=path|track|
-  footway` as a vector overlay (not geoportail-sourced). Awaiting a source decision.
+- ~~**Forest paths toggle**~~ — DONE via **OpenStreetMap** (`scripts/bake-paths.mjs`,
+  highway=path/track/footway/bridleway) — geoportail has no clean path vector (only the
+  `topo_tour_20k` tourist raster). Swap to `topo_tour_20k` if a geoportail-only source is
+  preferred.
 
 ### Tier 2 — context & storytelling
 - ~~**Historical ortho**~~ — DONE (1967 base layer). Follow-up: a multi-epoch ortho
