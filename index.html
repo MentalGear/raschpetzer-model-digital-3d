@@ -190,6 +190,15 @@
         }
         .btn-row button:hover { background: #4b5563; }
         .btn-row button.active { background: var(--accent-orange); border-color: var(--accent-orange); color: #1a1a1a; font-weight: 600; }
+        /* Collapsible control sections */
+        #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
+        #ui-panel details > summary { list-style: none; cursor: pointer; padding: 9px 0 5px;
+            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
+            color: #9ca3af; font-weight: 700; user-select: none; display: flex; align-items: center; gap: 6px; }
+        #ui-panel details > summary::-webkit-details-marker { display: none; }
+        #ui-panel details > summary::before { content: '▸'; font-size: 0.65rem; transition: transform 0.12s; }
+        #ui-panel details[open] > summary::before { transform: rotate(90deg); }
+        #ui-panel details > .control-group:first-of-type { margin-top: 2px; }
 
         #shaft-tooltip {
             position: absolute; z-index: 8; pointer-events: none; display: none;
@@ -296,64 +305,80 @@
         <h1>3D geological Raschpëtzer visualization</h1>
         <h2>Roman qanat · Walferdange, Luxembourg</h2>
 
-        <div class="control-group" id="grp-contours">
-            <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
-            <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
-        </div>
-        <div class="control-group">
-            <label>Terrain</label>
-            <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
-            <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
-            <label class="check-row" style="justify-content:space-between;gap:8px">
-                <span>Base&nbsp;layer</span>
-                <select id="param-baselayer" style="flex:0 0 auto;background:#1a2230;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:2px 4px;font-size:0.75rem">
-                    <option value="contours">Contour lines</option>
-                    <option value="topo">Topographic map</option>
-                    <option value="satellite">Satellite (ACT 2019)</option>
-                    <option value="winter">Satellite — winter (leaf-off)</option>
-                    <option value="ortho1967">Satellite — historical (1967)</option>
-                    <option value="hillshade">LiDAR relief (2019)</option>
-                    <option value="none">Plain</option>
-                </select>
-            </label>
-            <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
-            <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
-            <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
-            <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
-            <label class="check-row"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
-            <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
-            <label class="check-row"><input type="checkbox" id="param-springs" checked> Springs&nbsp;(surveyed,&nbsp;geoportail)</label>
-            <label class="check-row"><input type="checkbox" id="param-boreholes"> Boreholes&nbsp;(surveyed,&nbsp;geoportail)</label>
-            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
-            <label class="check-row"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
-            <label class="check-row"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
-            <label class="check-row"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
-        </div>
+        <details open>
+            <summary>Map &amp; imagery</summary>
+            <div class="control-group">
+                <label class="check-row" style="justify-content:space-between;gap:8px">
+                    <span>Base&nbsp;layer</span>
+                    <select id="param-baselayer" style="flex:0 0 auto;background:#1a2230;color:#e5e7eb;border:1px solid #374151;border-radius:4px;padding:2px 4px;font-size:0.75rem">
+                        <option value="contours">Contour lines</option>
+                        <option value="topo">Topographic map</option>
+                        <option value="satellite">Satellite (ACT 2019)</option>
+                        <option value="winter">Satellite — winter (leaf-off)</option>
+                        <option value="ortho1967">Satellite — historical (1967)</option>
+                        <option value="hillshade">LiDAR relief (2019)</option>
+                        <option value="none">Plain</option>
+                    </select>
+                </label>
+                <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
+            </div>
+            <div class="control-group" id="grp-contours">
+                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
+                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
+            </div>
+            <div class="control-group">
+                <label>Overlays (geoportail)</label>
+                <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
+                <label class="check-row"><input type="checkbox" id="ov-contours"> Official&nbsp;contour&nbsp;lines</label>
+                <label class="check-row"><input type="checkbox" id="ov-spot"> Spot&nbsp;elevations</label>
+                <label class="check-row"><input type="checkbox" id="ov-break"> Break&nbsp;lines</label>
+            </div>
+        </details>
 
-        <div class="control-group">
-            <label>Overlays (geoportail)</label>
-            <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
-            <label class="check-row"><input type="checkbox" id="ov-contours"> Official&nbsp;contour&nbsp;lines</label>
-            <label class="check-row"><input type="checkbox" id="ov-spot"> Spot&nbsp;elevations</label>
-            <label class="check-row"><input type="checkbox" id="ov-break"> Break&nbsp;lines</label>
-        </div>
+        <details open>
+            <summary>Qanat &amp; subsurface</summary>
+            <div class="control-group">
+                <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
+                <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
+                <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
+                <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
+                <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
+                <label class="check-row" id="row-faults"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
+                <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
+                <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
+            </div>
+        </details>
 
-        <div class="control-group" id="grp-terrain-opacity">
-            <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
-            <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0">
-        </div>
+        <details>
+            <summary>Surveyed features (geoportail)</summary>
+            <div class="control-group">
+                <label class="check-row"><input type="checkbox" id="param-springs" checked> Springs&nbsp;(surveyed)</label>
+                <label class="check-row"><input type="checkbox" id="param-boreholes"> Boreholes&nbsp;(surveyed)</label>
+            </div>
+        </details>
 
-        <div class="control-group" id="grp-vexag">
-            <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
-            <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0">
-            <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-        </div>
-
-        <div class="control-group" id="grp-surround">
-            <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
-            <input type="range" id="param-surround" min="0.2" max="2.0" step="0.05" value="1.0">
-            <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-        </div>
+        <details>
+            <summary>Terrain</summary>
+            <div class="control-group">
+                <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
+                <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
+                <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
+            </div>
+            <div class="control-group" id="grp-terrain-opacity">
+                <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
+                <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0">
+            </div>
+            <div class="control-group" id="grp-vexag">
+                <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
+                <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0">
+                <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            </div>
+            <div class="control-group" id="grp-surround">
+                <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
+                <input type="range" id="param-surround" min="0.2" max="2.0" step="0.05" value="1.0">
+                <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            </div>
+        </details>
 
         <div class="control-group" id="grp-timeline">
             <label>Timeline <span class="val" id="lbl-year">present</span></label>
@@ -2178,9 +2203,22 @@
             });
             syncBaseLayerUI();   // initial state (contours by default → slider shown)
 
+            // Only expose options that do something in the current state: the geology
+            // overlays (perched table / horst faults) need "Show geology"; the subsurface
+            // conduits (aux / overflow) need "Underground structures".
+            const syncConditionalOptions = () => {
+                const u = params.showUnderground, g = params.showGeology;
+                document.getElementById('row-aux').style.display = u ? '' : 'none';
+                document.getElementById('row-overflow').style.display = u ? '' : 'none';
+                document.getElementById('row-perched').style.display = g ? '' : 'none';
+                document.getElementById('row-faults').style.display = g ? '' : 'none';
+            };
+            syncConditionalOptions();   // initial state
+
             // Toggle geological strata + water flows
             document.getElementById('param-geology').addEventListener('change', e => {
                 params.showGeology = e.target.checked;
+                syncConditionalOptions();
                 buildParametricModel();
             });
 
@@ -2238,6 +2276,7 @@
             // Toggle subsurface qanat structures (shafts + gallery + flow + overflow)
             document.getElementById('param-underground').addEventListener('change', e => {
                 params.showUnderground = e.target.checked;
+                syncConditionalOptions();
                 buildParametricModel();
             });
 
