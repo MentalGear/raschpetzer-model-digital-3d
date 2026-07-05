@@ -325,7 +325,7 @@
             <label class="check-row"><input type="checkbox" id="param-springs" checked> Springs&nbsp;(surveyed,&nbsp;geoportail)</label>
             <label class="check-row"><input type="checkbox" id="param-boreholes"> Boreholes&nbsp;(surveyed,&nbsp;geoportail)</label>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
-            <label class="check-row"><input type="checkbox" id="param-aux" checked> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
+            <label class="check-row"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
             <label class="check-row"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
             <label class="check-row"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
         </div>
@@ -531,7 +531,7 @@
             overlay: { aquifer: false, contours: false, spot: false, break: false },  // draped thematic overlays
             showGeology: true,            // real strata + groundwater/qanat flows
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
-            year: 2025,                   // timeline slider: shown state at this year AD (present)
+            year: 131,                    // timeline slider default: the qanat as freshly built (131 AD)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
             showVilla: false,             // inferred recipient villa marker (optional)
             showUnderground: true,        // qanat shafts + gallery + flow (subsurface structures)
@@ -539,7 +539,7 @@
             showSprings: true,            // real named springs (geoportail.lu WFS) as 3D pins
             showBoreholes: false,         // real borehole/piezometer locations (geoportail.lu WFS)
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
-            showAux: true,                // auxiliary dry channel (P-7A/P-5A), detached from main
+            showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showPerched: false,           // perched pre-construction water table + drawdown band
             showFaults: false             // Pëtschend horst bounding faults (illustrative)
         };
@@ -557,7 +557,7 @@
             groundwater: '#2bb0f0', auxChannel: '#8aa0b4', flowQanat: '#2fa8ff',
             flowGroundwater: '#67d0ff', wall: '#cdb595', base: '#9c8567',
             annotation: '#e11d8f', annotationSel: '#ffd23f', measure: '#ffd23f',
-            overflow: '#35c4e8'
+            overflow: '#35c4e8', qanatDry: '#9a8f76'   // silted / dry gallery (out of service)
         }, MODEL_CONFIG.colors || {});
         const STRATA = Object.assign({
             cover: '#d8c0a8', li2: '#b9d3e8', li1: '#8f95c4', ko: '#e58a9a', km3: '#f2d9a0'
@@ -1469,26 +1469,36 @@
                     { color, dashSize: 2.8, gapSize: 2.0, depthTest: false }));   // 4× larger dashes
                 ln.computeLineDistances(); ln.renderOrder = 5; modelGroup.add(ln);
             }
-            // The gallery + channel exist only once the qanat is built (≥131 AD).
+            function tunnelFatTube(points, color, radius) {
+                if (points.length < 2) return;
+                const cv = new THREE.CatmullRomCurve3(points);
+                const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), radius, 8, false);
+                const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: false }));
+                mm.renderOrder = 5; modelGroup.add(mm);
+            }
+            // The gallery + channel exist only once the qanat is built (≥131 AD). The gallery
+            // is coloured by era: blue while in Roman service (water), silted-grey otherwise.
             const galleryBuilt = params.year >= 131;
+            const inService = params.year >= 140 && params.year <= 350;
+            const galleryColor = inService ? COL.qanat : COL.qanatDry;
             if (galleryBuilt && params.showUnderground) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
-                tunnelTube(basePts.slice(start, end), COL.qanat);          // explored (solid)
-                tunnelDashed(basePts.slice(0, start + 1), COL.qanat);      // inferred west (dashed)
-                tunnelDashed(basePts.slice(end - 1), COL.qanat);          // inferred east (dashed)
+                tunnelTube(basePts.slice(start, end), galleryColor);       // explored (solid)
+                tunnelDashed(basePts.slice(0, start + 1), galleryColor);   // inferred west (dashed)
+                tunnelDashed(basePts.slice(end - 1), galleryColor);       // inferred east (dashed)
 
                 // Auxiliary dry channel (P-7A → P-5A): a separate, higher, DRY conduit with
                 // "no relationship discovered" to the main gallery (fig 5-14). Drawn detached
-                // (its own grey dashed polyline through the shallower aux shafts, never joined
-                // to the main tube) with an on-model caveat. Optional (params.showAux).
+                // (its own thick grey tube through the shallower aux shafts, never joined to
+                // the main tube) with a two-line on-model caveat. Optional (params.showAux).
                 if (params.showAux && auxPts.length >= 2) {
-                    tunnelDashed(auxPts, COL.auxChannel);
+                    tunnelFatTube(auxPts, COL.auxChannel, 0.34);
                     const mid = auxPts[Math.floor(auxPts.length / 2)];
-                    const s = createTextSprite('auxiliary dry channel — no relationship to main (fig 5-14)', '#5d7387', 16);
-                    s.scale.set(11, 1.0, 1);
-                    s.position.set(mid.x, mid.y + 1.1, mid.z);
+                    const s = createTextSprite('Auxiliary dry channel\n(no relationship to main · fig 5-14)', '#5d7387', 16);
+                    s.scale.set(9, 1.9, 1);
+                    s.position.set(mid.x, mid.y + 1.6, mid.z);
                     modelGroup.add(s);
                 }
 
@@ -1500,7 +1510,7 @@
                     const top = new THREE.Vector3(bp.x, bp.y + 0.9, bp.z);
                     modelGroup.add(new THREE.Line(
                         new THREE.BufferGeometry().setFromPoints([bp, top]),
-                        new THREE.LineBasicMaterial({ color: COL.qanat, depthTest: false })));
+                        new THREE.LineBasicMaterial({ color: galleryColor, depthTest: false })));
                     const s = createTextSprite(txt, '#1d6fd6', 20);
                     s.scale.set(3.0, 0.8, 1);
                     s.position.set(bp.x, bp.y + 1.35, bp.z);
@@ -1508,10 +1518,9 @@
                 });
             }
 
-            // Static flow-direction arrows show once the gallery exists (didactic);
-            // animated *moving* water only during the Roman service period (140–350).
-            const inService = params.year >= 140 && params.year <= 350;
-            if (galleryBuilt && params.showGeology && params.showUnderground) {
+            // Gallery flow arrows only while the qanat is carrying water (Roman service,
+            // 140–350); once dormant/dry the gallery is silted so no flow is shown.
+            if (inService && params.showGeology && params.showUnderground) {
                 for (let i = basePts.length - 2; i >= 1; i -= 2) {
                     flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, COL.qanat, 0.9);
                 }
@@ -1941,22 +1950,24 @@
         function addPaths(halfW, halfD) {
             const P = window.RASCH_PATHS;
             if (!params.showPaths || !P || !(params.terrainSource === 'geodata' && geodata.ready)) return;
-            const mat = new THREE.LineBasicMaterial({ color: 0x8a5a2b, transparent: true, opacity: 0.75,
-                depthWrite: false });
+            // Draped as tubes (not hairline THREE.Line, which ignores linewidth in WebGL) so
+            // the paths read clearly; a bright tan over any base layer, always-on-top.
+            const mat = new THREE.MeshBasicMaterial({ color: 0xc07a2e, transparent: true, opacity: 0.92, depthTest: false });
             const inWin = sc => Math.abs(sc.x) <= halfW && Math.abs(sc.z) <= halfD;
             (P.paths || []).forEach(way => {
                 let seg = [];
                 const flush = () => {
                     if (seg.length >= 2) {
-                        const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg), mat);
-                        ln.renderOrder = 3; modelGroup.add(ln);
+                        const cv = new THREE.CatmullRomCurve3(seg);
+                        const g = new THREE.TubeGeometry(cv, Math.max(4, seg.length * 3), 0.13, 5, false);
+                        const m = new THREE.Mesh(g, mat); m.renderOrder = 4; modelGroup.add(m);
                     }
                     seg = [];
                 };
                 for (const [lon, lat] of way) {
                     const sc = geoToScene(lat, lon);
                     if (inWin(sc)) {
-                        seg.push(new THREE.Vector3(sc.x, getTerrainHeight(sc.x, sc.z) + 0.08, sc.z));
+                        seg.push(new THREE.Vector3(sc.x, getTerrainHeight(sc.x, sc.z) + 0.15, sc.z));
                     } else { flush(); }
                 }
                 flush();
@@ -2043,12 +2054,14 @@
         function createTextSprite(text, colorStr = '#111', size = 24) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
+            const lines = String(text).split('\n');   // supports multi-line labels
             const font = `600 ${size}px -apple-system, sans-serif`;
             // Size the canvas to the text so long labels aren't clipped (min 320 keeps
             // short labels identical to before). Sprite scale (set by callers) is unchanged.
             ctx.font = font;
-            canvas.width = Math.max(320, Math.ceil(ctx.measureText(text).width) + 28);
-            canvas.height = 72;
+            const lineH = Math.round(size * 1.35);
+            canvas.width = Math.max(320, Math.ceil(Math.max(...lines.map(l => ctx.measureText(l).width))) + 28);
+            canvas.height = Math.max(72, lineH * lines.length + 16);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = font;   // re-apply: resizing the canvas resets the context
             ctx.textAlign = 'center';
@@ -2060,9 +2073,13 @@
             ctx.lineJoin = 'round';
             ctx.lineWidth = 5;
             ctx.strokeStyle = 'rgba(245,240,234,0.92)';
-            ctx.strokeText(text, cx, cy);
             ctx.fillStyle = colorStr;
-            ctx.fillText(text, cx, cy);
+            const totalH = lineH * lines.length;
+            lines.forEach((ln, i) => {
+                const y = cy - totalH / 2 + lineH * (i + 0.5);
+                ctx.strokeText(ln, cx, y);
+                ctx.fillText(ln, cx, y);
+            });
             const tex = new THREE.CanvasTexture(canvas);
             // NPOT canvas (320×72): force no-mipmap linear sampling so WebGL doesn't
             // resize-to-power-of-two, which was smearing a horizontal streak across labels.
@@ -2076,7 +2093,7 @@
                 map: tex, transparent: true, depthTest: false, depthWrite: false }));
             sprite.renderOrder = 30;
             sprite.raycast = () => {};   // labels are never pickable (no zoom-target / rotation-centre)
-            sprite.scale.set(6, 1.35, 1);
+            sprite.scale.set(6, 1.35 * lines.length, 1);
             return sprite;
         }
 
