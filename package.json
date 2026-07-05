@@ -17,6 +17,7 @@
     "bake:hillshade": "node scripts/bake-hillshade.mjs",
     "bake:basemaps": "node scripts/bake-basemaps.mjs",
     "bake:overlays": "node scripts/bake-overlays.mjs",
+    "bake:paths": "node scripts/bake-paths.mjs",
     "build": "node scripts/build.mjs",
     "prebuild": "node scripts/validate.mjs",
     "serve": "vite preview"

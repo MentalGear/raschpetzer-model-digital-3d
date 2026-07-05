@@ -288,6 +288,7 @@
     <script src="assets/geodata-walferdange.js"></script>
     <script src="assets/data.bundle.js"></script>
     <script src="assets/vectors-walferdange.js"></script>
+    <script src="assets/paths-walferdange.js"></script>
 </head>
 <body>
 
@@ -323,6 +324,7 @@
             <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
             <label class="check-row"><input type="checkbox" id="param-springs" checked> Springs&nbsp;(surveyed,&nbsp;geoportail)</label>
             <label class="check-row"><input type="checkbox" id="param-boreholes"> Boreholes&nbsp;(surveyed,&nbsp;geoportail)</label>
+            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
             <label class="check-row"><input type="checkbox" id="param-aux" checked> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
             <label class="check-row"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
             <label class="check-row"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
@@ -536,6 +538,7 @@
             showSides: true,              // terrain block side walls
             showSprings: true,            // real named springs (geoportail.lu WFS) as 3D pins
             showBoreholes: false,         // real borehole/piezometer locations (geoportail.lu WFS)
+            showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showAux: true,                // auxiliary dry channel (P-7A/P-5A), detached from main
             showPerched: false,           // perched pre-construction water table + drawdown band
             showFaults: false             // Pëtschend horst bounding faults (illustrative)
@@ -1659,6 +1662,7 @@
 
             // --- 6c. Real surveyed vector features (geoportail.lu WFS): springs + boreholes ---
             addVectorFeatures(halfW, halfD);
+            addPaths(halfW, halfD);   // forest/hiking paths (OSM), draped on the terrain
 
             // --- 7. Geological cross-section (strata + groundwater) ---
             addGeology(halfW, halfD);
@@ -1931,6 +1935,34 @@
         // source area. The remaining WFS springs are regional catchment points, km away.
         const SPRING_KEEP = /raschp|haedchen/i;
 
+        // Forest/hiking paths (OpenStreetMap, baked into window.RASCH_PATHS). Each path is a
+        // draped polyline that follows the terrain; segments are split as they cross the
+        // visible window so nothing shoots off to an out-of-frame vertex.
+        function addPaths(halfW, halfD) {
+            const P = window.RASCH_PATHS;
+            if (!params.showPaths || !P || !(params.terrainSource === 'geodata' && geodata.ready)) return;
+            const mat = new THREE.LineBasicMaterial({ color: 0x8a5a2b, transparent: true, opacity: 0.75,
+                depthWrite: false });
+            const inWin = sc => Math.abs(sc.x) <= halfW && Math.abs(sc.z) <= halfD;
+            (P.paths || []).forEach(way => {
+                let seg = [];
+                const flush = () => {
+                    if (seg.length >= 2) {
+                        const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg), mat);
+                        ln.renderOrder = 3; modelGroup.add(ln);
+                    }
+                    seg = [];
+                };
+                for (const [lon, lat] of way) {
+                    const sc = geoToScene(lat, lon);
+                    if (inWin(sc)) {
+                        seg.push(new THREE.Vector3(sc.x, getTerrainHeight(sc.x, sc.z) + 0.08, sc.z));
+                    } else { flush(); }
+                }
+                flush();
+            });
+        }
+
         // Draped thematic overlays (transparent geoportail rasters conformed to the terrain
         // surface via per-vertex lon/lat UVs). Aquifer under the elevation line-work.
         const OVERLAY_ORDER = ['aquifer', 'break', 'contours', 'spot'];
@@ -2154,6 +2186,10 @@
             });
             document.getElementById('param-boreholes').addEventListener('change', e => {
                 params.showBoreholes = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-paths').addEventListener('change', e => {
+                params.showPaths = e.target.checked;
                 buildParametricModel();
             });
 
