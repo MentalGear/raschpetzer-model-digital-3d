@@ -1634,11 +1634,11 @@
                 const CAP = 0.7;                              // above-ground stub height (units)
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
-                // Surface cap is rendered SOLID only for shafts that carry a documented slab
-                // on the present-day surface. Per Waringo 2018, only P4 is described with a
-                // "slab cap" (p.18); every other shaft mouth — backfilled, merely surveyed, or
-                // (P-1) secured with concrete lining segments but no top slab — shows as a
-                // ghost-fill + wireframe MESH. No invented solid lids.
+                // Surface cap is rendered SOLID for shafts whose present-day head carries a
+                // physical cover — a modern metal lid, a windowed viewing cover, or P4's
+                // concrete slab (surfaceCase:true in the SSOT: the 10 excavated shafts).
+                // Backfilled / unexcavated / postulated shafts have no cover and show as a
+                // ghost-fill + wireframe MESH.
                 const hasSurfaceCase = !!(rec && rec.surfaceCase);
                 const bodySolid = documented && st.solid;      // documented solid pillar vs inferred ghost+cage
                 // Build one shaft segment. Cap: solid iff a real surface case exists, else

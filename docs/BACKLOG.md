@@ -55,12 +55,13 @@ animated timeline, clickable spots + GPS.
   rendered as bare surface markers that conveyed nothing; the "Boreholes (surveyed)" toggle
   was removed.
 - **Shaft surface state (mesh vs. solid cap).** Researched the present-day shaft heads: the
-  excavated shafts are covered with modern **metal lids** (P5 and P-4 are windowed viewing
-  covers); only **P4** carries a documented **concrete slab cap** (Waringo 2018 p.18). So
-  only P4 renders as a SOLID surface cap; every other mouth renders as a mesh. Recorded per
-  shaft as `surfaceState` in `data/shafts.json` (source `site-surface-state`); `surfaceCase:
-  true` drives the solid render and is set on P4 alone. P-1's "concrete segments" secure the
-  shaft *body* (lining), not a surface slab, so it stays a mesh.
+  **10 excavated shafts carry a physical surface cover** — modern **metal lids** (P5 windowed,
+  P-4 windowed), plus **P4**'s documented **concrete slab cap** (Waringo 2018 p.18). Any such
+  cover renders as a **SOLID** surface cap: P1, P4, P5, P6, P7, P8, P9, P-1, P-4, P-5. The
+  shafts with **no** present-day cover render as a **mesh**: the unexcavated / backfilled ones
+  (P0 surface-panel only, P2 & P3 still backfilled, P-5A & P-7A restored/sand-filled) and the
+  postulated ghosts (P-2 / P-3 / P-6A). Recorded per shaft as `surfaceState` +
+  `surfaceCase` in `data/shafts.json` (source `site-surface-state`).
 
 ## Open — UI / interaction
 
