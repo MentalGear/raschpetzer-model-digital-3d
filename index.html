@@ -194,6 +194,11 @@
         #timeline-legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
         #timeline-legend i.tl-hatch { background-image: repeating-linear-gradient(-45deg,
             rgba(255,255,255,0.12) 0 3px, rgba(255,255,255,0.28) 3px 6px); }
+        /* "Key" toggle: only used on mobile (where the legend is collapsed to save space). */
+        #tl-legend-toggle { display: none; margin-top: 9px; background: rgba(255,255,255,0.08);
+            color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12); border-radius: 7px;
+            padding: 8px 12px; font-size: 0.72rem; font-weight: 600; cursor: pointer; }
+        #tl-legend-toggle[aria-expanded="true"] { color: #fff; }
         /* In-canvas timeline scrubber ("time machine") pinned to the bottom of the scene */
         #timeline-bar {
             position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
@@ -324,7 +329,10 @@
             body.drawer-open #drawer-scrim { display: block; }
             #drawer-close { display: block; }
             #timeline-bar { width: calc(100% - 20px); bottom: 10px; padding: 7px 11px 9px; }
+            /* Legend is collapsed by default on mobile; the "Key" toggle reveals it on demand. */
             #timeline-legend { display: none; }
+            #timeline-bar.legend-open #timeline-legend { display: block; }
+            #tl-legend-toggle { display: inline-flex; align-items: center; }
             .instructions { display: none; }
             #compass { top: 48px; left: 12px; }
         }
@@ -342,6 +350,15 @@
             select { padding: 12px 9px; font-size: 0.86rem; }
             #tab-bar .tab { padding: 11px 2px; }
             #tab-bar .tab .ti { font-size: 1.2rem; }
+            /* Timeline scrubber: taller track + a 44px thumb hit area, bigger visible knob. */
+            #tl-scrub { height: 36px; }
+            #param-year::-webkit-slider-thumb { width: 44px; height: 44px; }
+            #param-year::-moz-range-thumb { width: 44px; height: 44px; }
+            #tl-playhead { width: 26px; height: 26px; margin-left: -13px; border-width: 4px; }
+            /* Close buttons → 44px tap targets. */
+            #info-close, #drawer-close { width: 44px; height: 44px; display: flex;
+                align-items: center; justify-content: center; font-size: 1.7rem; }
+            #compass { width: 56px; height: 56px; }
         }
         /* Collapsible control sections */
         #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
@@ -424,6 +441,12 @@
             padding-top: 10px; line-height: 1.4; }
 
         body.measure-mode #canvas-container { cursor: crosshair; }
+        /* Measure overlay: 3D points projected to 2D and drawn as SVG, so the markers are
+           always visible at a constant screen size in any view (a WebGL depthTest/renderOrder
+           marker went invisible looking straight down on the plateau). */
+        #measure-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8;
+            pointer-events: none; display: none; }
+        body.measure-mode #measure-svg { display: block; }
         #measure-readout {
             position: absolute; bottom: 182px; left: 50%; transform: translateX(-50%);
             z-index: 9; display: none; background: rgba(20,20,28,0.9); color: #fff;
@@ -469,7 +492,6 @@
         <div id="tab-bar" role="tablist">
             <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti">🗺️</span><span class="tl">Map</span></button>
             <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti">💧</span><span class="tl">Qanat</span></button>
-            <button class="tab" data-tab="features" type="button" role="tab" aria-selected="false"><span class="ti">📍</span><span class="tl">Features</span></button>
             <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti">⛰️</span><span class="tl">Terrain</span></button>
         </div>
 
@@ -510,12 +532,6 @@
                 <label class="check-row" id="row-faults"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
                 <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
                 <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
-            </div>
-        </div>
-        <div class="tab-pane" data-pane="features">
-            <div class="control-group">
-                <label class="check-row"><input type="checkbox" id="param-springs" checked> Springs&nbsp;(surveyed)</label>
-                <label class="check-row"><input type="checkbox" id="param-boreholes"> Boreholes&nbsp;(surveyed)</label>
             </div>
         </div>
         <div class="tab-pane" data-pane="terrain">
@@ -655,6 +671,7 @@
     </div>
 
     <div id="canvas-container">
+        <svg id="measure-svg" aria-hidden="true"></svg>
         <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
@@ -694,6 +711,7 @@
                 <button id="tl-play" type="button">▶ Play</button>
                 <button id="tl-present" type="button">⏭ Present</button>
             </div>
+            <button id="tl-legend-toggle" type="button" aria-expanded="false" aria-controls="timeline-legend">Key ▾</button>
             <div id="timeline-legend" aria-hidden="true"></div>
         </div>
 
@@ -729,8 +747,6 @@
             showVilla: false,             // inferred recipient villa marker (optional)
             showUnderground: true,        // qanat shafts + gallery + flow (subsurface structures)
             showSides: true,              // terrain block side walls
-            showSprings: true,            // real named springs (geoportail.lu WFS) as 3D pins
-            showBoreholes: false,         // real borehole/piezometer locations (geoportail.lu WFS)
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showPerched: false,           // perched pre-construction water table + drawdown band
@@ -1488,26 +1504,31 @@
             // subsurface (shafts/gallery) always shows through them; they never write depth.
             const tOpW = params.terrainOpacity;
             const SIDE_MAX = 0.5;
-            const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
+            // FrontSide (back-face culling): only the OUTWARD face of each wall draws, so the
+            // far side walls are culled instead of bleeding through the near ones when the block
+            // is semi-transparent. Winding is oriented outward per wall (see `flip`). depthWrite
+            // stays off so the subsurface (depthTest:false) still reads through the near wall.
+            const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.FrontSide,
                                                               transparent: true, opacity: SIDE_MAX * tOpW, depthWrite: false });
-            const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.DoubleSide,
+            const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.FrontSide,
                                                               transparent: true, opacity: 0.18 * tOpW, depthWrite: false });
             sideMat.userData.baseOpacity = SIDE_MAX;
             frontMat.userData.baseOpacity = 0.18;
             terrainFadeMats.push(sideMat, frontMat);
 
-            function buildWall(pts, isX, fixed, mat) {
+            function buildWall(pts, isX, fixed, mat, flip) {
                 const geo = new THREE.BufferGeometry();
                 const verts = [];
                 const edgePts = [];
+                const tri = (a, b, c) => flip ? verts.push(...a, ...c, ...b) : verts.push(...a, ...b, ...c);
                 for (let i = 0; i < pts.length - 1; i++) {
                     const p1 = pts[i], p2 = pts[i + 1];
                     const x1 = isX ? fixed : p1, z1 = isX ? p1 : fixed;
                     const x2 = isX ? fixed : p2, z2 = isX ? p2 : fixed;
                     const y1 = getTerrainHeight(x1, z1);
                     const y2 = getTerrainHeight(x2, z2);
-                    verts.push(x1, y1, z1,  x1, params.baseY, z1,  x2, y2, z2);
-                    verts.push(x2, y2, z2,  x1, params.baseY, z1,  x2, params.baseY, z2);
+                    tri([x1, y1, z1], [x1, params.baseY, z1], [x2, y2, z2]);
+                    tri([x2, y2, z2], [x1, params.baseY, z1], [x2, params.baseY, z2]);
                     edgePts.push(new THREE.Vector3(x1, y1, z1));
                     if (i === pts.length - 2) edgePts.push(new THREE.Vector3(x2, y2, z2));
                 }
@@ -1528,10 +1549,12 @@
             for (let i = 0; i <= segZ; i++) zSteps.push(-halfD + (i / segZ) * params.depth);
 
             if (params.showSides) {
-                buildWall(xSteps, false, -halfD, sideMat);   // back
-                buildWall(xSteps, false,  halfD, frontMat);  // front (camera-facing, transparent)
-                buildWall(zSteps, true,  -halfW, sideMat);   // west
-                buildWall(zSteps, true,   halfW, sideMat);   // east
+                // `flip` orients each wall's front face outward so back-face culling keeps only
+                // the camera-facing side (back/east need the reversed winding; front/west don't).
+                buildWall(xSteps, false, -halfD, sideMat,  true);    // back
+                buildWall(xSteps, false,  halfD, frontMat, false);   // front (camera-facing)
+                buildWall(zSteps, true,  -halfW, sideMat,  false);   // west
+                buildWall(zSteps, true,   halfW, sideMat,  true);    // east
             }
 
             // Base
@@ -1685,13 +1708,12 @@
                 const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: false }));
                 mm.renderOrder = 5; modelGroup.add(mm);
             }
-            // The gallery + channel exist only once the qanat is built (≥131 AD). The gallery
-            // is coloured by era: blue while in Roman service (water), silted-grey otherwise.
+            // The gallery + channel exist only once the qanat is built (≥131 AD).
             const galleryBuilt = params.year >= 131;
             const inService = params.year >= 140 && params.year <= 350;
-            // Blue for the whole Roman era (built + in service, 131–350) so the qanat reads
-            // "alive" at the default year; silted-grey once abandoned (dormant / modern).
-            const galleryColor = (galleryBuilt && params.year <= 350) ? COL.qanat : COL.qanatDry;
+            // The qanat is always drawn blue — water still runs in the gallery today, so its
+            // colour does not change with the timeline (only its existence does).
+            const galleryColor = COL.qanat;
             if (galleryBuilt && params.showUnderground) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
@@ -1755,13 +1777,17 @@
                     if (out && out.lon != null) {
                         outSc = geoToScene(out.lat, out.lon);
                         outY = getTerrainHeight(outSc.x, outSc.z);
-                        end = new THREE.Vector3(outSc.x, outY + 0.05, outSc.z);
+                        // Gravity drain: water can only leave the weir DOWNHILL. Daylight no
+                        // higher than the tap — if the surveyed surface point reads above it
+                        // (LiDAR/GPS slack), hold the outlet at tap level so the channel never
+                        // runs uphill (which the old "dip then rise to the surface" did).
+                        end = new THREE.Vector3(outSc.x, Math.min(outY + 0.05, start.y), outSc.z);
                     } else {
                         end = new THREE.Vector3(bp.x + 1.7, bp.y - 0.6, bp.z + 5.0);
                     }
-                    // Dip below ground, then rise to daylight at the outlet.
+                    // Monotonic descent from tap to outlet (no siphon dip that would trap water).
                     const mid = new THREE.Vector3((start.x + end.x) / 2,
-                        Math.min(start.y, end.y) - 0.5, (start.z + end.z) / 2);
+                        (start.y + end.y) / 2, (start.z + end.z) / 2);
                     const cv = new THREE.CatmullRomCurve3([start, mid, end]);
                     const g = new THREE.TubeGeometry(cv, 56, 0.16, 8, false);
                     const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
@@ -1858,31 +1884,9 @@
                 modelGroup.add(vs);
             }
 
-            // --- 6b. In-corridor water sources (documented; regional catchment springs
-            // in hydrology.catchment are km away and shown in the data, not the corridor). ---
-            const waterMarker = (scenePos, label, sub) => {
-                const sy = getTerrainHeight(scenePos.x, scenePos.z);
-                const dot = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12),
-                    new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
-                dot.position.set(scenePos.x, sy + 0.35, scenePos.z); dot.renderOrder = 7;
-                modelGroup.add(dot);
-                const s = createTextSprite(label, '#0a6ebd', 20);
-                s.scale.set(4.6, 1.0, 1); s.position.set(scenePos.x, sy + 1.15, scenePos.z);
-                modelGroup.add(s);
-            };
-            // Schematic single "Haedchen source" marker — shown only when the real surveyed
-            // springs layer is off (or its data is unavailable); the WFS springs supersede it.
-            if (params.showGeology && !(params.showSprings && window.RASCH_VECTORS)) {
-                const p9 = shaftById['P9'];
-                // Haedchen source: the qanat's east end (gallery starts ~13 m E of P9)
-                if (p9 && p9.geo) {
-                    const e = geoToScene(p9.geo.lat, p9.geo.lon);
-                    waterMarker({ x: e.x + (params.flipWE ? -2 : 2), z: e.z }, 'Haedchen source');
-                }
-            }
-
-            // --- 6c. Real surveyed vector features (geoportail.lu WFS): springs + boreholes ---
-            addVectorFeatures(halfW, halfD);
+            // (Surveyed springs / boreholes and the schematic "Haedchen source" marker were
+            // removed from the visualization — the WFS spring positions were not reliable enough
+            // to show as fact, and the boreholes carried no usable data. See docs/BACKLOG.md.)
             addPaths(halfW, halfD);   // forest/hiking paths (OSM), draped on the terrain
 
             // --- 7. Geological cross-section (strata + groundwater) ---
@@ -2102,59 +2106,9 @@
         // p.14 / fig 4-3). The brochure gives NO surveyed fault coordinates, so each fault is
         // drawn as a dashed surface trace + downthrow hachures at the north/south edges of the
         // modelled corridor — an ILLUSTRATIVE marker of the structure, clearly labelled.
-        // Real surveyed GIS vector features from geoportail.lu (baked into window.RASCH_VECTORS
-        // by scripts/bake-vectors.mjs): named springs as 3D pins, boreholes/piezometers as
-        // surface markers. Only features whose geo coords fall inside the current terrain window
-        // are drawn (so they appear/disappear with the Surrounding-area slider, like the villa).
-        // Boreholes carry no depth in the source, so they are drawn as honest surface markers.
-        function addVectorFeatures(halfW, halfD) {
-            const V = window.RASCH_VECTORS;
-            if (!V || !(params.terrainSource === 'geodata' && geodata.ready)) return;
-            const inWindow = sc => Math.abs(sc.x) <= halfW && Math.abs(sc.z) <= halfD;
-
-            if (params.showSprings) {
-                // Only the qanat-relevant springs (Raschpëtzer / Haedchen source area); the
-                // other regional catchment springs (Heisdorf, Geierbierg, …) are dropped.
-                (V.springs || []).filter(sp => SPRING_KEEP.test(sp.name)).forEach(sp => {
-                    const sc = geoToScene(sp.lat, sp.lon);
-                    if (!inWindow(sc)) return;
-                    const sy = getTerrainHeight(sc.x, sc.z);
-                    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12),
-                        new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
-                    dot.position.set(sc.x, sy + 0.34, sc.z); dot.renderOrder = 8;
-                    dot.userData = { spot: true, kind: 'spring', name: sp.name, lat: sp.lat, lon: sp.lon };
-                    modelGroup.add(dot); spotMeshes.push(dot);
-                    const lbl = createTextSprite(sp.name, '#0a6ebd', 18);
-                    lbl.scale.set(Math.min(9, 2.4 + sp.name.length * 0.16), 0.95, 1);
-                    lbl.position.set(sc.x, sy + 1.05, sc.z);
-                    modelGroup.add(lbl);
-                });
-            }
-
-            if (params.showBoreholes) {
-                const boreMat = new THREE.MeshBasicMaterial({ color: 0x8a6d3b, depthTest: false });
-                (V.boreholes || []).forEach(bh => {
-                    const sc = geoToScene(bh.lat, bh.lon);
-                    if (!inWindow(sc)) return;
-                    const sy = getTerrainHeight(sc.x, sc.z);
-                    // Honest surface marker + short stub (no depth in the source data).
-                    const stub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 10), boreMat);
-                    stub.position.set(sc.x, sy - 0.3, sc.z); stub.renderOrder = 8;
-                    modelGroup.add(stub);
-                    const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.24, 0.5), boreMat);
-                    head.position.set(sc.x, sy + 0.12, sc.z); head.renderOrder = 8;
-                    head.userData = { spot: true, kind: 'borehole', name: bh.name, lat: bh.lat, lon: bh.lon };
-                    modelGroup.add(head); spotMeshes.push(head);
-                    const lbl = createTextSprite(bh.name, '#6b4f2a', 16);
-                    lbl.scale.set(Math.min(9, 2.4 + bh.name.length * 0.16), 0.9, 1);
-                    lbl.position.set(sc.x, sy + 0.95, sc.z);
-                    modelGroup.add(lbl);
-                });
-            }
-        }
-        // Springs worth showing on the model: the qanat's own (Raschpëtzer) + the Haedchen
-        // source area. The remaining WFS springs are regional catchment points, km away.
-        const SPRING_KEEP = /raschp|haedchen/i;
+        // (Surveyed springs + boreholes from geoportail.lu WFS were removed from the
+        // visualization — see docs/BACKLOG.md. The WFS spring coordinates could not be
+        // corroborated to survey accuracy, and the boreholes carried no depth/log data.)
 
         // Forest/hiking paths (OpenStreetMap, baked into window.RASCH_PATHS). Each path is a
         // draped polyline that follows the terrain; segments are split as they cross the
@@ -2171,7 +2125,7 @@
                 const flush = () => {
                     if (seg.length >= 2) {
                         const cv = new THREE.CatmullRomCurve3(seg);
-                        const g = new THREE.TubeGeometry(cv, Math.max(4, seg.length * 3), 0.13, 5, false);
+                        const g = new THREE.TubeGeometry(cv, Math.max(4, seg.length * 3), 0.065, 5, false);
                         const m = new THREE.Mesh(g, mat); m.renderOrder = 4; modelGroup.add(m);
                     }
                     seg = [];
@@ -2440,15 +2394,6 @@
                 buildParametricModel();
             });
 
-            // Toggle real surveyed springs / boreholes (geoportail.lu WFS)
-            document.getElementById('param-springs').addEventListener('change', e => {
-                params.showSprings = e.target.checked;
-                buildParametricModel();
-            });
-            document.getElementById('param-boreholes').addEventListener('change', e => {
-                params.showBoreholes = e.target.checked;
-                buildParametricModel();
-            });
             document.getElementById('param-paths').addEventListener('change', e => {
                 params.showPaths = e.target.checked;
                 buildParametricModel();
@@ -2689,8 +2634,27 @@
             tlT = yearToSlider(params.year);
             sl.value = Math.round(tlT * 1000);
             sl.addEventListener('input', e => { tlPause(); tlSetT(parseFloat(e.target.value) / 1000, false); });
+            // Magnetic snap: on release, if the playhead landed very near an era boundary
+            // (event start/end, construction, present), snap exactly to it. Helps touch users
+            // hit the meaningful moments; the small threshold leaves precise years untouched.
+            const SNAP_TS = [...new Set((TIMELINE.events || []).flatMap(e => [e.fromAD, e.toAD])
+                .concat([TIMELINE.spanAD[0] + 31, TIMELINE.spanAD[1]]))].map(yearToSlider);
+            const SNAP_THRESH = 0.02;
+            sl.addEventListener('change', () => {
+                let best = null, bestD = SNAP_THRESH;
+                for (const bt of SNAP_TS) { const d = Math.abs(tlT - bt); if (d < bestD) { bestD = d; best = bt; } }
+                if (best != null) tlSetT(best, false);
+            });
             document.getElementById('tl-play').addEventListener('click', () => tlPlaying ? tlPause() : tlPlay());
             document.getElementById('tl-present').addEventListener('click', () => { tlPause(); tlSetT(1, true); });
+            // Mobile "Key" toggle: reveal/hide the collapsed timeline legend.
+            const keyBtn = document.getElementById('tl-legend-toggle');
+            if (keyBtn) keyBtn.addEventListener('click', () => {
+                const bar = document.getElementById('timeline-bar');
+                const open = bar.classList.toggle('legend-open');
+                keyBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                keyBtn.textContent = open ? 'Key ▴' : 'Key ▾';
+            });
             updateTimelineReadout();
         }
 
@@ -3283,34 +3247,38 @@
             if (!on) { measurePts = []; clearMeasure(); document.getElementById('measure-readout').style.display = 'none'; }
         }
         function clearMeasure() {
-            if (!measureGroup) return;
-            while (measureGroup.children.length) measureGroup.remove(measureGroup.children[0]);
+            const svg = document.getElementById('measure-svg');
+            if (svg) svg.innerHTML = '';
         }
-        const MEASURE_DOT = 0xff2d55;   // vivid crimson — pops against the beige terrain
-        function measureDot(p) {
-            // dark halo behind a bright dot = a visible outlined marker on light terrain
-            const halo = new THREE.Mesh(new THREE.SphereGeometry(0.62, 16, 12),
-                new THREE.MeshBasicMaterial({ color: 0x1a1a1a, depthTest: false }));
-            halo.position.copy(p); halo.renderOrder = 22; measureGroup.add(halo);
-            const m = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 12),
-                new THREE.MeshBasicMaterial({ color: MEASURE_DOT, depthTest: false }));
-            m.position.copy(p); m.renderOrder = 23; measureGroup.add(m);
+        const MEASURE_SVGNS = 'http://www.w3.org/2000/svg';
+        const MEASURE_COL = '#ff2d55';   // vivid crimson — pops against the beige terrain
+        // Project a world point to canvas pixels (null if behind the camera).
+        function projectToScreen(p) {
+            const c = document.getElementById('canvas-container');
+            const v = p.clone().project(camera);
+            if (v.z > 1) return null;                          // behind the near plane
+            return { x: (v.x * 0.5 + 0.5) * c.clientWidth, y: (-v.y * 0.5 + 0.5) * c.clientHeight };
+        }
+        // Redraw the measure overlay (dots + connector) as SVG projected from the world points —
+        // constant screen size, always visible in any camera orientation. Called each frame.
+        function updateMeasureOverlay() {
+            const svg = document.getElementById('measure-svg');
+            if (!svg || !measurePts.length) { if (svg) svg.innerHTML = ''; return; }
+            const pts = measurePts.map(projectToScreen);
+            let s = '';
+            if (pts.length === 2 && pts[0] && pts[1])
+                s += `<line x1="${pts[0].x}" y1="${pts[0].y}" x2="${pts[1].x}" y2="${pts[1].y}" stroke="${MEASURE_COL}" stroke-width="3" stroke-linecap="round"/>`;
+            for (const sp of pts) {
+                if (!sp) continue;
+                s += `<circle cx="${sp.x}" cy="${sp.y}" r="7" fill="${MEASURE_COL}" stroke="#1a1a1a" stroke-width="2.5"/>`;
+            }
+            svg.innerHTML = s;
         }
         function addMeasurePoint(p) {
-            if (measurePts.length === 2) { measurePts = []; clearMeasure(); }
+            if (measurePts.length === 2) measurePts = [];
             measurePts.push(p.clone());
-            measureDot(p);
             if (measurePts.length === 2) {
                 const a = measurePts[0], b = measurePts[1];
-                // Thick cylinder (not a 1px hairline) so the measured span is clearly visible.
-                const dir = new THREE.Vector3().subVectors(b, a);
-                const len = dir.length() || 1e-6;
-                const tube = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.14, 0.14, len, 12),
-                    new THREE.MeshBasicMaterial({ color: MEASURE_DOT, depthTest: false }));
-                tube.position.copy(a).addScaledVector(dir, 0.5);
-                tube.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-                tube.renderOrder = 23; measureGroup.add(tube);
                 const mpx = metersPerXUnit(), mpz = metersPerZUnit(), mpy = metersPerYUnit();
                 const dxm = (b.x - a.x) * mpx, dzm = (b.z - a.z) * mpz, dym = (b.y - a.y) * mpy;
                 const horiz = Math.hypot(dxm, dzm);
@@ -3324,9 +3292,9 @@
                 document.getElementById('measure-readout').innerHTML = 'Click a second point…';
                 document.getElementById('measure-readout').style.display = 'block';
             }
+            updateMeasureOverlay();
         }
         function initMeasure() {
-            measureGroup = new THREE.Group(); scene.add(measureGroup);
             document.getElementById('btn-measure').addEventListener('click', () => {
                 setMeasureMode(!measureMode);
                 if (measureMode && annotateMode) document.getElementById('btn-annotate').click();
@@ -3450,6 +3418,7 @@
                 _readoutDirty = true;
             }
             updateFlow(now);
+            if (measureMode) updateMeasureOverlay();
             controls.update();
             renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'

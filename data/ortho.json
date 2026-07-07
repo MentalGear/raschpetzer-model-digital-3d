@@ -14,10 +14,10 @@
     },
     "epsg": 4326,
     "imagePx": [
-      2048,
-      1187
+      4096,
+      2373
     ],
-    "approxGroundResM": 0.84,
+    "approxGroundResM": 0.42,
     "file": "assets/ortho-walferdange.jpg",
     "source": "geoportail_lu",
     "status": "documented",

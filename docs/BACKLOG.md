@@ -44,6 +44,24 @@ animated timeline, clickable spots + GPS.
   valley / villa-recipient end) · geophysics grids
   (`ge:GE.RectifiedGridCoverage_GEOPHY…` — gravity / magnetics).
 
+## Data-honesty decisions (removed from the visualization)
+
+- **Surveyed springs (WFS) removed.** The geoportail.lu WFS spring points near the qanat
+  could not be corroborated to survey accuracy against the primary source, so showing them
+  as fact was misleading. The "Springs (surveyed)" toggle and the schematic "Haedchen
+  source" marker were removed. If re-added, label the positions as *approximate* — the WFS
+  spring coordinates may be inaccurate.
+- **Boreholes (WFS) removed.** The `GE.Borehole` WFS features carry no depth / log data and
+  rendered as bare surface markers that conveyed nothing; the "Boreholes (surveyed)" toggle
+  was removed.
+- **Shaft surface state (mesh vs. solid cap).** Researched the present-day shaft heads: the
+  excavated shafts are covered with modern **metal lids** (P5 and P-4 are windowed viewing
+  covers); only **P4** carries a documented **concrete slab cap** (Waringo 2018 p.18). So
+  only P4 renders as a SOLID surface cap; every other mouth renders as a mesh. Recorded per
+  shaft as `surfaceState` in `data/shafts.json` (source `site-surface-state`); `surfaceCase:
+  true` drives the solid render and is set on P4 alone. P-1's "concrete segments" secure the
+  shaft *body* (lining), not a surface slab, so it stays a mesh.
+
 ## Open — UI / interaction
 
 - ~~**Timeline slider — hidden for now**~~ — DONE: re-exposed with animated playback

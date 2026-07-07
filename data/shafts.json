@@ -211,6 +211,7 @@
       "floorElevCrs": "masl",
       "diameterM": 0.8,
       "notes": "Dry-stone lined (0.8 m wall, 3 concentric rows); base widened to 1.4 m cone; overflow weir diverts water to a lateral channel when the level exceeds 12 cm.",
+      "surfaceState": "windowed cover (to view the overflow bifurcation); no concrete surface slab",
       "source": "waringo2018",
       "status": "documented",
       "_prov": {
@@ -276,6 +277,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Circular shaft in marl, sand-filled; secured with concrete segments; not used for access.",
+      "surfaceState": "concrete-lined shaft body (securing segments), sand-filled — NOT a concrete slab on the surface, so not rendered as a solid cap",
       "source": "waringo2018",
       "status": "documented",
       "_prov": {
@@ -557,12 +559,18 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Half-way between P3 and P5; mouth first excavated with P5; concrete rings + slab cap; base later tunnelled through to link P5→P3.",
+      "surfaceState": "concrete slab cap (concrete rings + slab cap on the surface)",
       "surfaceCase": true,
       "source": "waringo2018",
       "status": "documented",
       "_prov": {
         "notes": {
           "loc": "p.18"
+        },
+        "surfaceCase": {
+          "source": "waringo2018",
+          "loc": "p.18",
+          "note": "The ONLY shaft with a documented CONCRETE slab on the present-day surface (concrete rings + slab cap) — rendered as a solid cap. Every other excavated shaft head carries a modern METAL lid (site-surface-state), not concrete, so it renders as a mesh."
         },
         "geo": {
           "source": "osm-qanat-shafts",
@@ -617,6 +625,7 @@
         1.2
       ],
       "notes": "Deepest shaft; eastern plateau edge; first cleared to base (3 Oct 1986). Diameter 1.2 m, narrowing to 0.85 m at torus bulges; the channel passes tangentially.",
+      "surfaceState": "windowed metal cover (to view the ~35 m depth); no concrete surface slab",
       "source": "waringo2018",
       "status": "documented",
       "_prov": {

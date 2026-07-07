@@ -1,5 +1,14 @@
 {
   "_doc": "Bibliography / source registry. Every `source` id used across the SSOT must resolve here. Figures are sources too (partOf their publication).",
+  "site-surface-state": {
+    "type": "field-observation",
+    "crm": "E31_Document",
+    "short": "Raschpëtzer site (present-day surface state)",
+    "title": "Present-day surface treatment of the excavated shafts (archaeological park)",
+    "year": 2024,
+    "rights": "Public heritage-site description",
+    "note": "Present-day surface state of the shaft heads at the Raschpëtzer archaeological park: the excavated shafts are covered with modern metal lids; P5 and P-4 carry windowed viewing covers; P4 keeps its documented concrete slab cap. Corroborated by public site descriptions (Wikipedia / Subterranea Britannica / Visit Luxembourg) and Waringo 2018."
+  },
   "waringo2018": {
     "type": "book",
     "crm": "E31_Document",

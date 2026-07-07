@@ -7,6 +7,7 @@ Dataset 1.0.0 · CC-BY-4.0.
 
 ## Source
 
+- **Raschpëtzer site (present-day surface state)** — Present-day surface treatment of the excavated shafts (archaeological park)
 - **Faber/Waringo/Werner 2018** — The Raschpëtzer — A Roman Underground Water Supply System (Faber, Sonja; Waringo, Guy; Werner, Henri, 2018), ISBN 978-2-9199454-2-9
 - **ACT / geoportail.lu** — Luxembourg national orthophoto (RGB), 2019 edition (Administration du cadastre et de la topographie (ACT), 2019) <https://data.public.lu/en/datasets/orthophoto-officielle-du-grand-duche-de-luxembourg-edition-2019/> (accessed 2026-07-02)
 - **Waringo 2018, fig. 2-1** — Roman settlements, catchment areas and the explored qanat conduit

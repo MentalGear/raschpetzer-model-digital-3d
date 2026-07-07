@@ -48,5 +48,13 @@ await tp.waitForTimeout(400);
 await tp.screenshot({ path: new URL('../interface-touch.png', import.meta.url).pathname });
 console.log('› wrote interface-touch.png');
 
+// Close the drawer and reveal the mobile timeline "Key" legend toggle.
+await tp.click('#drawer-close').catch(() => {});
+await tp.waitForTimeout(400);
+await tp.click('#tl-legend-toggle').catch(() => {});
+await tp.waitForTimeout(400);
+await tp.screenshot({ path: new URL('../interface-touch-timeline.png', import.meta.url).pathname });
+console.log('› wrote interface-touch-timeline.png');
+
 await browser.close();
 server.close();
