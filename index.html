@@ -236,6 +236,43 @@
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
         }
+        /* Segmented icon tab bar for the layer groups */
+        #panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        #tab-bar { display: flex; gap: 4px; margin: 8px 0 14px; background: rgba(255,255,255,0.05);
+            padding: 4px; border-radius: 10px; position: sticky; top: 0; z-index: 2; }
+        #tab-bar .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+            background: transparent; border: none; border-radius: 7px; padding: 7px 2px; cursor: pointer;
+            color: #9ca3af; transition: background 0.12s, color 0.12s; }
+        #tab-bar .tab .ti { font-size: 1.05rem; line-height: 1; }
+        #tab-bar .tab .tl { font-size: 0.62rem; letter-spacing: 0.3px; }
+        #tab-bar .tab:hover { color: #e5e7eb; }
+        #tab-bar .tab.active { background: var(--accent-blue); color: #fff; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .tab-pane > .control-group:first-child { margin-top: 2px; }
+        /* Mobile drawer */
+        #drawer-close { display: none; background: none; border: none; color: #9ca3af;
+            font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 2px; }
+        #drawer-toggle { display: none; position: fixed; top: 12px; right: 12px; z-index: 41;
+            width: 46px; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(18,20,28,0.85); color: #fff; font-size: 1.3rem; cursor: pointer;
+            align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.45); }
+        #drawer-scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 39; }
+        @media (max-width: 760px) {
+            body { display: block; }
+            #canvas-container { position: absolute; inset: 0; width: 100%; height: 100%; }
+            #ui-panel { position: fixed; top: 0; right: 0; height: 100%; width: min(360px, 88vw);
+                transform: translateX(100%); transition: transform 0.25s ease; z-index: 40; }
+            body.drawer-open #ui-panel { transform: translateX(0); }
+            #drawer-toggle { display: flex; }
+            body.drawer-open #drawer-toggle { display: none; }
+            body.drawer-open #drawer-scrim { display: block; }
+            #drawer-close { display: block; }
+            #timeline-bar { width: calc(100% - 20px); bottom: 10px; padding: 7px 11px 9px; }
+            #timeline-legend { display: none; }
+            .instructions { display: none; }
+            #compass { top: 48px; left: 12px; }
+        }
         /* Collapsible control sections */
         #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
         #ui-panel details > summary { list-style: none; cursor: pointer; padding: 9px 0 5px;
@@ -347,12 +384,27 @@
 </head>
 <body>
 
-    <div id="ui-panel">
-        <h1>Raschpëtzer Roman Qanat</h1>
-        <h2>3D geological visualization · Walferdange, Luxembourg</h2>
+    <button id="drawer-toggle" type="button" aria-label="Open controls">☰</button>
+    <div id="drawer-scrim"></div>
 
-        <details open>
-            <summary>Map &amp; imagery</summary>
+    <div id="ui-panel">
+        <div id="panel-head">
+            <div>
+                <h1>Raschpëtzer Roman Qanat</h1>
+                <h2>3D geological visualization · Walferdange, Luxembourg</h2>
+            </div>
+            <button id="drawer-close" type="button" aria-label="Close controls">×</button>
+        </div>
+
+        <div id="tab-bar" role="tablist">
+            <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti">🗺️</span><span class="tl">Map</span></button>
+            <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti">💧</span><span class="tl">Qanat</span></button>
+            <button class="tab" data-tab="features" type="button" role="tab" aria-selected="false"><span class="ti">📍</span><span class="tl">Features</span></button>
+            <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti">⛰️</span><span class="tl">Terrain</span></button>
+        </div>
+
+        <div id="tab-panes">
+        <div class="tab-pane active" data-pane="map">
             <div class="control-group">
                 <label for="param-baselayer">Base layer</label>
                 <select id="param-baselayer">
@@ -377,10 +429,8 @@
                 <label class="check-row"><input type="checkbox" id="ov-spot"> Spot&nbsp;elevations</label>
                 <label class="check-row"><input type="checkbox" id="ov-break"> Break&nbsp;lines</label>
             </div>
-        </details>
-
-        <details open>
-            <summary>Qanat &amp; subsurface</summary>
+        </div>
+        <div class="tab-pane" data-pane="qanat">
             <div class="control-group">
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
@@ -391,18 +441,14 @@
                 <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
                 <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
             </div>
-        </details>
-
-        <details>
-            <summary>Surveyed features (geoportail)</summary>
+        </div>
+        <div class="tab-pane" data-pane="features">
             <div class="control-group">
                 <label class="check-row"><input type="checkbox" id="param-springs" checked> Springs&nbsp;(surveyed)</label>
                 <label class="check-row"><input type="checkbox" id="param-boreholes"> Boreholes&nbsp;(surveyed)</label>
             </div>
-        </details>
-
-        <details>
-            <summary>Terrain</summary>
+        </div>
+        <div class="tab-pane" data-pane="terrain">
             <div class="control-group">
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
@@ -422,7 +468,8 @@
                 <input type="range" id="param-surround" min="0.2" max="2.0" step="0.05" value="1.0">
                 <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </div>
-        </details>
+        </div>
+        </div>
 
         <div class="control-group">
             <label>Camera</label>
@@ -2258,6 +2305,25 @@
                 document.getElementById('row-faults').style.display = g ? '' : 'none';
             };
             syncConditionalOptions();   // initial state
+
+            // Segmented tab bar: show one layer-group pane at a time.
+            const tabs = document.querySelectorAll('#tab-bar .tab');
+            const panes = document.querySelectorAll('#tab-panes .tab-pane');
+            tabs.forEach(t => t.addEventListener('click', () => {
+                const id = t.dataset.tab;
+                tabs.forEach(x => { const on = x === t; x.classList.toggle('active', on); x.setAttribute('aria-selected', on); });
+                panes.forEach(p => p.classList.toggle('active', p.dataset.pane === id));
+            }));
+
+            // Mobile drawer: hamburger opens the panel; scrim / close button dismiss it.
+            const dToggle = document.getElementById('drawer-toggle');
+            const dScrim = document.getElementById('drawer-scrim');
+            const dClose = document.getElementById('drawer-close');
+            const openDrawer = () => document.body.classList.add('drawer-open');
+            const closeDrawer = () => document.body.classList.remove('drawer-open');
+            if (dToggle) dToggle.addEventListener('click', openDrawer);
+            if (dScrim) dScrim.addEventListener('click', closeDrawer);
+            if (dClose) dClose.addEventListener('click', closeDrawer);
 
             // Toggle geological strata + water flows
             document.getElementById('param-geology').addEventListener('change', e => {
