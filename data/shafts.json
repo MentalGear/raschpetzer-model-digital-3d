@@ -557,6 +557,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Half-way between P3 and P5; mouth first excavated with P5; concrete rings + slab cap; base later tunnelled through to link P5→P3.",
+      "surfaceCase": true,
       "source": "waringo2018",
       "status": "documented",
       "_prov": {

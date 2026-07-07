@@ -145,35 +145,75 @@
             border-radius: 50%; background: var(--accent-blue); cursor: pointer; transition: transform 0.1s; }
         input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
-        /* Timeline event bands under the year slider (piecewise-scaled year axis) */
-        #timeline-track { position: relative; height: 14px; margin-top: 6px;
-            border-radius: 3px; background: #2b3341; overflow: hidden; cursor: pointer; }
-        #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; opacity: 0.82;
-            transition: opacity 0.12s; }
-        #timeline-track .tl-band:hover { opacity: 1; }
-        #tl-playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
-            background: #fff; box-shadow: 0 0 4px rgba(0,0,0,0.7); pointer-events: none; }
-        #timeline-axis { position: relative; height: 12px; margin-top: 3px;
-            font-size: 0.66rem; color: #9ca3af; }
-        #timeline-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-        #timeline-readout b { color: var(--accent-blue); font-weight: 600; }
-        #timeline-legend { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 7px;
-            font-size: 0.68rem; color: #cbd5e1; }
-        #timeline-legend span { display: inline-flex; align-items: center; gap: 4px; }
+        /* Merged era track — the scrubber IS the coloured era bar (one object, not two rails).
+           A transparent range input overlays the coloured track and drives the scrub; a visible
+           knob is drawn on top and positioned by JS. */
+        #tl-scrub { position: relative; height: 30px; margin-top: 8px; }
+        #timeline-track { position: absolute; inset: 0; border-radius: 7px; background: #222a36;
+            overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }
+        #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; cursor: pointer;
+            transition: filter 0.12s; display: flex; align-items: center; justify-content: center; }
+        #timeline-track .tl-band:hover { filter: brightness(1.18); }
+        /* Dormant millennium is compressed on the axis — hatch it + mark the break so the
+           non-linear time scale is honest, not a silent lie about duration. */
+        #timeline-track .tl-band.tl-dormant { background-color: #333b48;
+            background-image: repeating-linear-gradient(-45deg,
+                rgba(255,255,255,0.045) 0 7px, rgba(255,255,255,0.11) 7px 14px);
+            border-left: 1px dashed rgba(255,255,255,0.28); border-right: 1px dashed rgba(255,255,255,0.28); }
+        #timeline-track .tl-band .tl-dur { font-size: 0.6rem; color: #cbd5e1; font-weight: 600;
+            letter-spacing: 0.2px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none;
+            white-space: nowrap; }
+        /* Boundary between the antiquity cluster and the modern cluster (start of dormancy). */
+        #timeline-track .tl-break { position: absolute; top: -2px; bottom: -2px; width: 0;
+            border-left: 2px dashed rgba(255,255,255,0.5); pointer-events: none; }
+        /* Transparent range overlay: whole bar is draggable/clickable. */
+        #param-year { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0;
+            background: transparent; opacity: 0; cursor: pointer; z-index: 3; }
+        #param-year::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px;
+            background: transparent; border: none; cursor: grab; }
+        #param-year::-moz-range-thumb { width: 30px; height: 30px; background: transparent; border: none; }
+        /* Visible playhead knob riding on the colour. */
+        #tl-playhead { position: absolute; top: 50%; width: 20px; height: 20px; margin-left: -10px;
+            transform: translateY(-50%); border-radius: 50%; background: #fff;
+            border: 3px solid var(--accent-blue); box-shadow: 0 2px 7px rgba(0,0,0,0.7);
+            z-index: 4; pointer-events: none; }
+        #timeline-axis { position: relative; height: 13px; margin-top: 4px;
+            font-size: 0.64rem; color: #9ca3af; }
+        #timeline-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap;
+            padding-top: 4px; }
+        #timeline-axis span::before { content: ''; position: absolute; top: 0; left: 50%;
+            width: 1px; height: 3px; background: rgba(255,255,255,0.28); }
+        #timeline-readout b { font-weight: 600; }
+        /* Legend split by taxonomy: aqueduct life-cycle vs. modern research campaigns. */
+        #timeline-legend { margin-top: 9px; font-size: 0.66rem; color: #cbd5e1; }
+        #timeline-legend .tl-lg-grp { display: flex; flex-wrap: wrap; align-items: center;
+            gap: 4px 9px; margin-top: 4px; }
+        #timeline-legend .tl-lg-cap { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px;
+            color: #7c8794; font-weight: 700; flex: 0 0 100%; margin-bottom: 1px; }
+        #timeline-legend .tl-lg-grp span { display: inline-flex; align-items: center; gap: 4px; }
         #timeline-legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+        #timeline-legend i.tl-hatch { background-image: repeating-linear-gradient(-45deg,
+            rgba(255,255,255,0.12) 0 3px, rgba(255,255,255,0.28) 3px 6px); }
         /* In-canvas timeline scrubber ("time machine") pinned to the bottom of the scene */
         #timeline-bar {
             position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
             width: min(640px, calc(100% - 40px)); z-index: 7;
-            background: rgba(18,20,28,0.82); border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(18,20,28,0.95); border: 1px solid rgba(255,255,255,0.14);
+            backdrop-filter: blur(6px);
             border-radius: 12px; padding: 9px 16px 11px; color: #d1d5db;
             box-shadow: 0 8px 28px rgba(0,0,0,0.42);
         }
-        #timeline-bar .tl-head { display: flex; justify-content: space-between; align-items: baseline;
-            margin-bottom: 5px; }
-        #timeline-bar .tl-head label { font-size: 0.66rem; text-transform: uppercase;
-            letter-spacing: 0.6px; color: #9ca3af; font-weight: 700; }
-        #timeline-bar .tl-head .val { font-size: 0.9rem; color: var(--accent-blue); font-weight: 600; }
+        #timeline-bar .tl-head { display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 2px; gap: 10px; }
+        /* Era pill — the "which era" answer, colour-coded to the current period. */
+        #tl-era { display: inline-flex; align-items: center; gap: 7px; font-size: 0.9rem;
+            font-weight: 700; color: #f3f4f6; letter-spacing: 0.2px; min-width: 0;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #tl-era .tl-era-dot { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.15); }
+        /* Year — the "when" answer, big and prominent. */
+        #timeline-bar .tl-head .val { font-size: 1.3rem; line-height: 1; font-weight: 800;
+            color: #fff; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
         #timeline-bar .btn-row { justify-content: center; }
         #timeline-bar .btn-row button { flex: 0 0 auto; padding: 6px 16px; }
         #timeline-readout { text-align: center; }
@@ -239,8 +279,12 @@
         }
         /* Segmented icon tab bar for the layer groups */
         #panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-        #tab-bar { display: flex; gap: 4px; margin: 8px 0 14px; background: rgba(255,255,255,0.05);
-            padding: 4px; border-radius: 10px; position: sticky; top: 0; z-index: 2; }
+        /* Tab strip sits flush on top of the panes card so the two read as one container:
+           rounded top corners, shared side borders, no bottom border (the panes continue it). */
+        #tab-bar { display: flex; gap: 4px; margin: 8px 0 0; background: rgba(255,255,255,0.05);
+            padding: 4px; border-radius: 10px 10px 0 0;
+            border: 1px solid rgba(255,255,255,0.07); border-bottom: none;
+            position: sticky; top: 0; z-index: 2; }
         #tab-bar .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
             background: transparent; border: none; border-radius: 7px; padding: 7px 2px; cursor: pointer;
             color: #9ca3af; transition: background 0.12s, color 0.12s; }
@@ -252,12 +296,13 @@
         .tab-pane.active { display: block; }
         .tab-pane > .control-group:first-child { margin-top: 2px; }
         .tab-pane > .control-group:last-child { margin-bottom: 4px; }
-        /* Embed the tabbed content in its own recessed card, set apart from the actions below */
+        /* Recessed content card, joined seamlessly to the tab strip above (no top border /
+           square top corners) and set apart from the actions below. */
         #tab-panes { background: rgba(0,0,0,0.20); border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
+            border-top: none; border-radius: 0 0 10px 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
         #panel-actions { border-top: 1px solid rgba(255,255,255,0.10); padding-top: 16px; }
-        .legend-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
-            color: #9ca3af; font-weight: 700; margin-bottom: 9px; }
+        /* Match the section-header style used for "Camera"/"Tools"/"Base layer" (.control-group label). */
+        .legend-title { font-size: 0.82rem; color: #d1d5db; margin-bottom: 5px; }
         /* Mobile drawer */
         #drawer-close { display: none; background: none; border: none; color: #9ca3af;
             font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 2px; }
@@ -483,7 +528,7 @@
         <div class="control-group">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
-            <div class="btn-grid" style="margin-top:8px">
+            <div class="segmented">
                 <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
                 <button id="btn-reset" type="button" title="Reset to the default view">↺ Reset</button>
                 <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
@@ -615,14 +660,18 @@
         <!-- Time machine: the timeline scrubber lives on the canvas so time is always at hand. -->
         <div id="timeline-bar">
             <div class="tl-head">
-                <label for="param-year">Timeline</label>
+                <span id="tl-era"><span class="tl-era-dot" style="background:#2f7fd6"></span><span id="tl-era-name">Roman service</span></span>
                 <span class="val" id="lbl-year">present</span>
             </div>
-            <input type="range" id="param-year" min="0" max="1000" step="1" value="1000">
-            <div id="timeline-track" aria-hidden="true"></div>
+            <div id="tl-scrub">
+                <div id="timeline-track" aria-hidden="true"></div>
+                <div id="tl-playhead"></div>
+                <input type="range" id="param-year" min="0" max="1000" step="1" value="1000"
+                    aria-label="Timeline year">
+            </div>
             <div id="timeline-axis" aria-hidden="true"></div>
-            <div id="timeline-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:6px;min-height:1.1em;"></div>
-            <div class="btn-row" style="margin-top:8px">
+            <div id="timeline-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:7px;min-height:1.1em;text-align:center;"></div>
+            <div class="btn-row" style="margin-top:8px;display:none">
                 <button id="tl-play" type="button">▶ Play</button>
                 <button id="tl-present" type="button">⏭ Present</button>
             </div>
@@ -1543,14 +1592,20 @@
                 const CAP = 0.7;                              // above-ground stub height (units)
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
-                const solid = documented && st.solid;         // documented solid pillar vs inferred ghost+cage
-                // Build one shaft segment. Documented shafts: bright solid cap + faded solid
-                // body. Inferred shafts keep their ghost-fill + wireframe-cage MESH style, but
-                // the below-ground body is faded relative to the above-ground cap — the same
-                // bright-cap / faint-body gradient the documented shafts have.
+                // Surface cap is rendered SOLID only for shafts that carry a documented slab
+                // on the present-day surface. Per Waringo 2018, only P4 is described with a
+                // "slab cap" (p.18); every other shaft mouth — backfilled, merely surveyed, or
+                // (P-1) secured with concrete lining segments but no top slab — shows as a
+                // ghost-fill + wireframe MESH. No invented solid lids.
+                const hasSurfaceCase = !!(rec && rec.surfaceCase);
+                const bodySolid = documented && st.solid;      // documented solid pillar vs inferred ghost+cage
+                // Build one shaft segment. Cap: solid iff a real surface case exists, else
+                // mesh. Body: solid for documented depths (faded), else the ghost-fill +
+                // wireframe-cage MESH, with the below-ground body faded relative to the cap.
                 const addSeg = (h, cyY, order) => {
                     const cyl = new THREE.CylinderGeometry(0.30, 0.30, h, 16);
                     const isCap = (order === 'cap');
+                    const solid = isCap ? hasSurfaceCase : bodySolid;
                     if (solid) {
                         const m = new THREE.Mesh(cyl, isCap ? capSolidMat : belowFaintMat);
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
@@ -1586,13 +1641,23 @@
                 const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: false }));
                 mm.renderOrder = 5; modelGroup.add(mm);
             }
+            // Inferred gallery ends: a DASHED tube (short tube segments) instead of a 1px
+            // hairline, so the inferred extent reads at the same weight as the solid explored
+            // core — just broken to signal "reconstructed, not surveyed".
             function tunnelDashed(points, color) {
                 if (points.length < 2) return;
                 const cv = new THREE.CatmullRomCurve3(points);
-                const g = new THREE.BufferGeometry().setFromPoints(cv.getPoints(points.length * 10));
-                const ln = new THREE.Line(g, new THREE.LineDashedMaterial(
-                    { color, dashSize: 2.8, gapSize: 2.0, depthTest: false }));   // 4× larger dashes
-                ln.computeLineDistances(); ln.renderOrder = 5; modelGroup.add(ln);
+                const SAMPLES = Math.max(60, points.length * 24);
+                const pts = cv.getPoints(SAMPLES);
+                const DASH = 7, GAP = 5;                      // samples per dash / gap
+                const mat = new THREE.MeshBasicMaterial({ color, depthTest: false });
+                for (let i = 0; i < pts.length - 1; i += DASH + GAP) {
+                    const seg = pts.slice(i, Math.min(pts.length, i + DASH + 1));
+                    if (seg.length < 2) continue;
+                    const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seg),
+                        Math.max(4, seg.length * 2), 0.13, 8, false);
+                    const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5; modelGroup.add(mm);
+                }
             }
             function tunnelFatTube(points, color, radius) {
                 if (points.length < 2) return;
@@ -1634,10 +1699,11 @@
                     const id = step.underShaft, txt = step.dropM + ' m step';
                     const bp = shaftBaseById[id];
                     if (!bp) return;
-                    const top = new THREE.Vector3(bp.x, bp.y + 0.9, bp.z);
-                    modelGroup.add(new THREE.Line(
-                        new THREE.BufferGeometry().setFromPoints([bp, top]),
-                        new THREE.LineBasicMaterial({ color: galleryColor, depthTest: false })));
+                    const tick = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.07, 0.07, 0.9, 8),
+                        new THREE.MeshBasicMaterial({ color: galleryColor, depthTest: false }));
+                    tick.position.set(bp.x, bp.y + 0.45, bp.z); tick.renderOrder = 5;
+                    modelGroup.add(tick);
                     const s = createTextSprite(txt, '#1d6fd6', 20);
                     s.scale.set(3.0, 0.8, 1);
                     s.position.set(bp.x, bp.y + 1.35, bp.z);
@@ -2437,9 +2503,29 @@
 
         // --- Timeline slider: colour bands per era + a live year/period readout ------
         const TL_KIND_COLORS = {
-            build: '#e08a2b', use: '#2f7fd6', dormant: '#4b5563',
-            rediscovery: '#2fae66', investigation: '#2aa6a0', exploration: '#8b5cf6'
+            build: '#e08a2b', use: '#2f7fd6', dormant: '#7c8794',
+            rediscovery: '#2fae66', investigation: '#22b8b0', exploration: '#8b5cf6'
         };
+        const TL_KIND_LABEL = { build: 'Built', use: 'In service', dormant: 'Dormant',
+            rediscovery: 'Rediscovery', investigation: 'Investigation', exploration: 'Exploration' };
+        // Two macro-phases: the ancient aqueduct life-cycle vs. the modern research campaigns.
+        const TL_ANCIENT = ['build', 'use', 'dormant'];
+        const TL_MODERN = ['rediscovery', 'investigation', 'exploration'];
+        const TL_DORMANT_START = 350;   // antiquity | modern boundary (start of the dormant gap)
+        // Which macro-era + colour a given year sits in (drives the big header pill).
+        function eraInfo(year) {
+            if (year < TIMELINE.spanAD[0] + 31) return { name: 'Before construction', color: '#7c8794' };
+            const ev = timelineEventAt(year);
+            if (ev) {
+                const macro = TL_MODERN.includes(ev.kind) ? 'Modern research'
+                    : (ev.kind === 'build' ? 'Roman construction'
+                    : ev.kind === 'use' ? 'Roman service' : 'Dormant');
+                return { name: macro, color: TL_KIND_COLORS[ev.kind] || '#7c8794' };
+            }
+            const lastEnd = Math.max(...(TIMELINE.events || [{ toAD: 2000 }]).map(e => e.toAD));
+            if (year > lastEnd) return { name: 'Present day', color: '#2fae66' };
+            return { name: '—', color: '#7c8794' };
+        }
         function buildTimelineBands() {
             const track = document.getElementById('timeline-track');
             if (!track) return;
@@ -2447,15 +2533,26 @@
             (TIMELINE.events || []).forEach(e => {
                 const l = yearToSlider(e.fromAD), r = yearToSlider(e.toAD);
                 const d = document.createElement('div');
-                d.className = 'tl-band';
+                d.className = 'tl-band' + (e.kind === 'dormant' ? ' tl-dormant' : '');
                 d.style.left = (l * 100).toFixed(2) + '%';
                 d.style.width = Math.max(0.8, (r - l) * 100).toFixed(2) + '%';
-                d.style.background = TL_KIND_COLORS[e.kind] || '#6b7280';
+                if (e.kind !== 'dormant') d.style.background = TL_KIND_COLORS[e.kind] || '#6b7280';
                 d.title = e.label + ' (' + e.fromAD + '–' + e.toAD + ' AD) — click to jump';
+                // Label the dormant gap with its true duration so the compressed axis is honest.
+                if (e.kind === 'dormant') {
+                    const dur = document.createElement('span');
+                    dur.className = 'tl-dur';
+                    dur.textContent = '≈ ' + Math.round((e.toAD - e.fromAD) / 10) * 10 + ' yrs dormant';
+                    d.appendChild(dur);
+                }
                 d.addEventListener('click', () => { tlPause(); tlSetT(yearToSlider(e.fromAD), true); });
                 track.appendChild(d);
             });
-            const ph = document.createElement('div'); ph.id = 'tl-playhead'; track.appendChild(ph);
+            // Break marker at the antiquity | modern boundary (start of the compressed gap).
+            const brk = document.createElement('div');
+            brk.className = 'tl-break';
+            brk.style.left = (yearToSlider(TL_DORMANT_START) * 100).toFixed(2) + '%';
+            track.appendChild(brk);
             // Axis tick labels at the era boundaries (piecewise-scaled positions).
             const axis = document.getElementById('timeline-axis');
             if (axis) {
@@ -2467,17 +2564,20 @@
                     axis.appendChild(s);
                 });
             }
-            // Per-era legend (colour key for the band kinds actually present).
+            // Legend, split by taxonomy: aqueduct life-cycle vs. modern research campaigns.
             const legend = document.getElementById('timeline-legend');
             if (legend) {
-                legend.innerHTML = '';
-                const KIND_LABEL = { build: 'Built', use: 'In service', dormant: 'Dormant',
-                    rediscovery: 'Rediscovery', investigation: 'Investigation', exploration: 'Exploration' };
-                [...new Set((TIMELINE.events || []).map(e => e.kind))].forEach(k => {
-                    const s = document.createElement('span');
-                    s.innerHTML = '<i style="background:' + (TL_KIND_COLORS[k] || '#6b7280') + '"></i>' + (KIND_LABEL[k] || k);
-                    legend.appendChild(s);
-                });
+                const present = new Set((TIMELINE.events || []).map(e => e.kind));
+                const chip = k => '<span><i class="' + (k === 'dormant' ? 'tl-hatch' : '') + '"'
+                    + (k === 'dormant' ? '' : ' style="background:' + (TL_KIND_COLORS[k] || '#6b7280') + '"')
+                    + '></i>' + (TL_KIND_LABEL[k] || k) + '</span>';
+                const grp = (cap, kinds) => {
+                    const ks = kinds.filter(k => present.has(k));
+                    if (!ks.length) return '';
+                    return '<div class="tl-lg-grp"><span class="tl-lg-cap">' + cap + '</span>'
+                        + ks.map(chip).join('') + '</div>';
+                };
+                legend.innerHTML = grp('Aqueduct', TL_ANCIENT) + grp('Modern research', TL_MODERN);
             }
         }
         function updateTimelineReadout() {
@@ -2488,17 +2588,25 @@
             const yTxt = y >= 2025 ? 'present' : (y + ' AD');
             if (lbl) lbl.textContent = yTxt;
             if (ph) ph.style.left = (yearToSlider(y) * 100).toFixed(2) + '%';
+            // Big era pill (name + colour) — the "which era" answer, always in sync.
+            const era = eraInfo(y);
+            const eraName = document.getElementById('tl-era-name');
+            const eraDot = document.querySelector('#tl-era .tl-era-dot');
+            const knob = document.getElementById('tl-playhead');
+            if (eraName) eraName.textContent = era.name;
+            if (eraDot) eraDot.style.background = era.color;
+            if (knob) knob.style.borderColor = era.color;
             if (!ro) return;
             const ev = timelineEventAt(y);
             const lastEnd = Math.max(...(TIMELINE.events || [{ toAD: 2000 }]).map(e => e.toAD));
             if (ev) {
                 const span = (ev.fromAD === ev.toAD) ? (ev.fromAD + ' AD') : (ev.fromAD + '–' + ev.toAD + ' AD');
-                ro.innerHTML = '<b>' + ev.label + '</b> · ' + span +
+                ro.innerHTML = '<b style="color:' + era.color + '">' + ev.label + '</b> · ' + span +
                     (ev.status === 'inferred' ? ' · inferred' : '');
             } else if (y < TIMELINE.spanAD[0] + 31) {
-                ro.innerHTML = '<b>Before construction</b> · plateau not yet worked';
+                ro.innerHTML = '<b style="color:' + era.color + '">Before construction</b> · plateau not yet worked';
             } else if (y > lastEnd) {
-                ro.innerHTML = '<b>Present day</b> · excavated & conserved (~310 m explored)';
+                ro.innerHTML = '<b style="color:' + era.color + '">Present day</b> · excavated & conserved (~310 m explored)';
             } else {
                 ro.textContent = '—';
             }
@@ -3175,9 +3283,15 @@
             measureDot(p);
             if (measurePts.length === 2) {
                 const a = measurePts[0], b = measurePts[1];
-                const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]),
-                    new THREE.LineBasicMaterial({ color: MEASURE_DOT, depthTest: false }));
-                ln.renderOrder = 23; measureGroup.add(ln);
+                // Thick cylinder (not a 1px hairline) so the measured span is clearly visible.
+                const dir = new THREE.Vector3().subVectors(b, a);
+                const len = dir.length() || 1e-6;
+                const tube = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.14, 0.14, len, 12),
+                    new THREE.MeshBasicMaterial({ color: MEASURE_DOT, depthTest: false }));
+                tube.position.copy(a).addScaledVector(dir, 0.5);
+                tube.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+                tube.renderOrder = 23; measureGroup.add(tube);
                 const mpx = metersPerXUnit(), mpz = metersPerZUnit(), mpy = metersPerYUnit();
                 const dxm = (b.x - a.x) * mpx, dzm = (b.z - a.z) * mpz, dym = (b.y - a.y) * mpy;
                 const horiz = Math.hypot(dxm, dzm);
