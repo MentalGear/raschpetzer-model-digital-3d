@@ -1347,12 +1347,16 @@
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
             recomputeGeoView();   // refresh geoView + QSCALE + scaled pillarDefs
 
-            const segX = 100, segZ = 46;
+            // Terrain tessellation. Bumped to feed the denser baked LiDAR grid (240×132 tier):
+            // at the default framing the visible window is ~866×501 m, so 240×108 surface
+            // segments (~3.6 m each) and 200×92 side-wall steps let the mesh actually resolve
+            // the finer grid instead of over-smoothing it. ~52k tris — trivial for WebGL.
+            const segX = 200, segZ = 92;
             const halfW = params.width / 2;
             const halfD = params.depth / 2;
 
             // --- 1. Fill surface mesh (plain light cream; pushed back so contour lines sit on top) ---
-            const surfGeo = new THREE.PlaneGeometry(params.width, params.depth, 120, 54);
+            const surfGeo = new THREE.PlaneGeometry(params.width, params.depth, 240, 108);
             surfGeo.rotateX(-Math.PI / 2);
             const pos = surfGeo.attributes.position;
             for (let i = 0; i < pos.count; i++) {
@@ -2142,7 +2146,7 @@
                 if (!params.overlay[key]) continue;
                 const ot = overlayTextures[key];
                 if (!ot || !ot.ready) continue;
-                const g = new THREE.PlaneGeometry(params.width, params.depth, 120, 54);
+                const g = new THREE.PlaneGeometry(params.width, params.depth, 240, 108);
                 g.rotateX(-Math.PI / 2);
                 const pos = g.attributes.position, uv = g.attributes.uv;
                 for (let i = 0; i < pos.count; i++) {
