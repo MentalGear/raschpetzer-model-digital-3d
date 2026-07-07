@@ -1547,7 +1547,9 @@
             // is coloured by era: blue while in Roman service (water), silted-grey otherwise.
             const galleryBuilt = params.year >= 131;
             const inService = params.year >= 140 && params.year <= 350;
-            const galleryColor = inService ? COL.qanat : COL.qanatDry;
+            // Blue for the whole Roman era (built + in service, 131–350) so the qanat reads
+            // "alive" at the default year; silted-grey once abandoned (dormant / modern).
+            const galleryColor = (galleryBuilt && params.year <= 350) ? COL.qanat : COL.qanatDry;
             if (galleryBuilt && params.showUnderground) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));

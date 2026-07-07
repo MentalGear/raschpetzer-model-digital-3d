@@ -11,7 +11,7 @@ import { writeFileSync } from 'node:fs';
 // Must match index.html GEO_BBOX so the drape's per-vertex UV = lon/lat fraction.
 const GEO_BBOX = { west: 6.138, east: 6.162, south: 49.6618, north: 49.6708 };
 const LAYER = 'EL_ElevationGridCoverage_DTM_2019';   // same epoch as the baked terrain grid
-const WIDTH = 2048;
+const WIDTH = 4096;   // ~0.42 m/px over the window — near the native 0.5 m DTM resolution
 
 // Keep pixels ~square in ground metres (lon-metres : lat-metres at this latitude).
 const midLat = (GEO_BBOX.south + GEO_BBOX.north) / 2;
