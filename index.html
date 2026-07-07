@@ -250,6 +250,13 @@
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
         .tab-pane > .control-group:first-child { margin-top: 2px; }
+        .tab-pane > .control-group:last-child { margin-bottom: 4px; }
+        /* Embed the tabbed content in its own recessed card, set apart from the actions below */
+        #tab-panes { background: rgba(0,0,0,0.20); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
+        #panel-actions { border-top: 1px solid rgba(255,255,255,0.10); padding-top: 16px; }
+        .legend-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
+            color: #9ca3af; font-weight: 700; margin-bottom: 9px; }
         /* Mobile drawer */
         #drawer-close { display: none; background: none; border: none; color: #9ca3af;
             font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 2px; }
@@ -471,6 +478,7 @@
         </div>
         </div>
 
+        <div id="panel-actions">
         <div class="control-group">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
@@ -501,8 +509,10 @@
                 <button id="btn-tour" type="button">▶ Guided tour</button>
             </div>
         </div>
+        </div>
 
         <div class="legend">
+            <div class="legend-title">Legend</div>
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-orange);"></div>
                 Raschpëtzer Shafts (P-7A to P9)
