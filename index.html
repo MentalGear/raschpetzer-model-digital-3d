@@ -301,8 +301,10 @@
         #tab-panes { background: rgba(0,0,0,0.20); border: 1px solid rgba(255,255,255,0.07);
             border-top: none; border-radius: 0 0 10px 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
         #panel-actions { border-top: 1px solid rgba(255,255,255,0.10); padding-top: 16px; }
-        /* Match the section-header style used for "Camera"/"Tools"/"Base layer" (.control-group label). */
-        .legend-title { font-size: 0.82rem; color: #d1d5db; margin-bottom: 5px; }
+        /* Legend uses the SAME section pattern as every other group: a .control-group with a
+           <label> header, and an items wrapper with the same 8px top gap as .btn-tools — so the
+           header→content spacing matches "Camera"/"Tools" exactly. */
+        .legend-items { margin-top: 8px; }
         /* Mobile drawer */
         #drawer-close { display: none; background: none; border: none; color: #9ca3af;
             font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 2px; }
@@ -325,6 +327,21 @@
             #timeline-legend { display: none; }
             .instructions { display: none; }
             #compass { top: 48px; left: 12px; }
+        }
+        /* Touch targets: on coarse pointers (phones/tablets) enlarge the small hit areas —
+           checkboxes, slider thumbs, and the button/tab/select rows — toward a ~44px target,
+           without affecting the compact mouse layout. */
+        @media (pointer: coarse) {
+            .check-row input { width: 22px; height: 22px; }
+            .control-group label.check-row { min-height: 38px; margin-top: 4px; gap: 11px; }
+            input[type="range"] { height: 8px; }
+            input[type="range"]::-webkit-slider-thumb { width: 26px; height: 26px; }
+            input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; }
+            .segmented button { padding: 13px 0; font-size: 0.82rem; }
+            .btn-tools button { padding: 14px 6px; font-size: 0.82rem; }
+            select { padding: 12px 9px; font-size: 0.86rem; }
+            #tab-bar .tab { padding: 11px 2px; }
+            #tab-bar .tab .ti { font-size: 1.2rem; }
         }
         /* Collapsible control sections */
         #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
@@ -530,7 +547,7 @@
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
             <div class="segmented">
                 <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
-                <button id="btn-reset" type="button" title="Reset to the default view">↺ Reset</button>
+                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
                 <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
                 <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
             </div>
@@ -557,8 +574,9 @@
         </div>
         </div>
 
-        <div class="legend">
-            <div class="legend-title">Legend</div>
+        <div class="control-group legend">
+            <label>Legend</label>
+            <div class="legend-items">
             <div class="legend-item">
                 <div class="color-box" style="background: var(--accent-orange);"></div>
                 Raschpëtzer Shafts (P-7A to P9)
@@ -590,6 +608,7 @@
             <div class="legend-item">
                 <div class="color-box" style="background: #8f95c4;"></div>
                 Marl &amp; limestone strata
+            </div>
             </div>
         </div>
     </div>

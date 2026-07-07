@@ -34,5 +34,19 @@ await page.waitForTimeout(1200);
 await page.screenshot({ path: new URL('../interface-shafts.png', import.meta.url).pathname });
 console.log('› wrote interface-shafts.png');
 
+// Touch layout: emulate a coarse-pointer (mobile) device to exercise @media (pointer: coarse).
+const tctx = await browser.newContext({
+  viewport: { width: 412, height: 900 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+});
+const tp = await tctx.newPage();
+await tp.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'networkidle' });
+await tp.waitForTimeout(3500);
+await tp.click('#drawer-toggle').catch(() => {});
+await tp.waitForTimeout(500);
+await tp.click('.tab[data-tab="qanat"]').catch(() => {});
+await tp.waitForTimeout(400);
+await tp.screenshot({ path: new URL('../interface-touch.png', import.meta.url).pathname });
+console.log('› wrote interface-touch.png');
+
 await browser.close();
 server.close();
