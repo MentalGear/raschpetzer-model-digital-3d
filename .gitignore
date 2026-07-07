@@ -10,3 +10,6 @@ assets/geodata-walferdange.js.bak
 
 # temporary agent worktrees
 .claude/worktrees/
+
+# generated report/verification screenshots (produced by scripts/shot*.mjs)
+interface-*.png
