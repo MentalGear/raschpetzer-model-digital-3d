@@ -213,10 +213,11 @@
         .btn-row button:hover { background: #4b5563; }
         .btn-row button.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; font-weight: 600; }
         /* Camera controls: compact 2x2 grid + N/E/S/W segmented control + a tools cluster */
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
         .btn-grid button, .btn-tools button {
             background: #374151; color: #f3f4f6; border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 6px; padding: 8px 6px; font-size: 0.76rem; cursor: pointer; transition: background 0.12s; }
+            border-radius: 6px; padding: 8px 2px; font-size: 0.72rem; cursor: pointer; transition: background 0.12s; }
+        .btn-tools button { padding: 8px 6px; font-size: 0.76rem; }
         .btn-grid button:hover, .btn-tools button:hover { background: #4b5563; }
         .btn-grid button.active, .btn-tools button.active {
             background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; font-weight: 600; }
