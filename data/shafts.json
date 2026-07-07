@@ -63,7 +63,8 @@
         "builtAD": 131,
         "excavatedAD": 1994,
         "campaign": "explore-west"
-      }
+      },
+      "surfaceState": "restored to its original (backfilled) state — no surface cover"
     },
     {
       "id": "P-5A",
@@ -126,7 +127,8 @@
         "builtAD": 131,
         "excavatedAD": 1994,
         "campaign": "explore-west"
-      }
+      },
+      "surfaceState": "sand-filled auxiliary shaft — no surface cover"
     },
     {
       "id": "P-5",
@@ -172,6 +174,10 @@
           "source": "waringo2018",
           "loc": "fig.3-1",
           "note": "western continuation 1992-2000"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 365.2,
@@ -181,7 +187,9 @@
         "builtAD": 131,
         "excavatedAD": 1993,
         "campaign": "explore-west"
-      }
+      },
+      "surfaceState": "metal lid (excavated; channel rebuilt in concrete below the geological-accident point)",
+      "surfaceCase": true
     },
     {
       "id": "P-4",
@@ -211,7 +219,7 @@
       "floorElevCrs": "masl",
       "diameterM": 0.8,
       "notes": "Dry-stone lined (0.8 m wall, 3 concentric rows); base widened to 1.4 m cone; overflow weir diverts water to a lateral channel when the level exceeds 12 cm.",
-      "surfaceState": "windowed cover (to view the overflow bifurcation); no concrete surface slab",
+      "surfaceState": "windowed viewing cover (to see the overflow bifurcation)",
       "source": "waringo2018",
       "status": "documented",
       "_prov": {
@@ -240,6 +248,10 @@
           "source": "waringo2018",
           "loc": "p.12; fig.3-1",
           "note": "western continuation 1992-2000"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 366.9,
@@ -249,7 +261,8 @@
         "builtAD": 131,
         "excavatedAD": 1992,
         "campaign": "explore-west"
-      }
+      },
+      "surfaceCase": true
     },
     {
       "id": "P-1",
@@ -277,7 +290,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Circular shaft in marl, sand-filled; secured with concrete segments; not used for access.",
-      "surfaceState": "concrete-lined shaft body (securing segments), sand-filled — NOT a concrete slab on the surface, so not rendered as a solid cap",
+      "surfaceState": "metal lid (concrete-lined, secured shaft body)",
       "source": "waringo2018",
       "status": "documented",
       "_prov": {
@@ -296,6 +309,10 @@
           "source": "waringo2018",
           "loc": "fig.3-1",
           "note": "western continuation 1992-2000"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 374.2,
@@ -305,7 +322,8 @@
         "builtAD": 131,
         "excavatedAD": 1992,
         "campaign": "explore-west"
-      }
+      },
+      "surfaceCase": true
     },
     {
       "id": "P0",
@@ -360,7 +378,8 @@
         "builtAD": 131,
         "excavatedAD": null,
         "campaign": null
-      }
+      },
+      "surfaceState": "surface panel only — not excavated, no cover"
     },
     {
       "id": "P1",
@@ -409,6 +428,10 @@
           "source": "waringo2018",
           "loc": "p.11",
           "note": "cleared 1913 (initial excavations)"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 386.1,
@@ -418,7 +441,9 @@
         "builtAD": 131,
         "excavatedAD": 1913,
         "campaign": "first-excav"
-      }
+      },
+      "surfaceState": "metal lid (excavated 1913)",
+      "surfaceCase": true
     },
     {
       "id": "P2",
@@ -473,7 +498,8 @@
         "builtAD": 131,
         "excavatedAD": 1987,
         "campaign": "explore-east"
-      }
+      },
+      "surfaceState": "backfilled in its original state — not opened, no cover"
     },
     {
       "id": "P3",
@@ -531,7 +557,8 @@
         "builtAD": 131,
         "excavatedAD": 1987,
         "campaign": "explore-east"
-      }
+      },
+      "surfaceState": "backfilled in its original state — not opened, no cover"
     },
     {
       "id": "P4",
@@ -568,9 +595,8 @@
           "loc": "p.18"
         },
         "surfaceCase": {
-          "source": "waringo2018",
-          "loc": "p.18",
-          "note": "The ONLY shaft with a documented CONCRETE slab on the present-day surface (concrete rings + slab cap) — rendered as a solid cap. Every other excavated shaft head carries a modern METAL lid (site-surface-state), not concrete, so it renders as a mesh."
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         },
         "geo": {
           "source": "osm-qanat-shafts",
@@ -625,7 +651,7 @@
         1.2
       ],
       "notes": "Deepest shaft; eastern plateau edge; first cleared to base (3 Oct 1986). Diameter 1.2 m, narrowing to 0.85 m at torus bulges; the channel passes tangentially.",
-      "surfaceState": "windowed metal cover (to view the ~35 m depth); no concrete surface slab",
+      "surfaceState": "windowed metal cover (to view the ~35 m depth)",
       "source": "waringo2018",
       "status": "documented",
       "_prov": {
@@ -651,6 +677,10 @@
           "source": "waringo2018",
           "loc": "p.9; p.11-12",
           "note": "cleared ~10 m in 1913; base reached 3 Oct 1986 — the gallery was rediscovered here"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 392.1,
@@ -661,7 +691,8 @@
         "excavatedAD": 1913,
         "campaign": "rediscovery",
         "rediscoveredAD": 1986
-      }
+      },
+      "surfaceCase": true
     },
     {
       "id": "P6",
@@ -707,6 +738,10 @@
           "source": "waringo2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 382.1,
@@ -716,7 +751,9 @@
         "builtAD": 131,
         "excavatedAD": 1988,
         "campaign": "explore-east"
-      }
+      },
+      "surfaceState": "metal lid (excavated / surveyed from below ground)",
+      "surfaceCase": true
     },
     {
       "id": "P7",
@@ -762,6 +799,10 @@
           "source": "waringo2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 378.2,
@@ -771,7 +812,9 @@
         "builtAD": 131,
         "excavatedAD": 1988,
         "campaign": "explore-east"
-      }
+      },
+      "surfaceState": "metal lid (cleared with heavy machinery)",
+      "surfaceCase": true
     },
     {
       "id": "P8",
@@ -817,6 +860,10 @@
           "source": "waringo2018",
           "loc": "p.29; fig.3-1",
           "note": "eastern campaign; oak beam (114 AD) found near its base by 1991"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 377.1,
@@ -826,7 +873,9 @@
         "builtAD": 131,
         "excavatedAD": 1989,
         "campaign": "explore-east"
-      }
+      },
+      "surfaceState": "metal lid (cleared)",
+      "surfaceCase": true
     },
     {
       "id": "P9",
@@ -872,6 +921,10 @@
           "source": "waringo2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991 (mother shaft)"
+        },
+        "surfaceCase": {
+          "source": "site-surface-state",
+          "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
       "surfaceElevM": 377.2,
@@ -881,7 +934,9 @@
         "builtAD": 131,
         "excavatedAD": 1990,
         "campaign": "explore-east"
-      }
+      },
+      "surfaceState": "metal lid (the 'mother shaft', cleared)",
+      "surfaceCase": true
     },
     {
       "id": "P-2",
@@ -919,7 +974,8 @@
         "builtAD": null,
         "excavatedAD": null,
         "campaign": null
-      }
+      },
+      "surfaceState": "postulated, not yet located — no surface feature"
     },
     {
       "id": "P-3",
@@ -957,7 +1013,8 @@
         "builtAD": null,
         "excavatedAD": null,
         "campaign": null
-      }
+      },
+      "surfaceState": "postulated, not yet located — no surface feature"
     },
     {
       "id": "P-6A",
@@ -995,7 +1052,8 @@
         "builtAD": null,
         "excavatedAD": null,
         "campaign": null
-      }
+      },
+      "surfaceState": "postulated, not yet located — no surface feature"
     }
   ]
 }
