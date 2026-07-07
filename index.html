@@ -184,21 +184,6 @@
         #timeline-axis span::before { content: ''; position: absolute; top: 0; left: 50%;
             width: 1px; height: 3px; background: rgba(255,255,255,0.28); }
         #timeline-readout b { font-weight: 600; }
-        /* Legend split by taxonomy: aqueduct life-cycle vs. modern research campaigns. */
-        #timeline-legend { margin-top: 9px; font-size: 0.66rem; color: #cbd5e1; }
-        #timeline-legend .tl-lg-grp { display: flex; flex-wrap: wrap; align-items: center;
-            gap: 4px 9px; margin-top: 4px; }
-        #timeline-legend .tl-lg-cap { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px;
-            color: #7c8794; font-weight: 700; flex: 0 0 100%; margin-bottom: 1px; }
-        #timeline-legend .tl-lg-grp span { display: inline-flex; align-items: center; gap: 4px; }
-        #timeline-legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
-        #timeline-legend i.tl-hatch { background-image: repeating-linear-gradient(-45deg,
-            rgba(255,255,255,0.12) 0 3px, rgba(255,255,255,0.28) 3px 6px); }
-        /* "Key" toggle: only used on mobile (where the legend is collapsed to save space). */
-        #tl-legend-toggle { display: none; margin-top: 9px; background: rgba(255,255,255,0.08);
-            color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12); border-radius: 7px;
-            padding: 8px 12px; font-size: 0.72rem; font-weight: 600; cursor: pointer; }
-        #tl-legend-toggle[aria-expanded="true"] { color: #fff; }
         /* In-canvas timeline scrubber ("time machine") pinned to the bottom of the scene */
         #timeline-bar {
             position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
@@ -329,10 +314,6 @@
             body.drawer-open #drawer-scrim { display: block; }
             #drawer-close { display: block; }
             #timeline-bar { width: calc(100% - 20px); bottom: 10px; padding: 7px 11px 9px; }
-            /* Legend is collapsed by default on mobile; the "Key" toggle reveals it on demand. */
-            #timeline-legend { display: none; }
-            #timeline-bar.legend-open #timeline-legend { display: block; }
-            #tl-legend-toggle { display: inline-flex; align-items: center; }
             .instructions { display: none; }
             #compass { top: 48px; left: 12px; }
         }
@@ -711,8 +692,6 @@
                 <button id="tl-play" type="button">▶ Play</button>
                 <button id="tl-present" type="button">⏭ Present</button>
             </div>
-            <button id="tl-legend-toggle" type="button" aria-expanded="false" aria-controls="timeline-legend">Key ▾</button>
-            <div id="timeline-legend" aria-hidden="true"></div>
         </div>
 
         <div id="measure-readout"></div>
@@ -2528,21 +2507,6 @@
                     axis.appendChild(s);
                 });
             }
-            // Legend, split by taxonomy: aqueduct life-cycle vs. modern research campaigns.
-            const legend = document.getElementById('timeline-legend');
-            if (legend) {
-                const present = new Set((TIMELINE.events || []).map(e => e.kind));
-                const chip = k => '<span><i class="' + (k === 'dormant' ? 'tl-hatch' : '') + '"'
-                    + (k === 'dormant' ? '' : ' style="background:' + (TL_KIND_COLORS[k] || '#6b7280') + '"')
-                    + '></i>' + (TL_KIND_LABEL[k] || k) + '</span>';
-                const grp = (cap, kinds) => {
-                    const ks = kinds.filter(k => present.has(k));
-                    if (!ks.length) return '';
-                    return '<div class="tl-lg-grp"><span class="tl-lg-cap">' + cap + '</span>'
-                        + ks.map(chip).join('') + '</div>';
-                };
-                legend.innerHTML = grp('Aqueduct', TL_ANCIENT) + grp('Modern research', TL_MODERN);
-            }
         }
         function updateTimelineReadout() {
             const lbl = document.getElementById('lbl-year');
@@ -2647,14 +2611,6 @@
             });
             document.getElementById('tl-play').addEventListener('click', () => tlPlaying ? tlPause() : tlPlay());
             document.getElementById('tl-present').addEventListener('click', () => { tlPause(); tlSetT(1, true); });
-            // Mobile "Key" toggle: reveal/hide the collapsed timeline legend.
-            const keyBtn = document.getElementById('tl-legend-toggle');
-            if (keyBtn) keyBtn.addEventListener('click', () => {
-                const bar = document.getElementById('timeline-bar');
-                const open = bar.classList.toggle('legend-open');
-                keyBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-                keyBtn.textContent = open ? 'Key ▴' : 'Key ▾';
-            });
             updateTimelineReadout();
         }
 
