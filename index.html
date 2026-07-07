@@ -519,6 +519,7 @@
             <div class="control-group">
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
+                <label class="check-row"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
                 <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             </div>
             <div class="control-group" id="grp-terrain-opacity">
@@ -532,9 +533,13 @@
             </div>
             <div class="control-group" id="grp-surround">
                 <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
-                <input type="range" id="param-surround" min="0.4" max="2.0" step="0.05" value="1.0">
+                <input type="range" id="param-surround" min="0.45" max="1.15" step="0.05" value="1.0">
                 <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </div>
+            <details id="grp-debug">
+                <summary>Debug</summary>
+                <label class="check-row"><input type="checkbox" id="param-qanat-front"> Qanat&nbsp;at&nbsp;front&nbsp;edge&nbsp;(strata&nbsp;in&nbsp;front)</label>
+            </details>
         </div>
         </div>
 
@@ -729,7 +734,9 @@
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showPerched: false,           // perched pre-construction water table + drawdown band
-            showFaults: false             // Pëtschend horst bounding faults (illustrative)
+            showFaults: false,            // Pëtschend horst bounding faults (illustrative)
+            pbr: false,                   // realistic PBR stone materials (textured shafts/walls)
+            qanatFront: false             // debug: pin the qanat to the front cut face (strata in front)
         };
 
         // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
@@ -809,6 +816,10 @@
         // that geometry actually uses (see recomputeGeoView / applyQanatScale).
         const SHAFT_BASE = SHAFTS.filter(s => s.modelPos)
             .map(s => ({ id: s.id, x: s.modelPos.x, z: s.modelPos.z }));
+        // Southernmost georeferenced shaft latitude — the qanat's front (+Z/south) edge, used
+        // by the "Qanat at front edge" debug mode to pin the cross-section right at the qanat.
+        const _shaftLats = SHAFTS.filter(s => s.geo).map(s => s.geo.lat);
+        const QANAT_LAT_S = _shaftLats.length ? Math.min(..._shaftLats) : 49.6659;
         let pillarDefs = SHAFT_BASE.map(p => ({ id: p.id, x: p.x, z: p.z }));
         // Map a real WGS84 coordinate into the current scene window (georeferenced placement).
         function geoToScene(lat, lon) {
@@ -849,6 +860,23 @@
         let scene, camera, renderer, controls, modelGroup;
         let contourMaterial, crossSectionMaterial;
         let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
+        // --- Realistic PBR textures (loaded once; used only when params.pbr) --------------
+        // Sandstone set (CC0, Poly Haven "sandstone_cracks") clads the rock-cut shafts to match
+        // the surveyed shaft interiors (Waringo figs 6-7/6-8); a small procedural normal makes
+        // the gallery read as flowing water. Baked to 512² WebP (~240 KB total). See docs.
+        const TEX = {};
+        let waterMats = [];         // water materials whose normal scrolls in animate()
+        function loadPBRTextures() {
+            const L = new THREE.TextureLoader();
+            const wrap = (t, srgb) => { t.wrapS = t.wrapT = THREE.RepeatWrapping;
+                if (srgb && 'colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace; return t; };
+            TEX.color  = wrap(L.load('assets/textures/sandstone_color.webp'), true);
+            TEX.normal = wrap(L.load('assets/textures/sandstone_normal.webp'), false);
+            TEX.rough  = wrap(L.load('assets/textures/sandstone_rough.webp'), false);
+            TEX.water  = wrap(L.load('assets/textures/water_normal.webp'), false);
+            [TEX.color, TEX.normal, TEX.rough].forEach(t => t.repeat.set(1.5, 2));
+            TEX.water.repeat.set(3, 6);
+        }
         let initialViewSet = false; // snap camera to the computed 0°-horizon default on first build
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
         const spotMeshes = [];    // springs / boreholes / resurgence pins, for click raycasting
@@ -953,31 +981,52 @@
         const GEO_BBOX = { west: 6.138, east: 6.162, south: 49.6618, north: 49.6708 };
         const GEO_COLS = 40, GEO_ROWS = 22;
 
-        // Default rendered window = central half of the grid (~866 × 501 m), framing the
-        // ~300 m qanat; "Surrounding area" grows it to the full sampled extent.
+        // Default rendered window = a ~866 m SQUARE patch of ground centred on the grid,
+        // framing the ~300 m qanat. `lon` sets the E–W span; the N–S span is derived to match
+        // in metres (see recomputeGeoView), so the surrounding area is always square. `lat` is
+        // retained only for the offline procedural fallback.
         const GEO_VIEW_SPAN = { lon: 0.012, lat: 0.0045 };
         // Cached view window (WGS84 bbox); recomputed whenever "Surrounding area" moves.
         // The window is always CENTERED on the full grid; `surround` grows it out to the full
         // sampled extent. In GeoData mode shafts are placed by their real geo coordinates
         // (geoToScene), so they stay locked to the LiDAR terrain as the window changes.
         // QSCALE only scales the schematic modelPos fallback (procedural mode).
-        let geoView = { west: 6.144, east: 6.156, south: 49.66405, north: 49.66855 };
+        let geoView = { west: 6.144, east: 6.156, south: 49.662413, north: 49.670188 };  // ~866 m square
         let QSCALE = 1;   // schematic-modelPos scale (procedural fallback only)
         function recomputeGeoView() {
             const fullLon = GEO_BBOX.east - GEO_BBOX.west, fullLat = GEO_BBOX.north - GEO_BBOX.south;
-            const spanLon = Math.min(GEO_VIEW_SPAN.lon * params.surround, fullLon);
-            const spanLat = Math.min(GEO_VIEW_SPAN.lat * params.surround, fullLat);
             const cLon = (GEO_BBOX.west + GEO_BBOX.east) / 2, cLat = (GEO_BBOX.south + GEO_BBOX.north) / 2;
-            geoView = { west: cLon - spanLon / 2, east: cLon + spanLon / 2,
-                        south: cLat - spanLat / 2, north: cLat + spanLat / 2 };
+            const cosLat = Math.cos(cLat * Math.PI / 180);
+            // SQUARE surrounding area: the window is always a square patch of GROUND (equal
+            // metres E–W and N–S), centred on the grid. E–W (lon) drives the size — that keeps
+            // the qanat framing — and N–S (lat) is derived so lat-metres == lon-metres. A degree
+            // of latitude is longer than a degree of longitude here, so spanLat = spanLon·cosLat.
+            // Capped by the smaller sampled dimension (N–S) so the square never runs past data.
+            let spanLon = Math.min(GEO_VIEW_SPAN.lon * params.surround, fullLon);
+            let spanLat = spanLon * cosLat;
+            if (spanLat > fullLat) { spanLat = fullLat; spanLon = spanLat / cosLat; }
+            let south, north;
+            if (params.qanatFront) {
+                // Debug: pin the qanat to the FRONT (+Z/south) cut face so the strata
+                // cross-section sits right in front of it; the square then extends north.
+                // Only ~540 m of data lies north of the qanat, so shrink the square to fit
+                // (cheap — no extra sampling); the qanat stays pinned at the front.
+                const frontMarginLat = 8 / 111320;                 // ~8 m south of the end shaft
+                const availLat = (GEO_BBOX.north - QANAT_LAT_S) + frontMarginLat;
+                if (spanLat > availLat) { spanLat = availLat; spanLon = spanLat / cosLat; }
+                south = QANAT_LAT_S - frontMarginLat;
+                north = south + spanLat;
+            } else {
+                south = cLat - spanLat / 2; north = cLat + spanLat / 2;
+            }
+            geoView = { west: cLon - spanLon / 2, east: cLon + spanLon / 2, south, north };
             QSCALE = (params.terrainSource === 'geodata') ? (GEO_VIEW_SPAN.lon / spanLon) : 1;
-            // Grow the MESH outward with `surround`, instead of shrinking the core scale:
-            // scale width/depth by the same factor as the geoView window, so
-            // metersPerXUnit = (geoView lon-span × mPerDeg) / params.width stays CONSTANT
-            // (numerator and width both scale by `surround`). The qanat itself therefore
-            // stays the same on-screen size/position; only more surrounding terrain appears.
-            params.width = BASE_WIDTH * params.surround;
-            params.depth = BASE_DEPTH * params.surround;
+            // Mesh grows with the window: width tracks spanLon so metersPerXUnit =
+            // (spanLon × mPerDegLon) / width stays CONSTANT (the qanat keeps its on-screen
+            // size/position); depth == width so the block — and the metres-per-unit scale —
+            // stay square and isotropic (metersPerZUnit == metersPerXUnit).
+            params.width = BASE_WIDTH * (spanLon / GEO_VIEW_SPAN.lon);
+            params.depth = params.width;
             applyQanatScale();
             return geoView;
         }
@@ -1225,6 +1274,7 @@
             renderer.shadowMap.enabled = true;
             renderer.sortObjects = true;
             container.appendChild(renderer.domElement);
+            loadPBRTextures();   // preload realistic-stone maps (used only when params.pbr)
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
@@ -1345,6 +1395,7 @@
         function buildParametricModel() {
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
+            waterMats = [];          // PBR water materials (scrolled in animate); rebuilt each build
             recomputeGeoView();   // refresh geoView + QSCALE + scaled pillarDefs
 
             // Terrain tessellation. Bumped to feed the denser baked LiDAR grid (240×132 tier):
@@ -1574,8 +1625,15 @@
             // ghost fill — so they're obviously shafts yet clearly distinct from the solid
             // ones. Their below-ground body is faded relative to the cap (fainter fill +
             // cage), giving inferred shafts the same bright-cap / faint-body gradient.
-            const mkShaftMat = op => new THREE.MeshBasicMaterial({
-                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
+            // Realistic mode: clad the solid shafts in the sandstone PBR set (lit, so the
+            // normal/roughness show); otherwise the flat unlit x-ray overlay. depthTest/Write
+            // stay off either way so shafts keep reading through the terrain.
+            const mkShaftMat = op => params.pbr && TEX.color
+                ? new THREE.MeshStandardMaterial({ map: TEX.color, normalMap: TEX.normal,
+                    roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0,
+                    depthTest: false, depthWrite: false, transparent: op < 0.999, opacity: op })
+                : new THREE.MeshBasicMaterial({
+                    color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
             const capSolidMat = mkShaftMat(1.0);
             const belowFaintMat = mkShaftMat(0.4);
             const ghostFillMat = mkShaftMat(0.12);        // inferred cap ghost fill
@@ -1670,7 +1728,17 @@
                 if (points.length < 2) return;
                 const cv = new THREE.CatmullRomCurve3(points);
                 const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), 0.16, 8, false);
-                const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: false }));
+                // Realistic mode: render the explored core as flowing water (lit, with a
+                // scrolling ripple normal — see animate()); otherwise the flat blue conduit.
+                let mat;
+                if (params.pbr && TEX.water) {
+                    mat = new THREE.MeshStandardMaterial({ color: 0x2f6fae, normalMap: TEX.water,
+                        roughness: 0.16, metalness: 0.2, transparent: true, opacity: 0.92, depthTest: false });
+                    waterMats.push(mat);
+                } else {
+                    mat = new THREE.MeshBasicMaterial({ color, depthTest: false });
+                }
+                const mm = new THREE.Mesh(g, mat);
                 mm.renderOrder = 5; modelGroup.add(mm);
             }
             // Inferred gallery ends: a DASHED tube (short tube segments) instead of a 1px
@@ -2285,9 +2353,9 @@
                 buildParametricModel();
             });
 
-            // GeoData "Surrounding area": grow the rendered window from the qanat footprint
-            // (1.0x corridor) out to the full sampled extent (2.0x). Shafts are georeferenced,
-            // so they stay locked to the LiDAR terrain; this only reveals more surrounding DEM.
+            // GeoData "Surrounding area": grow/shrink a SQUARE window centred on the qanat.
+            // Shafts are georeferenced, so they stay locked to the LiDAR terrain; this only
+            // reveals more/less surrounding DEM. The range is data-bound (see below).
             const sliceReadout = () => {
                 const vb = recomputeGeoView();
                 const mLon = (vb.east - vb.west) * 111320 * Math.cos(vb.south * Math.PI / 180);
@@ -2298,21 +2366,30 @@
             };
             const surSl = document.getElementById('param-surround');
             const surLb = document.getElementById('lbl-surround');
-            // Restrain the shrink so the window can never crop tighter than *shortly before*
-            // the qanat: below the qanat footprint the end shafts spill off the terrain block.
-            // The georeferenced shafts span a band about the grid centre (the window is always
-            // centred on GEO_BBOX); the binding half-extent is the farthest shaft from centre.
+            // Restrain the shrink so the min square still ENCOMPASSES THE WHOLE QANAT STRUCTURE
+            // (every georeferenced shaft P-7A→P9 plus the gallery between them, which never
+            // extends past the end shafts) with clear breathing room — never cropping into it.
+            // The window is centred on the grid, so the binding half-extent is the farthest
+            // shaft from centre; the square's E–W side is the binding dimension (the qanat is
+            // thin N–S, so a square that fits it E–W covers it many times over N–S).
             // min span = 2·(that half-extent) + margin ⇒ min surround = span / GEO_VIEW_SPAN.lon.
             (() => {
                 const cLon = (GEO_BBOX.west + GEO_BBOX.east) / 2;
                 const geoLons = SHAFTS.filter(s => s.geo).map(s => Math.abs(s.geo.lon - cLon));
                 if (!geoLons.length) return;
-                const MARGIN_LON = 0.00028;                 // ~20 m breathing room past the end shafts
+                const MARGIN_LON = 0.0005;                  // ~36 m clear margin past the end shafts
                 const rawMin = (2 * Math.max(...geoLons) + 2 * MARGIN_LON) / GEO_VIEW_SPAN.lon;
                 // Snap up to the slider's 0.05 grid, and keep within the slider's [old-min, 1].
                 const surMin = Math.min(1, Math.max(0.2, Math.ceil(rawMin / 0.05) * 0.05));
                 surSl.min = surMin.toFixed(2);
                 if (params.surround < surMin) params.surround = surMin;
+                // Max: the square can't grow past the smaller (N–S) sampled dimension. Beyond
+                // spanLat == fullLat the window would stop being square, so cap surround there.
+                const cLat = (GEO_BBOX.south + GEO_BBOX.north) / 2;
+                const fullLat = GEO_BBOX.north - GEO_BBOX.south;
+                const surMax = (fullLat / Math.cos(cLat * Math.PI / 180)) / GEO_VIEW_SPAN.lon;
+                surSl.max = (Math.floor(surMax / 0.05) * 0.05).toFixed(2);   // snap down to the grid
+                if (params.surround > surMax) params.surround = parseFloat(surSl.max);
             })();
             surSl.value = params.surround; surLb.innerText = params.surround.toFixed(1) + '×';
             surSl.addEventListener('input', e => {
@@ -2323,6 +2400,20 @@
                 updateZoomClamp();   // maxDistance scales with the physically-larger block
             });
             sliceReadout();
+
+            // Debug: pin the qanat to the front cut face (strata right in front)
+            document.getElementById('param-qanat-front').addEventListener('change', e => {
+                params.qanatFront = e.target.checked;
+                sliceReadout();               // recomputeGeoView (re-frames N–S)
+                buildParametricModel();
+                updateZoomClamp();
+            });
+
+            // Realistic PBR stone materials (textured shafts / terrain walls + flowing water)
+            document.getElementById('param-pbr').addEventListener('change', e => {
+                params.pbr = e.target.checked;
+                buildParametricModel();
+            });
 
             // Flip West <-> East (GeoData)
             document.getElementById('param-flip').addEventListener('change', e => {
@@ -3405,6 +3496,8 @@
                 _readoutDirty = true;
             }
             updateFlow(now);
+            // Scroll the shared water ripple normal so the PBR gallery reads as flowing.
+            if (waterMats.length && TEX.water) TEX.water.offset.y = -(now * 0.00012) % 1;
             if (measureMode) updateMeasureOverlay();
             controls.update();
             renderer.render(scene, camera);
