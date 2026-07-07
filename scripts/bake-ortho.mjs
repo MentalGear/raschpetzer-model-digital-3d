@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs';
 const GEO_BBOX = { west: 6.138, east: 6.162, south: 49.6618, north: 49.6708 };
 const LAYER = 'OI_OrthoimageCoverage_RGB_2019';   // matches the 2019 ACT LiDAR terrain epoch
 const YEAR = 2019;
-const WIDTH = 2048;
+const WIDTH = 4096;   // ~0.42 m/px over the window (2019 ACT ortho native GSD is 0.20 m)
 
 // Keep pixels ~square in ground metres (lon-metres : lat-metres at this latitude).
 const midLat = (GEO_BBOX.south + GEO_BBOX.north) / 2;
