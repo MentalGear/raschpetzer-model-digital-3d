@@ -3680,7 +3680,15 @@
         function initInfoPanel() {
             const bs = document.getElementById('mode-settings'), bi = document.getElementById('mode-inspector');
             if (bs) bs.addEventListener('click', () => setPanelMode('settings'));
-            if (bi) bi.addEventListener('click', () => setPanelMode('inspector'));
+            // Manually switching to Inspector shows the initial prompt again (clearing any stale
+            // selection); clicking a shaft/spring/villa repopulates it via showInspector().
+            if (bi) bi.addEventListener('click', () => {
+                const body = document.getElementById('info-body');
+                const pane = document.getElementById('inspector-pane');
+                if (body) body.innerHTML = '';
+                if (pane) pane.classList.remove('has-selection');
+                setPanelMode('inspector');
+            });
         }
 
         // Full-screen image lightbox (scale in/out). Any img.lb-img opens it.
