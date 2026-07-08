@@ -97,6 +97,8 @@
         #profile-panel .pp-sub { color: #8a7a63; margin-bottom: 4px; }
         #profile-panel .pp-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
             margin: 2px 0 6px; color: #4a3f2f; user-select: none; }
+        #profile-panel .pp-toggle select { font-size: 0.68rem; padding: 1px 3px; border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.2); background: #fff; color: #4a3f2f; }
         #profile-panel .pp-geoimg img { width: 100%; display: block; border-radius: 4px;
             border: 1px solid rgba(0,0,0,0.12); }
         #profile-panel .pp-credit { color: #9a8b73; font-size: 0.62rem; margin: 3px 0 8px; line-height: 1.3; }
@@ -512,7 +514,7 @@
         <div class="tab-pane" data-pane="qanat">
             <div class="control-group">
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
-                <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;structures</label>
+                <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
@@ -735,7 +737,7 @@
             year: 131,                    // timeline slider default: the qanat as freshly built (131 AD)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
             showVilla: false,             // inferred recipient villa marker (optional)
-            showUnderground: true,        // qanat shafts + gallery + flow (subsurface structures)
+            xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
@@ -1647,23 +1649,28 @@
             // ghost fill — so they're obviously shafts yet clearly distinct from the solid
             // ones. Their below-ground body is faded relative to the cap (fainter fill +
             // cage), giving inferred shafts the same bright-cap / faint-body gradient.
+            // "Underground x-ray" toggle: when ON (default) the subsurface structures render
+            // depthTest:false, so they always show ATOP the terrain even at full opacity. When
+            // OFF they use depthTest:true and are correctly occluded by the terrain, appearing
+            // only as terrain opacity drops (they still occupy their true z). The above-ground
+            // shaft CAPS are surface markers and stay x-ray regardless.
+            const ugDT = !params.xrayUnderground;   // depthTest value for below-ground structures
             // Realistic mode: clad the solid shafts in the sandstone PBR set (lit, so the
-            // normal/roughness show); otherwise the flat unlit x-ray overlay. depthTest/Write
-            // stay off either way so shafts keep reading through the terrain.
-            const mkShaftMat = op => params.pbr && TEX.color
+            // normal/roughness show); otherwise the flat unlit overlay.
+            const mkShaftMat = (op, dt = false) => params.pbr && TEX.color
                 ? new THREE.MeshStandardMaterial({ map: TEX.color, normalMap: TEX.normal,
                     roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0,
-                    depthTest: false, depthWrite: false, transparent: op < 0.999, opacity: op })
+                    depthTest: dt, depthWrite: false, transparent: op < 0.999, opacity: op })
                 : new THREE.MeshBasicMaterial({
-                    color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
-            const capSolidMat = mkShaftMat(1.0);
-            const belowFaintMat = mkShaftMat(0.4);
-            const ghostFillMat = mkShaftMat(0.12);        // inferred cap ghost fill
-            const ghostFillFaintMat = mkShaftMat(0.06);   // inferred below-ground ghost fill (faded)
-            const mkCageMat = op => new THREE.LineBasicMaterial({
-                color: COL.shaft, depthTest: false, depthWrite: false, transparent: true, opacity: op });
-            const cageMat = mkCageMat(0.95);              // inferred cap cage (crisp)
-            const cageFaintMat = mkCageMat(0.4);          // inferred below-ground cage (faded)
+                    color: COL.shaft, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
+            const capSolidMat = mkShaftMat(1.0);          // above-ground cap: always x-ray
+            const belowFaintMat = mkShaftMat(0.4, ugDT);  // below-ground body: respects the toggle
+            const ghostFillMat = mkShaftMat(0.12);        // inferred cap ghost fill (x-ray)
+            const ghostFillFaintMat = mkShaftMat(0.06, ugDT); // inferred below-ground ghost fill
+            const mkCageMat = (op, dt = false) => new THREE.LineBasicMaterial({
+                color: COL.shaft, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
+            const cageMat = mkCageMat(0.95);              // inferred cap cage (crisp, x-ray)
+            const cageFaintMat = mkCageMat(0.4, ugDT);    // inferred below-ground cage
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -1731,10 +1738,11 @@
                         modelGroup.add(cage);
                     }
                 };
-                // Above-ground cap is ALWAYS shown (surface marker, even with underground off);
-                // the below-ground body only when subsurface structures are enabled.
+                // Both the above-ground cap (surface marker) and the below-ground body are
+                // ALWAYS built now; the "Underground x-ray" toggle only sets whether the body
+                // is drawn atop the terrain (x-ray) or occluded by it (see ugDT above).
                 addSeg(CAP, sy + CAP / 2, 'cap');
-                if (params.showUnderground) addSeg(len, sy - len / 2, 'body');
+                addSeg(len, sy - len / 2, 'body');
                 const lbl = createTextSprite(p.id, '#1a1a1a', 24);
                 lbl.position.set(p.x, sy + CAP + 0.5, p.z);
                 modelGroup.add(lbl);
@@ -1755,10 +1763,10 @@
                 let mat;
                 if (params.pbr && TEX.water) {
                     mat = new THREE.MeshStandardMaterial({ color: 0x2f6fae, normalMap: TEX.water,
-                        roughness: 0.16, metalness: 0.2, transparent: true, opacity: 0.92, depthTest: false });
+                        roughness: 0.16, metalness: 0.2, transparent: true, opacity: 0.92, depthTest: ugDT });
                     waterMats.push(mat);
                 } else {
-                    mat = new THREE.MeshBasicMaterial({ color, depthTest: false });
+                    mat = new THREE.MeshBasicMaterial({ color, depthTest: ugDT });
                 }
                 const mm = new THREE.Mesh(g, mat);
                 mm.renderOrder = 5; modelGroup.add(mm);
@@ -1772,7 +1780,7 @@
                 const SAMPLES = Math.max(60, points.length * 24);
                 const pts = cv.getPoints(SAMPLES);
                 const DASH = 7, GAP = 5;                      // samples per dash / gap
-                const mat = new THREE.MeshBasicMaterial({ color, depthTest: false });
+                const mat = new THREE.MeshBasicMaterial({ color, depthTest: ugDT });
                 for (let i = 0; i < pts.length - 1; i += DASH + GAP) {
                     const seg = pts.slice(i, Math.min(pts.length, i + DASH + 1));
                     if (seg.length < 2) continue;
@@ -1785,7 +1793,7 @@
                 if (points.length < 2) return;
                 const cv = new THREE.CatmullRomCurve3(points);
                 const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), radius, 8, false);
-                const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: false }));
+                const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: ugDT }));
                 mm.renderOrder = 5; modelGroup.add(mm);
             }
             // The gallery + channel exist only once the qanat is built (≥131 AD).
@@ -1794,7 +1802,7 @@
             // The qanat is always drawn blue — water still runs in the gallery today, so its
             // colour does not change with the timeline (only its existence does).
             const galleryColor = COL.qanat;
-            if (galleryBuilt && params.showUnderground) {
+            if (galleryBuilt) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
@@ -1834,18 +1842,18 @@
 
             // Gallery flow arrows only while the qanat is carrying water (Roman service,
             // 140–350); once dormant/dry the gallery is silted so no flow is shown.
-            if (inService && params.showGeology && params.showUnderground) {
+            if (inService && params.showGeology) {
                 for (let i = basePts.length - 2; i >= 1; i -= 2) {
                     flowArrow(basePts[i].x, basePts[i].y + 0.05, basePts[i].z, -1, COL.qanat, 0.9);
                 }
             }
-            lastQanatPts = (inService && params.showUnderground) ? basePts : [];   // animated flow: in-service only
+            lastQanatPts = inService ? basePts : [];   // animated flow: in-service only
 
             // Overflow / lateral (deviation) channel at the P-4 weir (optional; SSOT-driven).
             // Ø80 cm branch that carries surplus (~80 m³/d) away when the main channel dams
             // above ~12 cm. The brochure gives no surveyed plan geometry (fig 5-11/5-14), so
             // the route here is a SCHEMATIC short lateral drain — labelled as reconstructed.
-            if (params.showOverflow && galleryBuilt && params.showUnderground) {
+            if (params.showOverflow && galleryBuilt) {
                 const oc = SSOT.gallery.gallery.overflowChannel;
                 const bp = oc && shaftBaseById[oc.atShaft];
                 if (bp) {
@@ -2470,12 +2478,11 @@
             syncBaseLayerUI();   // initial state (contours by default → slider shown)
 
             // Only expose options that do something in the current state: the geology
-            // overlays (perched table / horst faults) need "Show geology"; the subsurface
-            // conduits (aux / overflow) need "Underground structures".
+            // overlays (perched table / horst faults) need "Show geology". The subsurface
+            // conduits (aux / overflow) are always available now that underground structures
+            // are always built (the x-ray toggle only changes how they're drawn).
             const syncConditionalOptions = () => {
-                const u = params.showUnderground, g = params.showGeology;
-                document.getElementById('row-aux').style.display = u ? '' : 'none';
-                document.getElementById('row-overflow').style.display = u ? '' : 'none';
+                const g = params.showGeology;
                 document.getElementById('row-perched').style.display = g ? '' : 'none';
                 document.getElementById('row-faults').style.display = g ? '' : 'none';
             };
@@ -2551,8 +2558,7 @@
 
             // Toggle subsurface qanat structures (shafts + gallery + flow + overflow)
             document.getElementById('param-underground').addEventListener('change', e => {
-                params.showUnderground = e.target.checked;
-                syncConditionalOptions();
+                params.xrayUnderground = e.target.checked;
                 buildParametricModel();
             });
 
@@ -3420,25 +3426,40 @@
         // --- Gallery longitudinal-profile chart (toggle) ---------------------
         let profileOn = false;
         let profileImgOn = false;   // show the Brochure geological cross-section (fig 4-2) in the modal
-        // Separate in-modal toggle: reveal/hide the original geological section for comparison
-        // against our derived longitudinal profile. Image used with the rights holders' clearance.
-        function toggleProfileImg(cb) {
-            profileImgOn = cb.checked;
-            const d = document.getElementById('pp-geoimg');
-            if (d) d.style.display = profileImgOn ? 'block' : 'none';
+        let profileXMode = 'geo';   // 'geo' = georeferenced (LiDAR/OSM) | 'schematic' = Brochure fig 3-1 layout
+        // Shafts drawn in Brochure fig 4-2 (W→E). When the section image is shown we restrict the
+        // computed profile to this set so the two align (P-5/P-4 and the aux drop-shafts aren't in it).
+        const FIGURE_SHAFTS = ['P-1', 'P0', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9'];
+        function rebuildProfilePanel() {
+            const el = document.getElementById('profile-panel');
+            if (el && profileOn) el.innerHTML = buildProfileSVG();
         }
+        // Toggling the section image also re-selects the shaft set → rebuild the whole panel.
+        function toggleProfileImg(cb) { profileImgOn = cb.checked; rebuildProfilePanel(); }
+        // X-axis basis is PROFILE-ONLY; it never moves the georeferenced 3D shafts.
+        function setProfileXMode(sel) { profileXMode = sel.value; rebuildProfilePanel(); }
         function buildProfileSVG() {
-            // georeferenced main-line shafts, W->E; true elevations (masl)
-            const shs = SHAFTS.filter(s => s.geo && s.role !== 'auxiliary')
-                .sort((a, b) => a.geo.lon - b.geo.lon);
+            const schematic = profileXMode === 'schematic';
+            // Main-line shafts; restrict to the figure's set when comparing against the image.
+            let shs = SHAFTS.filter(s => s.geo && s.role !== 'auxiliary');
+            if (profileImgOn) shs = shs.filter(s => FIGURE_SHAFTS.includes(s.id));
+            shs = shs.slice().sort((a, b) => schematic
+                ? ((a.modelPos?.x ?? 0) - (b.modelPos?.x ?? 0)) : (a.geo.lon - b.geo.lon));
             if (shs.length < 2) return '<div class="pp-sub">Profile needs georeferenced shafts.</div>';
             const mPerDegLon = 111320 * Math.cos(GEO_BBOX.south * Math.PI / 180);
-            const lon0 = shs[0].geo.lon;
+            const lons = shs.map(s => s.geo.lon), lonMin = Math.min(...lons);
+            const geoSpan = (Math.max(...lons) - lonMin) * mPerDegLon || 1;
+            const mxs = shs.map(s => s.modelPos?.x ?? 0), mxMin = Math.min(...mxs);
+            const mxSpan = (Math.max(...mxs) - mxMin) || 1;
+            // Schematic mode: Brochure fig 3-1 modelPos spacing, normalised to the same total
+            // width as the georeferenced span, so only the INTERNAL spacing differs.
             const pts = shs.map(s => {
                 const sc = geoToScene(s.geo.lat, s.geo.lon);
                 const surf = surfaceMeters(getTerrainHeight(sc.x, sc.z));
                 const floor = (s.floorElevM != null) ? s.floorElevM : floorMaslAtLon(s.geo.lon);
-                return { id: s.id, dist: (s.geo.lon - lon0) * mPerDegLon, surf, floor };
+                const dist = schematic ? ((s.modelPos?.x ?? 0) - mxMin) / mxSpan * geoSpan
+                                       : (s.geo.lon - lonMin) * mPerDegLon;
+                return { id: s.id, dist, surf, floor };
             });
             const W = 540, H = 200, mL = 40, mR = 12, mT = 26, mB = 26;
             const maxD = pts[pts.length - 1].dist;
@@ -3472,17 +3493,24 @@
             const fall = (pts[pts.length - 1].floor - pts[0].floor);
             // Separate toggle + the original geological cross-section (Brochure fig 4-2), for
             // side-by-side comparison with our derived profile. Both run W→E through P-1..P9.
-            const geoBlock =
+            const controls =
                 `<label class="pp-toggle"><input type="checkbox" onchange="toggleProfileImg(this)"` +
                     `${profileImgOn ? ' checked' : ''}> Geological section (Brochure fig&nbsp;4‑2)</label>` +
+                `<label class="pp-toggle">Spacing:&nbsp;<select onchange="setProfileXMode(this)">` +
+                    `<option value="geo"${!schematic ? ' selected' : ''}>Georeferenced (LiDAR)</option>` +
+                    `<option value="schematic"${schematic ? ' selected' : ''}>Brochure schematic (fig&nbsp;3‑1)</option>` +
+                `</select></label>` +
                 `<div class="pp-geoimg" id="pp-geoimg" style="display:${profileImgOn ? 'block' : 'none'}">` +
                     `<img src="assets/geo-section-brochure.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)">` +
                     `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Brochure 2018, fig 4‑2 · used with permission</div>` +
                 `</div>`;
+            const basis = schematic
+                ? `x = Brochure fig 3‑1 schematic spacing (normalised); georeferenced shafts unchanged in 3D`
+                : `x = georeferenced W→E distance (OSM/LiDAR)`;
             return `<div class="pp-title">Gallery longitudinal profile — true elevation (m a.s.l.)</div>` +
-                   geoBlock +
+                   controls +
                    `<div class="pp-sub">Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
-                   `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps).</div>` + svg;
+                   `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps). ${basis}.</div>` + svg;
         }
         function toggleProfile() {
             profileOn = !profileOn;

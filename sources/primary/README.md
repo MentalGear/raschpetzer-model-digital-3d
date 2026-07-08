@@ -2,7 +2,7 @@
 
 Original primary-source documents for the Raschpëtzer qanat model, stored via
 **Git LFS** (see `/.gitattributes`). These back the citations in
-`data/sources.json` (`waringo2018`, its figures, and the SIT leaflet).
+`data/sources.json` (`brochure2018`, its figures, and the SIT leaflet).
 
 | File | Description |
 |------|-------------|

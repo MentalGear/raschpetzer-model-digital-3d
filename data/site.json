@@ -31,7 +31,7 @@
     "name": "Raschpëtzer Qanat",
     "place": "NE of Helmsange, Municipality of Walferdange, Luxembourg",
     "centroid": { "crs": "EPSG:4326", "latDeg": 49.668, "lonDeg": 6.139, "status": "documented" },
-    "source": "waringo2018", "status": "documented",
+    "source": "brochure2018", "status": "documented",
 
     "channelLengthM": 720,
     "channelExploredM": 310,
@@ -72,7 +72,7 @@
     "approxElevationMasl": 330,
     "status": "inferred",
     "confidence": "low",
-    "source": "waringo2018",
+    "source": "brochure2018",
     "note": "The qanat carried water east→west toward the Alzette valley to supply a Roman estate. The villa's location is NOT established (no coordinates, no confirmed site) and is likely several hundred metres downslope in the valley — not adjacent to the qanat. The marker is drawn ~200 m west of the west-most shaft purely as a schematic 'downslope' placeholder; distance and position are illustrative, not surveyed.",
     "_prov": {
       "role": { "loc": "p.4; p.9", "note": "flow toward the Alzette valley to serve a Roman settlement downslope" },
@@ -82,20 +82,20 @@
 
   "regions": [
     { "id": "alzette", "name": "Alzette hillside", "modelSide": "west",
-      "source": "waringo2018", "status": "documented",
+      "source": "brochure2018", "status": "documented",
       "_prov": { "name": { "loc": "p.7" } } },
     { "id": "petschend", "name": "Pëtschend Plateau", "elevationMasl": 395, "modelSide": "center",
-      "source": "waringo2018", "status": "documented",
+      "source": "brochure2018", "status": "documented",
       "_prov": { "elevationMasl": { "loc": "p.7", "note": "mountain spur ~395 m a.s.l." } } },
     { "id": "haedchen", "name": "Haedchen Depression", "elevationMasl": 375, "modelSide": "east",
-      "source": "waringo2018", "status": "documented",
+      "source": "brochure2018", "status": "documented",
       "_prov": { "elevationMasl": { "loc": "p.7", "note": "marshy source area ~375 m a.s.l., 600 m E of Pëtschend" } } }
   ],
 
   "timeline": {
     "_doc": "Significant dates/periods (AD/CE) for the time slider: Roman construction + use, dormancy, and the modern excavation campaigns. From Brochure 2018 ch.3 'Chronicle of the excavations' (p.11-13) and the excavation-period brackets in fig 3-1 (p.7). Campaign→shaft assignment is per those group brackets (see shafts[].dates).",
     "spanAD": [100, 2025],
-    "source": "waringo2018", "status": "documented",
+    "source": "brochure2018", "status": "documented",
     "events": [
       { "id": "construction", "label": "Qanat constructed", "kind": "build", "fromAD": 131, "toAD": 140,
         "_prov": { "fromAD": { "loc": "p.29", "note": "P8 oak beam felled ~131 AD (outer ring 114 AD)" },

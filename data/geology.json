@@ -4,7 +4,7 @@
     "id": "raschpetzer-geology", "crm": "E4_Period",
     "strataDipPct": 2,
     "dipDirection": "southeast",
-    "source": "waringo2018", "status": "documented", "paradataRef": ["pd-strata-render"],
+    "source": "brochure2018", "status": "documented", "paradataRef": ["pd-strata-render"],
     "_prov": {
       "strataDipPct": { "loc": "p.14", "note": "strata slightly inclined ~2% toward the SE; natural drainage toward Haedchen" },
       "dipDirection": { "loc": "p.14" }
@@ -36,12 +36,12 @@
     "structure": {
       "form": "horst",
       "note": "The Pëtschend is a central horst bounded N & S by ~E–W faults where strata are re-aligned vertically; some groundwater leaks along the faults to the Dauvebur (N) and Op der Rëll (S) springs.",
-      "source": "waringo2018", "status": "documented",
+      "source": "brochure2018", "status": "documented",
       "_prov": { "note": { "loc": "p.14; fig.4-3" } }
     },
     "groundwater": {
       "accumulatesAt": "sandstone/marl interface", "flowDirection": "east (down-dip, to the mother shaft)",
-      "source": "waringo2018", "status": "documented",
+      "source": "brochure2018", "status": "documented",
       "_prov": { "accumulatesAt": { "loc": "p.6; p.14" }, "flowDirection": { "loc": "p.14; fig.4-2" } }
     }
   }
