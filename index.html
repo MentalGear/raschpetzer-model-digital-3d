@@ -826,7 +826,8 @@
             showGeology: true,            // real strata + groundwater/qanat flows
             strataDetailed: false,        // overlay detailed geology (bedding lines, mounded water table, unit labels)
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
-            year: 131,                    // timeline slider default: the qanat as freshly built (131 AD)
+            year: 250,                    // timeline OFF by default → show the complete, in-service qanat
+                                          // (mid Roman service 140–350: all shafts built + water flowing)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
             showVilla: false,             // inferred recipient villa marker (optional)
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
@@ -3157,7 +3158,7 @@
             }
             document.body.classList.toggle('nav-normal', normal);
             const hint = document.getElementById('instructions');
-            if (hint) hint.firstChild.textContent = normal
+            if (hint && hint.firstChild) hint.firstChild.textContent = normal
                 ? 'Drag to pan · right-drag (or two-finger) to rotate · scroll to zoom · click a shaft for info'
                 : 'Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · scroll to zoom · click a shaft for info';
         }
