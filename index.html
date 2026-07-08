@@ -286,7 +286,9 @@
         #panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
         /* Tab strip sits flush on top of the panes card so the two read as one container:
            rounded top corners, shared side borders, no bottom border (the panes continue it). */
-        #tab-bar { display: flex; gap: 4px; margin: 8px 0 0; background: rgba(255,255,255,0.05);
+        /* Opaque panel-coloured fill (not translucent): it's sticky, so a see-through bg would
+           let the scrolling pane content bleed through underneath it. */
+        #tab-bar { display: flex; gap: 4px; margin: 8px 0 0; background: var(--panel-bg);
             padding: 4px; border-radius: 10px 10px 0 0;
             border: 1px solid rgba(255,255,255,0.07); border-bottom: none;
             position: sticky; top: 0; z-index: 2; }
@@ -328,7 +330,9 @@
             body.drawer-open #drawer-toggle { display: none; }
             body.drawer-open #drawer-scrim { display: block; }
             #drawer-close { display: block; }
-            #timeline-bar { width: calc(100% - 20px); bottom: 10px; padding: 7px 11px 9px; }
+            #timeline-bar { width: calc(100% - 20px); padding: 7px 11px 9px;
+                /* keep clear of the iOS home indicator / safe area so it isn't cut off */
+                bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
             .instructions { display: none; }
             #compass { top: 48px; left: 12px; }
         }
@@ -3125,7 +3129,20 @@
                 const h = hits.find(hh => hh.object.type === 'Mesh');
                 return h ? h.point : null;
             }
-            dom.addEventListener('click', ev => {
+            // Tap detector via pointer events: OrbitControls calls preventDefault on touch
+            // gestures, which suppresses the synthesized `click` on iOS — so shafts became
+            // un-tappable. Track pointerdown→pointerup and treat a short, near-stationary
+            // press as a tap (works identically for mouse and touch).
+            let tapStart = null;
+            dom.addEventListener('pointerdown', ev => {
+                tapStart = { x: ev.clientX, y: ev.clientY, t: performance.now() };
+            });
+            dom.addEventListener('pointerup', ev => {
+                if (!tapStart) return;
+                const moved = Math.hypot(ev.clientX - tapStart.x, ev.clientY - tapStart.y);
+                const dt = performance.now() - tapStart.t;
+                tapStart = null;
+                if (moved > 8 || dt > 600) return;   // a drag/orbit or long-press, not a tap
                 if (measureMode) {
                     const p = pickSurface(ev);
                     if (p) addMeasurePoint(p);
@@ -3138,7 +3155,7 @@
                 }
                 const hit = pick(ev);
                 if (hit) {
-                    // Clicking a shaft opens the info overlay (no camera fly).
+                    // Tapping a shaft opens the info overlay (no camera fly).
                     renderInfoPanel(shaftById[hit.object.userData.name]);
                     return;
                 }
