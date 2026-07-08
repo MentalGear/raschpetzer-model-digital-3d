@@ -341,7 +341,11 @@
         @media (max-width: 760px) {
             body { display: block; }
             #panel-resize { display: none; }   /* mobile uses the drawer, not the resize handle */
-            #canvas-container { position: absolute; inset: 0; width: 100%; height: 100%; }
+            /* Keep the canvas in normal flow sized to the dynamic viewport. An absolutely
+               positioned inset:0 canvas pins to the *layout* viewport, whose top sits behind
+               the iOS Safari address bar and clips the top of the scene; dvh in-flow fills
+               exactly the visible area (top and bottom) instead. */
+            #canvas-container { position: relative; width: 100%; height: 100vh; height: 100dvh; }
             #ui-panel { position: fixed; top: 0; right: 0; height: 100%; width: min(360px, 88vw);
                 transform: translateX(100%); transition: transform 0.25s ease; z-index: 40; }
             body.drawer-open #ui-panel { transform: translateX(0); }
@@ -434,16 +438,20 @@
         .annot-io button:hover { background: #4b5563; }
 
         /* Feature info panel (click a shaft) */
-        #info-panel {
-            position: absolute; top: 20px; left: 20px; width: 300px; z-index: 12;
-            background: var(--panel-bg); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 18px 18px 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.45); max-height: 88vh; overflow-y: auto; display: none;
-        }
-        body.info-open #info-panel { display: block; }
-        #info-close { position: absolute; top: 10px; right: 12px; background: none; border: none;
-            color: #9ca3af; font-size: 1.3rem; line-height: 1; cursor: pointer; }
-        #info-close:hover { color: #fff; }
+        /* Shared side panel: Settings ⇄ Inspector segmented toggle at the top. */
+        #panel-mode { display: flex; gap: 4px; margin: 2px 0 14px; padding: 3px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; }
+        #panel-mode .pm-btn { flex: 1; padding: 7px 6px; border: none; border-radius: 6px; background: none;
+            color: #9ca3af; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s; }
+        #panel-mode .pm-btn:hover { color: #d7dbe2; }
+        #panel-mode .pm-btn.active { background: rgba(255,255,255,0.13); color: #fff; }
+        #inspector-pane { display: none; }
+        #inspector-empty { color: #9ca3af; font-size: 0.84rem; line-height: 1.55; padding: 10px 2px; }
+        #inspector-pane.has-selection #inspector-empty { display: none; }
+        body.mode-inspector #inspector-pane { display: block; }
+        body.mode-inspector .tab-section,
+        body.mode-inspector #panel-actions,
+        body.mode-inspector .control-group.legend { display: none; }
         #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -507,6 +515,16 @@
                 <h2>3D geological visualization · Walferdange, Luxembourg</h2>
             </div>
             <button id="drawer-close" type="button" aria-label="Close controls">×</button>
+        </div>
+
+        <div id="panel-mode" role="tablist" aria-label="Panel view">
+            <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true">⚙&nbsp;Settings</button>
+            <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false">🔍&nbsp;Inspector</button>
+        </div>
+
+        <div id="inspector-pane">
+            <div id="info-body"></div>
+            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
         </div>
 
         <div class="tab-section">
@@ -673,11 +691,6 @@
             <button id="annot-import-btn" type="button">Import</button>
             <input id="annot-import" type="file" accept="application/json,.json" hidden>
         </div>
-    </div>
-
-    <div id="info-panel">
-        <button id="info-close" type="button" aria-label="Close">×</button>
-        <div id="info-body"></div>
     </div>
 
     <div id="sources-modal-backdrop">
@@ -3302,7 +3315,7 @@
                     notes.map(n => '‣ ' + n.rationale).join('<br><br>') + `</div>`;
             }
             body.innerHTML = h;
-            document.body.classList.add('info-open');
+            showInspector();
         }
         // Info panel for a surveyed "spot" (spring / borehole / overflow resurgence).
         function renderSpotPanel(spot) {
@@ -3323,11 +3336,33 @@
                  `<span class="ip-v">${spot.source || 'geoportail.lu (WFS)'}</span></div>`;
             if (spot.note) h += `<div class="ip-note">${spot.note}</div>`;
             body.innerHTML = h;
-            document.body.classList.add('info-open');
+            showInspector();
+        }
+        // Shared side panel: switch between the Settings controls and the Inspector.
+        function setPanelMode(mode) {
+            const insp = mode === 'inspector';
+            document.body.classList.toggle('mode-inspector', insp);
+            const bi = document.getElementById('mode-inspector'), bs = document.getElementById('mode-settings');
+            if (bi) { bi.classList.toggle('active', insp); bi.setAttribute('aria-selected', insp); }
+            if (bs) { bs.classList.toggle('active', !insp); bs.setAttribute('aria-selected', !insp); }
+        }
+        // A selection was made: mark the inspector as populated, reveal it, and make
+        // sure the panel is on-screen (slide the mobile drawer in / un-hide desktop).
+        function showInspector() {
+            const pane = document.getElementById('inspector-pane');
+            if (pane) pane.classList.add('has-selection');
+            setPanelMode('inspector');
+            if (window.matchMedia('(max-width: 760px)').matches) {
+                document.body.classList.add('drawer-open');
+            } else if (document.body.classList.contains('panel-hidden')) {
+                document.body.classList.remove('panel-hidden');
+                window.dispatchEvent(new Event('resize'));
+            }
         }
         function initInfoPanel() {
-            document.getElementById('info-close').addEventListener('click',
-                () => document.body.classList.remove('info-open'));
+            const bs = document.getElementById('mode-settings'), bi = document.getElementById('mode-inspector');
+            if (bs) bs.addEventListener('click', () => setPanelMode('settings'));
+            if (bi) bi.addEventListener('click', () => setPanelMode('inspector'));
         }
 
         // --- Data-sources modal (replaces the old inline bottom-left overlay) ---
