@@ -48,7 +48,7 @@ surface to the brochure-implied surface (`surveyed/near-level floor + documented
 
 | rank | source | authoritative for | role in the model |
 |---|---|---|---|
-| 1 | **Waringo 2018 (SIT brochure)** | depths, surveyed floors, 0.1 % grade + steps, geology, hydrology | drives the qanat geometry |
+| 1 | **Brochure 2018 (SIT brochure)** | depths, surveyed floors, 0.1 % grade + steps, geology, hydrology | drives the qanat geometry |
 | 1 | **ACT LiDAR 2019 (0.5 m)** | true ground surface (a.s.l.) | drives the terrain surface & shaft tops |
 | 2 | **OpenStreetMap nodes** | horizontal shaft position (lat/lon) | drives georeferenced placement |
 | 3 | EU‑DEM 25 m | broad regional context only | (demoted; not used for the corridor) |

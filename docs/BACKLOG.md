@@ -56,7 +56,7 @@ animated timeline, clickable spots + GPS.
   was removed.
 - **Shaft surface state (mesh vs. solid cap).** Researched the present-day shaft heads: the
   **10 excavated shafts carry a physical surface cover** — modern **metal lids** (P5 windowed,
-  P-4 windowed), plus **P4**'s documented **concrete slab cap** (Waringo 2018 p.18). Any such
+  P-4 windowed), plus **P4**'s documented **concrete slab cap** (Brochure 2018 p.18). Any such
   cover renders as a **SOLID** surface cap: P1, P4, P5, P6, P7, P8, P9, P-1, P-4, P-5. The
   shafts with **no** present-day cover render as a **mesh**: the unexcavated / backfilled ones
   (P0 surface-panel only, P2 & P3 still backfilled, P-5A & P-7A restored/sand-filled) and the
@@ -92,7 +92,7 @@ animated timeline, clickable spots + GPS.
   3. **Overflow / lateral (deviation) channel** at P‑4 (`gallery.overflowChannel`) as a short
      branch off the weir — separate toggle.
   4. Keep it a **toggle / zoom-LOD** so the honest schematic stays the default; label the
-     detailed view "reconstructed profile (Waringo 2018), not surveyed geometry" as paradata.
+     detailed view "reconstructed profile (Brochure 2018), not surveyed geometry" as paradata.
   Rationale: faithful to the primary source and inspectable, avoids inventing geometry the
   brochure doesn't document.
 

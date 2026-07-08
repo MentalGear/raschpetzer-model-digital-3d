@@ -1,5 +1,5 @@
 {
-  "_doc": "One record per shaft (W→E). Reunifies the former pillarDefs / REAL_DEPTH / REAL_FLOOR. Bare scalars drive the model; _prov holds sparse per-field citations/status overriding the record defaults (source=waringo2018, status=documented). modelPos is schematic (crs model-schematic); geo (WGS84) is reserved for surveyed coords.",
+  "_doc": "One record per shaft (W→E). Reunifies the former pillarDefs / REAL_DEPTH / REAL_FLOOR. Bare scalars drive the model; _prov holds sparse per-field citations/status overriding the record defaults (source=brochure2018, status=documented). modelPos is schematic (crs model-schematic); geo (WGS84) is reserved for surveyed coords.",
   "shafts": [
     {
       "id": "P-7A",
@@ -28,7 +28,7 @@
       "floorElevM": 354.3,
       "floorElevCrs": "masl",
       "notes": "Auxiliary debris-filled drop-shaft ~25 m NW of P-5; rubble backfill from 3 m depth, +3 m deeper; dry channel, restored to original state.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "paradataRef": [
         "pd-aux-system"
@@ -51,7 +51,7 @@
           "note": "0.5 m LiDAR at the derived coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.12; fig.3-1",
           "note": "western continuation 1992-2000 (auxiliary drop-shaft)"
         }
@@ -93,7 +93,7 @@
       "floorElevM": 357.5,
       "floorElevCrs": "masl",
       "notes": "Auxiliary shaft ~30 m N of P-4; dry channel at 8 m, 2 m higher than the main channel, so never connected to it; dug in marl, sand-filled.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "paradataRef": [
         "pd-aux-system"
@@ -115,7 +115,7 @@
           "note": "0.5 m LiDAR at the derived coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "western continuation 1992-2000 (auxiliary)"
         }
@@ -156,7 +156,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Yellow-sand filled; channel found at 10 m. Site of the 'geological accident' — channel floor breached, water lost into limestone fissures; rebuilt in concrete.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -171,7 +171,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "western continuation 1992-2000"
         },
@@ -220,7 +220,7 @@
       "diameterM": 0.8,
       "notes": "Dry-stone lined (0.8 m wall, 3 concentric rows); base widened to 1.4 m cone; overflow weir diverts water to a lateral channel when the level exceeds 12 cm.",
       "surfaceState": "windowed viewing cover (to see the overflow bifurcation)",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "depthM": {
@@ -245,7 +245,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.12; fig.3-1",
           "note": "western continuation 1992-2000"
         },
@@ -291,7 +291,7 @@
       "floorElevM": null,
       "notes": "Circular shaft in marl, sand-filled; secured with concrete segments; not used for access.",
       "surfaceState": "metal lid (concrete-lined, secured shaft body)",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -306,7 +306,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "western continuation 1992-2000"
         },
@@ -351,7 +351,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Marked only with a surface panel; not excavated.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -366,7 +366,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.20",
           "note": "not excavated — marked only with a surface panel"
         }
@@ -407,7 +407,7 @@
       "depthM": 30,
       "floorElevM": null,
       "notes": "At the bend in the route; likely the first shaft sunk; 6 m below the plateau edge in a natural depression. Total depth 30 m; an intermediate 'sounding' gallery at 20 m has no channel.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "depthM": {
@@ -425,7 +425,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.11",
           "note": "cleared 1913 (initial excavations)"
         },
@@ -471,7 +471,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Western edge of the Pëtschend plateau; still backfilled in its original state; unusually close to P1 for survey reasons.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -486,7 +486,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991 (fig 3-1 excavation-period bracket)"
         }
@@ -527,7 +527,7 @@
       "depthM": 35,
       "floorElevM": null,
       "notes": "Exactly on the P1–P5 line, 28 m from P2; crosses the plateau at its narrowest to minimise >30 m shafts; still in original state.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "depthM": {
@@ -545,7 +545,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991"
         }
@@ -588,7 +588,7 @@
       "notes": "Half-way between P3 and P5; mouth first excavated with P5; concrete rings + slab cap; base later tunnelled through to link P5→P3.",
       "surfaceState": "concrete slab cap (concrete rings + slab cap on the surface)",
       "surfaceCase": true,
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -607,7 +607,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991"
         }
@@ -652,7 +652,7 @@
       ],
       "notes": "Deepest shaft; eastern plateau edge; first cleared to base (3 Oct 1986). Diameter 1.2 m, narrowing to 0.85 m at torus bulges; the channel passes tangentially.",
       "surfaceState": "windowed metal cover (to view the ~35 m depth)",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "depthM": {
@@ -674,7 +674,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.9; p.11-12",
           "note": "cleared ~10 m in 1913; base reached 3 Oct 1986 — the gallery was rediscovered here"
         },
@@ -720,7 +720,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "First Haedchen shaft surveyed from below ground. A 1.2 m stepped fall in the gallery at its base is a provision for level adjustment; debris/sinter cone with iron oxide. Rock bed ~10 m under ~10 m of soft ground.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -735,7 +735,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991"
         },
@@ -781,7 +781,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Located from below ground along the eastbound gallery; cleared with heavy machinery; counter-excavation between P7 and P8.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -796,7 +796,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991"
         },
@@ -842,7 +842,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "Cleared normally; a spring influx ~25 m³/d enters 2 m upstream on the left. An oak beam dated to 114 AD (felling ~131 AD) was found near its base.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -857,7 +857,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.29; fig.3-1",
           "note": "eastern campaign; oak beam (114 AD) found near its base by 1991"
         },
@@ -903,7 +903,7 @@
       "depthM": null,
       "floorElevM": null,
       "notes": "The 'mother shaft' — most upstream/easternmost. The gallery ends 6 m east of P9; there is no channel for the first ~13 m. A portal niche with a seepage gutter; oak shovels were found in the mud nearby.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "documented",
       "_prov": {
         "notes": {
@@ -918,7 +918,7 @@
           "note": "0.5 m LiDAR sampled at the OSM coordinate"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "fig.3-1",
           "note": "eastern campaign 1987-1991 (mother shaft)"
         },
@@ -955,7 +955,7 @@
       "existence": "inferred",
       "confidence": "low",
       "notes": "Not yet found. Existence postulated from the qanat shaft-spacing regularity west of P-4.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "inferred",
       "paradataRef": [
         "pd-postulated-shafts"
@@ -965,7 +965,7 @@
           "loc": "p.21"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.21",
           "note": "postulated; never located"
         }
@@ -994,7 +994,7 @@
       "existence": "inferred",
       "confidence": "low",
       "notes": "Not yet found. Existence postulated from shaft-spacing regularity west of P-4.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "inferred",
       "paradataRef": [
         "pd-postulated-shafts"
@@ -1004,7 +1004,7 @@
           "loc": "p.21"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.21",
           "note": "postulated; never located"
         }
@@ -1033,7 +1033,7 @@
       "existence": "inferred",
       "confidence": "low",
       "notes": "Not yet located; existence assumed from the spacing between P-5A and P-7A.",
-      "source": "waringo2018",
+      "source": "brochure2018",
       "status": "inferred",
       "paradataRef": [
         "pd-postulated-shafts"
@@ -1043,7 +1043,7 @@
           "loc": "p.22"
         },
         "dates": {
-          "source": "waringo2018",
+          "source": "brochure2018",
           "loc": "p.22",
           "note": "postulated; never located"
         }

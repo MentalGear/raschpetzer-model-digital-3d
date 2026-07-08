@@ -297,9 +297,16 @@ async function run() {
       existing.add(k);
       newRows.push({ lon: +p.lon.toFixed(6), lat: +p.lat.toFixed(6), masl, run: runId });
       nNew++;
+      // Flush incrementally so a long run is resumable: if the process is killed
+      // (e.g. container restart) the already-fetched points persist, and a re-run
+      // dedups against them via loadExisting() and continues where it left off.
+      if (newRows.length >= 250) {
+        appendSamples(newRows); newRows.length = 0;
+        if (nNew % 1000 === 0) console.log(`  …${nNew}/${toFetch.length} fetched`);
+      }
       if (idx < toFetch.length - 1) await sleep(DELAY_MS);
     }
-    appendSamples(newRows);
+    appendSamples(newRows);   // final flush (remainder < batch size)
   }
 
   manifest.runs.push({
