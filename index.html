@@ -58,6 +58,16 @@
             border-radius: 50%; background: rgba(15,20,30,0.55);
             border: 1px solid rgba(255,255,255,0.20); cursor: pointer;
         }
+        /* On-canvas nav pad — shown only in Normal navigation mode. */
+        #nav-pad { position: absolute; right: 16px; bottom: 16px; z-index: 6; display: none;
+            flex-direction: column; align-items: center; gap: 6px; }
+        body.nav-normal #nav-pad { display: flex; }
+        #nav-pad .nav-pad-row { display: flex; gap: 6px; }
+        #nav-pad button { width: 38px; height: 38px; border-radius: 9px; cursor: pointer;
+            background: rgba(15,20,30,0.62); color: #e5e7eb; font-size: 0.8rem;
+            border: 1px solid rgba(255,255,255,0.20); display: flex; align-items: center; justify-content: center; }
+        #nav-pad button:hover { background: rgba(40,48,64,0.85); }
+        @media (pointer: coarse) { #nav-pad button { width: 46px; height: 46px; } }
         #compass .rose { position: absolute; inset: 0; will-change: transform; }
         #compass .arrow { position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
             width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
@@ -118,7 +128,7 @@
         /* Scale bar */
         #scale-bar {
             position: absolute;
-            bottom: 26px;
+            bottom: 16px;
             left: 18px;
             pointer-events: none;
             z-index: 5;
@@ -206,7 +216,10 @@
         #timeline-axis span::before { content: ''; position: absolute; top: 0; left: 50%;
             width: 1px; height: 3px; background: rgba(255,255,255,0.28); }
         #timeline-readout b { font-weight: 600; }
-        /* In-canvas timeline scrubber ("time machine") pinned to the bottom of the scene */
+        /* In-canvas timeline scrubber ("time machine") pinned to the bottom of the scene.
+           Hidden by default; shown only when the "⏳ Timeline" tool button is active. */
+        #timeline-bar { display: none; }
+        body.timeline-on #timeline-bar { display: block; }
         #timeline-bar {
             position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
             width: min(640px, calc(100% - 40px)); z-index: 7;
@@ -243,9 +256,27 @@
         }
         select:focus { border-color: var(--accent-blue); }
 
-        .legend { margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; }
         .legend-item { display: flex; align-items: center; font-size: 0.78rem; margin-bottom: 7px; color: #9ca3af; }
         .color-box { width: 13px; height: 13px; border-radius: 3px; margin-right: 9px; flex-shrink: 0; }
+        /* Collapsible bottom-left legend panel (header stays put; items expand upward). */
+        #legend-panel {
+            position: fixed; left: 16px; bottom: 54px; z-index: 8;
+            display: flex; flex-direction: column-reverse; align-items: stretch;
+            max-width: 300px; background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.14); border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45); overflow: hidden;
+        }
+        body.legend-hidden #legend-panel { display: none; }
+        #legend-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+            cursor: pointer; user-select: none; }
+        #legend-head .lg-title { font-size: 0.82rem; font-weight: 600; color: #fff; white-space: nowrap; }
+        #legend-head .lg-caret { color: #9ca3af; font-size: 0.7rem; transition: transform 0.12s; margin-left: auto; }
+        #legend-panel.open #legend-head .lg-caret { transform: rotate(90deg); }
+        #legend-close { background: none; border: none; color: #9ca3af; font-size: 1.25rem;
+            line-height: 1; cursor: pointer; padding: 0 2px; display: none; }
+        #legend-panel.open #legend-close { display: block; }
+        #legend-panel .legend-items { display: none; padding: 2px 14px 12px; }
+        #legend-panel.open .legend-items { display: block; }
 
         .instructions { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.45); padding: 6px 14px; border-radius: 20px; font-size: 0.72rem;
@@ -450,8 +481,7 @@
         #inspector-pane.has-selection #inspector-empty { display: none; }
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
-        body.mode-inspector #panel-actions,
-        body.mode-inspector .control-group.legend { display: none; }
+        body.mode-inspector #panel-actions { display: none; }
         #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -567,10 +597,10 @@
                 <label class="check-row"><input type="checkbox" id="param-geosection"> Geological&nbsp;section&nbsp;(Brochure&nbsp;fig&nbsp;4‑2)</label>
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
+                <label class="check-row"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;shafts&nbsp;(cutaway)</label>
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
-                <label class="check-row" id="row-faults"><input type="checkbox" id="param-faults"> Horst&nbsp;bounding&nbsp;faults</label>
                 <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
                 <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
             </div>
@@ -613,6 +643,14 @@
 
         <div id="panel-actions">
         <div class="control-group">
+            <label>Navigation</label>
+            <div class="segmented" id="nav-mode">
+                <button id="btn-nav-normal" type="button" class="active" title="Map-like: drag pans, right-drag / two-finger rotates">Normal</button>
+                <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
+            </div>
+            <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
+        </div>
+        <div class="control-group">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
             <div class="segmented">
@@ -632,6 +670,8 @@
         <div class="control-group">
             <label>Tools</label>
             <div class="btn-tools">
+                <button id="btn-timeline" type="button">⏳ Timeline</button>
+                <button id="btn-legend" type="button">▤ Legend</button>
                 <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
                 <button id="btn-profile" type="button">📈 Gallery profile</button>
                 <button id="btn-sources" type="button">ⓘ Data sources</button>
@@ -644,42 +684,25 @@
         </div>
         </div>
 
-        <div class="control-group legend">
-            <label>Legend</label>
-            <div class="legend-items">
-            <div class="legend-item">
-                <div class="color-box" style="background: var(--accent-orange);"></div>
-                Raschpëtzer Shafts (P-7A to P9)
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background: var(--accent-blue);"></div>
-                Qanat gallery — flows West → villa
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background: #2bb0f0;"></div>
-                Groundwater — flows East (in sandstone)
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background: #8aa0b4;"></div>
-                Auxiliary dry channel (P-7A/P-5A)
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background: #d23b3b;"></div>
-                Horst bounding faults (illustrative)
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background: #d8c0a8;"></div>
-                Weathered rock / soft ground
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background: #b9d3e8;"></div>
-                Luxembourg sandstone (water-bearing)
-            </div>
-            <div class="legend-item">
-                <div class="color-box" style="background: #8f95c4;"></div>
-                Marl &amp; limestone strata
-            </div>
-            </div>
+    </div>
+
+    <!-- Legend: a collapsible panel pinned to the bottom-left of the page (out of the side
+         panel now, so it's obvious). Collapsed by default; click the header to expand, × to
+         close, and the "▤ Legend" tool button to reopen. -->
+    <div id="legend-panel">
+        <div id="legend-head">
+            <span class="lg-title">▤&nbsp;Legend</span>
+            <span class="lg-caret" aria-hidden="true">▸</span>
+            <button id="legend-close" type="button" aria-label="Close legend">×</button>
+        </div>
+        <div class="legend-items">
+            <div class="legend-item"><div class="color-box" style="background: var(--accent-orange);"></div>Raschpëtzer Shafts (P-7A to P9)</div>
+            <div class="legend-item"><div class="color-box" style="background: var(--accent-blue);"></div>Qanat gallery — flows West → villa</div>
+            <div class="legend-item"><div class="color-box" style="background: #2bb0f0;"></div>Groundwater — flows East (in sandstone)</div>
+            <div class="legend-item"><div class="color-box" style="background: #8aa0b4;"></div>Auxiliary dry channel (P-7A/P-5A)</div>
+            <div class="legend-item"><div class="color-box" style="background: #d8c0a8;"></div>Weathered rock / soft ground</div>
+            <div class="legend-item"><div class="color-box" style="background: #b9d3e8;"></div>Luxembourg sandstone (water-bearing)</div>
+            <div class="legend-item"><div class="color-box" style="background: #8f95c4;"></div>Marl &amp; limestone strata</div>
         </div>
     </div>
 
@@ -731,6 +754,16 @@
                 <div class="arrow"></div><span class="lbl">N</span><div class="tail"></div>
             </div>
             <div class="hub"></div>
+        </div>
+
+        <!-- On-canvas navigation pad (Normal mode): rotate + tilt without gestures. -->
+        <div id="nav-pad" aria-label="Rotate and tilt the view">
+            <button id="nav-tilt-up" type="button" title="Tilt up" aria-label="Tilt up">▲</button>
+            <div class="nav-pad-row">
+                <button id="nav-rot-left" type="button" title="Rotate left" aria-label="Rotate left">◀</button>
+                <button id="nav-tilt-down" type="button" title="Tilt down" aria-label="Tilt down">▼</button>
+                <button id="nav-rot-right" type="button" title="Rotate right" aria-label="Rotate right">▶</button>
+            </div>
         </div>
 
         <div id="scale-bar" style="display:none;">
@@ -786,6 +819,7 @@
             terrainSource: 'geodata',     // GeoData (LiDAR) is the only terrain source
             vExag: 1.0,                   // TRUE vertical exaggeration (1.0 = true scale)
             surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
+            navMode: 'normal',            // camera navigation: 'normal' (map-like, default) | 'power' (free orbit)
             flipWE: false,                // mirror the terrain West<->East
             baseLayer: 'contours',        // terrain surface graphic: 'contours' | 'satellite' | 'none'
             overlay: { aquifer: false, contours: false, spot: false, break: false },  // draped thematic overlays
@@ -800,8 +834,8 @@
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showPerched: false,           // perched pre-construction water table + drawdown band
-            showFaults: false,            // Pëtschend horst bounding faults (illustrative)
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
+            shaftCutaway: false,          // render shafts back-face-only → cull the camera-facing half (look inside)
             qanatFront: false,            // debug: pin the qanat to the front cut face (strata in front)
             frontMarginM: 8,              // debug: gap (m) between the front terrain edge and the end shaft (qanatFront)
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
@@ -929,6 +963,7 @@
         let scene, camera, renderer, controls, modelGroup;
         let contourMaterial, crossSectionMaterial;
         let lastTerrainSeg = { x: 0, z: 0 };   // last terrain tessellation (dev density readout)
+        let subsurfaceGroup;                   // all man-made underground structures (x-ray unit)
         let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
         // --- Realistic PBR textures (loaded once; used only when params.pbr) --------------
         // Sandstone set (CC0, Poly Haven "sandstone_cracks") clads the rock-cut shafts to match
@@ -978,6 +1013,27 @@
                 // lines never write depth.
                 if (m.isMeshStandardMaterial || m.isMeshBasicMaterial) m.depthWrite = !!m.userData.isFill;
                 m.needsUpdate = true;
+            });
+        }
+
+        // "Underground x-ray" applied to the whole subsurface group as ONE unit:
+        //   ON  → structures render depthTest-off ABOVE the terrain (x-ray) at any opacity.
+        //   OFF → structures render BEHIND the terrain fill (negative renderOrder), so they are
+        //         hidden at full opacity and revealed smoothly, alpha-composited under the fading
+        //         terrain, as the opacity slider drops — no on-top "step change".
+        // Called live by the toggle (no rebuild) and once at the end of every build.
+        function applyXrayMode() {
+            if (!subsurfaceGroup) return;
+            const onTop = params.xrayUnderground;
+            subsurfaceGroup.traverse(o => {
+                if (o === subsurfaceGroup) return;
+                if (o.userData && o.userData._baseRO == null) o.userData._baseRO = o.renderOrder || 5;
+                const baseRO = (o.userData && o.userData._baseRO) || 5;
+                if (o.material) {
+                    const mats = Array.isArray(o.material) ? o.material : [o.material];
+                    mats.forEach(m => { m.depthTest = false; m.depthWrite = false; m.transparent = true; m.needsUpdate = true; });
+                }
+                o.renderOrder = onTop ? baseRO : baseRO - 40;   // −40 → behind the terrain fill (renderOrder 0)
             });
         }
 
@@ -1357,13 +1413,14 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = true;     // pan in the screen plane (map-like)
             controls.target.set(CAM.target[0], CAM.target[1], CAM.target[2]);
-            controls.maxPolarAngle = Math.PI / 2;   // allow a true 0° horizon (level) view
             // Zoom-distance clamps: don't let the user dolly through the terrain or drift so
             // far out the model becomes a speck. Scaled by `surround` (item 2 makes the block
             // physically larger at surround=2, so the far clamp grows with it).
             controls.minDistance = 25;
             controls.maxDistance = 400;
+            applyNavMode();                          // sets buttons/touches/speeds/tilt for Normal vs Power
             updateZoomClamp();
             controls.update();
             setupZoomToCursor();
@@ -1474,6 +1531,12 @@
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
             waterMats = [];          // PBR water materials (scrolled in animate); rebuilt each build
+            // All man-made underground structures (shaft bodies, gallery + aux tunnels, overflow,
+            // step markers, gallery flow arrows) go in ONE group so the "Underground x-ray" toggle
+            // treats them as a unit — see applyXrayMode(). Surface markers (shaft caps, labels,
+            // surveyed spring/villa markers) stay in modelGroup.
+            subsurfaceGroup = new THREE.Group();
+            modelGroup.add(subsurfaceGroup);
             recomputeGeoView();   // refresh geoView + QSCALE + scaled pillarDefs
 
             // Terrain tessellation, tied to the native LiDAR density the CURRENT window covers.
@@ -1731,12 +1794,15 @@
             const ugDT = !params.xrayUnderground;   // depthTest value for below-ground structures
             // Realistic mode: clad the solid shafts in the sandstone PBR set (lit, so the
             // normal/roughness show); otherwise the flat unlit overlay.
+            // "Look inside": rendering back faces only culls the camera-facing half of each
+            // shaft cylinder, so the user sees into it. Otherwise the normal outer surface.
+            const shaftSide = params.shaftCutaway ? THREE.BackSide : THREE.FrontSide;
             const mkShaftMat = (op, dt = false) => params.pbr && TEX.color
                 ? new THREE.MeshStandardMaterial({ map: TEX.color, normalMap: TEX.normal,
-                    roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0,
+                    roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0, side: shaftSide,
                     depthTest: dt, depthWrite: false, transparent: op < 0.999, opacity: op })
                 : new THREE.MeshBasicMaterial({
-                    color: COL.shaft, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
+                    color: COL.shaft, side: shaftSide, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
             const capSolidMat = mkShaftMat(1.0);          // above-ground cap: always x-ray
             const belowFaintMat = mkShaftMat(0.4, ugDT);  // below-ground body: respects the toggle
             const ghostFillMat = mkShaftMat(0.12);        // inferred cap ghost fill (x-ray)
@@ -1799,17 +1865,20 @@
                     const cyl = new THREE.CylinderGeometry(0.30, 0.30, h, 16);
                     const isCap = (order === 'cap');
                     const solid = isCap ? hasSurfaceCase : bodySolid;
+                    // Caps are surface markers (always modelGroup / on top); below-ground bodies
+                    // join the subsurface x-ray group.
+                    const dest = isCap ? modelGroup : subsurfaceGroup;
                     if (solid) {
                         const m = new THREE.Mesh(cyl, isCap ? capSolidMat : belowFaintMat);
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
-                        modelGroup.add(m); shaftMeshes.push(m);
+                        dest.add(m); shaftMeshes.push(m);
                     } else {
                         const g = new THREE.Mesh(cyl, isCap ? ghostFillMat : ghostFillFaintMat);
                         g.position.set(p.x, cyY, p.z); g.renderOrder = 11; g.userData = ud;
-                        modelGroup.add(g); shaftMeshes.push(g);   // hover/pick target
+                        dest.add(g); shaftMeshes.push(g);   // hover/pick target
                         const cage = new THREE.LineSegments(new THREE.EdgesGeometry(cyl), isCap ? cageMat : cageFaintMat);
                         cage.position.set(p.x, cyY, p.z); cage.renderOrder = 13;
-                        modelGroup.add(cage);
+                        dest.add(cage);
                     }
                 };
                 // Both the above-ground cap (surface marker) and the below-ground body are
@@ -1843,7 +1912,7 @@
                     mat = new THREE.MeshBasicMaterial({ color, depthTest: ugDT });
                 }
                 const mm = new THREE.Mesh(g, mat);
-                mm.renderOrder = 5; modelGroup.add(mm);
+                mm.renderOrder = 5; subsurfaceGroup.add(mm);
             }
             // Inferred gallery ends: a DASHED tube (short tube segments) instead of a 1px
             // hairline, so the inferred extent reads at the same weight as the solid explored
@@ -1860,7 +1929,7 @@
                     if (seg.length < 2) continue;
                     const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seg),
                         Math.max(4, seg.length * 2), 0.13, 8, false);
-                    const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5; modelGroup.add(mm);
+                    const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5; subsurfaceGroup.add(mm);
                 }
             }
             function tunnelFatTube(points, color, radius) {
@@ -1868,7 +1937,7 @@
                 const cv = new THREE.CatmullRomCurve3(points);
                 const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), radius, 8, false);
                 const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: ugDT }));
-                mm.renderOrder = 5; modelGroup.add(mm);
+                mm.renderOrder = 5; subsurfaceGroup.add(mm);
             }
             // The gallery + channel exist only once the qanat is built (≥131 AD).
             const galleryBuilt = params.year >= 131;
@@ -1906,7 +1975,7 @@
                         new THREE.CylinderGeometry(0.07, 0.07, 0.9, 8),
                         new THREE.MeshBasicMaterial({ color: galleryColor, depthTest: false }));
                     tick.position.set(bp.x, bp.y + 0.45, bp.z); tick.renderOrder = 5;
-                    modelGroup.add(tick);
+                    subsurfaceGroup.add(tick);
                     const s = createTextSprite(txt, '#1d6fd6', 20);
                     s.scale.set(3.0, 0.8, 1);
                     s.position.set(bp.x, bp.y + 1.35, bp.z);
@@ -1953,11 +2022,11 @@
                     const cv = new THREE.CatmullRomCurve3([start, mid, end]);
                     const g = new THREE.TubeGeometry(cv, 56, 0.16, 8, false);
                     const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
-                    mm.renderOrder = 5; modelGroup.add(mm);
+                    mm.renderOrder = 5; subsurfaceGroup.add(mm);
                     // Weir tap marker + label at the branch point.
                     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10),
                         new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
-                    dot.position.copy(start); dot.renderOrder = 6; modelGroup.add(dot);
+                    dot.position.copy(start); dot.renderOrder = 6; subsurfaceGroup.add(dot);
                     const s = createTextSprite('overflow weir (P‑4, Ø80 cm)', '#0a9bc4', 20);
                     s.scale.set(6.0, 1.0, 1);
                     s.position.set(start.x, start.y + 1.0, start.z);
@@ -2035,7 +2104,8 @@
                 const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6),
                     new THREE.MeshBasicMaterial({ color: 0xb08d57, transparent: true, opacity: 0.45, depthTest: false }));
                 box.position.set(vx, vy + 0.6, 0); box.renderOrder = 9;
-                modelGroup.add(box);
+                box.userData = Object.assign({ kind: 'villa' }, villa);   // clickable → inspector
+                modelGroup.add(box); spotMeshes.push(box);
                 const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry),
                     new THREE.LineDashedMaterial({ color: 0x6b4f2a, dashSize: 0.28, gapSize: 0.2,
                         transparent: true, opacity: 0.9, depthTest: false }));
@@ -2053,7 +2123,6 @@
 
             // --- 7. Geological cross-section (strata + groundwater) ---
             addGeology(halfW, halfD);
-            addFaults(halfW, halfD);
             addOverlays(halfW, halfD);   // draped thematic overlays (aquifer / contours / spot / break)
 
             // --- 8. 3D scale bar (accurate metres) + north arrow ---
@@ -2072,6 +2141,7 @@
                 }
             });
 
+            applyXrayMode();             // set subsurface depthTest/renderOrder for the current x-ray mode
             updateCompass();
             updateExagReadout();
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
@@ -2155,7 +2225,7 @@
             cone.rotation.z = dir > 0 ? -Math.PI / 2 : Math.PI / 2;
             cone.position.set(x, y, z);
             cone.renderOrder = 7;
-            modelGroup.add(cone);
+            (subsurfaceGroup || modelGroup).add(cone);   // gallery flow arrows are subsurface
         }
 
         // Geological cross-section on the camera-facing cut plane: real strata bands
@@ -2234,14 +2304,10 @@
             mesh.renderOrder = 2;
             modelGroup.add(mesh);
 
-            // Bright groundwater band + eastward flow arrows along the sandstone base
+            // Bright groundwater band along the sandstone base. (The static eastward
+            // groundwater flow-direction arrows were removed at the user's request.)
             modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwPts),
                 new THREE.LineBasicMaterial({ color: COL.groundwater, depthTest: false })));
-            for (let x = -halfW * 0.35; x < halfW * 0.9; x += params.width / 9) {
-                const y = geoMode ? maslToY(interfaceMasl(x)) : gwYschem(x);
-                const coverY = geoMode ? metersToYDepth(COVER_M) : wThk;
-                if (y < getTerrainHeight(x, zF) - coverY) flowArrow(x, y + 0.12, zF, +1, COL.groundwater, 0.8);
-            }
             lastGwPts = gwPts;   // path for animated groundwater flow
 
             // --- Detailed strata overlay (optional, dev) ---------------------------------
@@ -2328,11 +2394,6 @@
             }
         }
 
-        // The Pëtschend is a central horst bounded N & S by ~E–W faults where groundwater
-        // leaks to the Dauvebur (N) and Op der Rëll (S) springs (geology.structure, Brochure
-        // p.14 / fig 4-3). The brochure gives NO surveyed fault coordinates, so each fault is
-        // drawn as a dashed surface trace + downthrow hachures at the north/south edges of the
-        // modelled corridor — an ILLUSTRATIVE marker of the structure, clearly labelled.
         // (Surveyed springs + boreholes from geoportail.lu WFS were removed from the
         // visualization — see docs/BACKLOG.md. The WFS spring coordinates could not be
         // corroborated to survey accuracy, and the boreholes carried no depth/log data.)
@@ -2399,50 +2460,6 @@
             }
         }
 
-        function addFaults(halfW, halfD) {
-            if (!params.showFaults) return;
-            if (!(params.terrainSource === 'geodata' && geodata.ready)) return;
-            const RED = 0xd23b3b;
-            // north = −Z (back), south = +Z (front) — see geoToScene v-mapping.
-            const faults = [
-                { z: -halfD * 0.82, name: 'N bounding fault', spring: 'Dauvebur spring' },
-                { z:  halfD * 0.82, name: 'S bounding fault', spring: 'Op der Rëll spring' }
-            ];
-            const NX = 40;
-            faults.forEach(f => {
-                // Dashed surface trace (E–W) following the terrain.
-                const trace = [];
-                for (let i = 0; i <= NX; i++) {
-                    const x = -halfW + i / NX * params.width;
-                    trace.push(new THREE.Vector3(x, getTerrainHeight(x, f.z) + 0.06, f.z));
-                }
-                const tl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(trace),
-                    new THREE.LineDashedMaterial({ color: RED, dashSize: 1.4, gapSize: 0.9, depthTest: false }));
-                tl.computeLineDistances(); tl.renderOrder = 6; modelGroup.add(tl);
-                // Downthrow hachures (short verticals) marking the fault plane.
-                for (let i = 2; i < NX; i += 4) {
-                    const x = -halfW + i / NX * params.width;
-                    const sy = getTerrainHeight(x, f.z);
-                    modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(x, sy + 0.06, f.z),
-                        new THREE.Vector3(x, sy - metersToYDepth(3), f.z)]),
-                        new THREE.LineBasicMaterial({ color: RED, depthTest: false, transparent: true, opacity: 0.55 })));
-                }
-                // Spring outlet the fault feeds (down-dip / east end).
-                const sx = halfW * 0.72, sy = getTerrainHeight(sx, f.z);
-                const dot = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 12),
-                    new THREE.MeshBasicMaterial({ color: COL.groundwater, depthTest: false }));
-                dot.position.set(sx, sy + 0.34, f.z); dot.renderOrder = 7; modelGroup.add(dot);
-                const lab = createTextSprite(f.name + ' → ' + f.spring, '#c0392b', 18);
-                const lx = -halfW * 0.15;
-                lab.scale.set(9, 1.05, 1); lab.position.set(lx, getTerrainHeight(lx, f.z) + 1.6, f.z);
-                modelGroup.add(lab);
-            });
-            const cav = createTextSprite('Pëtschend horst faults — illustrative (no surveyed coords)', '#c0392b', 15);
-            cav.scale.set(12, 0.95, 1);
-            cav.position.set(0, getTerrainHeight(0, halfD * 0.82) + 3.2, halfD * 0.82);
-            modelGroup.add(cav);
-        }
 
         function createTextSprite(text, colorStr = '#111', size = 24) {
             const canvas = document.createElement('canvas');
@@ -2638,7 +2655,6 @@
                 // Detailed strata is a DEV-only overlay AND needs geology shown.
                 document.getElementById('row-strata-detail').style.display = (g && params.devMode) ? '' : 'none';
                 document.getElementById('row-perched').style.display = g ? '' : 'none';
-                document.getElementById('row-faults').style.display = g ? '' : 'none';
             };
 
             // Developer mode (Super/⌘ + D): red screen frame + exposes the dev-only toggles
@@ -2651,26 +2667,38 @@
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
                 syncConditionalOptions();
             };
-            document.addEventListener('keydown', e => {
-                if (e.metaKey && (e.key === 'd' || e.key === 'D')) {
-                    e.preventDefault();
-                    params.devMode = !params.devMode;
-                    if (!params.devMode) {   // disable dev-only features on exit
-                        let rebuild = false;
-                        if (params.pbr) { params.pbr = false; document.getElementById('param-pbr').checked = false; rebuild = true; }
-                        if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
-                        if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false;
-                            document.getElementById('grp-front-margin').style.display = 'none'; rebuild = true; }
-                        if (measureMode) setMeasureMode(false);   // leave measure mode with dev
-                        syncDevUI();
-                        if (rebuild) { buildParametricModel(); updateZoomClamp(); }
-                    } else {
-                        syncDevUI();
-                    }
+            const setDevMode = on => {
+                params.devMode = on;
+                if (!on) {   // disable dev-only features on exit
+                    let rebuild = false;
+                    if (params.pbr) { params.pbr = false; document.getElementById('param-pbr').checked = false; rebuild = true; }
+                    if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
+                    if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false;
+                        document.getElementById('grp-front-margin').style.display = 'none'; rebuild = true; }
+                    if (measureMode) setMeasureMode(false);   // leave measure mode with dev
+                    syncDevUI();
+                    if (rebuild) { buildParametricModel(); updateZoomClamp(); }
+                } else {
+                    syncDevUI();
+                    document.getElementById('grp-debug').open = true;   // reveal the debug controls immediately
                 }
+            };
+            // Toggle developer mode. Reliable across platforms: ⌘+D (Mac) OR ⌘/Ctrl+Shift+D
+            // (Windows/Linux — bare Win+D is swallowed by the OS "show desktop", so we require
+            // Shift there). A `#dev` URL fragment is the no-keyboard fallback (see below).
+            document.addEventListener('keydown', e => {
+                const k = (e.key === 'd' || e.key === 'D');
+                const combo = k && (
+                    (e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) ||   // ⌘+D (Mac)
+                    ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey)        // ⌘/Ctrl+Shift+D (all)
+                );
+                if (combo) { e.preventDefault(); setDevMode(!params.devMode); }
             });
             syncConditionalOptions();   // initial state
-            syncDevUI();                // dev-only controls hidden until Super/⌘+D
+            // Dev mode can also be entered by loading with a `#dev` (or `?dev`) URL — a
+            // keyboard-free, OS-proof way to reach the debug controls.
+            const devFromUrl = /(^|[#&?])dev\b/i.test(location.hash) || /[?&]dev\b/i.test(location.search);
+            setDevMode(!!devFromUrl);   // also performs the initial syncDevUI()
 
             // Dismiss the top hint (pointer devices; it's hidden on touch via CSS).
             const hintClose = document.getElementById('hint-close');
@@ -2785,12 +2813,6 @@
                 buildParametricModel();
             });
 
-            // Toggle the Pëtschend horst bounding faults (illustrative)
-            document.getElementById('param-faults').addEventListener('change', e => {
-                params.showFaults = e.target.checked;
-                buildParametricModel();
-            });
-
             // Draped thematic overlays (aquifer / official contours / spot heights / break lines)
             [['ov-aquifer', 'aquifer'], ['ov-contours', 'contours'], ['ov-spot', 'spot'], ['ov-break', 'break']]
                 .forEach(([id, key]) => document.getElementById(id).addEventListener('change', e => {
@@ -2798,9 +2820,15 @@
                     buildParametricModel();
                 }));
 
-            // Toggle subsurface qanat structures (shafts + gallery + flow + overflow)
+            // Underground x-ray: applies to the whole subsurface group at once — live, no rebuild.
             document.getElementById('param-underground').addEventListener('change', e => {
                 params.xrayUnderground = e.target.checked;
+                applyXrayMode();
+            });
+
+            // Look inside shafts (cutaway): render shaft cylinders back-face-only.
+            document.getElementById('param-shaft-cutaway').addEventListener('change', e => {
+                params.shaftCutaway = e.target.checked;
                 buildParametricModel();
             });
 
@@ -2826,6 +2854,48 @@
 
             // Action buttons
             document.getElementById('btn-profile').addEventListener('click', toggleProfile);
+            // Timeline: hidden by default; the tool button shows/hides it.
+            document.getElementById('btn-timeline').addEventListener('click', () => {
+                const on = document.body.classList.toggle('timeline-on');
+                document.getElementById('btn-timeline').classList.toggle('active', on);
+            });
+            // Legend (bottom-left collapsible panel): head toggles expand, × closes the panel,
+            // and the tool button reopens it (expanded).
+            const legendPanel = document.getElementById('legend-panel');
+            document.getElementById('legend-head').addEventListener('click', () => legendPanel.classList.toggle('open'));
+            document.getElementById('legend-close').addEventListener('click', ev => {
+                ev.stopPropagation();
+                legendPanel.classList.remove('open');
+                document.body.classList.add('legend-hidden');
+                document.getElementById('btn-legend').classList.remove('active');
+            });
+            document.getElementById('btn-legend').addEventListener('click', () => {
+                const hidden = document.body.classList.toggle('legend-hidden');
+                legendPanel.classList.toggle('open', !hidden);   // reopening shows it expanded
+                document.getElementById('btn-legend').classList.toggle('active', !hidden);
+            });
+
+            // Navigation mode: Normal (map-like, default) ⇄ Power (free orbit).
+            const navHint = document.getElementById('nav-mode-hint');
+            const setNavMode = mode => {
+                params.navMode = mode;
+                const normal = mode !== 'power';
+                document.getElementById('btn-nav-normal').classList.toggle('active', normal);
+                document.getElementById('btn-nav-power').classList.toggle('active', !normal);
+                if (navHint) navHint.textContent = normal
+                    ? 'Drag pans · right-drag / two-finger rotates · scroll zooms. Use the on-screen arrows to rotate/tilt.'
+                    : 'Drag rotates · right-drag pans · scroll zooms (free orbit).';
+                applyNavMode();
+            };
+            document.getElementById('btn-nav-normal').addEventListener('click', () => setNavMode('normal'));
+            document.getElementById('btn-nav-power').addEventListener('click', () => setNavMode('power'));
+
+            // On-canvas nav pad (Normal mode): rotate / tilt around the orbit target.
+            const ROT = 0.34, TILT = 0.22;
+            document.getElementById('nav-rot-left').addEventListener('click', () => nudgeOrbit(-ROT, 0));
+            document.getElementById('nav-rot-right').addEventListener('click', () => nudgeOrbit(ROT, 0));
+            document.getElementById('nav-tilt-up').addEventListener('click', () => nudgeOrbit(0, -TILT));
+            document.getElementById('nav-tilt-down').addEventListener('click', () => nudgeOrbit(0, TILT));
             document.getElementById('btn-reset').addEventListener('click', resetView);
             document.getElementById('btn-top-view').addEventListener('click', topView);
             document.getElementById('btn-iso').addEventListener('click', () => presetView('iso'));
@@ -3060,6 +3130,49 @@
                 target.y + dist * Math.sin(el),
                 target.z + h * Math.cos(az));
             flyTo(pos, target, 700);
+        }
+
+        // --- Camera navigation modes -------------------------------------------------------
+        // Normal (default, general public): map-like. Left-drag / one-finger PANS; right-drag /
+        // two-finger ROTATES + tilts; slower, calmer rotate; the vertical tilt is clamped to a
+        // comfortable band so the model can't flip under the ground or go fully top-down. The
+        // on-canvas nav pad (⟲ ⟳ tilt) gives keyboard-free axis rotation.
+        // Power (opt-in): the original free orbit — left-drag rotates, right-drag pans, full tilt.
+        function applyNavMode() {
+            if (!controls || !THREE.MOUSE) return;
+            const normal = params.navMode !== 'power';
+            const M = THREE.MOUSE, T = THREE.TOUCH;
+            if (normal) {
+                controls.mouseButtons = { LEFT: M.PAN, MIDDLE: M.DOLLY, RIGHT: M.ROTATE };
+                controls.touches = { ONE: T.PAN, TWO: T.DOLLY_ROTATE };
+                controls.rotateSpeed = 0.45;                 // calmer, less "spinny"
+                controls.minPolarAngle = Math.PI * 0.12;     // ~22° — never fully top-down
+                controls.maxPolarAngle = Math.PI * 0.5;      // level horizon — never under the ground
+            } else {
+                controls.mouseButtons = { LEFT: M.ROTATE, MIDDLE: M.DOLLY, RIGHT: M.PAN };
+                controls.touches = { ONE: T.ROTATE, TWO: T.DOLLY_PAN };
+                controls.rotateSpeed = 1.0;
+                controls.minPolarAngle = 0;                  // full tilt, incl. top-down
+                controls.maxPolarAngle = Math.PI / 2;
+            }
+            document.body.classList.toggle('nav-normal', normal);
+            const hint = document.getElementById('instructions');
+            if (hint) hint.firstChild.textContent = normal
+                ? 'Drag to pan · right-drag (or two-finger) to rotate · scroll to zoom · click a shaft for info'
+                : 'Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · scroll to zoom · click a shaft for info';
+        }
+        // On-canvas nav pad: rotate/tilt the camera around the orbit target by a fixed step.
+        function nudgeOrbit(dTheta, dPhi) {
+            if (!controls) return;
+            const off = camera.position.clone().sub(controls.target);
+            const sph = new THREE.Spherical().setFromVector3(off);
+            sph.theta += dTheta;
+            const lo = controls.minPolarAngle + 0.001, hi = controls.maxPolarAngle - 0.001;
+            sph.phi = Math.max(lo, Math.min(hi, sph.phi + dPhi));
+            sph.makeSafe();
+            off.setFromSpherical(sph);
+            camera.position.copy(controls.target).add(off);
+            controls.update();
         }
 
         // --- Zoom-to-pointer: dolly toward the mouse cursor instead of the orbit target ---
@@ -3371,9 +3484,23 @@
             body.innerHTML = h;
             showInspector();
         }
+        // Inferred recipient villa (no surveyed coordinates — see site.villa).
+        function renderVillaPanel(v) {
+            const body = document.getElementById('info-body');
+            let h = `<h3>${v.name || 'Roman villa'}</h3><div class="ip-sub">Inferred recipient` +
+                `${v.status ? ' · ' + v.status : ''}${v.confidence ? ' · confidence ' + v.confidence : ''}</div>`;
+            if (v.role) h += `<div class="ip-row"><span class="ip-k">Role</span><span class="ip-v">${v.role}</span></div>`;
+            if (v.approxElevationMasl != null) h += `<div class="ip-row"><span class="ip-k">Approx. elevation</span>` +
+                `<span class="ip-v">~${v.approxElevationMasl} m a.s.l.${statusBadge('inferred')}</span></div>`;
+            if (v.source) h += `<div class="ip-row"><span class="ip-k">Source</span><span class="ip-v">${v.source}</span></div>`;
+            if (v.note) h += `<div class="ip-note">${v.note}</div>`;
+            body.innerHTML = h;
+            showInspector();
+        }
         // Info panel for a surveyed "spot" (spring / borehole / overflow resurgence).
         function renderSpotPanel(spot) {
             if (!spot) return;
+            if (spot.kind === 'villa') return renderVillaPanel(spot);
             const body = document.getElementById('info-body');
             const kindLabel = { spring: 'Spring (surveyed)',
                 borehole: 'Borehole / piezometer (surveyed)',
