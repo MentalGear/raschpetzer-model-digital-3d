@@ -121,6 +121,20 @@
             background: #e11d48; color: #fff; font-size: 0.62rem; font-weight: 700; letter-spacing: 1px;
             padding: 1px 8px; border-radius: 0 0 5px 5px; }
         body.dev-mode #dev-border { display: block; }
+        /* Full-screen image lightbox with a scale-in/out effect. */
+        #lightbox { position: fixed; inset: 0; z-index: 10000; display: none;
+            align-items: center; justify-content: center; background: rgba(8,10,14,0.86);
+            backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.2s ease; cursor: zoom-out; }
+        #lightbox.open { display: flex; opacity: 1; }
+        #lightbox img { max-width: 92vw; max-height: 90vh; border-radius: 6px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.6); transform: scale(0.86);
+            transition: transform 0.22s cubic-bezier(0.2,0.9,0.3,1.2); }
+        #lightbox.open img { transform: scale(1); }
+        #lightbox-close { position: absolute; top: 16px; right: 20px; width: 44px; height: 44px;
+            background: rgba(255,255,255,0.12); border: none; border-radius: 50%; color: #fff;
+            font-size: 1.6rem; line-height: 1; cursor: pointer; }
+        #lightbox-close:hover { background: rgba(255,255,255,0.22); }
+        img.lb-img { cursor: zoom-in; }
         /* Small red dot marking dev-only controls */
         .dev-opt::after { content: '●'; color: #e11d48; font-size: 0.5em; margin-left: 6px;
             vertical-align: middle; }
@@ -309,6 +323,10 @@
         .btn-grid button:hover, .btn-tools button:hover { background: #4b5563; }
         .btn-grid button.active, .btn-tools button.active {
             background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; font-weight: 600; }
+        .dev-toggle { width: 100%; background: #374151; color: #9ca3af; border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 6px; padding: 9px 6px; font-size: 0.76rem; cursor: pointer; transition: background 0.12s; }
+        .dev-toggle:hover { background: #4b5563; color: #e5e7eb; }
+        .dev-toggle.active { background: #e11d48; border-color: #e11d48; color: #fff; font-weight: 600; }
         .segmented { display: flex; margin-top: 8px; border: 1px solid rgba(255,255,255,0.12);
             border-radius: 6px; overflow: hidden; }
         .segmented button { flex: 1; background: #374151; color: #f3f4f6; border: none;
@@ -594,10 +612,11 @@
         <div class="tab-pane" data-pane="qanat">
             <div class="control-group">
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
-                <label class="check-row"><input type="checkbox" id="param-geosection"> Geological&nbsp;section&nbsp;(Brochure&nbsp;fig&nbsp;4‑2)</label>
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
-                <label class="check-row"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;shafts&nbsp;(cutaway)</label>
+                <label class="check-row"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half)</label>
+                <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
+                <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0">
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
@@ -629,6 +648,7 @@
             <details id="grp-debug">
                 <summary class="dev-opt">Debug</summary>
                 <label class="check-row"><input type="checkbox" id="param-qanat-front"> Qanat&nbsp;at&nbsp;front&nbsp;edge&nbsp;(strata&nbsp;in&nbsp;front)</label>
+                <label class="check-row"><input type="checkbox" id="param-terrain-cullback"> Cull&nbsp;terrain&nbsp;surface&nbsp;back&nbsp;face</label>
                 <div id="grp-front-margin" style="display:none">
                     <label>Front edge gap <span class="val" id="lbl-front-margin">8&nbsp;m</span></label>
                     <input type="range" id="param-front-margin" min="0" max="60" step="1" value="8">
@@ -681,6 +701,9 @@
                 <button id="btn-annotate" type="button">✎ Annotate mode</button>
                 <button id="btn-tour" type="button">▶ Guided tour</button>
             </div>
+        </div>
+        <div class="control-group">
+            <button id="btn-dev-mode" type="button" class="dev-toggle">🛠 Developer mode</button>
         </div>
         </div>
 
@@ -743,6 +766,12 @@
     </div>
 
     <div id="dev-border" aria-hidden="true"></div>
+
+    <!-- Full-screen image lightbox (scale in/out). Opened by clicking any img.lb-img. -->
+    <div id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+        <button id="lightbox-close" type="button" aria-label="Close">×</button>
+        <img id="lightbox-img" alt="">
+    </div>
 
     <div id="canvas-container">
         <svg id="measure-svg" aria-hidden="true"></svg>
@@ -826,8 +855,7 @@
             showGeology: true,            // real strata + groundwater/qanat flows
             strataDetailed: false,        // overlay detailed geology (bedding lines, mounded water table, unit labels)
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
-            year: 250,                    // timeline OFF by default → show the complete, in-service qanat
-                                          // (mid Roman service 140–350: all shafts built + water flowing)
+            year: 2025,                   // timeline OFF by default → present day (complete, as-known qanat)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
             showVilla: false,             // inferred recipient villa marker (optional)
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
@@ -836,7 +864,9 @@
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showPerched: false,           // perched pre-construction water table + drawdown band
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
-            shaftCutaway: false,          // render shafts back-face-only → cull the camera-facing half (look inside)
+            undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
+            shaftCutaway: false,          // look inside: clip the camera-facing half of the subsurface group
+            terrainCullBack: false,       // dev: cull the terrain surface back face (FrontSide instead of DoubleSide)
             qanatFront: false,            // debug: pin the qanat to the front cut face (strata in front)
             frontMarginM: 8,              // debug: gap (m) between the front terrain edge and the end shaft (qanatFront)
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
@@ -1035,6 +1065,63 @@
                     mats.forEach(m => { m.depthTest = false; m.depthWrite = false; m.transparent = true; m.needsUpdate = true; });
                 }
                 o.renderOrder = onTop ? baseRO : baseRO - 40;   // −40 → behind the terrain fill (renderOrder 0)
+            });
+        }
+
+        // "Look inside" cutaway: give EACH subsurface mesh its own clipping plane through its
+        // OWN centre, oriented toward the camera, so every structure loses just its camera-facing
+        // half (a cylinder becomes a half-cylinder) — applied to the whole subsurface group.
+        // Materials are cloned so shared materials can carry per-object planes; planes are
+        // refreshed every frame in animate() as the camera orbits.
+        let cutawayItems = [];
+        function applyCutaway() {
+            cutawayItems = [];
+            if (!subsurfaceGroup) return;
+            if (!params.shaftCutaway) {
+                subsurfaceGroup.traverse(o => {
+                    if (!o.material) return;
+                    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+                        if (m.clippingPlanes) { m.clippingPlanes = null; m.needsUpdate = true; }
+                    });
+                });
+                return;
+            }
+            subsurfaceGroup.traverse(o => {
+                if (!o.material || !o.geometry) return;
+                const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+                if (Array.isArray(o.material)) {
+                    o.material = o.material.map(m => { const c = m.clone(); c.clippingPlanes = [plane]; return c; });
+                } else {
+                    o.material = o.material.clone(); o.material.clippingPlanes = [plane];
+                }
+                cutawayItems.push({ obj: o, plane });
+            });
+        }
+        // Each plane cuts through its object's centre with the normal pointing away from the
+        // camera, so the near (camera-facing) half is removed and the far half is kept.
+        const _cutN = new THREE.Vector3(), _cutP = new THREE.Vector3();
+        function updateCutawayPlane() {
+            if (!params.shaftCutaway || !camera || !cutawayItems.length) return;
+            for (const it of cutawayItems) {
+                it.obj.getWorldPosition(_cutP);
+                _cutN.copy(_cutP).sub(camera.position).normalize();
+                it.plane.setFromNormalAndCoplanarPoint(_cutN, _cutP);
+            }
+        }
+
+        // Underground opacity: a global multiplier over the subsurface group's own opacities.
+        function applyUndergroundOpacity(v) {
+            params.undergroundOpacity = v;
+            if (!subsurfaceGroup) return;
+            subsurfaceGroup.traverse(o => {
+                if (!o.material) return;
+                const mats = Array.isArray(o.material) ? o.material : [o.material];
+                mats.forEach(m => {
+                    if (m.userData._baseOp == null) m.userData._baseOp = (m.opacity != null ? m.opacity : 1);
+                    m.opacity = m.userData._baseOp * v;
+                    m.transparent = true;
+                    m.needsUpdate = true;
+                });
             });
         }
 
@@ -1406,6 +1493,7 @@
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.localClippingEnabled = true;   // for the "look inside" subsurface cutaway plane
             renderer.shadowMap.enabled = true;
             renderer.sortObjects = true;
             container.appendChild(renderer.domElement);
@@ -1518,6 +1606,7 @@
             initFlow();
             initInfoPanel();
             initSourcesModal();
+            initLightbox();
             initTour();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadGeoData(() => buildParametricModel());
@@ -1574,7 +1663,7 @@
             const fillMat = new THREE.MeshBasicMaterial({
                 color: 0xf0e8d6,                                   // lighter beige (contour-map base)
                 polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
-                side: THREE.DoubleSide,
+                side: params.terrainCullBack ? THREE.FrontSide : THREE.DoubleSide,   // dev: cull back face
                 transparent: true, opacity: params.terrainOpacity,
                 depthWrite: true          // always occludes the subsurface (see applyTerrainOpacity)
             });
@@ -1794,16 +1883,14 @@
             // shaft CAPS are surface markers and stay x-ray regardless.
             const ugDT = !params.xrayUnderground;   // depthTest value for below-ground structures
             // Realistic mode: clad the solid shafts in the sandstone PBR set (lit, so the
-            // normal/roughness show); otherwise the flat unlit overlay.
-            // "Look inside": rendering back faces only culls the camera-facing half of each
-            // shaft cylinder, so the user sees into it. Otherwise the normal outer surface.
-            const shaftSide = params.shaftCutaway ? THREE.BackSide : THREE.FrontSide;
+            // normal/roughness show); otherwise the flat unlit overlay. (The "look inside"
+            // cutaway is a clipping plane on the whole subsurface group — see applyCutaway.)
             const mkShaftMat = (op, dt = false) => params.pbr && TEX.color
                 ? new THREE.MeshStandardMaterial({ map: TEX.color, normalMap: TEX.normal,
-                    roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0, side: shaftSide,
+                    roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0,
                     depthTest: dt, depthWrite: false, transparent: op < 0.999, opacity: op })
                 : new THREE.MeshBasicMaterial({
-                    color: COL.shaft, side: shaftSide, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
+                    color: COL.shaft, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
             const capSolidMat = mkShaftMat(1.0);          // above-ground cap: always x-ray
             const belowFaintMat = mkShaftMat(0.4, ugDT);  // below-ground body: respects the toggle
             const ghostFillMat = mkShaftMat(0.12);        // inferred cap ghost fill (x-ray)
@@ -2050,15 +2137,15 @@
                 }
             }
 
-            // Default / reset camera: an edge-on side elevation at 0° horizon, centred on
-            // the qanat, so the near-level tunnel and the horizontal strata / aquifer-bottom
-            // bands line up. Looks north (−Z) from the south at the tunnel's own height.
+            // Default / reset camera: a 45° elevated three-quarter view from the south, centred
+            // on the qanat and framing its full length. (Was an edge-on side elevation.)
             if (basePts.length) {
                 const c = basePts.reduce((a, p) => a.clone().add(p), new THREE.Vector3())
                     .multiplyScalar(1 / basePts.length);
                 const dist = Math.max(params.width * 1.6, 120);   // start further off
+                const el = Math.PI / 4;                           // 45° above the horizon
                 DEFAULT_CAM.target.set(c.x, c.y, 0);
-                DEFAULT_CAM.pos.set(c.x, c.y, dist);          // same y as target ⇒ elevation 0°
+                DEFAULT_CAM.pos.set(c.x, c.y + dist * Math.sin(el), dist * Math.cos(el));
                 if (!initialViewSet && camera && controls) {
                     camera.position.copy(DEFAULT_CAM.pos);
                     controls.target.copy(DEFAULT_CAM.target);
@@ -2089,22 +2176,25 @@
             // The qanat fed a Roman estate downslope to the west; the exact site is not
             // established, so it's drawn as a faded box with a dashed (inferred) outline. ---
             const villa = SSOT.site.villa;
-            const shaftXs = [...basePts, ...auxPts].map(v => v.x);
-            // Anchor to the WEST-most shaft + a fixed metric offset (~75 m downslope), so the
-            // villa stays put relative to the qanat as `surround` grows/shrinks (metersPerXUnit
-            // is constant). It's shown only while it falls INSIDE the visible terrain window —
-            // so it appears/disappears with the surrounding-area slider, like the terrain itself.
-            const flipV = isGeo && params.flipWE;               // flipped ⇒ west is +x
-            const westX = shaftXs.length ? (flipV ? Math.max(...shaftXs) : Math.min(...shaftXs)) : 0;
-            // ~200 m downslope: the recipient estate lay in the Alzette valley, not adjacent
-            // to the qanat's west end. Exact site is undocumented (see site.villa) — schematic.
-            const villaX = westX + (flipV ? 1 : -1) * (200 / metersPerXUnit());
-            if (villa && params.showVilla && shaftXs.length && Math.abs(villaX) <= halfW) {
-                const vx = villaX;
-                const vy = getTerrainHeight(vx, 0);
+            // Placement: in GeoData mode use the villa's INFERRED georeferenced coordinate
+            // (site.villa.geo — a working estimate, not surveyed); otherwise fall back to the old
+            // schematic "~200 m west of the west-most shaft". Shown only while it falls INSIDE the
+            // visible window, so it appears/disappears with the surrounding-area slider.
+            const flipV = isGeo && params.flipWE;
+            let vx = 0, vz = 0;
+            if (isGeo && villa && villa.geo && villa.geo.lat != null) {
+                const sc = geoToScene(villa.geo.lat, villa.geo.lon);
+                vx = sc.x; vz = sc.z;
+            } else {
+                const shaftXs = [...basePts, ...auxPts].map(v => v.x);
+                const westX = shaftXs.length ? (flipV ? Math.max(...shaftXs) : Math.min(...shaftXs)) : 0;
+                vx = westX + (flipV ? 1 : -1) * (200 / metersPerXUnit());
+            }
+            if (villa && params.showVilla && Math.abs(vx) <= halfW && Math.abs(vz) <= halfD) {
+                const vy = getTerrainHeight(vx, vz);
                 const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6),
                     new THREE.MeshBasicMaterial({ color: 0xb08d57, transparent: true, opacity: 0.45, depthTest: false }));
-                box.position.set(vx, vy + 0.6, 0); box.renderOrder = 9;
+                box.position.set(vx, vy + 0.6, vz); box.renderOrder = 9;
                 box.userData = Object.assign({ kind: 'villa' }, villa);   // clickable → inspector
                 modelGroup.add(box); spotMeshes.push(box);
                 const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box.geometry),
@@ -2112,8 +2202,8 @@
                         transparent: true, opacity: 0.9, depthTest: false }));
                 edges.position.copy(box.position); edges.computeLineDistances(); edges.renderOrder = 10;
                 modelGroup.add(edges);
-                const vs = createTextSprite('Roman villa (inferred, location unknown)', '#6b4f2a', 18);
-                vs.scale.set(9.0, 1.05, 1); vs.position.set(vx, vy + 2.1, 0);
+                const vs = createTextSprite('Roman villa (inferred position)', '#6b4f2a', 18);
+                vs.scale.set(9.0, 1.05, 1); vs.position.set(vx, vy + 2.1, vz);
                 modelGroup.add(vs);
             }
 
@@ -2143,6 +2233,8 @@
             });
 
             applyXrayMode();             // set subsurface depthTest/renderOrder for the current x-ray mode
+            applyCutaway();              // (re)attach the look-inside clip plane if enabled
+            applyUndergroundOpacity(params.undergroundOpacity);   // subsurface opacity multiplier
             updateCompass();
             updateExagReadout();
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
@@ -2196,16 +2288,25 @@
             // which world direction is currently on the left, so they stay correct as the camera
             // orbits. Scene +x = East (−x = West), mirrored by flipWE. Project a point either side
             // of the orbit target and compare screen x to find which lands on the left.
+            // Pick whichever horizontal world axis is most spread out on screen and label the
+            // corners with it: the E–W axis (±x) when the qanat is viewed broadside, but the
+            // N–S axis (∓z: +z = South, −z = North) once the camera orbits to look ALONG the
+            // qanat. That's why the labels can now read North/South, not only West/East.
+            if (!camera || !controls) { w.innerHTML = '<em>West</em>'; e.innerHTML = '<em>East</em>'; return; }
             const flip = params.flipWE && params.terrainSource === 'geodata';
-            let leftIsWest = true;
-            if (camera && controls) {
-                const t = controls.target, eastX = flip ? -1 : 1;
-                const pE = new THREE.Vector3(t.x + eastX, t.y, t.z).project(camera);
-                const pW = new THREE.Vector3(t.x - eastX, t.y, t.z).project(camera);
-                leftIsWest = pW.x <= pE.x;
+            const t = controls.target, eastX = flip ? -1 : 1;
+            const proj = (dx, dz) => new THREE.Vector3(t.x + dx, t.y, t.z + dz).project(camera);
+            const pEast = proj(eastX, 0), pWest = proj(-eastX, 0);
+            const pSouth = proj(0, 1), pNorth = proj(0, -1);
+            let aL, bL, aP, bP;
+            if (Math.abs(pEast.x - pWest.x) >= Math.abs(pSouth.x - pNorth.x)) {
+                aL = 'West'; bL = 'East'; aP = pWest; bP = pEast;
+            } else {
+                aL = 'North'; bL = 'South'; aP = pNorth; bP = pSouth;
             }
-            w.innerHTML = '<em>' + (leftIsWest ? 'West' : 'East') + '</em>';
-            e.innerHTML = '<em>' + (leftIsWest ? 'East' : 'West') + '</em>';
+            const leftA = aP.x <= bP.x;               // which of the pair projects to screen-left
+            w.innerHTML = '<em>' + (leftA ? aL : bL) + '</em>';
+            e.innerHTML = '<em>' + (leftA ? bL : aL) + '</em>';
         }
 
         function updateExagReadout() {
@@ -2665,7 +2766,9 @@
                 document.body.classList.toggle('dev-mode', params.devMode);
                 document.getElementById('row-pbr').style.display = params.devMode ? '' : 'none';
                 document.getElementById('grp-debug').style.display = params.devMode ? '' : 'none';
+                document.getElementById('grp-vexag').style.display = params.devMode ? '' : 'none';   // vertical exaggeration is dev-only
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
+                document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
                 syncConditionalOptions();
             };
             const setDevMode = on => {
@@ -2695,6 +2798,8 @@
                 );
                 if (combo) { e.preventDefault(); setDevMode(!params.devMode); }
             });
+            // Discoverable entry point: the button at the bottom of the panel.
+            document.getElementById('btn-dev-mode').addEventListener('click', () => setDevMode(!params.devMode));
             syncConditionalOptions();   // initial state
             // Dev mode can also be entered by loading with a `#dev` (or `?dev`) URL — a
             // keyboard-free, OS-proof way to reach the debug controls.
@@ -2772,13 +2877,6 @@
                 buildParametricModel();
             });
 
-            // Geological section (Brochure fig 4-2): shared with the profile-modal toggle.
-            // Checking it here opens the Gallery-profile modal so the section is visible.
-            document.getElementById('param-geosection').addEventListener('change', e => {
-                setGeoSection(e.target.checked);
-                if (e.target.checked && !profileOn) toggleProfile();
-            });
-
             // Detailed strata overlay (bedding lines + mounded water table + unit labels)
             document.getElementById('param-strata-detail').addEventListener('change', e => {
                 params.strataDetailed = e.target.checked;
@@ -2827,9 +2925,28 @@
                 applyXrayMode();
             });
 
-            // Look inside shafts (cutaway): render shaft cylinders back-face-only.
+            // Look inside (cutaway): clip the camera-facing half of the subsurface — live.
             document.getElementById('param-shaft-cutaway').addEventListener('change', e => {
                 params.shaftCutaway = e.target.checked;
+                applyCutaway();
+            });
+
+            // Underground opacity: scale the whole subsurface group's opacity — live.
+            const ugSl = document.getElementById('param-underground-opacity');
+            const ugLb = document.getElementById('lbl-underground-opacity');
+            if (ugSl) {
+                ugSl.value = params.undergroundOpacity;
+                ugLb.innerText = params.undergroundOpacity.toFixed(2);
+                ugSl.addEventListener('input', e => {
+                    const v = parseFloat(e.target.value);
+                    ugLb.innerText = v.toFixed(2);
+                    applyUndergroundOpacity(v);
+                });
+            }
+
+            // Dev: cull the terrain surface back face (rebuild — the side is set at creation).
+            document.getElementById('param-terrain-cullback').addEventListener('change', e => {
+                params.terrainCullBack = e.target.checked;
                 buildParametricModel();
             });
 
@@ -3143,7 +3260,7 @@
         // comfortable band so the model can't flip under the ground or go fully top-down. The
         // on-canvas nav pad (⟲ ⟳ tilt) gives keyboard-free axis rotation.
         // Power (opt-in): the original free orbit — left-drag rotates, right-drag pans, full tilt.
-        const NORMAL_MIN_POLAR = Math.PI * 0.12, NORMAL_MAX_POLAR = Math.PI * 0.5;
+        const NORMAL_MIN_POLAR = 0, NORMAL_MAX_POLAR = Math.PI * 0.5;   // allow full top-down; never under the ground
         function applyNavMode() {
             if (!controls || !THREE.MOUSE) return;
             const normal = params.navMode !== 'power';
@@ -3177,8 +3294,8 @@
             sph.phi = Math.max(lo, Math.min(hi, sph.phi + dPhi));
             sph.makeSafe();
             off.setFromSpherical(sph);
-            camera.position.copy(controls.target).add(off);
-            controls.update();
+            // Smoothly animate the rotate/tilt instead of snapping (matches the preset buttons).
+            flyTo(controls.target.clone().add(off), controls.target.clone(), 320);
         }
 
         // --- Zoom-to-pointer: dolly toward the mouse cursor instead of the orbit target ---
@@ -3504,6 +3621,12 @@
             let h = `<h3>${v.name || 'Roman villa'}</h3><div class="ip-sub">Inferred recipient` +
                 `${v.status ? ' · ' + v.status : ''}${v.confidence ? ' · confidence ' + v.confidence : ''}</div>`;
             if (v.role) h += `<div class="ip-row"><span class="ip-k">Role</span><span class="ip-v">${v.role}</span></div>`;
+            if (v.geo && v.geo.lat != null) {
+                const lat = v.geo.lat.toFixed(6), lon = v.geo.lon.toFixed(6);
+                const osm = `https://www.openstreetmap.org/?mlat=${v.geo.lat}&mlon=${v.geo.lon}#map=18/${v.geo.lat}/${v.geo.lon}`;
+                h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
+                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a>${statusBadge('inferred')}</span></div>`;
+            }
             if (v.approxElevationMasl != null) h += `<div class="ip-row"><span class="ip-k">Approx. elevation</span>` +
                 `<span class="ip-v">~${v.approxElevationMasl} m a.s.l.${statusBadge('inferred')}</span></div>`;
             if (v.source) h += `<div class="ip-row"><span class="ip-k">Source</span><span class="ip-v">${v.source}</span></div>`;
@@ -3558,6 +3681,30 @@
             const bs = document.getElementById('mode-settings'), bi = document.getElementById('mode-inspector');
             if (bs) bs.addEventListener('click', () => setPanelMode('settings'));
             if (bi) bi.addEventListener('click', () => setPanelMode('inspector'));
+        }
+
+        // Full-screen image lightbox (scale in/out). Any img.lb-img opens it.
+        function initLightbox() {
+            const lb = document.getElementById('lightbox'), lbImg = document.getElementById('lightbox-img');
+            if (!lb || !lbImg) return;
+            const open = (src, alt) => {
+                lbImg.src = src; lbImg.alt = alt || '';
+                lb.style.display = 'flex';
+                void lb.offsetWidth;                 // reflow so the scale/opacity transition plays
+                lb.classList.add('open');
+            };
+            const close = () => {
+                lb.classList.remove('open');
+                setTimeout(() => { if (!lb.classList.contains('open')) lb.style.display = 'none'; }, 240);
+            };
+            // Delegate: clicking any lightbox-enabled image opens the viewer.
+            document.addEventListener('click', ev => {
+                const img = ev.target.closest && ev.target.closest('img.lb-img');
+                if (img) { ev.preventDefault(); open(img.currentSrc || img.src, img.alt); }
+            });
+            lb.addEventListener('click', close);     // click anywhere on the overlay closes
+            document.getElementById('lightbox-close').addEventListener('click', close);
+            document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && lb.classList.contains('open')) close(); });
         }
 
         // --- Data-sources modal (replaces the old inline bottom-left overlay) ---
@@ -3947,7 +4094,7 @@
                         : ``) +
                 `</select></label>` +
                 `<div class="pp-geoimg" id="pp-geoimg" style="display:${profileImgOn ? 'block' : 'none'}">` +
-                    `<img src="assets/geo-section-brochure.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)">` +
+                    `<img class="lb-img" src="assets/geo-section-brochure.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)" title="Click to enlarge">` +
                     `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Brochure 2018, fig 4‑2 · used with permission</div>` +
                 `</div>`;
             const basis = anchored
@@ -4031,6 +4178,7 @@
             // Scroll the shared water ripple normal so the PBR gallery reads as flowing.
             if (waterMats.length && TEX.water) TEX.water.offset.y = -(now * 0.00012) % 1;
             if (measureMode) updateMeasureOverlay();
+            updateCutawayPlane();   // keep the look-inside cut facing the camera
             controls.update();
             renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
