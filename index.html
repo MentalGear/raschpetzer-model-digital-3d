@@ -599,6 +599,13 @@
             <details id="grp-debug">
                 <summary class="dev-opt">Debug</summary>
                 <label class="check-row"><input type="checkbox" id="param-qanat-front"> Qanat&nbsp;at&nbsp;front&nbsp;edge&nbsp;(strata&nbsp;in&nbsp;front)</label>
+                <div id="grp-front-margin" style="display:none">
+                    <label>Front edge gap <span class="val" id="lbl-front-margin">8&nbsp;m</span></label>
+                    <input type="range" id="param-front-margin" min="0" max="60" step="1" value="8">
+                </div>
+                <label style="margin-top:10px">Terrain density <span class="val" id="lbl-density">1.0×</span></label>
+                <input type="range" id="param-density" min="0.5" max="2.0" step="0.25" value="1.0">
+                <div id="density-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </details>
         </div>
         </div>
@@ -796,6 +803,8 @@
             showFaults: false,            // Pëtschend horst bounding faults (illustrative)
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
             qanatFront: false,            // debug: pin the qanat to the front cut face (strata in front)
+            frontMarginM: 8,              // debug: gap (m) between the front terrain edge and the end shaft (qanatFront)
+            terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
         };
 
@@ -919,6 +928,7 @@
 
         let scene, camera, renderer, controls, modelGroup;
         let contourMaterial, crossSectionMaterial;
+        let lastTerrainSeg = { x: 0, z: 0 };   // last terrain tessellation (dev density readout)
         let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
         // --- Realistic PBR textures (loaded once; used only when params.pbr) --------------
         // Sandstone set (CC0, Poly Haven "sandstone_cracks") clads the rock-cut shafts to match
@@ -1079,7 +1089,7 @@
                 // cross-section sits right in front of it; the square then extends north.
                 // Only ~540 m of data lies north of the qanat, so shrink the square to fit
                 // (cheap — no extra sampling); the qanat stays pinned at the front.
-                const frontMarginLat = 8 / 111320;                 // ~8 m south of the end shaft
+                const frontMarginLat = params.frontMarginM / 111320;   // gap south of the end shaft (dev slider)
                 const availLat = (GEO_BBOX.north - QANAT_LAT_S) + frontMarginLat;
                 if (spanLat > availLat) { spanLat = availLat; spanLon = spanLat / cosLat; }
                 south = QANAT_LAT_S - frontMarginLat;
@@ -1466,16 +1476,26 @@
             waterMats = [];          // PBR water materials (scrolled in animate); rebuilt each build
             recomputeGeoView();   // refresh geoView + QSCALE + scaled pillarDefs
 
-            // Terrain tessellation. Bumped to feed the denser baked LiDAR grid (240×132 tier):
-            // at the default framing the visible window is ~866×501 m, so 240×108 surface
-            // segments (~3.6 m each) and 200×92 side-wall steps let the mesh actually resolve
-            // the finer grid instead of over-smoothing it. ~52k tris — trivial for WebGL.
-            const segX = 200, segZ = 92;
+            // Terrain tessellation, tied to the native LiDAR density the CURRENT window covers.
+            // The fill surface, the contour marching grid and the side walls all use ONE
+            // resolution so they approximate the same height field identically. Under-tessellating
+            // the denser 240×132 LiDAR tier had two effects: the fill facets poked above the
+            // (separately, more coarsely sampled) contour polylines and hid pieces of them
+            // ("cut" contour lines), and the fill's own Z under-sampling faceted the shading.
+            // Sampling at ~1.5× the covered grid resolution (capped, and cheap because a
+            // zoomed-in window covers fewer cells) resolves the grid without over-smoothing.
+            const geoReady = (params.terrainSource === 'geodata' && geodata.ready);
+            const fracLon = (geoView.east - geoView.west) / (GEO_BBOX.east - GEO_BBOX.west);
+            const fracLat = (geoView.north - geoView.south) / (GEO_BBOX.north - GEO_BBOX.south);
+            const OS = 1.5 * params.terrainDensity;   // oversample for bilinear curvature; ×dev density knob
+            const segX = geoReady ? Math.max(200, Math.min(560, Math.ceil(geodata.cols * fracLon * OS))) : Math.round(200 * params.terrainDensity);
+            const segZ = geoReady ? Math.max(120, Math.min(400, Math.ceil(geodata.rows * fracLat * OS))) : Math.round(92 * params.terrainDensity);
+            lastTerrainSeg = { x: segX, z: segZ };   // for the dev density readout
             const halfW = params.width / 2;
             const halfD = params.depth / 2;
 
             // --- 1. Fill surface mesh (plain light cream; pushed back so contour lines sit on top) ---
-            const surfGeo = new THREE.PlaneGeometry(params.width, params.depth, 240, 108);
+            const surfGeo = new THREE.PlaneGeometry(params.width, params.depth, segX, segZ);
             surfGeo.rotateX(-Math.PI / 2);
             const pos = surfGeo.attributes.position;
             for (let i = 0; i < pos.count; i++) {
@@ -1522,7 +1542,9 @@
             // --- 2. CONTOUR LINES as real geometry (marching squares over the height field) ---
             // This renders the topography the way the reference does: thin brown
             // iso-elevation curves, not a shaded surface.
-            const gx = 200, gz = 88;
+            // Same grid as the fill surface (segX×segZ) so the contour polylines and the fill
+            // facets agree — otherwise mismatched facets occlude the lines ("cut" contours).
+            const gx = segX, gz = segZ;
             const xs = [], zs = [], H = [];
             for (let i = 0; i <= gx; i++) xs.push(-halfW + (i / gx) * params.width);
             for (let j = 0; j <= gz; j++) zs.push(-halfD + (j / gz) * params.depth);
@@ -2055,6 +2077,18 @@
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
             rebuildFlow();               // rebuild animated-flow particles for the new paths
             if (profileOn) document.getElementById('profile-panel').innerHTML = buildProfileSVG();
+            updateDensityReadout();      // refresh the dev density readout (segX/segZ just recomputed)
+        }
+
+        // Dev density readout: shows the terrain tessellation the last build actually used
+        // (it varies with the Surrounding-area window) plus an approximate triangle count.
+        function updateDensityReadout() {
+            const el = document.getElementById('density-readout');
+            if (!el) return;
+            const sx = lastTerrainSeg.x, sz = lastTerrainSeg.z;
+            const tris = sx * sz * 2;
+            const triTxt = tris >= 1000 ? Math.round(tris / 1000) + 'k' : String(tris);
+            el.innerText = 'grid ' + sx + '×' + sz + ' · ~' + triTxt + ' tris (surface)';
         }
 
         // Real ground metres per model X-unit (GeoData uses the bbox; else nominal ~1 km block).
@@ -2533,11 +2567,30 @@
             sliceReadout();
 
             // Debug: pin the qanat to the front cut face (strata right in front)
+            const frontMarginGrp = document.getElementById('grp-front-margin');
             document.getElementById('param-qanat-front').addEventListener('change', e => {
                 params.qanatFront = e.target.checked;
+                frontMarginGrp.style.display = e.target.checked ? '' : 'none';   // gap slider only when pinned
                 sliceReadout();               // recomputeGeoView (re-frames N–S)
                 buildParametricModel();
                 updateZoomClamp();
+            });
+            // Debug: gap (m) between the front terrain edge and the end shaft when pinned.
+            document.getElementById('param-front-margin').addEventListener('input', e => {
+                params.frontMarginM = parseFloat(e.target.value);
+                document.getElementById('lbl-front-margin').innerText = params.frontMarginM + ' m';
+                if (!params.qanatFront) return;
+                sliceReadout();               // recomputeGeoView (re-frames N–S)
+                buildParametricModel();
+                updateZoomClamp();
+            });
+            // Debug: terrain tessellation density multiplier — rebuilds the mesh/contours so the
+            // quality-vs-cost trade-off (and the contour-occlusion fix) can be checked live.
+            document.getElementById('param-density').addEventListener('input', e => {
+                params.terrainDensity = parseFloat(e.target.value);
+                document.getElementById('lbl-density').innerText = params.terrainDensity.toFixed(2) + '×';
+                buildParametricModel();       // recomputes segX/segZ → lastTerrainSeg
+                updateDensityReadout();
             });
 
             // Realistic PBR stone materials (textured shafts / terrain walls + flowing water)
@@ -2606,7 +2659,8 @@
                         let rebuild = false;
                         if (params.pbr) { params.pbr = false; document.getElementById('param-pbr').checked = false; rebuild = true; }
                         if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
-                        if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false; rebuild = true; }
+                        if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false;
+                            document.getElementById('grp-front-margin').style.display = 'none'; rebuild = true; }
                         if (measureMode) setMeasureMode(false);   // leave measure mode with dev
                         syncDevUI();
                         if (rebuild) { buildParametricModel(); updateZoomClamp(); }
