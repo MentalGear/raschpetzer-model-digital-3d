@@ -2544,6 +2544,7 @@
             const syncDevUI = () => {
                 document.body.classList.toggle('dev-mode', params.devMode);
                 document.getElementById('row-pbr').style.display = params.devMode ? '' : 'none';
+                document.getElementById('grp-debug').style.display = params.devMode ? '' : 'none';
                 syncConditionalOptions();
             };
             document.addEventListener('keydown', e => {
@@ -2554,8 +2555,9 @@
                         let rebuild = false;
                         if (params.pbr) { params.pbr = false; document.getElementById('param-pbr').checked = false; rebuild = true; }
                         if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
+                        if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false; rebuild = true; }
                         syncDevUI();
-                        if (rebuild) buildParametricModel();
+                        if (rebuild) { buildParametricModel(); updateZoomClamp(); recenterPivotOnQanat(); }
                     } else {
                         syncDevUI();
                     }
