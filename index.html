@@ -163,7 +163,7 @@
         /* Merged era track — the scrubber IS the coloured era bar (one object, not two rails).
            A transparent range input overlays the coloured track and drives the scrub; a visible
            knob is drawn on top and positioned by JS. */
-        #tl-scrub { position: relative; height: 30px; margin-top: 8px; }
+        #tl-scrub { position: relative; height: 30px; margin-top: 8px; --tl-thumb: 30px; }
         #timeline-track { position: absolute; inset: 0; border-radius: 7px; background: #222a36;
             overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }
         #timeline-track .tl-band { position: absolute; top: 0; bottom: 0; cursor: pointer;
@@ -188,8 +188,8 @@
             background: transparent; border: none; cursor: grab; }
         #param-year::-moz-range-thumb { width: 30px; height: 30px; background: transparent; border: none; }
         /* Visible playhead knob riding on the colour. */
-        #tl-playhead { position: absolute; top: 50%; width: 20px; height: 20px; margin-left: -10px;
-            transform: translateY(-50%); border-radius: 50%; background: #fff;
+        #tl-playhead { position: absolute; top: 50%; width: 20px; height: 20px;
+            transform: translate(-50%, -50%); border-radius: 50%; background: #fff;
             border: 3px solid var(--accent-blue); box-shadow: 0 2px 7px rgba(0,0,0,0.7);
             z-index: 4; pointer-events: none; }
         #timeline-axis { position: relative; height: 13px; margin-top: 4px;
@@ -347,10 +347,10 @@
             #tab-bar .tab { padding: 11px 2px; }
             #tab-bar .tab .ti { font-size: 1.2rem; }
             /* Timeline scrubber: taller track + a 44px thumb hit area, bigger visible knob. */
-            #tl-scrub { height: 36px; }
+            #tl-scrub { height: 36px; --tl-thumb: 44px; }
             #param-year::-webkit-slider-thumb { width: 44px; height: 44px; }
             #param-year::-moz-range-thumb { width: 44px; height: 44px; }
-            #tl-playhead { width: 26px; height: 26px; margin-left: -13px; border-width: 4px; }
+            #tl-playhead { width: 26px; height: 26px; border-width: 4px; }
             /* Close buttons → 44px tap targets. */
             #info-close, #drawer-close { width: 44px; height: 44px; display: flex;
                 align-items: center; justify-content: center; font-size: 1.7rem; }
@@ -2751,7 +2751,9 @@
             const y = params.year;
             const yTxt = y >= 2025 ? 'present' : (y + ' AD');
             if (lbl) lbl.textContent = yTxt;
-            if (ph) ph.style.left = (yearToSlider(y) * 100).toFixed(2) + '%';
+            // Match the native range thumb (inset by half its width), so the knob sits exactly
+            // under the pointer instead of drifting by ~half a thumb toward the ends.
+            if (ph) ph.style.left = 'calc(var(--tl-thumb) / 2 + ' + yearToSlider(y).toFixed(4) + ' * (100% - var(--tl-thumb)))';
             // Big era pill (name + colour) — the "which era" answer, always in sync.
             const era = eraInfo(y);
             const eraName = document.getElementById('tl-era-name');
@@ -3046,6 +3048,7 @@
         function setupShaftInteraction() {
             const dom = renderer.domElement;
             const tip = document.getElementById('shaft-tooltip');
+            const HOVER_TOOLTIP = false;   // hover overlays disabled — click a shaft for its info panel
             let dwellTimer = null, dwellShaft = null, lastEv = null;
             function pick(ev) {
                 const r = dom.getBoundingClientRect();
@@ -3085,21 +3088,23 @@
                 const hit = pick(ev);
                 if (hit) {
                     const d = hit.object.userData;
-                    dom.style.cursor = 'pointer';
+                    dom.style.cursor = 'pointer';   // still clickable for the info panel
                     hoverActive = true;
                     lastEv = ev;
-                    if (dwellShaft !== d.name) {
-                        // Entered a (new) shaft: reset the dwell timer, hide any prior tooltip.
-                        clearDwell();
-                        dwellShaft = d.name;
-                        tip.style.display = 'none';
-                        dwellTimer = setTimeout(() => {
-                            if (dwellShaft === d.name) showTooltip(hit, lastEv);
-                        }, HOVER_DWELL_MS);
-                    } else if (tip.style.display === 'block') {
-                        // Already showing: keep it glued to the cursor while dwelling on the same shaft.
-                        tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
-                        tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
+                    if (HOVER_TOOLTIP) {
+                        if (dwellShaft !== d.name) {
+                            // Entered a (new) shaft: reset the dwell timer, hide any prior tooltip.
+                            clearDwell();
+                            dwellShaft = d.name;
+                            tip.style.display = 'none';
+                            dwellTimer = setTimeout(() => {
+                                if (dwellShaft === d.name) showTooltip(hit, lastEv);
+                            }, HOVER_DWELL_MS);
+                        } else if (tip.style.display === 'block') {
+                            // Already showing: keep it glued to the cursor while dwelling on the same shaft.
+                            tip.style.left = (ev.clientX - dom.getBoundingClientRect().left) + 'px';
+                            tip.style.top = (ev.clientY - dom.getBoundingClientRect().top) + 'px';
+                        }
                     }
                 } else {
                     // No shaft under the cursor: show a pointer over clickable spots too.
@@ -3523,7 +3528,8 @@
         // X-axis basis is PROFILE-ONLY; it never moves the georeferenced 3D shafts.
         function setProfileXMode(sel) { profileXMode = sel.value; rebuildProfilePanel(); }
         function buildProfileSVG() {
-            const schematic = profileXMode === 'schematic';
+            const anchored = profileXMode === 'schematic-anchored';
+            const schematic = profileXMode === 'schematic' || anchored;
             // Main-line shafts; restrict to the figure's set when comparing against the image.
             let shs = SHAFTS.filter(s => s.geo && s.role !== 'auxiliary');
             if (profileImgOn) shs = shs.filter(s => FIGURE_SHAFTS.includes(s.id));
@@ -3535,13 +3541,24 @@
             const geoSpan = (Math.max(...lons) - lonMin) * mPerDegLon || 1;
             const mxs = shs.map(s => s.modelPos?.x ?? 0), mxMin = Math.min(...mxs);
             const mxSpan = (Math.max(...mxs) - mxMin) || 1;
-            // Schematic mode: Brochure fig 3-1 modelPos spacing, normalised to the same total
-            // width as the georeferenced span, so only the INTERNAL spacing differs.
+            // Schematic scale: NORMALISED spreads the fig 3-1 modelPos spacing across the same
+            // total as the georeferenced span. ANCHORED (dev) instead scales it so the one hard
+            // documented gap (P2→P3) comes out exactly, leaving every other gap diagram-proportional.
+            let mxToM = geoSpan / mxSpan;   // normalised default
+            if (anchored) {
+                const byId = Object.fromEntries(shs.map(s => [s.id, s]));
+                const dd = ((SSOT.gallery.gallery.documentedDistances || {}).items || [])
+                    .find(d => byId[d.from] && byId[d.to] && typeof d.distanceM === 'number');
+                if (dd) {
+                    const span = Math.abs((byId[dd.to].modelPos?.x ?? 0) - (byId[dd.from].modelPos?.x ?? 0));
+                    if (span > 1e-6) mxToM = dd.distanceM / span;
+                }
+            }
             const pts = shs.map(s => {
                 const sc = geoToScene(s.geo.lat, s.geo.lon);
                 const surf = surfaceMeters(getTerrainHeight(sc.x, sc.z));
                 const floor = (s.floorElevM != null) ? s.floorElevM : floorMaslAtLon(s.geo.lon);
-                const dist = schematic ? ((s.modelPos?.x ?? 0) - mxMin) / mxSpan * geoSpan
+                const dist = schematic ? ((s.modelPos?.x ?? 0) - mxMin) * mxToM
                                        : (s.geo.lon - lonMin) * mPerDegLon;
                 return { id: s.id, dist, surf, floor };
             });
@@ -3582,15 +3599,20 @@
                     `${profileImgOn ? ' checked' : ''}> Geological section (Brochure fig&nbsp;4‑2)</label>` +
                 `<label class="pp-toggle">Spacing:&nbsp;<select onchange="setProfileXMode(this)">` +
                     `<option value="geo"${!schematic ? ' selected' : ''}>Georeferenced (LiDAR)</option>` +
-                    `<option value="schematic"${schematic ? ' selected' : ''}>Brochure schematic (fig&nbsp;3‑1)</option>` +
+                    `<option value="schematic"${profileXMode === 'schematic' ? ' selected' : ''}>Brochure schematic (fig&nbsp;3‑1)</option>` +
+                    (params.devMode
+                        ? `<option value="schematic-anchored"${anchored ? ' selected' : ''}>Brochure schematic · P2‑P3 anchored (dev)</option>`
+                        : ``) +
                 `</select></label>` +
                 `<div class="pp-geoimg" id="pp-geoimg" style="display:${profileImgOn ? 'block' : 'none'}">` +
                     `<img src="assets/geo-section-brochure.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)">` +
                     `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Brochure 2018, fig 4‑2 · used with permission</div>` +
                 `</div>`;
-            const basis = schematic
-                ? `x = Brochure fig 3‑1 schematic spacing (normalised); georeferenced shafts unchanged in 3D`
-                : `x = georeferenced W→E distance (OSM/LiDAR)`;
+            const basis = anchored
+                ? `x = Brochure fig 3‑1 spacing, scaled so P2–P3 = 28 m (documented); other gaps diagram-proportional`
+                : schematic
+                    ? `x = Brochure fig 3‑1 schematic spacing (normalised); georeferenced shafts unchanged in 3D`
+                    : `x = georeferenced W→E distance (OSM/LiDAR)`;
             return `<div class="pp-title">Gallery longitudinal profile — true elevation (m a.s.l.)</div>` +
                    controls +
                    `<div class="pp-sub">Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
