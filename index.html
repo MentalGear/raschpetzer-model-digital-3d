@@ -654,7 +654,7 @@
                profile. Solid shafts have a documented depth; faded (translucent) shafts have an
                inferred depth.</p>
             <ul>
-                <li>Faber/Waringo/Werner (2018) — site brochure &amp; survey</li>
+                <li>Brochure 2018 (Faber/Waringo/Werner) — site brochure &amp; survey</li>
                 <li>ACT LiDAR 2019 — 0.5&nbsp;m digital terrain model</li>
                 <li>OpenStreetMap — qanat shaft node coordinates</li>
                 <li>EU-DEM 25&nbsp;m — regional context only</li>
@@ -868,7 +868,7 @@
         let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
         // --- Realistic PBR textures (loaded once; used only when params.pbr) --------------
         // Sandstone set (CC0, Poly Haven "sandstone_cracks") clads the rock-cut shafts to match
-        // the surveyed shaft interiors (Waringo figs 6-7/6-8); a small procedural normal makes
+        // the surveyed shaft interiors (Brochure figs 6-7/6-8); a small procedural normal makes
         // the gallery read as flowing water. Baked to 512² WebP (~240 KB total). See docs.
         const TEX = {};
         let waterMats = [];         // water materials whose normal scrolls in animate()
@@ -2186,7 +2186,7 @@
         }
 
         // The Pëtschend is a central horst bounded N & S by ~E–W faults where groundwater
-        // leaks to the Dauvebur (N) and Op der Rëll (S) springs (geology.structure, Waringo
+        // leaks to the Dauvebur (N) and Op der Rëll (S) springs (geology.structure, Brochure
         // p.14 / fig 4-3). The brochure gives NO surveyed fault coordinates, so each fault is
         // drawn as a dashed surface trace + downthrow hachures at the north/south edges of the
         // modelled corridor — an ILLUSTRATIVE marker of the structure, clearly labelled.
@@ -2420,6 +2420,7 @@
                 sliceReadout();
                 buildParametricModel();
                 updateZoomClamp();   // maxDistance scales with the physically-larger block
+                recenterPivotOnQanat();   // keep the rotation pivot on the qanat after resizing
             });
             sliceReadout();
 
@@ -2429,6 +2430,7 @@
                 sliceReadout();               // recomputeGeoView (re-frames N–S)
                 buildParametricModel();
                 updateZoomClamp();
+                recenterPivotOnQanat();
             });
 
             // Realistic PBR stone materials (textured shafts / terrain walls + flowing water)
@@ -2831,6 +2833,20 @@
                 const dir = new THREE.Vector3().subVectors(camera.position, controls.target).setLength(clamped);
                 camera.position.copy(controls.target).add(dir);
             }
+        }
+
+        // Re-anchor the orbit pivot on the qanat when the terrain size (surround) or framing
+        // changes. Zoom-to-cursor and panning drift controls.target away from the qanat; after
+        // a resize that stale pivot makes rotation feel off-centre. Snap the pivot back to the
+        // qanat centre (DEFAULT_CAM.target, recomputed by buildParametricModel) while shifting
+        // the camera by the same delta, so the view direction and distance are preserved.
+        function recenterPivotOnQanat() {
+            if (!controls || !camera || !initialViewSet) return;
+            const delta = DEFAULT_CAM.target.clone().sub(controls.target);
+            if (delta.lengthSq() < 1e-9) return;
+            controls.target.add(delta);
+            camera.position.add(delta);
+            controls.update();
         }
 
         function setupZoomToCursor() {
@@ -3403,7 +3419,7 @@
 
         // --- Gallery longitudinal-profile chart (toggle) ---------------------
         let profileOn = false;
-        let profileImgOn = false;   // show the Waringo geological cross-section (fig 4-2) in the modal
+        let profileImgOn = false;   // show the Brochure geological cross-section (fig 4-2) in the modal
         // Separate in-modal toggle: reveal/hide the original geological section for comparison
         // against our derived longitudinal profile. Image used with the rights holders' clearance.
         function toggleProfileImg(cb) {
@@ -3454,14 +3470,14 @@
                    `<text x="${W - mR}" y="${H - 8}" fill="#8a7a63" font-size="9" text-anchor="end">${Math.round(maxD)} m</text>`;
             svg += `</svg>`;
             const fall = (pts[pts.length - 1].floor - pts[0].floor);
-            // Separate toggle + the original geological cross-section (Waringo fig 4-2), for
+            // Separate toggle + the original geological cross-section (Brochure fig 4-2), for
             // side-by-side comparison with our derived profile. Both run W→E through P-1..P9.
             const geoBlock =
                 `<label class="pp-toggle"><input type="checkbox" onchange="toggleProfileImg(this)"` +
-                    `${profileImgOn ? ' checked' : ''}> Geological section (Waringo fig&nbsp;4‑2)</label>` +
+                    `${profileImgOn ? ' checked' : ''}> Geological section (Brochure fig&nbsp;4‑2)</label>` +
                 `<div class="pp-geoimg" id="pp-geoimg" style="display:${profileImgOn ? 'block' : 'none'}">` +
-                    `<img src="assets/geo-section-waringo.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Waringo 2018, fig 4-2)">` +
-                    `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Waringo 2018, fig 4‑2 · used with permission</div>` +
+                    `<img src="assets/geo-section-brochure.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)">` +
+                    `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Brochure 2018, fig 4‑2 · used with permission</div>` +
                 `</div>`;
             return `<div class="pp-title">Gallery longitudinal profile — true elevation (m a.s.l.)</div>` +
                    geoBlock +

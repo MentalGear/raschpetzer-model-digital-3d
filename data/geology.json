@@ -1,5 +1,5 @@
 {
-  "_doc": "Stratigraphy + structure facts. Layer NAMES/codes/roles, the ~2% dip and the cited thickness/elevation ranges are facts (Waringo 2018 fig.4-2/4-3, p.6/14/15). RENDER CAVEAT (paradata pd-strata-render): the cross-section draws the sandstone/marl interface (= groundwater table ≈ gallery floor, fig.5-24) at its REAL elevation, but the weathered-cover / marl / keuper sub-thicknesses are approximate display values, NOT the cited ranges. Colours live in model-config.json, joined by `code`.",
+  "_doc": "Stratigraphy + structure facts. Layer NAMES/codes/roles, the ~2% dip and the cited thickness/elevation ranges are facts (Brochure 2018 fig.4-2/4-3, p.6/14/15). RENDER CAVEAT (paradata pd-strata-render): the cross-section draws the sandstone/marl interface (= groundwater table ≈ gallery floor, fig.5-24) at its REAL elevation, but the weathered-cover / marl / keuper sub-thicknesses are approximate display values, NOT the cited ranges. Colours live in model-config.json, joined by `code`.",
   "geology": {
     "id": "raschpetzer-geology", "crm": "E4_Period",
     "strataDipPct": 2,
