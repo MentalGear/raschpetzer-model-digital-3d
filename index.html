@@ -24,6 +24,7 @@
             overflow: hidden;
             display: flex;
             height: 100vh;
+            height: 100dvh;   /* dynamic viewport: iOS Safari toolbars don't clip bottom UI */
         }
 
         #canvas-container {
@@ -97,6 +98,7 @@
         #profile-panel .pp-sub { color: #8a7a63; margin-bottom: 4px; }
         #profile-panel .pp-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
             margin: 2px 0 6px; color: #4a3f2f; user-select: none; }
+        #profile-panel .pp-toggle input { accent-color: var(--accent-blue); cursor: pointer; }
         #profile-panel .pp-toggle select { font-size: 0.68rem; padding: 1px 3px; border-radius: 4px;
             border: 1px solid rgba(0,0,0,0.2); background: #fff; color: #4a3f2f; }
         #profile-panel .pp-geoimg img { width: 100%; display: block; border-radius: 4px;
@@ -109,6 +111,9 @@
             background: #e11d48; color: #fff; font-size: 0.62rem; font-weight: 700; letter-spacing: 1px;
             padding: 1px 8px; border-radius: 0 0 5px 5px; }
         body.dev-mode #dev-border { display: block; }
+        /* Small red dot marking dev-only controls */
+        .dev-opt::after { content: '●'; color: #e11d48; font-size: 0.5em; margin-left: 6px;
+            vertical-align: middle; }
 
         /* Scale bar */
         #scale-bar {
@@ -135,9 +140,11 @@
 
         #ui-panel {
             order: 2;
-            flex: 0 0 340px;
-            width: 340px;
+            flex: 0 0 var(--panel-w, 340px);
+            width: var(--panel-w, 340px);
             height: 100vh;
+            height: 100dvh;
+            position: relative;
             background: var(--panel-bg);
             border-left: 1px solid rgba(255, 255, 255, 0.08);
             padding: 22px;
@@ -244,6 +251,11 @@
             background: rgba(0,0,0,0.45); padding: 6px 14px; border-radius: 20px; font-size: 0.72rem;
             pointer-events: none; letter-spacing: 0.4px; color: #ddd; max-width: calc(100% - 220px);
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 5; }
+        .instructions .hint-close { pointer-events: auto; cursor: pointer; margin-left: 10px;
+            color: #fff; opacity: 0.65; font-weight: 700; }
+        .instructions .hint-close:hover { opacity: 1; }
+        /* Hint is mouse/keyboard guidance — hide it on touch devices (irrelevant + takes space) */
+        @media (pointer: coarse) { .instructions { display: none !important; } }
 
         .control-group label.check-row { display: flex; justify-content: flex-start; align-items: center;
             gap: 8px; cursor: pointer; margin-top: 9px; font-size: 0.8rem; color: #d1d5db; }
@@ -313,15 +325,22 @@
            header→content spacing matches "Camera"/"Tools" exactly. */
         .legend-items { margin-top: 8px; }
         /* Mobile drawer */
-        #drawer-close { display: none; background: none; border: none; color: #9ca3af;
+        #drawer-close { display: block; background: none; border: none; color: #9ca3af;
             font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 2px; }
         #drawer-toggle { display: none; position: fixed; top: 12px; right: 12px; z-index: 41;
             width: 46px; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.18);
             background: rgba(18,20,28,0.85); color: #fff; font-size: 1.3rem; cursor: pointer;
             align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.45); }
         #drawer-scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 39; }
+        /* Desktop: draggable resize handle on the panel's inner edge + hidden state */
+        #panel-resize { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 6; }
+        #panel-resize:hover, body.panel-resizing #panel-resize { background: rgba(255,255,255,0.18); }
+        body.panel-resizing { cursor: ew-resize; user-select: none; }
+        body.panel-hidden #ui-panel { display: none; }
+        body.panel-hidden #drawer-toggle { display: flex; }   /* floating reopen button */
         @media (max-width: 760px) {
             body { display: block; }
+            #panel-resize { display: none; }   /* mobile uses the drawer, not the resize handle */
             #canvas-container { position: absolute; inset: 0; width: 100%; height: 100%; }
             #ui-panel { position: fixed; top: 0; right: 0; height: 100%; width: min(360px, 88vw);
                 transform: translateX(100%); transition: transform 0.25s ease; z-index: 40; }
@@ -481,6 +500,7 @@
     <div id="drawer-scrim"></div>
 
     <div id="ui-panel">
+        <div id="panel-resize" title="Drag to resize · release small to hide"></div>
         <div id="panel-head">
             <div>
                 <h1>Raschpëtzer Roman Qanat</h1>
@@ -489,6 +509,7 @@
             <button id="drawer-close" type="button" aria-label="Close controls">×</button>
         </div>
 
+        <div class="tab-section">
         <div id="tab-bar" role="tablist">
             <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti">🗺️</span><span class="tl">Map</span></button>
             <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti">💧</span><span class="tl">Qanat</span></button>
@@ -525,7 +546,8 @@
         <div class="tab-pane" data-pane="qanat">
             <div class="control-group">
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
-                <label class="check-row" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)</label>
+                <label class="check-row"><input type="checkbox" id="param-geosection"> Geological&nbsp;section&nbsp;(Brochure&nbsp;fig&nbsp;4‑2)</label>
+                <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
@@ -539,7 +561,7 @@
             <div class="control-group">
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
-                <label class="check-row" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
+                <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
                 <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             </div>
             <div class="control-group" id="grp-terrain-opacity">
@@ -557,9 +579,10 @@
                 <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </div>
             <details id="grp-debug">
-                <summary>Debug</summary>
+                <summary class="dev-opt">Debug</summary>
                 <label class="check-row"><input type="checkbox" id="param-qanat-front"> Qanat&nbsp;at&nbsp;front&nbsp;edge&nbsp;(strata&nbsp;in&nbsp;front)</label>
             </details>
+        </div>
         </div>
         </div>
 
@@ -584,7 +607,7 @@
         <div class="control-group">
             <label>Tools</label>
             <div class="btn-tools">
-                <button id="btn-measure" type="button">📏 Measure</button>
+                <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
                 <button id="btn-profile" type="button">📈 Gallery profile</button>
                 <button id="btn-sources" type="button">ⓘ Data sources</button>
             </div>
@@ -699,7 +722,7 @@
             <div class="bar-text">100 m</div>
         </div>
 
-        <div class="instructions">Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · Scroll to zoom · Hover a shaft for depth · Click for info</div>
+        <div class="instructions" id="instructions">Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · Scroll to zoom · Click a shaft for info<span class="hint-close" id="hint-close" role="button" tabindex="0" aria-label="Hide hint">×</span></div>
 
         <!-- Time machine: the timeline scrubber lives on the canvas so time is always at hand. -->
         <div id="timeline-bar">
@@ -926,9 +949,11 @@
                 // Keep materials permanently in the transparent pass — flipping to opaque at
                 // v=1 caused a visible colour pop between 1.00 and 0.95 (opaque↔transparent).
                 m.transparent = true;
-                // Surface/wall meshes write depth only when fully opaque (so the subsurface
-                // shows through when faded); lines don't manage depth.
-                if (m.isMeshStandardMaterial || m.isMeshBasicMaterial) m.depthWrite = o >= 0.999;
+                // Only the fill surface writes depth, and it does so at ALL opacities: terrain
+                // opacity is now purely a visual fade and must NOT change how the subsurface is
+                // drawn (that is controlled solely by the "Underground x-ray" toggle). Walls /
+                // lines never write depth.
+                if (m.isMeshStandardMaterial || m.isMeshBasicMaterial) m.depthWrite = !!m.userData.isFill;
                 m.needsUpdate = true;
             });
         }
@@ -1454,9 +1479,10 @@
                 polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
                 side: THREE.DoubleSide,
                 transparent: true, opacity: params.terrainOpacity,
-                depthWrite: params.terrainOpacity >= 0.999
+                depthWrite: true          // always occludes the subsurface (see applyTerrainOpacity)
             });
             fillMat.userData.baseOpacity = 1.0;
+            fillMat.userData.isFill = true;   // the one depth-writing terrain surface
             terrainFadeMats.push(fillMat);
             // Raster base layer (satellite ortho / LiDAR relief): drape the baked texture on
             // the fill surface. Per-vertex UV = lon/lat fraction within the FULL GEO_BBOX, so
@@ -1639,11 +1665,8 @@
             }
 
             // Base
-            const baseGeo = new THREE.PlaneGeometry(params.width, params.depth);
-            baseGeo.rotateX(Math.PI / 2);
-            const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({ color: COL.base }));
-            baseMesh.position.y = params.baseY;
-            modelGroup.add(baseMesh);
+            // Bottom floor intentionally omitted: the flat base cap read as an unrealistic
+            // "floor" at low angles, so the block is left open at the bottom (culled).
 
             // --- 3. Raschpëtzer shafts + qanat tunnel ---
             //  Faithful (georeferenced) layout: the gallery floor follows the SURVEYED
@@ -2049,10 +2072,22 @@
         }
 
         function updateCompass() {
-            const flipped = params.flipWE && params.terrainSource === 'geodata';
             const w = document.getElementById('label-west'), e = document.getElementById('label-east');
-            if (w) w.innerHTML = '<em>' + (flipped ? 'East' : 'West') + '</em>';
-            if (e) e.innerHTML = '<em>' + (flipped ? 'West' : 'East') + '</em>';
+            if (!w || !e) return;
+            // The two corner labels are fixed on screen (left / right); their TEXT must reflect
+            // which world direction is currently on the left, so they stay correct as the camera
+            // orbits. Scene +x = East (−x = West), mirrored by flipWE. Project a point either side
+            // of the orbit target and compare screen x to find which lands on the left.
+            const flip = params.flipWE && params.terrainSource === 'geodata';
+            let leftIsWest = true;
+            if (camera && controls) {
+                const t = controls.target, eastX = flip ? -1 : 1;
+                const pE = new THREE.Vector3(t.x + eastX, t.y, t.z).project(camera);
+                const pW = new THREE.Vector3(t.x - eastX, t.y, t.z).project(camera);
+                leftIsWest = pW.x <= pE.x;
+            }
+            w.innerHTML = '<em>' + (leftIsWest ? 'West' : 'East') + '</em>';
+            e.innerHTML = '<em>' + (leftIsWest ? 'East' : 'West') + '</em>';
         }
 
         function updateExagReadout() {
@@ -2481,7 +2516,6 @@
                 sliceReadout();
                 buildParametricModel();
                 updateZoomClamp();   // maxDistance scales with the physically-larger block
-                recenterPivotOnQanat();   // keep the rotation pivot on the qanat after resizing
             });
             sliceReadout();
 
@@ -2491,7 +2525,6 @@
                 sliceReadout();               // recomputeGeoView (re-frames N–S)
                 buildParametricModel();
                 updateZoomClamp();
-                recenterPivotOnQanat();
             });
 
             // Realistic PBR stone materials (textured shafts / terrain walls + flowing water)
@@ -2549,6 +2582,7 @@
                 document.body.classList.toggle('dev-mode', params.devMode);
                 document.getElementById('row-pbr').style.display = params.devMode ? '' : 'none';
                 document.getElementById('grp-debug').style.display = params.devMode ? '' : 'none';
+                document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
                 syncConditionalOptions();
             };
             document.addEventListener('keydown', e => {
@@ -2560,8 +2594,9 @@
                         if (params.pbr) { params.pbr = false; document.getElementById('param-pbr').checked = false; rebuild = true; }
                         if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
                         if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false; rebuild = true; }
+                        if (measureMode) setMeasureMode(false);   // leave measure mode with dev
                         syncDevUI();
-                        if (rebuild) { buildParametricModel(); updateZoomClamp(); recenterPivotOnQanat(); }
+                        if (rebuild) { buildParametricModel(); updateZoomClamp(); }
                     } else {
                         syncDevUI();
                     }
@@ -2569,6 +2604,14 @@
             });
             syncConditionalOptions();   // initial state
             syncDevUI();                // dev-only controls hidden until Super/⌘+D
+
+            // Dismiss the top hint (pointer devices; it's hidden on touch via CSS).
+            const hintClose = document.getElementById('hint-close');
+            if (hintClose) {
+                const hideHint = () => { const el = document.getElementById('instructions'); if (el) el.style.display = 'none'; };
+                hintClose.addEventListener('click', hideHint);
+                hintClose.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); hideHint(); } });
+            }
 
             // Segmented tab bar: show one layer-group pane at a time.
             const tabs = document.querySelectorAll('#tab-bar .tab');
@@ -2583,17 +2626,61 @@
             const dToggle = document.getElementById('drawer-toggle');
             const dScrim = document.getElementById('drawer-scrim');
             const dClose = document.getElementById('drawer-close');
+            const mqMobile = window.matchMedia('(max-width: 760px)');
             const openDrawer = () => document.body.classList.add('drawer-open');
             const closeDrawer = () => document.body.classList.remove('drawer-open');
-            if (dToggle) dToggle.addEventListener('click', openDrawer);
+            // Reopen (☰): mobile slides the drawer in; desktop un-hides the panel.
+            if (dToggle) dToggle.addEventListener('click', () => {
+                document.body.classList.remove('panel-hidden');
+                if (mqMobile.matches) openDrawer(); else onResize();
+            });
             if (dScrim) dScrim.addEventListener('click', closeDrawer);
-            if (dClose) dClose.addEventListener('click', closeDrawer);
+            // Close (×): mobile closes the drawer; desktop hides the panel → floating ☰.
+            const hidePanel = () => { document.body.classList.add('panel-hidden');
+                document.documentElement.style.setProperty('--panel-w', '340px'); onResize(); };
+            if (dClose) dClose.addEventListener('click', () => {
+                if (mqMobile.matches) closeDrawer(); else hidePanel();
+            });
+
+            // Desktop: drag the inner-edge handle to resize; release very small to hide it.
+            const rzH = document.getElementById('panel-resize');
+            if (rzH) {
+                let rz = false;
+                const clamp = (v, a, c) => Math.max(a, Math.min(c, v));
+                rzH.addEventListener('pointerdown', ev => {
+                    if (mqMobile.matches) return;
+                    rz = true; rzH.setPointerCapture(ev.pointerId);
+                    document.body.classList.add('panel-resizing'); ev.preventDefault();
+                });
+                rzH.addEventListener('pointermove', ev => {
+                    if (!rz) return;
+                    const w = window.innerWidth - ev.clientX;   // panel is on the right
+                    document.documentElement.style.setProperty('--panel-w', clamp(w, 80, 560) + 'px');
+                    onResize();
+                });
+                const endRz = ev => {
+                    if (!rz) return; rz = false;
+                    document.body.classList.remove('panel-resizing');
+                    const w = window.innerWidth - ev.clientX;
+                    if (w < 180) hidePanel();                    // released too small → hide
+                    else { document.documentElement.style.setProperty('--panel-w', clamp(w, 240, 560) + 'px'); onResize(); }
+                };
+                rzH.addEventListener('pointerup', endRz);
+                rzH.addEventListener('pointercancel', endRz);
+            }
 
             // Toggle geological strata + water flows
             document.getElementById('param-geology').addEventListener('change', e => {
                 params.showGeology = e.target.checked;
                 syncConditionalOptions();
                 buildParametricModel();
+            });
+
+            // Geological section (Brochure fig 4-2): shared with the profile-modal toggle.
+            // Checking it here opens the Gallery-profile modal so the section is visible.
+            document.getElementById('param-geosection').addEventListener('change', e => {
+                setGeoSection(e.target.checked);
+                if (e.target.checked && !profileOn) toggleProfile();
             });
 
             // Detailed strata overlay (bedding lines + mounded water table + unit labels)
@@ -3015,7 +3102,7 @@
         function setupCameraReadout() {
             updateCameraReadout();
             updateCompassNeedle();
-            controls.addEventListener('change', () => { _readoutDirty = true; updateCompassNeedle(); });
+            controls.addEventListener('change', () => { _readoutDirty = true; updateCompassNeedle(); updateCompass(); });
             document.getElementById('btn-level-horizon').addEventListener('click', levelHorizon);
             const cc = document.getElementById('compass');
             if (cc) cc.addEventListener('click', () => presetView('north'));
@@ -3540,8 +3627,16 @@
             const el = document.getElementById('profile-panel');
             if (el && profileOn) el.innerHTML = buildProfileSVG();
         }
-        // Toggling the section image also re-selects the shaft set → rebuild the whole panel.
-        function toggleProfileImg(cb) { profileImgOn = cb.checked; rebuildProfilePanel(); }
+        // The geological-section image toggle is SHARED between the profile modal and the
+        // side-nav "Geological section" checkbox; keep the single state (profileImgOn) and both
+        // controls in sync. Toggling it also re-selects the profile shaft set → rebuild the panel.
+        function setGeoSection(on) {
+            profileImgOn = on;
+            const nav = document.getElementById('param-geosection');
+            if (nav) nav.checked = on;
+            rebuildProfilePanel();
+        }
+        function toggleProfileImg(cb) { setGeoSection(cb.checked); }
         // X-axis basis is PROFILE-ONLY; it never moves the georeferenced 3D shafts.
         function setProfileXMode(sel) { profileXMode = sel.value; rebuildProfilePanel(); }
         function buildProfileSVG() {
@@ -3626,10 +3721,10 @@
                     `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Brochure 2018, fig 4‑2 · used with permission</div>` +
                 `</div>`;
             const basis = anchored
-                ? `x = Brochure fig 3‑1 spacing, scaled so P2–P3 = 28 m (documented); other gaps diagram-proportional`
+                ? `Spacing = Brochure fig 3‑1 diagram, scaled so the one documented gap (P2→P3 = 28 m) is exact; every other gap is diagram-proportional, not surveyed. The 3D shafts stay georeferenced.`
                 : schematic
-                    ? `x = Brochure fig 3‑1 schematic spacing (normalised); georeferenced shafts unchanged in 3D`
-                    : `x = georeferenced W→E distance (OSM/LiDAR)`;
+                    ? `Spacing = Brochure fig 3‑1 diagram (schematic, not to scale), stretched to the real total length — shows the brochure's shaft order/proportions for comparison with the section image. The 3D shafts stay georeferenced.`
+                    : `Spacing = georeferenced W→E distance from the OSM/LiDAR shaft positions (true metres).`;
             return `<div class="pp-title">Gallery longitudinal profile — true elevation (m a.s.l.)</div>` +
                    controls +
                    `<div class="pp-sub">Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +

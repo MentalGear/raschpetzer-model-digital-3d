@@ -3,7 +3,7 @@
   "endpoint": "https://map.geoportail.lu/raster",
   "crs": "EPSG:2169",
   "sourceVersion": "20200121-082330",
-  "totalPoints": 4420,
+  "totalPoints": 36096,
   "runs": [
     {
       "run": "seed-grid",
@@ -74,6 +74,21 @@
       "nRequested": 9,
       "nNew": 9,
       "nSkipped": 0
+    },
+    {
+      "run": "sample-2026-07-08T0742",
+      "date": "2026-07-08T13:36:48.965Z",
+      "bbox": [
+        6.138,
+        49.6618,
+        6.162,
+        49.6708
+      ],
+      "cols": 240,
+      "rows": 132,
+      "nRequested": 31680,
+      "nNew": 31676,
+      "nSkipped": 4
     }
   ]
 }
