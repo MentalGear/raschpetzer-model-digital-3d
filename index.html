@@ -874,8 +874,14 @@
             TEX.normal = wrap(L.load('assets/textures/sandstone_normal.webp'), false);
             TEX.rough  = wrap(L.load('assets/textures/sandstone_rough.webp'), false);
             TEX.water  = wrap(L.load('assets/textures/water_normal.webp'), false);
-            [TEX.color, TEX.normal, TEX.rough].forEach(t => t.repeat.set(1.5, 2));
+            [TEX.color, TEX.normal, TEX.rough].forEach(t => t.repeat.set(1.5, 2));   // shaft cylinders
             TEX.water.repeat.set(3, 6);
+            // Separate instances for the terrain "stone walls": UVs are in scene units, so a
+            // small repeat tiles the sandstone at ~2-unit (~25 m) blocks across the cut faces.
+            TEX.wallColor  = wrap(L.load('assets/textures/sandstone_color.webp'), true);
+            TEX.wallNormal = wrap(L.load('assets/textures/sandstone_normal.webp'), false);
+            TEX.wallRough  = wrap(L.load('assets/textures/sandstone_rough.webp'), false);
+            [TEX.wallColor, TEX.wallNormal, TEX.wallRough].forEach(t => t.repeat.set(0.5, 0.5));
         }
         let initialViewSet = false; // snap camera to the computed 0°-horizon default on first build
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
@@ -1549,10 +1555,17 @@
             // far side walls are culled instead of bleeding through the near ones when the block
             // is semi-transparent. Winding is oriented outward per wall (see `flip`). depthWrite
             // stays off so the subsurface (depthTest:false) still reads through the near wall.
-            const sideMat  = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.FrontSide,
-                                                              transparent: true, opacity: SIDE_MAX * tOpW, depthWrite: false });
-            const frontMat = new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.FrontSide,
-                                                              transparent: true, opacity: 0.18 * tOpW, depthWrite: false });
+            // Realistic mode: clad the cut faces in the sandstone PBR set (the "stone walls
+            // with bump texture") — kept translucent so the subsurface still reads through.
+            const wallPBR = params.pbr && TEX.wallColor;
+            const mkWallMat = op => wallPBR
+                ? new THREE.MeshStandardMaterial({ map: TEX.wallColor, normalMap: TEX.wallNormal,
+                    roughnessMap: TEX.wallRough, roughness: 1.0, metalness: 0.0, side: THREE.FrontSide,
+                    transparent: true, opacity: op * tOpW, depthWrite: false })
+                : new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.FrontSide,
+                    transparent: true, opacity: op * tOpW, depthWrite: false });
+            const sideMat  = mkWallMat(SIDE_MAX);
+            const frontMat = mkWallMat(0.18);
             sideMat.userData.baseOpacity = SIDE_MAX;
             frontMat.userData.baseOpacity = 0.18;
             terrainFadeMats.push(sideMat, frontMat);
@@ -1560,8 +1573,10 @@
             function buildWall(pts, isX, fixed, mat, flip) {
                 const geo = new THREE.BufferGeometry();
                 const verts = [];
+                const uvs = [];        // UVs in scene units (along-wall, height) for PBR tiling
                 const edgePts = [];
-                const tri = (a, b, c) => flip ? verts.push(...a, ...c, ...b) : verts.push(...a, ...b, ...c);
+                const pushV = v => { verts.push(...v); uvs.push(isX ? v[2] : v[0], v[1]); };
+                const tri = (a, b, c) => flip ? (pushV(a), pushV(c), pushV(b)) : (pushV(a), pushV(b), pushV(c));
                 for (let i = 0; i < pts.length - 1; i++) {
                     const p1 = pts[i], p2 = pts[i + 1];
                     const x1 = isX ? fixed : p1, z1 = isX ? p1 : fixed;
@@ -1574,6 +1589,7 @@
                     if (i === pts.length - 2) edgePts.push(new THREE.Vector3(x2, y2, z2));
                 }
                 geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+                geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
                 geo.computeVertexNormals();
                 modelGroup.add(new THREE.Mesh(geo, mat));
                 // crisp brown silhouette line along the top edge of the wall (fades too)
