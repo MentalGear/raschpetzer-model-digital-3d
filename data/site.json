@@ -73,10 +73,12 @@
     "status": "inferred",
     "confidence": "low",
     "source": "brochure2018",
-    "note": "The qanat carried water east→west toward the Alzette valley to supply a Roman estate. The villa's location is NOT established (no coordinates, no confirmed site) and is likely several hundred metres downslope in the valley — not adjacent to the qanat. The marker is drawn ~200 m west of the west-most shaft purely as a schematic 'downslope' placeholder; distance and position are illustrative, not surveyed.",
+    "geo": { "crs": "EPSG:4326", "lat": 49.66675, "lon": 6.140139, "status": "inferred",
+      "note": "Inferred position 49°40′00.3″N 6°08′24.5″E — a working estimate of the downslope recipient, not surveyed." },
+    "note": "The qanat carried water east→west toward the Alzette valley to supply a Roman estate. The villa's site is not confirmed; it is placed at an INFERRED coordinate (49°40′00.3″N 6°08′24.5″E) downslope to the west — a working estimate, not a surveyed location.",
     "_prov": {
       "role": { "loc": "p.4; p.9", "note": "flow toward the Alzette valley to serve a Roman settlement downslope" },
-      "status": { "note": "position not surveyed — rendered as an inferred marker, not a located building" }
+      "status": { "note": "position inferred (user-provided coordinate), not surveyed — rendered as an inferred marker" }
     }
   },
 
