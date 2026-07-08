@@ -92,8 +92,14 @@
             border-radius: 8px; padding: 8px 10px 4px; z-index: 8;
             box-shadow: 0 6px 18px rgba(0,0,0,0.25); font-size: 0.7rem; color: #4a3f2f;
         }
+        #profile-panel { max-height: 78vh; overflow-y: auto; }
         #profile-panel .pp-title { font-weight: 600; margin-bottom: 2px; color: #333; }
         #profile-panel .pp-sub { color: #8a7a63; margin-bottom: 4px; }
+        #profile-panel .pp-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
+            margin: 2px 0 6px; color: #4a3f2f; user-select: none; }
+        #profile-panel .pp-geoimg img { width: 100%; display: block; border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.12); }
+        #profile-panel .pp-credit { color: #9a8b73; font-size: 0.62rem; margin: 3px 0 8px; line-height: 1.3; }
 
         /* Scale bar */
         #scale-bar {
@@ -3397,6 +3403,14 @@
 
         // --- Gallery longitudinal-profile chart (toggle) ---------------------
         let profileOn = false;
+        let profileImgOn = false;   // show the Waringo geological cross-section (fig 4-2) in the modal
+        // Separate in-modal toggle: reveal/hide the original geological section for comparison
+        // against our derived longitudinal profile. Image used with the rights holders' clearance.
+        function toggleProfileImg(cb) {
+            profileImgOn = cb.checked;
+            const d = document.getElementById('pp-geoimg');
+            if (d) d.style.display = profileImgOn ? 'block' : 'none';
+        }
         function buildProfileSVG() {
             // georeferenced main-line shafts, W->E; true elevations (masl)
             const shs = SHAFTS.filter(s => s.geo && s.role !== 'auxiliary')
@@ -3440,7 +3454,17 @@
                    `<text x="${W - mR}" y="${H - 8}" fill="#8a7a63" font-size="9" text-anchor="end">${Math.round(maxD)} m</text>`;
             svg += `</svg>`;
             const fall = (pts[pts.length - 1].floor - pts[0].floor);
+            // Separate toggle + the original geological cross-section (Waringo fig 4-2), for
+            // side-by-side comparison with our derived profile. Both run W→E through P-1..P9.
+            const geoBlock =
+                `<label class="pp-toggle"><input type="checkbox" onchange="toggleProfileImg(this)"` +
+                    `${profileImgOn ? ' checked' : ''}> Geological section (Waringo fig&nbsp;4‑2)</label>` +
+                `<div class="pp-geoimg" id="pp-geoimg" style="display:${profileImgOn ? 'block' : 'none'}">` +
+                    `<img src="assets/geo-section-waringo.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Waringo 2018, fig 4-2)">` +
+                    `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Waringo 2018, fig 4‑2 · used with permission</div>` +
+                `</div>`;
             return `<div class="pp-title">Gallery longitudinal profile — true elevation (m a.s.l.)</div>` +
+                   geoBlock +
                    `<div class="pp-sub">Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
                    `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps).</div>` + svg;
         }
