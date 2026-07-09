@@ -378,8 +378,10 @@
             font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 2px; }
         #drawer-toggle { display: none; position: fixed; top: 12px; right: 12px; z-index: 41;
             width: 46px; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.18);
-            background: rgba(18,20,28,0.85); color: #fff; font-size: 1.3rem; cursor: pointer;
+            background: rgba(18,20,28,0.85); color: #fff; font-size: 1.3rem; line-height: 1; cursor: pointer;
             align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.45); }
+        /* Keep the East corner label clear of the floating reopen button when the panel is hidden. */
+        body.panel-hidden #label-east { right: 70px; }
         #drawer-scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 39; }
         /* Desktop: draggable resize handle on the panel's inner edge + hidden state */
         #panel-resize { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 6; }
@@ -621,6 +623,7 @@
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
                 <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
+                <label class="check-row"><input type="checkbox" id="param-xsec"> Gallery&nbsp;cross‑sections&nbsp;(fig&nbsp;5‑15)</label>
                 <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
             </div>
         </div>
@@ -858,6 +861,7 @@
             year: 2025,                   // timeline OFF by default → present day (complete, as-known qanat)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
             showVilla: false,             // inferred recipient villa marker (optional)
+            showXsec: false,              // gallery cross-section hotspots along the qanat (fig 5-15)
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
@@ -1022,6 +1026,21 @@
         let initialViewSet = false; // snap camera to the computed 0°-horizon default on first build
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
         const spotMeshes = [];    // springs / boreholes / resurgence pins, for click raycasting
+        const xsecMeshes = [];    // gallery cross-section hotspots (click → lightbox image)
+        // Gallery cross-sections (Brochure 2018, fig 5-15): each is taken at a POINT ALONG the
+        // qanat (frac: west 0 = P-5 mother shaft → east 1 = P9), not at a shaft. Clicking the
+        // hotspot opens the drawing. Fractions traced from the figure's connector lines.
+        const GALLERY_SECTIONS = [
+            { frac: 0.000, img: 'assets/gallery-sections/xsec-0.webp', label: 'Gallery cross-section — near the P-5 mother shaft; spring rising at the base (spoil-filled). Brochure 2018, fig 5-15' },
+            { frac: 0.214, img: 'assets/gallery-sections/xsec-1.webp', label: 'Gallery cross-section — spoil-filled shaft, limestone roof. Brochure 2018, fig 5-15' },
+            { frac: 0.273, img: 'assets/gallery-sections/xsec-2.webp', label: 'Gallery cross-section — open vault, rubble floor, limestone crown. Brochure 2018, fig 5-15' },
+            { frac: 0.583, img: 'assets/gallery-sections/xsec-3.webp', label: 'Gallery cross-section — collapsed vault with wall/ceiling breakout + rubble. Brochure 2018, fig 5-15' },
+            { frac: 0.672, img: 'assets/gallery-sections/xsec-4.webp', label: 'Gallery cross-section — broken vault, rubble floor. Brochure 2018, fig 5-15' },
+            { frac: 0.737, img: 'assets/gallery-sections/xsec-5.webp', label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
+            { frac: 0.803, img: 'assets/gallery-sections/xsec-6.webp', label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
+            { frac: 0.870, img: 'assets/gallery-sections/xsec-7.webp', label: 'Gallery cross-section — limestone base. Brochure 2018, fig 5-15' },
+            { frac: 0.928, img: 'assets/gallery-sections/xsec-8.webp', label: 'Gallery cross-section — wide dry-masonry channel in limestone. Brochure 2018, fig 5-15' }
+        ];
 
         // Terrain opacity drives the fill surface AND the contour lines together, live
         // (no full rebuild). Fill keeps depthWrite only when fully opaque so the subsurface
@@ -1620,6 +1639,7 @@
         function buildParametricModel() {
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
+            xsecMeshes.length = 0;   // gallery cross-section hotspots
             waterMats = [];          // PBR water materials (scrolled in animate); rebuilt each build
             // All man-made underground structures (shaft bodies, gallery + aux tunnels, overflow,
             // step markers, gallery flow arrows) go in ONE group so the "Underground x-ray" toggle
@@ -2079,6 +2099,37 @@
                 }
             }
             lastQanatPts = inService ? basePts : [];   // animated flow: in-service only
+
+            // Gallery cross-section hotspots (fig 5-15): clickable markers at points ALONG the
+            // gallery (west→east frac), each opening its drawing. Placed by interpolating the
+            // gallery polyline by scene-x, so they track the tunnel as the window scales.
+            if (params.showXsec && galleryBuilt && basePts.length >= 2) {
+                const sorted = basePts.slice().sort((A, B) => A.x - B.x);
+                const minX = sorted[0].x, maxX = sorted[sorted.length - 1].x;
+                const galleryPointAtFrac = f => {
+                    // frac 0 = west (P-5), 1 = east (P9); west is min-x unless flipped.
+                    const tx = params.flipWE ? (maxX - f * (maxX - minX)) : (minX + f * (maxX - minX));
+                    let a = sorted[0], b = sorted[sorted.length - 1];
+                    for (let i = 0; i < sorted.length - 1; i++) {
+                        if (tx >= sorted[i].x && tx <= sorted[i + 1].x) { a = sorted[i]; b = sorted[i + 1]; break; }
+                    }
+                    const t = b.x === a.x ? 0 : (tx - a.x) / (b.x - a.x);
+                    return new THREE.Vector3(tx, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+                };
+                GALLERY_SECTIONS.forEach((s, i) => {
+                    const p = galleryPointAtFrac(s.frac);
+                    const m = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12),
+                        new THREE.MeshBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.95 }));
+                    m.position.set(p.x, p.y + 1.0, p.z); m.renderOrder = 15;
+                    m.userData = { kind: 'xsec', img: s.img, label: s.label };
+                    modelGroup.add(m); xsecMeshes.push(m);
+                    // little stem down to the gallery so the marker reads as anchored
+                    const stem = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(p.x, p.y + 1.0, p.z), new THREE.Vector3(p.x, p.y + 0.1, p.z)]),
+                        new THREE.LineBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.8 }));
+                    stem.renderOrder = 15; modelGroup.add(stem);
+                });
+            }
 
             // Overflow / lateral (deviation) channel at the P-4 weir (optional; SSOT-driven).
             // Ø80 cm branch that carries surplus (~80 m³/d) away when the main channel dams
@@ -2895,6 +2946,12 @@
                 buildParametricModel();
             });
 
+            // Toggle the gallery cross-section hotspots (fig 5-15) along the qanat
+            document.getElementById('param-xsec').addEventListener('change', e => {
+                params.showXsec = e.target.checked;
+                buildParametricModel();
+            });
+
             document.getElementById('param-paths').addEventListener('change', e => {
                 params.showPaths = e.target.checked;
                 buildParametricModel();
@@ -3466,6 +3523,13 @@
                 raycaster.setFromCamera(ndc, camera);
                 return raycaster.intersectObjects(spotMeshes, false)[0];
             }
+            function pickXsec(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                return raycaster.intersectObjects(xsecMeshes, false)[0];
+            }
             function showTooltip(hit, ev) {
                 const d = hit.object.userData;
                 let html = '<span class="t-name">' + d.name + '</span><br>' +
@@ -3551,6 +3615,8 @@
                     if (p) addAnnotation(p.x, p.z);
                     return;
                 }
+                const xhit = pickXsec(ev);   // gallery cross-section hotspot → lightbox image
+                if (xhit) { openLightbox(xhit.object.userData.img, xhit.object.userData.label); return; }
                 const hit = pick(ev);
                 if (hit) {
                     // Tapping a shaft opens the info overlay (no camera fly).
@@ -3691,28 +3757,31 @@
             });
         }
 
-        // Full-screen image lightbox (scale in/out). Any img.lb-img opens it.
-        function initLightbox() {
+        // Full-screen image lightbox (scale in/out). Any img.lb-img — or a 3D hotspot — opens it.
+        function openLightbox(src, alt) {
             const lb = document.getElementById('lightbox'), lbImg = document.getElementById('lightbox-img');
             if (!lb || !lbImg) return;
-            const open = (src, alt) => {
-                lbImg.src = src; lbImg.alt = alt || '';
-                lb.style.display = 'flex';
-                void lb.offsetWidth;                 // reflow so the scale/opacity transition plays
-                lb.classList.add('open');
-            };
-            const close = () => {
-                lb.classList.remove('open');
-                setTimeout(() => { if (!lb.classList.contains('open')) lb.style.display = 'none'; }, 240);
-            };
-            // Delegate: clicking any lightbox-enabled image opens the viewer.
+            lbImg.src = src; lbImg.alt = alt || '';
+            lb.style.display = 'flex';
+            void lb.offsetWidth;                     // reflow so the scale/opacity transition plays
+            lb.classList.add('open');
+        }
+        function closeLightbox() {
+            const lb = document.getElementById('lightbox');
+            if (!lb) return;
+            lb.classList.remove('open');
+            setTimeout(() => { if (!lb.classList.contains('open')) lb.style.display = 'none'; }, 240);
+        }
+        function initLightbox() {
+            const lb = document.getElementById('lightbox');
+            if (!lb) return;
             document.addEventListener('click', ev => {
                 const img = ev.target.closest && ev.target.closest('img.lb-img');
-                if (img) { ev.preventDefault(); open(img.currentSrc || img.src, img.alt); }
+                if (img) { ev.preventDefault(); openLightbox(img.currentSrc || img.src, img.alt); }
             });
-            lb.addEventListener('click', close);     // click anywhere on the overlay closes
-            document.getElementById('lightbox-close').addEventListener('click', close);
-            document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && lb.classList.contains('open')) close(); });
+            lb.addEventListener('click', closeLightbox);   // click anywhere on the overlay closes
+            document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+            document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && lb.classList.contains('open')) closeLightbox(); });
         }
 
         // --- Data-sources modal (replaces the old inline bottom-left overlay) ---
