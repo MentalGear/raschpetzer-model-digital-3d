@@ -637,7 +637,7 @@
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
                 <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
-                <label class="check-row"><input type="checkbox" id="param-xsec"> Gallery&nbsp;cross‑sections&nbsp;(fig&nbsp;5‑15)</label>
+                <label class="check-row"><input type="checkbox" id="param-xsec" checked> Gallery&nbsp;cross‑sections</label>
                 <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
             </div>
         </div>
@@ -645,6 +645,7 @@
             <div class="control-group">
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
+                <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
                 <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             </div>
@@ -875,7 +876,8 @@
             year: 2025,                   // timeline OFF by default → present day (complete, as-known qanat)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
             showVilla: false,             // inferred recipient villa marker (optional)
-            showXsec: false,              // gallery cross-section hotspots along the qanat (fig 5-15)
+            showXsec: true,               // gallery cross-section hotspots along the qanat (fig 5-15)
+            showGhostApron: true,         // faded low-res terrain apron west toward the inferred villa
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
@@ -2125,16 +2127,11 @@
                 };
                 GALLERY_SECTIONS.forEach((s, i) => {
                     const p = galleryPointAtFrac(s.frac);
-                    const m = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12),
+                    const m = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 10),
                         new THREE.MeshBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.95 }));
-                    m.position.set(p.x, p.y + 1.0, p.z); m.renderOrder = 15;
+                    m.position.set(p.x, p.y + 0.16, p.z); m.renderOrder = 15;   // sits on the gallery tube
                     m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac };
                     modelGroup.add(m); xsecMeshes.push(m);
-                    // little stem down to the gallery so the marker reads as anchored
-                    const stem = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(p.x, p.y + 1.0, p.z), new THREE.Vector3(p.x, p.y + 0.1, p.z)]),
-                        new THREE.LineBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.8 }));
-                    stem.renderOrder = 15; modelGroup.add(stem);
                 });
             }
 
@@ -2230,6 +2227,29 @@
                 placeLabel(regionName('haedchen'),    22, 3.2, "#555555", 30);
             }
 
+            // --- "Ghost" valley context: a faded, low-res terrain apron extending WEST from the
+            // window toward the inferred villa, so the recipient site sits on ground rather than
+            // floating. Uses real (in-bbox) LiDAR via getTerrainHeight; on by default, toggleable.
+            if (params.showGhostApron && isGeo && SSOT.site.villa && SSOT.site.villa.geo && SSOT.site.villa.geo.lat != null) {
+                const vsc = geoToScene(SSOT.site.villa.geo.lat, SSOT.site.villa.geo.lon);
+                const westEnd = params.flipWE ? halfW : -halfW;               // window's west edge (scene x)
+                const beyond = params.flipWE ? (vsc.x > westEnd) : (vsc.x < westEnd);
+                if (beyond) {
+                    const outer = vsc.x + (params.flipWE ? 4 : -4);           // a little past the villa
+                    const x0 = Math.min(westEnd, outer), x1 = Math.max(westEnd, outer);
+                    const w = Math.max(2, x1 - x0), cx = (x0 + x1) / 2;
+                    const geo = new THREE.PlaneGeometry(w, params.depth, 30, 22);   // low-res
+                    geo.rotateX(-Math.PI / 2);
+                    const pos = geo.attributes.position;
+                    for (let k = 0; k < pos.count; k++) pos.setY(k, getTerrainHeight(pos.getX(k) + cx, pos.getZ(k)));
+                    geo.computeVertexNormals();
+                    const apron = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+                        color: 0xe4dccb, transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false }));
+                    apron.position.set(cx, 0, 0); apron.renderOrder = -1;    // behind the main terrain
+                    modelGroup.add(apron);
+                }
+            }
+
             // --- 6a. Inferred recipient villa at the valley (west) end (SSOT: site.villa).
             // The qanat fed a Roman estate downslope to the west; the exact site is not
             // established, so it's drawn as a faded box with a dashed (inferred) outline. ---
@@ -2251,10 +2271,9 @@
             }
             if (villa && params.showVilla) {
                 const inside = Math.abs(vx) <= halfW && Math.abs(vz) <= halfD;
-                // Off-map: no terrain is sampled there, so use the documented elevation.
-                const vy = inside ? getTerrainHeight(vx, vz)
-                    : (villa.approxElevationMasl != null ? maslToY(villa.approxElevationMasl)
-                       : getTerrainHeight(Math.max(-halfW, Math.min(halfW, vx)), Math.max(-halfD, Math.min(halfD, vz))));
+                // Sit on the ground: getTerrainHeight samples the full LiDAR bbox, so it's valid
+                // west of the window too (where the ghost apron shows the terrain).
+                const vy = getTerrainHeight(vx, vz);
                 const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6),
                     new THREE.MeshBasicMaterial({ color: 0xb08d57, transparent: true, opacity: 0.45, depthTest: false }));
                 box.position.set(vx, vy + 0.6, vz); box.renderOrder = 9;
@@ -3037,6 +3056,12 @@
                 buildParametricModel();
             });
 
+            // Valley context ghost apron (toward the inferred villa)
+            document.getElementById('param-ghost-apron').addEventListener('change', e => {
+                params.showGhostApron = e.target.checked;
+                buildParametricModel();
+            });
+
             // Terrain opacity: lets shafts/gallery show through the fill surface.
             const opSl = document.getElementById('param-terrain-opacity');
             const opLb = document.getElementById('lbl-terrain-opacity');
@@ -3617,8 +3642,8 @@
                         }
                     }
                 } else {
-                    // No shaft under the cursor: show a pointer over clickable spots too.
-                    dom.style.cursor = pickSpot(ev) ? 'pointer' : 'default';
+                    // No shaft under the cursor: show a pointer over clickable spots / hotspots too.
+                    dom.style.cursor = (pickSpot(ev) || pickXsec(ev)) ? 'pointer' : 'default';
                     if (hoverActive) { tip.style.display = 'none'; hoverActive = false; clearDwell(); }
                 }
             });
