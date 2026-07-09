@@ -653,7 +653,7 @@
             <details id="grp-debug">
                 <summary class="dev-opt">Debug</summary>
                 <label class="check-row"><input type="checkbox" id="param-qanat-front"> Qanat&nbsp;at&nbsp;front&nbsp;edge&nbsp;(strata&nbsp;in&nbsp;front)</label>
-                <label class="check-row"><input type="checkbox" id="param-terrain-cullback"> Cull&nbsp;terrain&nbsp;surface&nbsp;back&nbsp;face</label>
+                <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;surface&nbsp;back&nbsp;face</label>
                 <div id="grp-front-margin" style="display:none">
                     <label>Front edge gap <span class="val" id="lbl-front-margin">8&nbsp;m</span></label>
                     <input type="range" id="param-front-margin" min="0" max="60" step="1" value="8">
@@ -872,7 +872,7 @@
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
             undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
             shaftCutaway: false,          // look inside: clip the camera-facing half of the subsurface group
-            terrainCullBack: false,       // dev: cull the terrain surface back face (FrontSide instead of DoubleSide)
+            terrainCullBack: true,        // cull the terrain surface back face by default (FrontSide); dev toggle
             qanatFront: false,            // debug: pin the qanat to the front cut face (strata in front)
             frontMarginM: 8,              // debug: gap (m) between the front terrain edge and the end shaft (qanatFront)
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
@@ -1653,18 +1653,11 @@
 
             // Terrain tessellation, tied to the native LiDAR density the CURRENT window covers.
             // The fill surface, the contour marching grid and the side walls all use ONE
-            // resolution so they approximate the same height field identically. Under-tessellating
-            // the denser 240×132 LiDAR tier had two effects: the fill facets poked above the
-            // (separately, more coarsely sampled) contour polylines and hid pieces of them
-            // ("cut" contour lines), and the fill's own Z under-sampling faceted the shading.
-            // Sampling at ~1.5× the covered grid resolution (capped, and cheap because a
-            // zoomed-in window covers fewer cells) resolves the grid without over-smoothing.
-            const geoReady = (params.terrainSource === 'geodata' && geodata.ready);
-            const fracLon = (geoView.east - geoView.west) / (GEO_BBOX.east - GEO_BBOX.west);
-            const fracLat = (geoView.north - geoView.south) / (GEO_BBOX.north - GEO_BBOX.south);
-            const OS = 1.5 * params.terrainDensity;   // oversample for bilinear curvature; ×dev density knob
-            const segX = geoReady ? Math.max(200, Math.min(560, Math.ceil(geodata.cols * fracLon * OS))) : Math.round(200 * params.terrainDensity);
-            const segZ = geoReady ? Math.max(120, Math.min(400, Math.ceil(geodata.rows * fracLat * OS))) : Math.round(92 * params.terrainDensity);
+            // resolution so they approximate the same height field identically (a mismatch is
+            // what caused the earlier "cut" contour lines). Default is a flat 200×120 grid,
+            // scaled by the dev "Terrain density" knob; raise it there if finer detail is wanted.
+            const segX = Math.round(200 * params.terrainDensity);
+            const segZ = Math.round(120 * params.terrainDensity);
             lastTerrainSeg = { x: segX, z: segZ };   // for the dev density readout
             const halfW = params.width / 2;
             const halfD = params.depth / 2;
@@ -2231,8 +2224,9 @@
             const villa = SSOT.site.villa;
             // Placement: in GeoData mode use the villa's INFERRED georeferenced coordinate
             // (site.villa.geo — a working estimate, not surveyed); otherwise fall back to the old
-            // schematic "~200 m west of the west-most shaft". Shown only while it falls INSIDE the
-            // visible window, so it appears/disappears with the surrounding-area slider.
+            // schematic "~200 m west of the west-most shaft". Shown even when it falls OUTSIDE the
+            // rendered window (the inferred site is downslope, west of the modelled terrain) — it
+            // then floats off-map at its documented elevation, clearly labelled.
             const flipV = isGeo && params.flipWE;
             let vx = 0, vz = 0;
             if (isGeo && villa && villa.geo && villa.geo.lat != null) {
@@ -2243,8 +2237,12 @@
                 const westX = shaftXs.length ? (flipV ? Math.max(...shaftXs) : Math.min(...shaftXs)) : 0;
                 vx = westX + (flipV ? 1 : -1) * (200 / metersPerXUnit());
             }
-            if (villa && params.showVilla && Math.abs(vx) <= halfW && Math.abs(vz) <= halfD) {
-                const vy = getTerrainHeight(vx, vz);
+            if (villa && params.showVilla) {
+                const inside = Math.abs(vx) <= halfW && Math.abs(vz) <= halfD;
+                // Off-map: no terrain is sampled there, so use the documented elevation.
+                const vy = inside ? getTerrainHeight(vx, vz)
+                    : (villa.approxElevationMasl != null ? maslToY(villa.approxElevationMasl)
+                       : getTerrainHeight(Math.max(-halfW, Math.min(halfW, vx)), Math.max(-halfD, Math.min(halfD, vz))));
                 const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.6),
                     new THREE.MeshBasicMaterial({ color: 0xb08d57, transparent: true, opacity: 0.45, depthTest: false }));
                 box.position.set(vx, vy + 0.6, vz); box.renderOrder = 9;
@@ -2255,9 +2253,19 @@
                         transparent: true, opacity: 0.9, depthTest: false }));
                 edges.position.copy(box.position); edges.computeLineDistances(); edges.renderOrder = 10;
                 modelGroup.add(edges);
-                const vs = createTextSprite('Roman villa (inferred position)', '#6b4f2a', 18);
+                const vs = createTextSprite('Roman villa (inferred position' + (inside ? '' : ', off‑map west') + ')', '#6b4f2a', 18);
                 vs.scale.set(9.0, 1.05, 1); vs.position.set(vx, vy + 2.1, vz);
                 modelGroup.add(vs);
+                // A dashed connector from the west edge out to the off-map marker, so its
+                // direction/offset reads even though it floats beyond the terrain.
+                if (!inside) {
+                    const edgeX = Math.max(-halfW, Math.min(halfW, vx)), edgeZ = Math.max(-halfD, Math.min(halfD, vz));
+                    const conn = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(edgeX, getTerrainHeight(edgeX, edgeZ) + 0.1, edgeZ),
+                        new THREE.Vector3(vx, vy + 0.1, vz)]),
+                        new THREE.LineDashedMaterial({ color: 0x6b4f2a, dashSize: 1.2, gapSize: 0.9, transparent: true, opacity: 0.6, depthTest: false }));
+                    conn.computeLineDistances(); conn.renderOrder = 9; modelGroup.add(conn);
+                }
             }
 
             // (Surveyed springs / boreholes and the schematic "Haedchen source" marker were
@@ -3069,12 +3077,16 @@
             document.getElementById('btn-nav-normal').addEventListener('click', () => setNavMode('normal'));
             document.getElementById('btn-nav-power').addEventListener('click', () => setNavMode('power'));
 
-            // On-canvas nav pad (Normal mode): rotate / tilt around the orbit target.
-            const ROT = 0.34, TILT = 0.22;
-            document.getElementById('nav-rot-left').addEventListener('click', () => nudgeOrbit(-ROT, 0));
-            document.getElementById('nav-rot-right').addEventListener('click', () => nudgeOrbit(ROT, 0));
-            document.getElementById('nav-tilt-up').addEventListener('click', () => nudgeOrbit(0, -TILT));
-            document.getElementById('nav-tilt-down').addEventListener('click', () => nudgeOrbit(0, TILT));
+            // On-canvas nav pad (Normal mode): HOLD an arrow to rotate/tilt continuously; a
+            // quick tap gives a small nudge. Per-frame deltas (≈ rad/frame at ~60 fps).
+            const ROT = 0.012, TILT = 0.009;
+            [['nav-rot-left', -ROT, 0], ['nav-rot-right', ROT, 0], ['nav-tilt-up', 0, -TILT], ['nav-tilt-down', 0, TILT]]
+                .forEach(([id, dt, dp]) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('pointerdown', ev => { ev.preventDefault(); try { el.setPointerCapture(ev.pointerId); } catch (e) {} startNavHold(dt, dp); });
+                    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => el.addEventListener(t, stopNavHold));
+                });
             document.getElementById('btn-reset').addEventListener('click', resetView);
             document.getElementById('btn-top-view').addEventListener('click', topView);
             document.getElementById('btn-iso').addEventListener('click', () => presetView('iso'));
@@ -3276,7 +3288,13 @@
                         fromT: controls.target.clone(), toT: target.clone(),
                         t0: performance.now(), dur: REDUCE_MOTION ? 0 : (ms || 700) };
         }
-        function resetView() { flyTo(DEFAULT_CAM.pos, DEFAULT_CAM.target, 700); }
+        // "Side" preset: edge-on side elevation (0° horizon) — the cross-section view — at the
+        // same framing distance as the initial 45° view. (The 45° framing is initial-load only.)
+        function resetView() {
+            const t = DEFAULT_CAM.target.clone();
+            const dist = DEFAULT_CAM.pos.distanceTo(t) || 120;
+            flyTo(new THREE.Vector3(t.x, t.y, dist), t, 700);
+        }
         // "Top view": look straight down on the qanat, keeping the current zoom distance.
         // A tiny 2° tilt off vertical avoids OrbitControls' gimbal singularity (view dir ∥
         // camera.up) and keeps north (−Z) at the top of the screen.
@@ -3335,7 +3353,7 @@
             } else {
                 controls.mouseButtons = { LEFT: M.ROTATE, MIDDLE: M.DOLLY, RIGHT: M.PAN };
                 controls.touches = { ONE: T.ROTATE, TWO: T.DOLLY_PAN };
-                controls.rotateSpeed = 1.0;
+                controls.rotateSpeed = 0.6;                  // slower drag-rotate (was 1.0)
                 controls.minPolarAngle = 0;                  // full tilt, incl. top-down
                 controls.maxPolarAngle = Math.PI / 2;
             }
@@ -3346,7 +3364,8 @@
                 : 'Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · scroll to zoom · click a shaft for info';
         }
         // On-canvas nav pad: rotate/tilt the camera around the orbit target by a fixed step.
-        function nudgeOrbit(dTheta, dPhi) {
+        // Immediate orbit step (per-frame) around the target — used by the hold-to-move nav pad.
+        function orbitBy(dTheta, dPhi) {
             if (!controls) return;
             const off = camera.position.clone().sub(controls.target);
             const sph = new THREE.Spherical().setFromVector3(off);
@@ -3355,9 +3374,18 @@
             sph.phi = Math.max(lo, Math.min(hi, sph.phi + dPhi));
             sph.makeSafe();
             off.setFromSpherical(sph);
-            // Smoothly animate the rotate/tilt instead of snapping (matches the preset buttons).
-            flyTo(controls.target.clone().add(off), controls.target.clone(), 320);
+            camera.position.copy(controls.target).add(off);
+            controls.update();
         }
+        // Continuous rotate/tilt while a nav-pad arrow is held (RAF loop; stops on release).
+        let _navHold = null, _navRAF = null;
+        function navTick() {
+            if (!_navHold) { _navRAF = null; return; }
+            orbitBy(_navHold.dTheta, _navHold.dPhi);
+            _navRAF = requestAnimationFrame(navTick);
+        }
+        function startNavHold(dTheta, dPhi) { _navHold = { dTheta, dPhi }; if (!_navRAF) _navRAF = requestAnimationFrame(navTick); }
+        function stopNavHold() { _navHold = null; }
 
         // --- Zoom-to-pointer: dolly toward the mouse cursor instead of the orbit target ---
         // three r128's vendored OrbitControls has no `zoomToCursor` option, so when it's
