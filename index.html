@@ -509,6 +509,8 @@
         .ip-row .ip-k { color: #9ca3af; }
         .ip-row .ip-v { color: #f3f4f6; font-weight: 600; text-align: right; }
         .ip-note { font-size: 0.78rem; color: #cbd5e1; margin: 10px 0; line-height: 1.45; }
+        .ip-figure { margin: 4px 0 8px; background: #f7f4ec; border-radius: 8px; padding: 6px; }
+        .ip-figure img { width: 100%; display: block; border-radius: 5px; cursor: zoom-in; }
         .ip-badge { display: inline-block; font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.4px; padding: 1px 6px; border-radius: 4px; color: #1a1a1a; margin-left: 6px; }
         .ip-cite { display: block; margin-top: 4px; }
@@ -2121,7 +2123,7 @@
                     const m = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 12),
                         new THREE.MeshBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.95 }));
                     m.position.set(p.x, p.y + 1.0, p.z); m.renderOrder = 15;
-                    m.userData = { kind: 'xsec', img: s.img, label: s.label };
+                    m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac };
                     modelGroup.add(m); xsecMeshes.push(m);
                     // little stem down to the gallery so the marker reads as anchored
                     const stem = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
@@ -3615,8 +3617,8 @@
                     if (p) addAnnotation(p.x, p.z);
                     return;
                 }
-                const xhit = pickXsec(ev);   // gallery cross-section hotspot → lightbox image
-                if (xhit) { openLightbox(xhit.object.userData.img, xhit.object.userData.label); return; }
+                const xhit = pickXsec(ev);   // gallery cross-section hotspot → inspector
+                if (xhit) { renderXsecPanel(xhit.object.userData); return; }
                 const hit = pick(ev);
                 if (hit) {
                     // Tapping a shaft opens the info overlay (no camera fly).
@@ -3682,6 +3684,32 @@
             showInspector();
         }
         // Inferred recipient villa (no surveyed coordinates — see site.villa).
+        // Gallery cross-section hotspot → inspector: the fig 5-15 drawing plus the documented
+        // gallery facts from the SSOT (they hold along the whole gallery).
+        function renderXsecPanel(x) {
+            const body = document.getElementById('info-body');
+            const g = (SSOT.gallery && SSOT.gallery.gallery) || {};
+            const gp = g._prov || {};
+            const pos = x.frac != null ? ' · ≈' + Math.round(x.frac * 100) + '% from the west (P‑5→P9)' : '';
+            let h = `<h3>Gallery cross-section</h3><div class="ip-sub">Section at a point along the qanat${pos}</div>`;
+            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" alt="${x.label || 'Gallery cross-section'}" title="Click to enlarge"></div>`;
+            if (x.label) h += `<div class="ip-note">${x.label}</div>`;
+            const row = (k, v, pvKey) => v == null ? '' :
+                `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
+                (pvKey && gp[pvKey] ? citeChip({ source: g.source, loc: gp[pvKey].loc }) : '');
+            const rng = a => Array.isArray(a) ? a.join('–') : a;
+            h += `<div class="ip-note" style="margin-top:6px"><b>Documented gallery (holds along its length):</b></div>`;
+            h += row('Gradient', g.gradientPct != null ? g.gradientPct + ' %' : null, 'gradientPct');
+            h += row('Channel height', g.channelHeightCm != null ? g.channelHeightCm + ' cm' : null, 'channelHeightCm');
+            h += row('Channel width', g.channelWidthRangeCm ? rng(g.channelWidthRangeCm) + ' cm' : null, 'channelWidthRangeCm');
+            h += row('Water depth', g.waterFlowHeightRangeCm ? rng(g.waterFlowHeightRangeCm) + ' cm' : null, 'waterFlowHeightRangeCm');
+            h += row('Cover slabs', g.coverSlabThicknessRangeCm ? rng(g.coverSlabThicknessRangeCm) + ' cm' : null, 'coverSlabThicknessRangeCm');
+            h += row('Construction', g.construction, null);
+            h += row('Floor follows', g.floorFollows, 'floorFollows');
+            h += `<div class="ip-note" style="font-size:0.72rem;color:#9ca3af">Drawing: Brochure 2018, fig 5‑15 · click to enlarge.</div>`;
+            body.innerHTML = h;
+            showInspector();
+        }
         function renderVillaPanel(v) {
             const body = document.getElementById('info-body');
             let h = `<h3>${v.name || 'Roman villa'}</h3><div class="ip-sub">Inferred recipient` +
