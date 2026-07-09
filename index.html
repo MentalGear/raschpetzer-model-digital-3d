@@ -104,7 +104,11 @@
             box-shadow: 0 6px 18px rgba(0,0,0,0.25); font-size: 0.7rem; color: #4a3f2f;
         }
         #profile-panel { max-height: 78vh; overflow-y: auto; }
-        #profile-panel .pp-title { font-weight: 600; margin-bottom: 2px; color: #333; }
+        #profile-panel .pp-close { position: absolute; top: 4px; right: 6px; width: 26px; height: 26px;
+            background: rgba(0,0,0,0.06); border: none; border-radius: 50%; color: #6a5c46; font-size: 1.2rem;
+            line-height: 1; cursor: pointer; z-index: 1; }
+        #profile-panel .pp-close:hover { background: rgba(0,0,0,0.14); color: #2a2318; }
+        #profile-panel .pp-title { font-weight: 600; margin-bottom: 2px; color: #333; padding-right: 26px; }
         #profile-panel .pp-sub { color: #8a7a63; margin-bottom: 4px; }
         #profile-panel .pp-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
             margin: 2px 0 6px; color: #4a3f2f; user-select: none; }
@@ -291,6 +295,8 @@
         #legend-panel.open #legend-close { display: block; }
         #legend-panel .legend-items { display: none; padding: 2px 14px 12px; }
         #legend-panel.open .legend-items { display: block; }
+        #legend-panel .legend-item b { color: #f3f4f6; font-weight: 600; }
+        #legend-panel .legend-sep { height: 1px; background: rgba(255,255,255,0.12); margin: 8px 0 6px; }
 
         .instructions { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.45); padding: 6px 14px; border-radius: 20px; font-size: 0.72rem;
@@ -493,7 +499,9 @@
         #panel-mode { display: flex; gap: 4px; margin: 2px 0 14px; padding: 3px;
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; }
         #panel-mode .pm-btn { flex: 1; padding: 7px 6px; border: none; border-radius: 6px; background: none;
-            color: #9ca3af; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s; }
+            color: #9ca3af; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px; line-height: 1; }
+        #panel-mode .pm-btn .pm-ico { font-size: 0.95rem; line-height: 1; display: inline-block; }
         #panel-mode .pm-btn:hover { color: #d7dbe2; }
         #panel-mode .pm-btn.active { background: rgba(255,255,255,0.13); color: #fff; }
         #inspector-pane { display: none; }
@@ -501,6 +509,7 @@
         #inspector-pane.has-selection #inspector-empty { display: none; }
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
+        body.mode-inspector #panel-nav,
         body.mode-inspector #panel-actions { display: none; }
         #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
@@ -558,6 +567,23 @@
             width: 30px; height: 30px; font-size: 0.85rem; cursor: pointer; }
         #tour-bar button:hover { background: #4b5563; }
         #tour-label { color: #f3f4f6; font-size: 0.82rem; min-width: 120px; text-align: center; font-weight: 600; }
+
+        /* Dark mode: the paper-styled modals (data sources + Qanat Profile) flip to a dark
+           surface so they match the rest of the (always-dark) chrome instead of glaring white. */
+        @media (prefers-color-scheme: dark) {
+            #sources-modal { background: #1b1e26; color: #cdd3dd; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+            #sources-modal h3 { color: #fff; }
+            #sources-modal b { color: #f0a94b; }
+            #sources-close { color: #8b93a3; }
+            #sources-close:hover { color: #fff; }
+            #profile-panel { background: rgba(24,27,35,0.96); color: #cbd5e1; border-color: rgba(255,255,255,0.14); }
+            #profile-panel .pp-title { color: #f3f4f6; }
+            #profile-panel .pp-sub, #profile-panel .pp-credit { color: #9ca3af; }
+            #profile-panel .pp-toggle { color: #cbd5e1; }
+            #profile-panel .pp-toggle select { background: #2b2f3a; color: #e5e7eb; border-color: rgba(255,255,255,0.18); }
+            #profile-panel .pp-close { background: rgba(255,255,255,0.08); color: #cbd5e1; }
+            #profile-panel .pp-close:hover { background: rgba(255,255,255,0.18); color: #fff; }
+        }
     </style>
     <script src="vendor/three.min.js"></script>
     <script src="vendor/OrbitControls.js"></script>
@@ -582,13 +608,41 @@
         </div>
 
         <div id="panel-mode" role="tablist" aria-label="Panel view">
-            <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true">⚙&nbsp;Settings</button>
-            <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false">🔍&nbsp;Inspector</button>
+            <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico">⚙</span><span>Settings</span></button>
+            <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico">🔍</span><span>Inspector</span></button>
         </div>
 
         <div id="inspector-pane">
             <div id="info-body"></div>
             <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
+        </div>
+
+        <!-- Camera / navigation controls first: the most-used view controls sit at the top. -->
+        <div id="panel-nav">
+        <div class="control-group">
+            <label>Camera</label>
+            <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
+            <div class="segmented">
+                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
+                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
+                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
+                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
+            </div>
+            <div class="segmented" id="preset-cardinals">
+                <button id="btn-view-n" type="button" title="Face north">N</button>
+                <button id="btn-view-e" type="button" title="Face east">E</button>
+                <button id="btn-view-s" type="button" title="Face south">S</button>
+                <button id="btn-view-w" type="button" title="Face west">W</button>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Navigation</label>
+            <div class="segmented" id="nav-mode">
+                <button id="btn-nav-normal" type="button" class="active" title="Map-like: drag pans, right-drag / two-finger rotates">Normal</button>
+                <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
+            </div>
+            <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
+        </div>
         </div>
 
         <div class="tab-section">
@@ -637,7 +691,7 @@
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
                 <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
-                <label class="check-row"><input type="checkbox" id="param-xsec" checked> Gallery&nbsp;cross‑sections</label>
+                <label class="check-row"><input type="checkbox" id="param-xsec" checked> Qanat&nbsp;cross‑sections</label>
                 <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
             </div>
         </div>
@@ -681,37 +735,12 @@
 
         <div id="panel-actions">
         <div class="control-group">
-            <label>Navigation</label>
-            <div class="segmented" id="nav-mode">
-                <button id="btn-nav-normal" type="button" class="active" title="Map-like: drag pans, right-drag / two-finger rotates">Normal</button>
-                <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
-            </div>
-            <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
-        </div>
-        <div class="control-group">
-            <label>Camera</label>
-            <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
-            <div class="segmented">
-                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
-                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
-                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
-                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
-            </div>
-            <div class="segmented" id="preset-cardinals">
-                <button id="btn-view-n" type="button" title="Face north">N</button>
-                <button id="btn-view-e" type="button" title="Face east">E</button>
-                <button id="btn-view-s" type="button" title="Face south">S</button>
-                <button id="btn-view-w" type="button" title="Face west">W</button>
-            </div>
-        </div>
-
-        <div class="control-group">
             <label>Tools</label>
             <div class="btn-tools">
                 <button id="btn-timeline" type="button">⏳ Timeline</button>
                 <button id="btn-legend" type="button">▤ Legend</button>
                 <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
-                <button id="btn-profile" type="button">📈 Gallery profile</button>
+                <button id="btn-profile" type="button">📈 Qanat Profile</button>
                 <button id="btn-sources" type="button">ⓘ Data sources</button>
             </div>
             <div class="btn-row" style="display:none">
@@ -744,6 +773,9 @@
             <div class="legend-item"><div class="color-box" style="background: #d8c0a8;"></div>Weathered rock / soft ground</div>
             <div class="legend-item"><div class="color-box" style="background: #b9d3e8;"></div>Luxembourg sandstone (water-bearing)</div>
             <div class="legend-item"><div class="color-box" style="background: #8f95c4;"></div>Marl &amp; limestone strata</div>
+            <div class="legend-sep"></div>
+            <div class="legend-item"><div class="color-box" style="background: var(--accent-orange);"></div>Solid shaft — <b>documented</b> depth</div>
+            <div class="legend-item"><div class="color-box" style="background: transparent; border: 1.5px solid var(--accent-orange); box-shadow: inset 0 0 0 2px rgba(224,162,59,0.18);"></div>Wireframe / ghost shaft — <b>inferred</b> depth</div>
         </div>
     </div>
 
@@ -805,11 +837,11 @@
 
         <!-- On-canvas navigation pad (Normal mode): rotate + tilt without gestures. -->
         <div id="nav-pad" aria-label="Rotate and tilt the view">
-            <button id="nav-tilt-up" type="button" title="Tilt up" aria-label="Tilt up">▲</button>
+            <button id="nav-tilt-up" type="button" title="Tilt up (look down)" aria-label="Tilt up">⤒</button>
             <div class="nav-pad-row">
-                <button id="nav-rot-left" type="button" title="Rotate left" aria-label="Rotate left">◀</button>
-                <button id="nav-tilt-down" type="button" title="Tilt down" aria-label="Tilt down">▼</button>
-                <button id="nav-rot-right" type="button" title="Rotate right" aria-label="Rotate right">▶</button>
+                <button id="nav-rot-left" type="button" title="Rotate view left" aria-label="Rotate left">↺</button>
+                <button id="nav-tilt-down" type="button" title="Tilt down (look up)" aria-label="Tilt down">⤓</button>
+                <button id="nav-rot-right" type="button" title="Rotate view right" aria-label="Rotate right">↻</button>
             </div>
         </div>
 
@@ -1108,9 +1140,14 @@
         // half (a cylinder becomes a half-cylinder) — applied to the whole subsurface group.
         // Materials are cloned so shared materials can carry per-object planes; planes are
         // refreshed every frame in animate() as the camera orbits.
-        let cutawayItems = [];
+        // "Look inside": a SINGLE shared clipping plane through the centre of the whole
+        // subsurface group, so every underground object is cut by the SAME plane and the
+        // result reads as one clean cross-section. (The previous per-object version cut each
+        // mesh through its own centroid, which sliced the long gallery + each shaft at
+        // different offsets and looked fragmented.)
+        let cutawayPlane = null;
+        const _cutN = new THREE.Vector3(), _cutCenter = new THREE.Vector3();
         function applyCutaway() {
-            cutawayItems = [];
             if (!subsurfaceGroup) return;
             if (!params.shaftCutaway) {
                 subsurfaceGroup.traverse(o => {
@@ -1119,29 +1156,28 @@
                         if (m.clippingPlanes) { m.clippingPlanes = null; m.needsUpdate = true; }
                     });
                 });
+                cutawayPlane = null;
                 return;
             }
+            // Centre of the subsurface in world space — the cut passes through here.
+            new THREE.Box3().setFromObject(subsurfaceGroup).getCenter(_cutCenter);
+            cutawayPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
             subsurfaceGroup.traverse(o => {
                 if (!o.material || !o.geometry) return;
-                const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
                 if (Array.isArray(o.material)) {
-                    o.material = o.material.map(m => { const c = m.clone(); c.clippingPlanes = [plane]; return c; });
+                    o.material = o.material.map(m => { const c = m.clone(); c.clippingPlanes = [cutawayPlane]; return c; });
                 } else {
-                    o.material = o.material.clone(); o.material.clippingPlanes = [plane];
+                    o.material = o.material.clone(); o.material.clippingPlanes = [cutawayPlane];
                 }
-                cutawayItems.push({ obj: o, plane });
             });
+            updateCutawayPlane();
         }
-        // Each plane cuts through its object's centre with the normal pointing away from the
-        // camera, so the near (camera-facing) half is removed and the far half is kept.
-        const _cutN = new THREE.Vector3(), _cutP = new THREE.Vector3();
+        // The shared plane's normal points away from the camera, so the near (camera-facing)
+        // half is removed and the far half kept — updated per frame as the camera orbits.
         function updateCutawayPlane() {
-            if (!params.shaftCutaway || !camera || !cutawayItems.length) return;
-            for (const it of cutawayItems) {
-                it.obj.getWorldPosition(_cutP);
-                _cutN.copy(_cutP).sub(camera.position).normalize();
-                it.plane.setFromNormalAndCoplanarPoint(_cutN, _cutP);
-            }
+            if (!params.shaftCutaway || !camera || !cutawayPlane) return;
+            _cutN.copy(_cutCenter).sub(camera.position).normalize();
+            cutawayPlane.setFromNormalAndCoplanarPoint(_cutN, _cutCenter);
         }
 
         // Underground opacity: a global multiplier over the subsurface group's own opacities.
@@ -3098,6 +3134,9 @@
                 legendPanel.classList.toggle('open', !hidden);   // reopening shows it expanded
                 document.getElementById('btn-legend').classList.toggle('active', !hidden);
             });
+            // Legend starts expanded (shown) so its meaning is obvious on first load.
+            legendPanel.classList.add('open');
+            document.getElementById('btn-legend').classList.add('active');
 
             // Navigation mode: Normal (map-like, default) ⇄ Power (free orbit).
             const navHint = document.getElementById('nav-mode-hint');
@@ -3769,8 +3808,8 @@
             const g = (SSOT.gallery && SSOT.gallery.gallery) || {};
             const gp = g._prov || {};
             const pos = x.frac != null ? ' · ≈' + Math.round(x.frac * 100) + '% from the west (P‑5→P9)' : '';
-            let h = `<h3>Gallery cross-section</h3><div class="ip-sub">Section at a point along the qanat${pos}</div>`;
-            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" alt="${x.label || 'Gallery cross-section'}" title="Click to enlarge"></div>`;
+            let h = `<h3>Qanat cross-section</h3><div class="ip-sub">Section at a point along the qanat${pos}</div>`;
+            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
             if (x.label) h += `<div class="ip-note">${x.label}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
                 `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
@@ -4192,9 +4231,6 @@
         let profileOn = false;
         let profileImgOn = false;   // show the Brochure geological cross-section (fig 4-2) in the modal
         let profileXMode = 'geo';   // 'geo' = georeferenced (LiDAR/OSM) | 'schematic' = Brochure fig 3-1 layout
-        // Shafts drawn in Brochure fig 4-2 (W→E). When the section image is shown we restrict the
-        // computed profile to this set so the two align (P-5/P-4 and the aux drop-shafts aren't in it).
-        const FIGURE_SHAFTS = ['P-1', 'P0', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9'];
         function rebuildProfilePanel() {
             const el = document.getElementById('profile-panel');
             if (el && profileOn) el.innerHTML = buildProfileSVG();
@@ -4214,9 +4250,10 @@
         function buildProfileSVG() {
             const anchored = profileXMode === 'schematic-anchored';
             const schematic = profileXMode === 'schematic' || anchored;
-            // Main-line shafts; restrict to the figure's set when comparing against the image.
+            // Main-line shafts. The computed profile always covers the same set (P-5…P9) so
+            // toggling the reference section image never changes its span/width — the image is
+            // added purely as a comparison, not a filter on the derived profile.
             let shs = SHAFTS.filter(s => s.geo && s.role !== 'auxiliary');
-            if (profileImgOn) shs = shs.filter(s => FIGURE_SHAFTS.includes(s.id));
             shs = shs.slice().sort((a, b) => schematic
                 ? ((a.modelPos?.x ?? 0) - (b.modelPos?.x ?? 0)) : (a.geo.lon - b.geo.lon));
             if (shs.length < 2) return '<div class="pp-sub">Profile needs georeferenced shafts.</div>';
@@ -4297,7 +4334,8 @@
                 : schematic
                     ? `Spacing = Brochure fig 3‑1 diagram (schematic, not to scale), stretched to the real total length — shows the brochure's shaft order/proportions for comparison with the section image. The 3D shafts stay georeferenced.`
                     : `Spacing = georeferenced W→E distance from the OSM/LiDAR shaft positions (true metres).`;
-            return `<div class="pp-title">Gallery longitudinal profile — true elevation (m a.s.l.)</div>` +
+            return `<button type="button" class="pp-close" onclick="toggleProfile()" aria-label="Close profile">×</button>` +
+                   `<div class="pp-title">Qanat Profile — longitudinal, true elevation (m a.s.l.)</div>` +
                    controls +
                    `<div class="pp-sub">Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
                    `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps). ${basis}.</div>` + svg;
