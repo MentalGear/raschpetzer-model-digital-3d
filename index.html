@@ -511,9 +511,21 @@
         .ip-note { font-size: 0.78rem; color: #cbd5e1; margin: 10px 0; line-height: 1.45; }
         .ip-figure { margin: 4px 0 8px; background: #f7f4ec; border-radius: 8px; padding: 6px; }
         .ip-figure img { width: 100%; display: block; border-radius: 5px; cursor: zoom-in; }
-        .ip-badge { display: inline-block; font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.4px; padding: 1px 6px; border-radius: 4px; color: #1a1a1a; margin-left: 6px; }
-        .ip-cite { display: block; margin-top: 4px; }
+        /* Compact single-letter knowledge-status badge; click to reveal the source detail. */
+        .ip-badge { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px;
+            border-radius: 50%; font-size: 0.62rem; font-weight: 700; color: #fff; border: none; cursor: pointer;
+            margin-left: 7px; padding: 0; vertical-align: middle; line-height: 1; }
+        .ip-badge:hover { filter: brightness(1.15); }
+        .ip-badge.open { box-shadow: 0 0 0 2px rgba(255,255,255,0.5); }
+        .ip-badge.s-documented { background: #16a34a; }
+        .ip-badge.s-inferred { background: #d97706; }
+        .ip-badge.s-reconstructed { background: #2563eb; }
+        .ip-badge.s-hypothetical { background: #9333ea; }
+        .ip-badge.s-schematic { background: #64748b; }
+        .ip-detail { margin: 1px 0 8px; font-size: 0.72rem; color: #9ca3af; padding-left: 2px; }
+        .ip-detail[hidden] { display: none; }
+        .ip-detail-status { text-transform: uppercase; letter-spacing: 0.4px; margin-right: 7px; color: #cbd5e1; font-weight: 600; }
+        .ip-cite { display: inline; margin-top: 4px; }
         .ip-cite a { color: var(--accent-orange); font-size: 0.74rem; text-decoration: none; }
         .ip-cite a:hover { text-decoration: underline; }
         .ip-para { font-size: 0.72rem; color: #94a3b8; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);
@@ -3661,9 +3673,14 @@
         }
 
         // --- Feature info panel (SSOT-driven, with citations) ---
+        // Compact single-letter knowledge-status badge (green D = documented, etc.). It's a
+        // button: clicking it reveals the row's detail line (full status word + citation).
+        const STATUS_LETTER = { documented: 'D', inferred: 'I', reconstructed: 'R', hypothetical: 'H', schematic: 'S' };
         function statusBadge(status) {
-            const st = (MODEL_CONFIG.statusStyle || {})[status] || { color: '#888', label: status };
-            return `<span class="ip-badge" style="background:${st.color}">${st.label || status}</span>`;
+            if (!status) return '';
+            const letter = STATUS_LETTER[status] || status[0].toUpperCase();
+            return `<button type="button" class="ip-badge s-${status}" aria-label="${status}"` +
+                ` title="${status} — click for source">${letter}</button>`;
         }
         function citeChip(pv) {
             if (!pv || !pv.source) return '';
@@ -3676,13 +3693,19 @@
                 ? `<a href="${s.url}" target="_blank" rel="noopener"${title}>${text}</a>`
                 : `<a${title}>${text}</a>`}</span>`;
         }
+        // The hidden detail line revealed by clicking a row's status badge: full status word + citation.
+        function citeDetail(pv) {
+            if (!pv || !pv.status) return '';
+            const cite = citeChip(pv);
+            return `<div class="ip-detail" hidden><span class="ip-detail-status">${pv.status}</span>${cite}</div>`;
+        }
         function factRow(label, rec, field, unit) {
             const raw = rec[field]; if (raw == null) return '';
             const pv = provOf(rec, field);
             const value = Array.isArray(raw) ? raw.join('–') : raw;
             return `<div class="ip-row"><span class="ip-k">${label}</span>` +
                 `<span class="ip-v">${value}${unit ? ' ' + unit : ''}${statusBadge(pv.status)}</span></div>` +
-                citeChip(pv);
+                citeDetail(pv);
         }
         function renderInfoPanel(rec) {
             if (!rec) return;
@@ -3703,7 +3726,7 @@
             if (rec.position && rec.position.status)
                 h += `<div class="ip-row"><span class="ip-k">Position</span>` +
                      `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(rec.position.status)}</span></div>` +
-                     citeChip(provOf(rec.position, 'crs'));
+                     citeDetail(provOf(rec.position, 'crs'));
             if (rec.notes) { const np = provOf(rec, 'notes'); h += `<div class="ip-note">${rec.notes}</div>` + citeChip(np); }
             if (rec.paradataRef && rec.paradataRef.length) {
                 const notes = rec.paradataRef.map(id => SSOT.paradata[id]).filter(Boolean);
@@ -3726,7 +3749,7 @@
             if (x.label) h += `<div class="ip-note">${x.label}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
                 `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
-                (pvKey && gp[pvKey] ? citeChip({ source: g.source, loc: gp[pvKey].loc }) : '');
+                citeDetail({ status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null });
             const rng = a => Array.isArray(a) ? a.join('–') : a;
             h += `<div class="ip-note" style="margin-top:6px"><b>Documented gallery (holds along its length):</b></div>`;
             h += row('Gradient', g.gradientPct != null ? g.gradientPct + ' %' : null, 'gradientPct');
@@ -3812,6 +3835,18 @@
                 if (body) body.innerHTML = '';
                 if (pane) pane.classList.remove('has-selection');
                 setPanelMode('inspector');
+            });
+            // Clicking a status badge (e.g. green "D") reveals that row's source detail.
+            const infoBody = document.getElementById('info-body');
+            if (infoBody) infoBody.addEventListener('click', ev => {
+                const badge = ev.target.closest('.ip-badge');
+                if (!badge) return;
+                const row = badge.closest('.ip-row');
+                const detail = row && row.nextElementSibling;
+                if (detail && detail.classList.contains('ip-detail')) {
+                    detail.hidden = !detail.hidden;
+                    badge.classList.toggle('open', !detail.hidden);
+                }
             });
         }
 
