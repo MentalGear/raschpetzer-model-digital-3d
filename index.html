@@ -618,7 +618,7 @@
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
-                <label class="check-row"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half)</label>
+                <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half)</label>
                 <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
                 <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0">
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
@@ -2820,6 +2820,7 @@
                 document.getElementById('row-pbr').style.display = params.devMode ? '' : 'none';
                 document.getElementById('grp-debug').style.display = params.devMode ? '' : 'none';
                 document.getElementById('grp-vexag').style.display = params.devMode ? '' : 'none';   // vertical exaggeration is dev-only
+                document.getElementById('row-shaft-cutaway').style.display = params.devMode ? '' : 'none';   // look-inside cutaway is dev-only
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
                 document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
                 syncConditionalOptions();
@@ -2832,6 +2833,7 @@
                     if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
                     if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false;
                         document.getElementById('grp-front-margin').style.display = 'none'; rebuild = true; }
+                    if (params.shaftCutaway) { params.shaftCutaway = false; document.getElementById('param-shaft-cutaway').checked = false; applyCutaway(); }
                     if (measureMode) setMeasureMode(false);   // leave measure mode with dev
                     syncDevUI();
                     if (rebuild) { buildParametricModel(); updateZoomClamp(); }
