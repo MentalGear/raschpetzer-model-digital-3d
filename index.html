@@ -103,13 +103,13 @@
             border-radius: 8px; padding: 8px 10px 4px; z-index: 8;
             box-shadow: 0 6px 18px rgba(0,0,0,0.25); font-size: 0.7rem; color: #4a3f2f;
         }
-        #profile-panel { max-height: 78vh; overflow-y: auto; }
+        #profile-panel { max-height: 78vh; overflow-y: auto; max-width: min(560px, 94vw); box-sizing: border-box; }
         #profile-panel .pp-close { position: absolute; top: 4px; right: 6px; width: 26px; height: 26px;
             background: rgba(0,0,0,0.06); border: none; border-radius: 50%; color: #6a5c46; font-size: 1.2rem;
             line-height: 1; cursor: pointer; z-index: 1; }
         #profile-panel .pp-close:hover { background: rgba(0,0,0,0.14); color: #2a2318; }
         #profile-panel .pp-title { font-weight: 600; margin-bottom: 2px; color: #333; padding-right: 26px; }
-        #profile-panel .pp-sub { color: #8a7a63; margin-bottom: 4px; }
+        #profile-panel .pp-sub { color: #6f6250; margin-bottom: 4px; }
         #profile-panel .pp-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
             margin: 2px 0 6px; color: #4a3f2f; user-select: none; }
         #profile-panel .pp-toggle input { accent-color: var(--accent-blue); cursor: pointer; }
@@ -117,7 +117,7 @@
             border: 1px solid rgba(0,0,0,0.2); background: #fff; color: #4a3f2f; }
         #profile-panel .pp-geoimg img { width: 100%; display: block; border-radius: 4px;
             border: 1px solid rgba(0,0,0,0.12); }
-        #profile-panel .pp-credit { color: #9a8b73; font-size: 0.62rem; margin: 3px 0 8px; line-height: 1.3; }
+        #profile-panel .pp-credit { color: #6a5f4c; font-size: 0.62rem; margin: 3px 0 8px; line-height: 1.3; }
         /* Developer mode: red screen frame + badge (toggle with Super/⌘ + D) */
         #dev-border { position: fixed; inset: 0; border: 3px solid #e11d48; pointer-events: none;
             z-index: 9999; display: none; }
@@ -509,8 +509,9 @@
         #inspector-pane.has-selection #inspector-empty { display: none; }
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
-        body.mode-inspector #panel-nav,
         body.mode-inspector #panel-actions { display: none; }
+        /* #panel-nav (Camera + Navigation) stays visible in Inspector mode so a selected feature
+           can be reframed (Top/Side/rotate) without a round-trip back to Settings. */
         #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -608,16 +609,12 @@
         </div>
 
         <div id="panel-mode" role="tablist" aria-label="Panel view">
-            <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico">⚙</span><span>Settings</span></button>
-            <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico">🔍</span><span>Inspector</span></button>
+            <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">⚙</span><span>Settings</span></button>
+            <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
         </div>
 
-        <div id="inspector-pane">
-            <div id="info-body"></div>
-            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
-        </div>
-
-        <!-- Camera / navigation controls first: the most-used view controls sit at the top. -->
+        <!-- Camera / navigation controls first: the most-used view controls sit at the top, and
+             stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
         <div id="panel-nav">
         <div class="control-group">
             <label>Camera</label>
@@ -645,11 +642,16 @@
         </div>
         </div>
 
+        <div id="inspector-pane">
+            <div id="info-body"></div>
+            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
+        </div>
+
         <div class="tab-section">
         <div id="tab-bar" role="tablist">
-            <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti">🗺️</span><span class="tl">Map</span></button>
-            <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti">💧</span><span class="tl">Qanat</span></button>
-            <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti">⛰️</span><span class="tl">Terrain</span></button>
+            <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
+            <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
+            <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">⛰️</span><span class="tl">Terrain</span></button>
         </div>
 
         <div id="tab-panes">
@@ -669,7 +671,7 @@
             </div>
             <div class="control-group" id="grp-contours">
                 <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
-                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20">
+                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
             </div>
             <div class="control-group">
                 <label>Overlays (geoportail)</label>
@@ -685,9 +687,10 @@
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
                 <label class="check-row"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
-                <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half)</label>
+                <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 4px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
+                <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
                 <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
-                <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0">
+                <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Underground opacity">
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
@@ -706,16 +709,16 @@
             </div>
             <div class="control-group" id="grp-terrain-opacity">
                 <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
-                <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0">
+                <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0" aria-label="Terrain opacity">
             </div>
             <div class="control-group" id="grp-vexag">
                 <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
-                <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0">
+                <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0" aria-label="Vertical exaggeration">
                 <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </div>
             <div class="control-group" id="grp-surround">
                 <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
-                <input type="range" id="param-surround" min="0.45" max="1.15" step="0.05" value="1.0">
+                <input type="range" id="param-surround" min="0.45" max="1.15" step="0.05" value="1.0" aria-label="Surrounding area extent">
                 <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </div>
             <details id="grp-debug">
@@ -724,10 +727,10 @@
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;surface&nbsp;back&nbsp;face</label>
                 <div id="grp-front-margin" style="display:none">
                     <label>Front edge gap <span class="val" id="lbl-front-margin">8&nbsp;m</span></label>
-                    <input type="range" id="param-front-margin" min="0" max="60" step="1" value="8">
+                    <input type="range" id="param-front-margin" min="0" max="60" step="1" value="8" aria-label="Front edge gap (metres)">
                 </div>
                 <label style="margin-top:10px">Terrain density <span class="val" id="lbl-density">1.0×</span></label>
-                <input type="range" id="param-density" min="0.5" max="2.0" step="0.25" value="1.0">
+                <input type="range" id="param-density" min="0.5" max="2.0" step="0.25" value="1.0" aria-label="Terrain mesh density">
                 <div id="density-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </details>
         </div>
@@ -801,12 +804,13 @@
         <div id="sources-modal" role="dialog" aria-modal="true" aria-labelledby="sources-title">
             <button id="sources-close" type="button" aria-label="Close">×</button>
             <h3 id="sources-title">Data sources &amp; honesty note</h3>
-            <p>Surface: <b>ACT LiDAR 2019</b> (0.5&nbsp;m DTM). Shafts are placed by <b>georeferenced</b>
-               OpenStreetMap coordinates, elevation-cross-checked against the LiDAR to within
-               0.5–2.5&nbsp;m; per-shaft position/depth confidence varies (see each shaft's info
-               panel). The qanat gallery is drawn near-level, per the site brochure's surveyed
-               profile. Solid shafts have a documented depth; faded (translucent) shafts have an
-               inferred depth.</p>
+            <p>Surface: <b>ACT LiDAR 2019</b> (0.5&nbsp;m DTM). Shafts are placed from
+               <b>provisional OpenStreetMap coordinates</b> — the lowest-authority cross-check in
+               this project (the brochure gives no coordinate grid), elevation-checked against the
+               LiDAR to within 0.5–2.5&nbsp;m. Per-shaft position confidence varies and some nodes
+               are off (e.g. P2 reads too far east) — see each shaft's info panel. The qanat gallery
+               is drawn near-level, per the site brochure's surveyed profile. Solid shafts have a
+               documented depth; faded (translucent) shafts have an inferred depth.</p>
             <ul>
                 <li>Brochure 2018 (Faber/Waringo/Werner) — site brochure &amp; survey</li>
                 <li>ACT LiDAR 2019 — 0.5&nbsp;m digital terrain model</li>
@@ -837,12 +841,12 @@
         </div>
 
         <!-- On-canvas navigation pad (Normal mode): rotate + tilt without gestures. -->
-        <div id="nav-pad" aria-label="Rotate and tilt the view">
-            <button id="nav-tilt-up" type="button" title="Tilt up (look down)" aria-label="Tilt up">⤒</button>
+        <div id="nav-pad" role="group" aria-label="Rotate and tilt the view">
+            <button id="nav-tilt-up" type="button" title="Look down (raise camera)" aria-label="Look down">⤒</button>
             <div class="nav-pad-row">
-                <button id="nav-rot-left" type="button" title="Rotate view left" aria-label="Rotate left">↺</button>
-                <button id="nav-tilt-down" type="button" title="Tilt down (look up)" aria-label="Tilt down">⤓</button>
-                <button id="nav-rot-right" type="button" title="Rotate view right" aria-label="Rotate right">↻</button>
+                <button id="nav-rot-left" type="button" title="Rotate view left" aria-label="Rotate view left">↺</button>
+                <button id="nav-tilt-down" type="button" title="Look up (lower camera)" aria-label="Look up">⤓</button>
+                <button id="nav-rot-right" type="button" title="Rotate view right" aria-label="Rotate view right">↻</button>
             </div>
         </div>
 
@@ -1151,39 +1155,46 @@
         //       opened on its camera-facing side, from any angle.
         // Both point the plane normal away from the camera, so the near half is removed and the
         // far half kept; the plane is refreshed every frame in updateCutawayPlane().
-        let cutawayPlane = null;
+        // The plane is a persistent singleton; its array is reused so we never allocate per
+        // toggle. We attach it DIRECTLY to the subsurface materials (which are not shared with
+        // any surface object), toggling `clippingPlanes` in place — NO material cloning, so there
+        // is nothing to leak or restore. `needsUpdate` fires only on the 0↔1 clip-count transition.
+        let cutawayPlane = null, cutawayPlanes = null;
         const _cutN = new THREE.Vector3(), _cutCenter = new THREE.Vector3();
+        function cutawayActive() { return params.shaftCutaway || params.seeInside; }
         function applyCutaway() {
             if (!subsurfaceGroup) return;
-            if (!params.shaftCutaway && !params.seeInside) {
-                subsurfaceGroup.traverse(o => {
-                    if (!o.material) return;
-                    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
-                        if (m.clippingPlanes) { m.clippingPlanes = null; m.needsUpdate = true; }
-                    });
-                });
-                cutawayPlane = null;
-                return;
+            const active = cutawayActive();
+            if (active) {
+                if (!cutawayPlane) { cutawayPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); cutawayPlanes = [cutawayPlane]; }
+                new THREE.Box3().setFromObject(subsurfaceGroup).getCenter(_cutCenter);   // fixed centre for dev "Look inside"
             }
-            // Fixed subsurface centre (used by the dev "Look inside" mode).
-            new THREE.Box3().setFromObject(subsurfaceGroup).getCenter(_cutCenter);
-            cutawayPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+            const planes = active ? cutawayPlanes : null;
             subsurfaceGroup.traverse(o => {
-                if (!o.material || !o.geometry) return;
-                if (Array.isArray(o.material)) {
-                    o.material = o.material.map(m => { const c = m.clone(); c.clippingPlanes = [cutawayPlane]; return c; });
-                } else {
-                    o.material = o.material.clone(); o.material.clippingPlanes = [cutawayPlane];
-                }
+                if (!o.material) return;
+                (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+                    const had = !!(m.clippingPlanes && m.clippingPlanes.length);
+                    m.clippingPlanes = planes;
+                    if (had !== active) m.needsUpdate = true;   // recompile only when clipping turns on/off
+                });
             });
-            updateCutawayPlane();
+            if (active) updateCutawayPlane();
         }
         function updateCutawayPlane() {
-            if ((!params.shaftCutaway && !params.seeInside) || !camera || !cutawayPlane) return;
+            if (!cutawayActive() || !camera || !cutawayPlane) return;
             // "See inside" follows what you're looking at; dev "Look inside" uses the fixed centre.
             const center = (params.seeInside && controls) ? controls.target : _cutCenter;
             _cutN.copy(center).sub(camera.position).normalize();
             cutawayPlane.setFromNormalAndCoplanarPoint(_cutN, center);
+        }
+        // A raycast hit is hidden if the hit object is actually clipped (a subsurface material
+        // carrying the cutaway plane) AND the hit point sits on the removed (camera-facing) side.
+        // Surface markers (caps, springs, hotspots) are never clipped, so they always pick.
+        function clipHidesHit(hit) {
+            if (!hit || !cutawayActive() || !cutawayPlane) return false;
+            const m = Array.isArray(hit.object.material) ? hit.object.material[0] : hit.object.material;
+            if (!(m && m.clippingPlanes && m.clippingPlanes.length)) return false;
+            return cutawayPlane.distanceToPoint(hit.point) < 0;
         }
 
         // Underground opacity: a global multiplier over the subsurface group's own opacities.
@@ -1695,6 +1706,15 @@
         }
 
         function buildParametricModel() {
+            // Free the previous model's GPU resources before discarding it — three.js does NOT
+            // release VBOs/programs on GC. Dispose geometries + materials only; shared textures
+            // (TEX.*, base/overlay drapes) are referenced via material.map and are NOT touched by
+            // Material.dispose(), so they survive for reuse. Rebuilds are driven by slider `input`
+            // events, so without this the terrain mesh (~24k verts) + contours leak on every tick.
+            modelGroup.traverse(o => {
+                if (o.geometry) o.geometry.dispose();
+                if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m && m.dispose());
+            });
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
             xsecMeshes.length = 0;   // gallery cross-section hotspots
@@ -2914,7 +2934,11 @@
                     if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
                     if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false;
                         document.getElementById('grp-front-margin').style.display = 'none'; rebuild = true; }
-                    if (params.shaftCutaway) { params.shaftCutaway = false; document.getElementById('param-shaft-cutaway').checked = false; applyCutaway(); }
+                    if (params.shaftCutaway) { params.shaftCutaway = false; document.getElementById('param-shaft-cutaway').checked = false; applyCutaway();
+                        const cn = document.getElementById('cutaway-note'); if (cn) cn.style.display = params.seeInside ? 'block' : 'none'; }
+                    // The "P2-P3 anchored" profile spacing is dev-only; its dropdown option
+                    // disappears on exit, so fall back to plain schematic to keep control+chart in sync.
+                    if (profileXMode === 'schematic-anchored') { profileXMode = 'schematic'; rebuildProfilePanel(); }
                     if (measureMode) setMeasureMode(false);   // leave measure mode with dev
                     syncDevUI();
                     if (rebuild) { buildParametricModel(); updateZoomClamp(); }
@@ -3067,16 +3091,21 @@
                 applyXrayMode();
             });
 
+            // Show the "solid slice, not hollow interior" caption whenever a cutaway is active.
+            const syncCutawayNote = () => {
+                const n = document.getElementById('cutaway-note');
+                if (n) n.style.display = (params.seeInside || params.shaftCutaway) ? 'block' : 'none';
+            };
             // See inside (follow view): clip the view-facing half through the current view
             // target and track it, so the qanat is always open on its camera-facing side — live.
             document.getElementById('param-see-inside').addEventListener('change', e => {
                 params.seeInside = e.target.checked;
-                applyCutaway();
+                applyCutaway(); syncCutawayNote();
             });
             // Look inside (dev cutaway): clip the camera-facing half of the subsurface — live.
             document.getElementById('param-shaft-cutaway').addEventListener('change', e => {
                 params.shaftCutaway = e.target.checked;
-                applyCutaway();
+                applyCutaway(); syncCutawayNote();
             });
 
             // Underground opacity: scale the whole subsurface group's opacity — live.
@@ -3167,13 +3196,20 @@
 
             // On-canvas nav pad (Normal mode): HOLD an arrow to rotate/tilt continuously; a
             // quick tap gives a small nudge. Per-frame deltas (≈ rad/frame at ~60 fps).
-            const ROT = 0.012, TILT = 0.009;
+            // Keyboard: Enter/Space (or arrow keys while focused) apply one discrete step, so the
+            // pad is fully operable without a pointer.
+            const ROT = 0.012, TILT = 0.009, KEY_STEP = 12;   // one keypress ≈ 12 frames of hold
             [['nav-rot-left', -ROT, 0], ['nav-rot-right', ROT, 0], ['nav-tilt-up', 0, -TILT], ['nav-tilt-down', 0, TILT]]
                 .forEach(([id, dt, dp]) => {
                     const el = document.getElementById(id);
                     if (!el) return;
                     el.addEventListener('pointerdown', ev => { ev.preventDefault(); try { el.setPointerCapture(ev.pointerId); } catch (e) {} startNavHold(dt, dp); });
                     ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => el.addEventListener(t, stopNavHold));
+                    el.addEventListener('keydown', ev => {
+                        if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+                            ev.preventDefault(); orbitBy(dt * KEY_STEP, dp * KEY_STEP);
+                        }
+                    });
                 });
             document.getElementById('btn-reset').addEventListener('click', resetView);
             document.getElementById('btn-top-view').addEventListener('click', topView);
@@ -3634,7 +3670,7 @@
                 ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
                 ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
                 raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(shaftMeshes, false)[0];
+                return raycaster.intersectObjects(shaftMeshes, false).find(h => !clipHidesHit(h));
             }
             function pickSpot(ev) {
                 const r = dom.getBoundingClientRect();
@@ -3803,9 +3839,23 @@
                 h += `<div class="ip-row"><span class="ip-k">Position</span>` +
                      `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(rec.position.status)}</span></div>` +
                      citeDetail(provOf(rec.position, 'crs'));
+            // Per-shaft positional confidence (from OSM georeferencing) — the honesty note
+            // promises this here, and it varies (some OSM nodes are well-placed, some are off).
+            if (rec.geoConfidence) {
+                const gc = String(rec.geoConfidence).toLowerCase();
+                const col = gc === 'high' ? '#16a34a' : gc === 'medium' ? '#d97706' : '#dc2626';
+                const cap = gc.charAt(0).toUpperCase() + gc.slice(1);
+                h += `<div class="ip-row"><span class="ip-k">Position confidence</span>` +
+                     `<span class="ip-v" style="color:${col}">${cap}</span></div>`;
+            }
             if (rec.notes) { const np = provOf(rec, 'notes'); h += `<div class="ip-note">${rec.notes}</div>` + citeChip(np); }
-            if (rec.paradataRef && rec.paradataRef.length) {
-                const notes = rec.paradataRef.map(id => SSOT.paradata[id]).filter(Boolean);
+            // Reasoning: combine the shaft's own paradata with its POSITION paradata (the
+            // OSM-georeferencing caveats — e.g. the P2 offset — that would otherwise never surface).
+            const refIds = [...(rec.paradataRef || []), ...((rec.position && rec.position.paradataRef) || [])];
+            if (refIds.length) {
+                const seen = new Set();
+                const notes = refIds.filter(id => !seen.has(id) && seen.add(id))
+                    .map(id => SSOT.paradata[id]).filter(Boolean);
                 if (notes.length) h += `<div class="ip-para"><b>Reasoning</b><br>` +
                     notes.map(n => '‣ ' + n.rationale).join('<br><br>') + `</div>`;
             }
@@ -3964,6 +4014,10 @@
             });
             window.addEventListener('keydown', ev => {
                 if (ev.key === 'Escape' && document.body.classList.contains('sources-open')) closeSourcesModal();
+            });
+            // Esc also closes the Qanat Profile overlay, matching the other overlays.
+            window.addEventListener('keydown', ev => {
+                if (ev.key === 'Escape' && typeof profileOn !== 'undefined' && profileOn) toggleProfile();
             });
         }
 
@@ -4296,13 +4350,13 @@
                 return { id: s.id, dist, surf, floor };
             });
             const W = 540, H = 200, mL = 40, mR = 12, mT = 26, mB = 26;
-            const maxD = pts[pts.length - 1].dist;
+            const maxD = pts[pts.length - 1].dist || 1;   // guard: avoids NaN if the span collapses
             const ys = pts.flatMap(p => [p.surf, p.floor]);
             let yMin = Math.floor(Math.min(...ys) - 3), yMax = Math.ceil(Math.max(...ys) + 3);
             const X = d => mL + d / maxD * (W - mL - mR);
             const Y = e => mT + (yMax - e) / (yMax - yMin) * (H - mT - mB);
             const line = (key, col, w) => 'M' + pts.map(p => `${X(p.dist).toFixed(1)},${Y(p[key]).toFixed(1)}`).join(' L');
-            let svg = `<svg width="${W}" height="${H}">`;
+            let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;height:auto;display:block">`;
             // y gridlines (masl)
             for (let e = Math.ceil(yMin / 10) * 10; e <= yMax; e += 10) {
                 svg += `<line x1="${mL}" y1="${Y(e)}" x2="${W - mR}" y2="${Y(e)}" stroke="#e3ddd2"/>` +
@@ -4331,7 +4385,7 @@
                 `<label class="pp-toggle"><input type="checkbox" onchange="toggleProfileImg(this)"` +
                     `${profileImgOn ? ' checked' : ''}> Geological section (Brochure fig&nbsp;4‑2)</label>` +
                 `<label class="pp-toggle">Spacing:&nbsp;<select onchange="setProfileXMode(this)">` +
-                    `<option value="geo"${!schematic ? ' selected' : ''}>Georeferenced (LiDAR)</option>` +
+                    `<option value="geo"${!schematic ? ' selected' : ''}>OSM positions (provisional)</option>` +
                     `<option value="schematic"${profileXMode === 'schematic' ? ' selected' : ''}>Brochure schematic (fig&nbsp;3‑1)</option>` +
                     (params.devMode
                         ? `<option value="schematic-anchored"${anchored ? ' selected' : ''}>Brochure schematic · P2‑P3 anchored (dev)</option>`
@@ -4345,12 +4399,13 @@
                 ? `Spacing = Brochure fig 3‑1 diagram, scaled so the one documented gap (P2→P3 = 28 m) is exact; every other gap is diagram-proportional, not surveyed. The 3D shafts stay georeferenced.`
                 : schematic
                     ? `Spacing = Brochure fig 3‑1 diagram (schematic, not to scale), stretched to the real total length — shows the brochure's shaft order/proportions for comparison with the section image. The 3D shafts stay georeferenced.`
-                    : `Spacing = georeferenced W→E distance from the OSM/LiDAR shaft positions (true metres).`;
+                    : `Spacing = W→E distance from the provisional OSM positions (approximate metres — OSM is a provisional cross-check, not a survey; e.g. P2 reads too far east). The 3D shafts stay in these provisional positions.`;
             return `<button type="button" class="pp-close" onclick="toggleProfile()" aria-label="Close profile">×</button>` +
                    `<div class="pp-title">Qanat Profile — longitudinal, true elevation (m a.s.l.)</div>` +
                    controls +
-                   `<div class="pp-sub">Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
-                   `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps). ${basis}.</div>` + svg;
+                   `<div class="pp-sub">Computed by this project from the documented 0.1% grade + surveyed floors over the LiDAR surface. ` +
+                   `Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
+                   `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps; Brochure 2018 p.26–27). ${basis}.</div>` + svg;
         }
         function toggleProfile() {
             profileOn = !profileOn;
