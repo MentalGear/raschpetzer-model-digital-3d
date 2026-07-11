@@ -686,6 +686,7 @@
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
+                <label class="check-row"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
                 <label class="check-row"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
                 <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 4px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
                 <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
@@ -811,6 +812,9 @@
                are off (e.g. P2 reads too far east) — see each shaft's info panel. The qanat gallery
                is drawn near-level, per the site brochure's surveyed profile. Solid shafts have a
                documented depth; faded (translucent) shafts have an inferred depth.</p>
+            <p style="font-size:0.76rem;color:#8b93a3">Elevations are the brochure's metres a.s.l.; the
+               ACT LiDAR DTM (2019) is referenced to the Luxembourg height datum (NG95&nbsp;/&nbsp;EVRF) and
+               treated as consistent with the brochure's a.s.l. to within the stated 0.5–2.5&nbsp;m.</p>
             <ul>
                 <li>Brochure 2018 (Faber/Waringo/Werner) — site brochure &amp; survey</li>
                 <li>ACT LiDAR 2019 — 0.5&nbsp;m digital terrain model</li>
@@ -924,6 +928,7 @@
             undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
             shaftCutaway: false,          // dev "Look inside": clip the camera-facing half through the subsurface centre
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
+            detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
             terrainCullBack: true,        // cull the terrain surface back face by default (FrontSide); dev toggle
             qanatFront: false,            // debug: pin the qanat to the front cut face (strata in front)
             frontMarginM: 8,              // debug: gap (m) between the front terrain edge and the end shaft (qanatFront)
@@ -2118,6 +2123,70 @@
                 const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: ugDT }));
                 mm.renderOrder = 5; subsurfaceGroup.add(mm);
             }
+            // Reconstructed HOLLOW gallery bore over the explored reach: sweep an open vaulted
+            // profile (walls + arch + floor, traced from Brochure 2018 fig 5-15) along the
+            // centreline as a two-sided shell, so the cutaway ("See inside") reveals a real
+            // walk-through tunnel instead of a solid slug. A thin blue ribbon = the water channel.
+            // Shapes are faithful; the cross-section is shown enlarged/schematic (like the shafts),
+            // labelled reconstructed — the exact per-point bore is in the fig 5-15 hotspots.
+            function buildDetailedGallery(points) {
+                if (points.length < 2) return;
+                const curve = new THREE.CatmullRomCurve3(points);
+                const SEG = Math.max(48, points.length * 22);
+                const HW = 0.34;                       // half-width (scene units, fixed like shafts)
+                const H = metersToYDepth(1.9);         // bore height above floor (vexag-consistent)
+                // Open vaulted outline: floor-left → left wall → arch (apex) → right wall → floor.
+                // u ∈ [-1,1] (× HW across), v ∈ [0,1] (× H up). Peak height rises in the
+                // "limestone-crown" reach (triangular, fig 5-15 P0–P4) and stays a low arch elsewhere.
+                const outline = peak => {
+                    const o = [{ u: -1, v: 0 }, { u: -1, v: 0.5 }];
+                    const AN = 10;
+                    for (let a = 0; a <= AN; a++) {
+                        const t = a / AN;
+                        o.push({ u: -Math.cos(t * Math.PI), v: 0.5 + peak * Math.sin(t * Math.PI) });
+                    }
+                    o.push({ u: 1, v: 0.5 }, { u: 1, v: 0 });
+                    return o;
+                };
+                const archLow = outline(0.5), archHigh = outline(0.85);
+                // Section-crown selection by scene-x: the P0→P4 limestone-crown reach is peaked.
+                const xP0 = (shaftBaseById['P0'] || {}).x, xP4 = (shaftBaseById['P4'] || {}).x;
+                const lo = (xP0 != null && xP4 != null) ? Math.min(xP0, xP4) : Infinity;
+                const hi = (xP0 != null && xP4 != null) ? Math.max(xP0, xP4) : -Infinity;
+                const worldUp = new THREE.Vector3(0, 1, 0), tan = new THREE.Vector3(),
+                      side = new THREE.Vector3(), up = new THREE.Vector3();
+                const pos = [], NP = archLow.length;
+                for (let i = 0; i <= SEG; i++) {
+                    const t = i / SEG;
+                    const c = curve.getPointAt(t);
+                    curve.getTangentAt(t, tan);
+                    side.crossVectors(worldUp, tan); if (side.lengthSq() < 1e-6) side.set(1, 0, 0);
+                    side.normalize(); up.crossVectors(tan, side).normalize();
+                    const prof = (c.x >= lo && c.x <= hi) ? archHigh : archLow;
+                    for (let j = 0; j < NP; j++) {
+                        pos.push(c.x + side.x * prof[j].u * HW + up.x * prof[j].v * H,
+                                 c.y + side.y * prof[j].u * HW + up.y * prof[j].v * H,
+                                 c.z + side.z * prof[j].u * HW + up.z * prof[j].v * H);
+                    }
+                }
+                const idx = [];
+                for (let i = 0; i < SEG; i++) {
+                    for (let j = 0; j < NP - 1; j++) {
+                        const a = i * NP + j, b = (i + 1) * NP + j;
+                        idx.push(a, b, a + 1, a + 1, b, b + 1);
+                    }
+                }
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                g.setIndex(idx); g.computeVertexNormals();
+                const mat = new THREE.MeshStandardMaterial({ color: 0xcdbfa2, roughness: 0.95, metalness: 0.0,
+                    side: THREE.DoubleSide, transparent: true, opacity: 0.96, depthTest: ugDT, depthWrite: false });
+                const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5; subsurfaceGroup.add(mm);
+                // Water channel: a thin ribbon along the floor centreline.
+                const wg = new THREE.TubeGeometry(curve, SEG, 0.06, 6, false);
+                const wm = new THREE.MeshBasicMaterial({ color: COL.qanat, depthTest: ugDT, transparent: true, opacity: 0.95 });
+                const wmm = new THREE.Mesh(wg, wm); wmm.renderOrder = 6; subsurfaceGroup.add(wmm);
+            }
             // The gallery + channel exist only once the qanat is built (≥131 AD).
             const galleryBuilt = params.year >= 131;
             const inService = params.year >= 140 && params.year <= 350;
@@ -2128,7 +2197,16 @@
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
-                tunnelTube(basePts.slice(start, end), galleryColor);       // explored (solid)
+                if (params.detailedGallery) {
+                    // Reconstructed hollow bore over the explored reach (see-inside payoff).
+                    buildDetailedGallery(basePts.slice(start, end));
+                    const mid = basePts[Math.floor((start + end) / 2)];
+                    const s = createTextSprite('Reconstructed gallery profile\n(Brochure 2018 fig 5-15 · shape schematic)', '#8a7a63', 15);
+                    s.scale.set(11, 2.3, 1); s.position.set(mid.x, mid.y + 2.2, mid.z);
+                    modelGroup.add(s);
+                } else {
+                    tunnelTube(basePts.slice(start, end), galleryColor);   // explored (solid)
+                }
                 tunnelDashed(basePts.slice(0, start + 1), galleryColor);   // inferred west (dashed)
                 tunnelDashed(basePts.slice(end - 1), galleryColor);       // inferred east (dashed)
 
@@ -3096,6 +3174,12 @@
                 const n = document.getElementById('cutaway-note');
                 if (n) n.style.display = (params.seeInside || params.shaftCutaway) ? 'block' : 'none';
             };
+            // Detailed gallery: swap the solid explored tube for the reconstructed hollow bore
+            // (geometry change → rebuild). Cutaway then reveals the walk-through interior.
+            document.getElementById('param-detailed-gallery').addEventListener('change', e => {
+                params.detailedGallery = e.target.checked;
+                buildParametricModel();
+            });
             // See inside (follow view): clip the view-facing half through the current view
             // target and track it, so the qanat is always open on its camera-facing side — live.
             document.getElementById('param-see-inside').addEventListener('change', e => {
