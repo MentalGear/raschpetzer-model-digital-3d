@@ -276,16 +276,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.666161,
-        "lon": 6.149026,
-        "crs": "EPSG:4326"
+        "lat": 49.666179,
+        "lon": 6.149039,
+        "crs": "EPSG:4326",
+        "luref": [
+          78622.238,
+          81289.726
+        ],
+        "status": "documented",
+        "note": "Approximate marking, not a centerpoint survey — Henri Werner SIT survey (LUREF)."
       },
       "depthM": null,
       "floorElevM": null,
@@ -298,8 +304,8 @@
           "loc": "p.20"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; MEDIUM confidence mapping to P-1 — see pd-osm-georef. Both fig.3-1 (P-4->P-1 = 41 m) and OSM (57.4 m) show a large gap before P-1 across the route bend; small similarity-fit residual (+1.9 m) and LiDAR 374.2 m rising smoothly toward the plateau support the label, but the long unbridged leg (no intervening OSM node besides postulated P-2/P-3) keeps this medium."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78622.238, 81289.726), converted to WGS84. Supersedes the OSM-derived position (previously 49.666161, 6.149026; corrected by 2.2 m)."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -337,16 +343,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.666097,
-        "lon": 6.149273,
-        "crs": "EPSG:4326"
+        "lat": 49.666074,
+        "lon": 6.149244,
+        "crs": "EPSG:4326",
+        "luref": [
+          78637.027,
+          81278.083
+        ],
+        "status": "documented",
+        "note": "Approximate marking, not a centerpoint survey — Henri Werner SIT survey (LUREF)."
       },
       "depthM": null,
       "floorElevM": null,
@@ -358,8 +370,8 @@
           "loc": "p.20"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; MEDIUM confidence mapping to P0 — see pd-osm-georef. fig.3-1 (P-1->P0 = 14.0 m) and OSM (19.1 m) agree in shape; small fit residual (-1.4 m); LiDAR 379.4 m on the rising hillside is consistent. Kept medium (not high) because P0 is 'marked only, not excavated' (no depth/floor to cross-check) and sits in the tight P-1/P0/P1 cluster whose absolute spacing is hard to separate on the oblique figure."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78637.027, 81278.083), converted to WGS84. Supersedes the OSM-derived position (previously 49.666097, 6.149273; corrected by 3.3 m)."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -393,16 +405,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.666029,
-        "lon": 6.149463,
-        "crs": "EPSG:4326"
+        "lat": 49.666028,
+        "lon": 6.149461,
+        "crs": "EPSG:4326",
+        "luref": [
+          78652.704,
+          81272.928
+        ],
+        "status": "documented",
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
       },
       "depthM": 30,
       "floorElevM": null,
@@ -417,12 +435,12 @@
           "loc": "p.16"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; MEDIUM confidence mapping to P1 — see pd-osm-georef. fig.3-1 (P0->P1 = 11.3 m) and OSM (15.6 m) agree; small fit residual (-4.2 m); LiDAR 386.1 m fits the rise onto the plateau. Kept medium because P1 anchors the P1->P2 leg that is internally inconsistent (see P2, low) — the OSM P1 vs P2 spacing contradicts the brochure's 'P2 unusually close to P1' (p.16-17)."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78652.704, 81272.928), converted to WGS84. Supersedes the OSM-derived position (previously 49.666029, 6.149463; corrected by 0.2 m)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 386.1 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -434,9 +452,9 @@
           "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
-      "surfaceElevM": 386.1,
+      "surfaceElevM": 386.82,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "medium",
+      "geoConfidence": "high",
       "dates": {
         "builtAD": 131,
         "excavatedAD": 1913,
@@ -457,16 +475,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.666079,
-        "lon": 6.14978,
-        "crs": "EPSG:4326"
+        "lat": 49.666012,
+        "lon": 6.149669,
+        "crs": "EPSG:4326",
+        "luref": [
+          78667.7,
+          81271.2
+        ],
+        "status": "documented",
+        "note": "Centre of the surface depression (still backfilled) — Henri Werner SIT survey (LUREF)."
       },
       "depthM": null,
       "floorElevM": null,
@@ -478,12 +502,12 @@
           "loc": "p.17; fig.5-4"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; LOW confidence mapping to P2 — see pd-osm-georef. The OSM 'P2' node conflicts with the documented geometry: OSM P1->P2 = 23.5 m while OSM P2->P3 = 19.8 m vs documented P2-P3 = 28 m (fig.3-1 digitised P2->P3 = 24.4 m). The brochure states P2 is 'unusually close to P1' (p.17), but the OSM node makes P1->P2 the LONGER leg. P2 is the largest negative residual (-11 m) in the OSM->fig-3-1 similarity fit: the OSM 'P2' node reads ~one-third too far east along the route. Coordinate NOT re-mapped (no unambiguous alternative), only flagged."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78667.700, 81271.200), converted to WGS84. Supersedes the OSM-derived position (previously 49.666079, 6.14978; corrected by 10.9 m)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 391.8 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -491,9 +515,9 @@
           "note": "eastern campaign 1987-1991 (fig 3-1 excavation-period bracket)"
         }
       },
-      "surfaceElevM": 391.8,
+      "surfaceElevM": 390.3,
       "surfaceElevCrs": "masl",
-      "geoConfidence": "low",
+      "geoConfidence": "high",
       "dates": {
         "builtAD": 131,
         "excavatedAD": 1987,
@@ -513,16 +537,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.665966,
-        "lon": 6.149992,
-        "crs": "EPSG:4326"
+        "lat": 49.665947,
+        "lon": 6.150054,
+        "crs": "EPSG:4326",
+        "luref": [
+          78695.5,
+          81263.9
+        ],
+        "status": "documented",
+        "note": "Centre of the surface depression (still backfilled) — Henri Werner SIT survey (LUREF)."
       },
       "depthM": 35,
       "floorElevM": null,
@@ -537,12 +567,12 @@
           "loc": "p.17"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; HIGH confidence mapping to P3 — see pd-osm-georef. fig.3-1 digitised P2->P3 = 24.4 m matches documented 28 m within oblique-figure tolerance; small similarity-fit residual (-4.5 m); LiDAR 392.5 m sits on the flat Petschend plateau top (fig.4-2), consistent with neighbours P4/P5. Sequence unambiguous."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78695.500, 81263.900), converted to WGS84. Supersedes the OSM-derived position (previously 49.665966, 6.149992; corrected by 4.9 m)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 392.5 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -550,7 +580,7 @@
           "note": "eastern campaign 1987-1991"
         }
       },
-      "surfaceElevM": 392.5,
+      "surfaceElevM": 391.3,
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
@@ -572,16 +602,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.665958,
-        "lon": 6.150488,
-        "crs": "EPSG:4326"
+        "lat": 49.665953,
+        "lon": 6.150489,
+        "crs": "EPSG:4326",
+        "luref": [
+          78726.903,
+          81264.586
+        ],
+        "status": "documented",
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
       },
       "depthM": null,
       "floorElevM": null,
@@ -599,12 +635,12 @@
           "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; HIGH confidence mapping to P4 — see pd-osm-georef. fig.3-1 digitised P3->P4 = 32.2 m agrees with OSM 35.7 m; small similarity-fit residual (-4.6 m); LiDAR 391.7 m on the flat plateau top (fig.4-2), consistent with P3/P5."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78726.903, 81264.586), converted to WGS84. Supersedes the OSM-derived position (previously 49.665958, 6.150488; corrected by 0.6 m)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 391.7 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -612,7 +648,7 @@
           "note": "eastern campaign 1987-1991"
         }
       },
-      "surfaceElevM": 391.7,
+      "surfaceElevM": 392.354,
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
@@ -633,16 +669,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.665971,
-        "lon": 6.150928,
-        "crs": "EPSG:4326"
+        "lat": 49.665969,
+        "lon": 6.150927,
+        "crs": "EPSG:4326",
+        "luref": [
+          78758.549,
+          81266.366
+        ],
+        "status": "documented",
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
       },
       "depthM": 36,
       "floorElevM": null,
@@ -666,12 +708,12 @@
           "loc": "p.9; p.18"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; HIGH confidence mapping to P5 — see pd-osm-georef. fig.3-1 digitised P4->P5 = 32.0 m matches OSM 31.7 m almost exactly; small similarity-fit residual (-1.2 m); LiDAR 392.1 m is the eastern plateau edge (deepest shaft, 36 m; fig.4-2) immediately before the Haedchen drop."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78758.549, 81266.366), converted to WGS84. Supersedes the OSM-derived position (previously 49.665971, 6.150928; corrected by 0.2 m). X-coordinate's decimal point was missing in the source scan; corrected via spacing consistency with neighbouring shafts (see pd-werner-sit-survey)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 392.1 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -683,7 +725,7 @@
           "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
-      "surfaceElevM": 392.1,
+      "surfaceElevM": 392.474,
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
@@ -706,16 +748,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.665968,
+        "lat": 49.665966,
         "lon": 6.151257,
-        "crs": "EPSG:4326"
+        "crs": "EPSG:4326",
+        "luref": [
+          78782.392,
+          81265.982
+        ],
+        "status": "documented",
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
       },
       "depthM": null,
       "floorElevM": null,
@@ -727,12 +775,12 @@
           "loc": "p.18-19; p.26-27; fig.5-5"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; HIGH confidence mapping to P6 — see pd-osm-georef. fig.3-1 digitised P5->P6 = 23.5 m matches OSM 23.7 m; LiDAR 382.1 m captures the sharp plateau-edge->Haedchen drop (-10 m from P5) exactly as fig.4-2 shows P6 as the first Haedchen shaft. Note: far/east end of fig.3-1, so digitised absolute spacing is the least reliable here, but the OSM-digitised agreement is excellent."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78782.392, 81265.982), converted to WGS84. Supersedes the OSM-derived position (previously 49.665968, 6.151257; corrected by 0.2 m)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 382.1 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -744,7 +792,7 @@
           "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
-      "surfaceElevM": 382.1,
+      "surfaceElevM": 382.736,
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
@@ -767,16 +815,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.665974,
-        "lon": 6.151485,
-        "crs": "EPSG:4326"
+        "lat": 49.665973,
+        "lon": 6.151484,
+        "crs": "EPSG:4326",
+        "luref": [
+          78798.733,
+          81266.791
+        ],
+        "status": "documented",
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
       },
       "depthM": null,
       "floorElevM": null,
@@ -788,12 +842,12 @@
           "loc": "p.19; p.26"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; HIGH confidence mapping to P7 — see pd-osm-georef. fig.3-1 digitised P6->P7 = 16.4 m equals OSM 16.4 m; LiDAR 378.2 m in the Haedchen depression, consistent with P8/P9 (fig.4-2). Far-east end of the oblique figure (foreshortened), but OSM-digitised agreement is essentially exact."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78798.733, 81266.791), converted to WGS84. Supersedes the OSM-derived position (previously 49.665974, 6.151485; corrected by 0.1 m)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 378.2 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -805,7 +859,7 @@
           "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
-      "surfaceElevM": 378.2,
+      "surfaceElevM": 378.812,
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
@@ -828,16 +882,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
         "lat": 49.665966,
         "lon": 6.15177,
-        "crs": "EPSG:4326"
+        "crs": "EPSG:4326",
+        "luref": [
+          78819.37,
+          81265.977
+        ],
+        "status": "documented",
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
       },
       "depthM": null,
       "floorElevM": null,
@@ -849,12 +909,12 @@
           "loc": "p.10; p.28-29"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; HIGH confidence mapping to P8 — see pd-osm-georef. fig.3-1 digitised P7->P8 = 20.1 m matches OSM 20.5 m; LiDAR 377.1 m in the Haedchen depression, consistent with P7/P9 (fig.4-2). Far-east end of the oblique figure, but OSM-digitised agreement is excellent."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78819.370, 81265.977), converted to WGS84. Supersedes the OSM-derived position (previously 49.665966, 6.15177)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 377.1 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -866,7 +926,7 @@
           "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
-      "surfaceElevM": 377.1,
+      "surfaceElevM": 377.863,
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {
@@ -889,16 +949,22 @@
       "position": {
         "crm": "E53_Place",
         "crs": "EPSG:4326",
-        "status": "reconstructed",
-        "source": "osm-qanat-shafts",
+        "status": "documented",
+        "source": "werner-sit-survey",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-werner-sit-survey"
         ]
       },
       "geo": {
-        "lat": 49.665948,
-        "lon": 6.152078,
-        "crs": "EPSG:4326"
+        "lat": 49.665947,
+        "lon": 6.152075,
+        "crs": "EPSG:4326",
+        "luref": [
+          78841.43,
+          81263.939
+        ],
+        "status": "documented",
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
       },
       "depthM": null,
       "floorElevM": null,
@@ -910,12 +976,12 @@
           "loc": "p.10; p.19; fig.5-7"
         },
         "geo": {
-          "source": "osm-qanat-shafts",
-          "note": "OSM node; HIGH confidence mapping to P9 — see pd-osm-georef. fig.3-1 digitised P8->P9 = 21.3 m matches OSM 22.3 m; LiDAR 377.2 m in the Haedchen depression (mother shaft, easternmost), consistent with P7/P8 (fig.4-2). Far-east end of the oblique figure, but OSM-digitised agreement is excellent."
+          "source": "werner-sit-survey",
+          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78841.430, 81263.939), converted to WGS84. Supersedes the OSM-derived position (previously 49.665948, 6.152078; corrected by 0.2 m)."
         },
         "surfaceElevM": {
-          "source": "act-lidar-2019",
-          "note": "0.5 m LiDAR sampled at the OSM coordinate"
+          "source": "werner-sit-survey",
+          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 377.2 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -927,7 +993,7 @@
           "note": "Present-day head carries a physical cover (metal lid / windowed cover / P4 concrete slab) → rendered as a SOLID surface cap. One of the 10 excavated shafts."
         }
       },
-      "surfaceElevM": 377.2,
+      "surfaceElevM": 378.204,
       "surfaceElevCrs": "masl",
       "geoConfidence": "high",
       "dates": {

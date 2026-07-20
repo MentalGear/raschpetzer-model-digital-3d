@@ -134,5 +134,12 @@
     "sampling": "Point queries to map.geoportail.lu/raster?lon=&lat= (layer 'dhm'), one HTTP call per point, coords transformed WGS84→EPSG:2169 (pyproj). No bulk/WCS download (the full DTM is a 27 GB national mosaic).",
     "resolution": "Source raster 0.5 m. The baked terrain grid (geodata-walferdange.js) is sampled on a 40×22 lattice over 6.138–6.162E / 49.6618–49.6708N ⇒ ~44 m (E–W) × ~48 m (N–S) node spacing — the mesh resolution, coarser than the source. Per-shaft surfaceElevM are exact 0.5 m point queries at the OSM coordinates. 0 voids over the area; sampled range 231.7–405.1 m.",
     "note": "0.5 m LiDAR-derived bare-earth DTM. Sampled pointwise at the OSM shaft coordinates it matches the brochure's floor+depth surfaces to 0.5–2.5 m (vs EU-DEM's +10–21 m) and resolves the Haedchen depression — externally validating the documented depths and the near-level gallery. Highest-credibility surface source for the corridor."
+  },
+  "werner-sit-survey": {
+    "type": "field-survey", "crm": "E73_Information_Object",
+    "short": "Henri Werner SIT shaft-coordinate survey",
+    "title": "Coordonnées Raschpëtzer — surveyed shaft coordinates (SIT Walferdange), LUREF (EPSG:2169)",
+    "authors": ["Werner, Henri"],
+    "note": "Unpublished survey table (PDF: 'coordonnées Raschpetzer') plus CAD site plans (DXF/DWG), provided directly to this project by Henri Werner — a co-author of brochure2018 and one of the site's excavators/surveyors. Lists LUREF (EPSG:2169) X/Y and, for most points, a ground-surface Z (m a.s.l.) for the shaft CENTREPOINT ('Petz Mittelpunkt' — the well/shaft-mouth centre), for the main line P-1 through P9. P-1 and P0 are marked '~' (approximate marking, not a centrepoint survey); P2/P3 are 'Mittelpunkt Mulde' (centre of the surface depression, both still backfilled). Does NOT cover the western/auxiliary shafts P-4/P-5/P-5A/P-7A, which remain OSM-derived (see osm-qanat-shafts). Supersedes the OSM/similarity-fit reconciliation (pd-osm-georef) for the 11 covered shafts — the correction is largest at P2 (10.9 m), matching that reconciliation's own finding that the OSM 'P2' node read materially too far east."
   }
 }
