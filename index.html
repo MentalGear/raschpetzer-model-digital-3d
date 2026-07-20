@@ -95,7 +95,7 @@
         #legend-modal-backdrop { position: fixed; inset: auto; left: 16px; bottom: 16px; z-index: 8;
             background: none; padding: 0; display: none; align-items: stretch; justify-content: flex-start; }
         #legend-modal-backdrop.open { display: block; }
-        #legend-modal { width: auto; max-width: 300px; border-top: none; }
+        #legend-modal { width: auto; max-width: min(380px, calc(100vw - 32px)); border-top: none; }
         .modal-card .modal-title { font-size: 1.05rem; color: #2a2318; margin-bottom: 10px;
             padding-right: 26px; font-weight: 600; }
         .modal-card p { font-size: 0.82rem; line-height: 1.45; margin-bottom: 10px; }
@@ -186,10 +186,18 @@
             font-size: 0.82rem; margin-bottom: 5px; color: #d1d5db; }
         .control-group label span.val { color: var(--accent-blue); font-weight: 600; }
 
-        input[type="range"] { width: 100%; -webkit-appearance: none; background: #374151;
-            height: 5px; border-radius: 3px; outline: none; }
+        /* The input's own box is the (larger) touch hit-area; the visible track is the thin
+           runnable-track pseudo-element centered inside it, so a bigger tap target never
+           reads as a fat solid bar. */
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent;
+            height: 22px; outline: none; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 5px;
+            border-radius: 3px; background: #374151; }
+        input[type="range"]::-moz-range-track { width: 100%; height: 5px;
+            border-radius: 3px; background: #374151; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px;
-            border-radius: 50%; background: var(--accent-blue); cursor: pointer; transition: transform 0.1s; }
+            border-radius: 50%; background: var(--accent-blue); cursor: pointer; transition: transform 0.1s;
+            margin-top: -5px; }
         input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
         /* Merged era track — the scrubber IS the coloured era bar (one object, not two rails).
@@ -406,8 +414,10 @@
         @media (pointer: coarse) {
             .check-row input { width: 22px; height: 22px; }
             .control-group label.check-row { min-height: 38px; margin-top: 4px; gap: 11px; }
-            input[type="range"] { height: 8px; }
-            input[type="range"]::-webkit-slider-thumb { width: 26px; height: 26px; }
+            input[type="range"] { height: 32px; }
+            input[type="range"]::-webkit-slider-runnable-track { height: 8px; }
+            input[type="range"]::-moz-range-track { height: 8px; }
+            input[type="range"]::-webkit-slider-thumb { width: 26px; height: 26px; margin-top: -9px; }
             input[type="range"]::-moz-range-thumb { width: 26px; height: 26px; }
             .segmented button { padding: 13px 0; font-size: 0.82rem; }
             .btn-tools button { padding: 14px 6px; font-size: 0.82rem; }
@@ -432,10 +442,8 @@
         #wip-note a:hover { color: #ffc46f; }
         /* Touch-friendly panel controls: bigger checkbox + taller slider hit areas */
         .check-row input[type="checkbox"] { width: 18px; height: 18px; }
-        .control-group input[type="range"] { height: 22px; }
         @media (pointer: coarse) {
             .check-row input[type="checkbox"] { width: 26px; height: 26px; }
-            .control-group input[type="range"] { height: 32px; }
         }
         /* Collapsible control sections */
         #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
@@ -1702,6 +1710,7 @@
             initSourcesModal();
             initLightbox();
             initTour();
+            openLegendModal();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadGeoData(() => buildParametricModel());
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
