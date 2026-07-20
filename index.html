@@ -63,11 +63,11 @@
             flex-direction: column; align-items: center; gap: 6px; }
         body.nav-normal #nav-pad { display: flex; }
         #nav-pad .nav-pad-row { display: flex; gap: 6px; }
-        #nav-pad button { width: 38px; height: 38px; border-radius: 9px; cursor: pointer;
-            background: rgba(15,20,30,0.62); color: #e5e7eb; font-size: 0.8rem;
+        #nav-pad button { width: 78px; height: 78px; border-radius: 14px; cursor: pointer;
+            background: rgba(15,20,30,0.62); color: #e5e7eb; font-size: 1.9rem; font-weight: 700;
             border: 1px solid rgba(255,255,255,0.20); display: flex; align-items: center; justify-content: center; }
         #nav-pad button:hover { background: rgba(40,48,64,0.85); }
-        @media (pointer: coarse) { #nav-pad button { width: 46px; height: 46px; } }
+        @media (pointer: coarse) { #nav-pad button { width: 94px; height: 94px; font-size: 2.2rem; } }
         #compass .rose { position: absolute; inset: 0; will-change: transform; }
         #compass .arrow { position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
             width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent;
@@ -89,6 +89,13 @@
         .modal-card { position: relative; max-width: 440px; width: 90%; max-height: 82vh; overflow-y: auto;
             background: #fbf8f3; color: #3a3226; border-radius: 12px; padding: 22px 24px 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5); border-top: 4px solid #e0a23b; box-sizing: border-box; }
+        /* Legend is a docked bottom-left OVERLAY, not a centered/dimmed modal — same card style
+           (background, radius, shadow, title-on-top, close button) as Sources/Profile, just
+           positioned in the corner, non-blocking, and without the yellow accent border. */
+        #legend-modal-backdrop { position: fixed; inset: auto; left: 16px; bottom: 16px; z-index: 8;
+            background: none; padding: 0; display: none; align-items: stretch; justify-content: flex-start; }
+        #legend-modal-backdrop.open { display: block; }
+        #legend-modal { width: auto; max-width: 300px; border-top: none; }
         .modal-card .modal-title { font-size: 1.05rem; color: #2a2318; margin-bottom: 10px;
             padding-right: 26px; font-weight: 600; }
         .modal-card p { font-size: 0.82rem; line-height: 1.45; margin-bottom: 10px; }
@@ -312,11 +319,6 @@
             cursor: pointer; transition: background 0.12s; }
         .segmented button:first-child { border-left: none; }
         .segmented button:hover { background: #4b5563; }
-        /* Camera / navigation controls are primary — render them ~2× the default size. */
-        #panel-nav .segmented button { padding: 16px 2px; font-size: 1.0rem; font-weight: 600; line-height: 1.1; }
-        #panel-nav .segmented button .seg-ico { font-size: 1.15rem; font-weight: 700; margin-right: 3px; }
-        @media (max-width: 480px) { #panel-nav .segmented button { padding: 13px 1px; font-size: 0.9rem; }
-            #panel-nav .segmented button .seg-ico { font-size: 1.0rem; } }
         /* Attention cues */
         @keyframes navHintFlash { 0% { background: rgba(96,165,250,0); } 18% { background: rgba(96,165,250,0.30); }
             100% { background: rgba(96,165,250,0); } }
@@ -324,8 +326,8 @@
         @keyframes camBounce { 0%,100% { transform: translateY(0); } 18% { transform: translateY(-8px); }
             36% { transform: translateY(0); } 52% { transform: translateY(-5px); } 68% { transform: translateY(0); }
             84% { transform: translateY(-2px); } }
-        #grp-camera.cam-attn { animation: camBounce 1.1s ease 2; }
-        @media (prefers-reduced-motion: reduce) { #grp-camera.cam-attn, #nav-mode-hint.flash { animation: none; } }
+        #nav-pad.cam-attn { animation: camBounce 1.1s ease 2; }
+        @media (prefers-reduced-motion: reduce) { #nav-pad.cam-attn, #nav-mode-hint.flash { animation: none; } }
         .btn-tools { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
         /* Keyboard focus rings (accessibility) */
         :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
@@ -617,10 +619,10 @@
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
             <div class="segmented">
-                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)"><span class="seg-ico" aria-hidden="true">═</span>Level</button>
-                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view"><span class="seg-ico" aria-hidden="true">◨</span>Side</button>
-                <button id="btn-top-view" type="button" title="Top-down view"><span class="seg-ico" aria-hidden="true">⬇</span>Top</button>
-                <button id="btn-iso" type="button" title="Isometric (angled 3D) view"><span class="seg-ico" aria-hidden="true">◆</span>Iso</button>
+                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
+                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
+                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
+                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
             </div>
             <div class="segmented" id="preset-cardinals">
                 <button id="btn-view-n" type="button" title="Face north">N</button>
@@ -842,10 +844,10 @@
 
         <!-- On-canvas navigation pad (Normal mode): rotate + tilt without gestures. -->
         <div id="nav-pad" role="group" aria-label="Rotate and tilt the view">
-            <button id="nav-tilt-up" type="button" title="Look down (raise camera)" aria-label="Look down">⤒</button>
+            <button id="nav-tilt-up" type="button" title="Look down (raise camera)" aria-label="Look down">▲</button>
             <div class="nav-pad-row">
                 <button id="nav-rot-left" type="button" title="Rotate view left" aria-label="Rotate view left">↺</button>
-                <button id="nav-tilt-down" type="button" title="Look up (lower camera)" aria-label="Look up">⤓</button>
+                <button id="nav-tilt-down" type="button" title="Look up (lower camera)" aria-label="Look up">▼</button>
                 <button id="nav-rot-right" type="button" title="Rotate view right" aria-label="Rotate view right">↻</button>
             </div>
         </div>
@@ -3758,10 +3760,11 @@
         const HOVER_DWELL_MS = 600;
         function setupShaftInteraction() {
             const dom = renderer.domElement;
-            // First time the user touches the scene, bounce the Camera control group once so the
-            // (easy-to-miss) view controls are discovered. Fires once, on the first pointer/touch.
+            // First time the user touches the scene, bounce the on-canvas nav pad once so the
+            // (easy-to-miss) rotate/tilt controls are discovered. Fires once, on the first
+            // pointer/touch. No-op if the nav pad isn't shown (Power mode hides it).
             const bounceCameraOnce = () => {
-                const grp = document.getElementById('grp-camera');
+                const grp = document.getElementById('nav-pad');
                 if (grp) { grp.classList.add('cam-attn'); grp.addEventListener('animationend',
                     () => grp.classList.remove('cam-attn'), { once: true }); }
             };
