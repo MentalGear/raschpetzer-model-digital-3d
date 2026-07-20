@@ -290,10 +290,14 @@
         #legend-head .lg-title { font-size: 0.82rem; font-weight: 600; color: #fff; white-space: nowrap; }
         #legend-head .lg-caret { color: #9ca3af; font-size: 0.7rem; transition: transform 0.12s; margin-left: auto; }
         #legend-panel.open #legend-head .lg-caret { transform: rotate(90deg); }
-        #legend-close { background: none; border: none; color: #9ca3af; font-size: 1.25rem;
-            line-height: 1; cursor: pointer; padding: 0 2px; display: none; }
+        /* Close (×) pinned to the TOP-right of the panel (panel grows upward from its
+           bottom-left anchor, so "top" is the far edge of the expanded card). */
+        #legend-close { position: absolute; top: 6px; right: 8px; z-index: 2; background: none;
+            border: none; color: #9ca3af; font-size: 1.35rem; line-height: 1; cursor: pointer;
+            padding: 2px 5px; display: none; }
+        #legend-close:hover { color: #fff; }
         #legend-panel.open #legend-close { display: block; }
-        #legend-panel .legend-items { display: none; padding: 2px 14px 12px; }
+        #legend-panel .legend-items { display: none; padding: 26px 14px 12px; }
         #legend-panel.open .legend-items { display: block; }
         #legend-panel .legend-item b { color: #f3f4f6; font-weight: 600; }
         #legend-panel .legend-sep { height: 1px; background: rgba(255,255,255,0.12); margin: 8px 0 6px; }
@@ -340,6 +344,20 @@
             cursor: pointer; transition: background 0.12s; }
         .segmented button:first-child { border-left: none; }
         .segmented button:hover { background: #4b5563; }
+        /* Camera / navigation controls are primary — render them ~2× the default size. */
+        #panel-nav .segmented button { padding: 16px 2px; font-size: 1.0rem; font-weight: 600; line-height: 1.1; }
+        #panel-nav .segmented button .seg-ico { font-size: 1.15rem; font-weight: 700; margin-right: 3px; }
+        @media (max-width: 480px) { #panel-nav .segmented button { padding: 13px 1px; font-size: 0.9rem; }
+            #panel-nav .segmented button .seg-ico { font-size: 1.0rem; } }
+        /* Attention cues */
+        @keyframes navHintFlash { 0% { background: rgba(96,165,250,0); } 18% { background: rgba(96,165,250,0.30); }
+            100% { background: rgba(96,165,250,0); } }
+        #nav-mode-hint.flash { animation: navHintFlash 0.9s ease; border-radius: 5px; }
+        @keyframes camBounce { 0%,100% { transform: translateY(0); } 18% { transform: translateY(-8px); }
+            36% { transform: translateY(0); } 52% { transform: translateY(-5px); } 68% { transform: translateY(0); }
+            84% { transform: translateY(-2px); } }
+        #grp-camera.cam-attn { animation: camBounce 1.1s ease 2; }
+        @media (prefers-reduced-motion: reduce) { #grp-camera.cam-attn, #nav-mode-hint.flash { animation: none; } }
         .btn-tools { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
         /* Keyboard focus rings (accessibility) */
         :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
@@ -439,6 +457,19 @@
             #info-close, #drawer-close { width: 44px; height: 44px; display: flex;
                 align-items: center; justify-content: center; font-size: 1.7rem; }
             #compass { width: 56px; height: 56px; }
+        }
+        /* Work-in-progress / feedback note at the top of the sidebar */
+        #wip-note { margin: 4px 0 12px; font-size: 0.74rem; line-height: 1.35; color: #e6b45a;
+            background: rgba(230,180,90,0.10); border: 1px solid rgba(230,180,90,0.30);
+            border-radius: 8px; padding: 7px 11px; }
+        #wip-note a { color: #f0a94b; font-weight: 700; text-decoration: underline; }
+        #wip-note a:hover { color: #ffc46f; }
+        /* Touch-friendly panel controls: bigger checkbox + taller slider hit areas */
+        .check-row input[type="checkbox"] { width: 18px; height: 18px; }
+        .control-group input[type="range"] { height: 22px; }
+        @media (pointer: coarse) {
+            .check-row input[type="checkbox"] { width: 26px; height: 26px; }
+            .control-group input[type="range"] { height: 32px; }
         }
         /* Collapsible control sections */
         #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
@@ -540,6 +571,8 @@
         .ip-cite a:hover { text-decoration: underline; }
         .ip-para { font-size: 0.72rem; color: #94a3b8; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);
             padding-top: 10px; line-height: 1.4; }
+        .ip-reasons { margin: 6px 0 0; padding-left: 16px; }
+        .ip-reasons li { margin: 0 0 7px; line-height: 1.45; }
 
         body.measure-mode #canvas-container { cursor: crosshair; }
         /* Measure overlay: 3D points projected to 2D and drawn as SVG, so the markers are
@@ -608,6 +641,8 @@
             <button id="drawer-close" type="button" aria-label="Close controls">×</button>
         </div>
 
+        <div id="wip-note">🚧 Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a></div>
+
         <div id="panel-mode" role="tablist" aria-label="Panel view">
             <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">⚙</span><span>Settings</span></button>
             <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
@@ -616,14 +651,14 @@
         <!-- Camera / navigation controls first: the most-used view controls sit at the top, and
              stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
         <div id="panel-nav">
-        <div class="control-group">
+        <div class="control-group" id="grp-camera">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
             <div class="segmented">
-                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
-                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
-                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
-                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
+                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)"><span class="seg-ico" aria-hidden="true">═</span>Level</button>
+                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view"><span class="seg-ico" aria-hidden="true">◨</span>Side</button>
+                <button id="btn-top-view" type="button" title="Top-down view"><span class="seg-ico" aria-hidden="true">⬇</span>Top</button>
+                <button id="btn-iso" type="button" title="Isometric (angled 3D) view"><span class="seg-ico" aria-hidden="true">◆</span>Iso</button>
             </div>
             <div class="segmented" id="preset-cardinals">
                 <button id="btn-view-n" type="button" title="Face north">N</button>
@@ -687,8 +722,8 @@
                 <label class="check-row"><input type="checkbox" id="param-dip"> Bedding&nbsp;dip&nbsp;(≈2%&nbsp;SE,&nbsp;exaggerated)</label>
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
-                <label class="check-row"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
-                <label class="check-row"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
+                <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
+                <label class="check-row dev-opt" id="row-see-inside"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
                 <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 4px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
                 <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
                 <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
@@ -696,7 +731,7 @@
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
-                <label class="check-row"><input type="checkbox" id="param-villa"> Villa&nbsp;(inferred&nbsp;recipient)</label>
+                <label class="check-row"><input type="checkbox" id="param-villa" checked> Villa&nbsp;(inferred&nbsp;recipient)</label>
                 <label class="check-row"><input type="checkbox" id="param-xsec" checked> Qanat&nbsp;cross‑sections</label>
                 <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
             </div>
@@ -706,35 +741,34 @@
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
+                <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
                 <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
+            </div>
+            <div class="control-group" id="grp-frontedge">
+                <label>Qanat front-edge gap <span class="val" id="lbl-front-margin">0&nbsp;m</span></label>
+                <input type="range" id="param-front-margin" min="0" max="500" step="5" value="0" aria-label="Qanat front-edge gap (metres): 0 pins the qanat to the front cut face">
+                <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;min-height:1em;">0&nbsp;=&nbsp;qanat at the front cut face (strata read behind it); slide back to inset it.</div>
             </div>
             <div class="control-group" id="grp-terrain-opacity">
                 <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
                 <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0" aria-label="Terrain opacity">
+            </div>
+            <div class="control-group" id="grp-surround">
+                <label>Surrounding area <span class="val" id="lbl-surround">1.15×</span></label>
+                <input type="range" id="param-surround" min="0.45" max="1.15" step="0.05" value="1.15" aria-label="Surrounding area extent">
+                <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            </div>
+            <div class="control-group" id="grp-density">
+                <label>Terrain density <span class="val" id="lbl-density">1.0×</span></label>
+                <input type="range" id="param-density" min="0.5" max="2.0" step="0.25" value="1.0" aria-label="Terrain mesh density">
+                <div id="density-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </div>
             <div class="control-group" id="grp-vexag">
                 <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
                 <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0" aria-label="Vertical exaggeration">
                 <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </div>
-            <div class="control-group" id="grp-surround">
-                <label>Surrounding area <span class="val" id="lbl-surround">1.0×</span></label>
-                <input type="range" id="param-surround" min="0.45" max="1.15" step="0.05" value="1.0" aria-label="Surrounding area extent">
-                <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-            </div>
-            <details id="grp-debug">
-                <summary class="dev-opt">Debug</summary>
-                <label class="check-row"><input type="checkbox" id="param-qanat-front"> Qanat&nbsp;at&nbsp;front&nbsp;edge&nbsp;(strata&nbsp;in&nbsp;front)</label>
-                <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;surface&nbsp;back&nbsp;face</label>
-                <div id="grp-front-margin" style="display:none">
-                    <label>Front edge gap <span class="val" id="lbl-front-margin">8&nbsp;m</span></label>
-                    <input type="range" id="param-front-margin" min="0" max="60" step="1" value="8" aria-label="Front edge gap (metres)">
-                </div>
-                <label style="margin-top:10px">Terrain density <span class="val" id="lbl-density">1.0×</span></label>
-                <input type="range" id="param-density" min="0.5" max="2.0" step="0.25" value="1.0" aria-label="Terrain mesh density">
-                <div id="density-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-            </details>
         </div>
         </div>
         </div>
@@ -907,7 +941,7 @@
             baseY: -2,
             terrainSource: 'geodata',     // GeoData (LiDAR) is the only terrain source
             vExag: 1.0,                   // TRUE vertical exaggeration (1.0 = true scale)
-            surround: 1.0,                // how much surrounding DEM to show (1 = qanat window, 2 = full extent)
+            surround: 1.15,               // how much surrounding DEM to show — default to max (full window)
             navMode: 'normal',            // camera navigation: 'normal' (map-like, default) | 'power' (free orbit)
             flipWE: false,                // mirror the terrain West<->East
             baseLayer: 'contours',        // terrain surface graphic: 'contours' | 'satellite' | 'none'
@@ -918,7 +952,7 @@
             terrainOpacity: 1.0,          // fill-surface opacity (contour lines stay opaque)
             year: 2025,                   // timeline OFF by default → present day (complete, as-known qanat)
             showOverflow: false,          // P-4 overflow / lateral (deviation) channel (optional)
-            showVilla: false,             // inferred recipient villa marker (optional)
+            showVilla: true,              // inferred recipient villa marker (default on)
             showXsec: true,               // gallery cross-section hotspots along the qanat (fig 5-15)
             showGhostApron: true,         // faded low-res terrain apron west toward the inferred villa
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
@@ -931,9 +965,9 @@
             shaftCutaway: false,          // dev "Look inside": clip the camera-facing half through the subsurface centre
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
-            terrainCullBack: true,        // cull the terrain surface back face by default (FrontSide); dev toggle
-            qanatFront: false,            // debug: pin the qanat to the front cut face (strata in front)
-            frontMarginM: 8,              // debug: gap (m) between the front terrain edge and the end shaft (qanatFront)
+            terrainCullBack: true,        // cull the terrain surface back face (FrontSide) so the underside isn't drawn when viewing from below — default on
+            qanatFront: true,             // pin the qanat to the front cut face (strata read behind it) — default on
+            frontMarginM: 0,              // gap (m) between the front terrain edge and the end shaft (qanatFront); default 0
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
         };
@@ -2941,20 +2975,11 @@
             });
             sliceReadout();
 
-            // Debug: pin the qanat to the front cut face (strata right in front)
-            const frontMarginGrp = document.getElementById('grp-front-margin');
-            document.getElementById('param-qanat-front').addEventListener('change', e => {
-                params.qanatFront = e.target.checked;
-                frontMarginGrp.style.display = e.target.checked ? '' : 'none';   // gap slider only when pinned
-                sliceReadout();               // recomputeGeoView (re-frames N–S)
-                buildParametricModel();
-                updateZoomClamp();
-            });
-            // Debug: gap (m) between the front terrain edge and the end shaft when pinned.
+            // Qanat front-edge gap: a single slider (qanat is always pinned to the front cut
+            // face). 0 m = at the front edge (strata read behind it); larger insets it back.
             document.getElementById('param-front-margin').addEventListener('input', e => {
                 params.frontMarginM = parseFloat(e.target.value);
                 document.getElementById('lbl-front-margin').innerText = params.frontMarginM + ' m';
-                if (!params.qanatFront) return;
                 sliceReadout();               // recomputeGeoView (re-frames N–S)
                 buildParametricModel();
                 updateZoomClamp();
@@ -3021,9 +3046,10 @@
             const syncDevUI = () => {
                 document.body.classList.toggle('dev-mode', params.devMode);
                 document.getElementById('row-pbr').style.display = params.devMode ? '' : 'none';
-                document.getElementById('grp-debug').style.display = params.devMode ? '' : 'none';
                 document.getElementById('grp-vexag').style.display = params.devMode ? '' : 'none';   // vertical exaggeration is dev-only
                 document.getElementById('row-shaft-cutaway').style.display = params.devMode ? '' : 'none';   // look-inside cutaway is dev-only
+                document.getElementById('row-see-inside').style.display = params.devMode ? '' : 'none';     // see-inside cutaway is dev-only
+                document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
                 document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
                 syncConditionalOptions();
@@ -3034,10 +3060,15 @@
                     let rebuild = false;
                     if (params.pbr) { params.pbr = false; document.getElementById('param-pbr').checked = false; rebuild = true; }
                     if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
-                    if (params.qanatFront) { params.qanatFront = false; document.getElementById('param-qanat-front').checked = false;
-                        document.getElementById('grp-front-margin').style.display = 'none'; rebuild = true; }
-                    if (params.shaftCutaway) { params.shaftCutaway = false; document.getElementById('param-shaft-cutaway').checked = false; applyCutaway();
-                        const cn = document.getElementById('cutaway-note'); if (cn) cn.style.display = params.seeInside ? 'block' : 'none'; }
+                    // qanatFront is a default-on rendering choice (strata read behind the qanat) — persist it, don't reset on dev exit.
+                    if (params.detailedGallery) { params.detailedGallery = false; document.getElementById('param-detailed-gallery').checked = false; rebuild = true; }
+                    if (params.shaftCutaway || params.seeInside) {
+                        params.shaftCutaway = false; params.seeInside = false;
+                        document.getElementById('param-shaft-cutaway').checked = false;
+                        document.getElementById('param-see-inside').checked = false;
+                        applyCutaway();
+                        const cn = document.getElementById('cutaway-note'); if (cn) cn.style.display = 'none';
+                    }
                     // The "P2-P3 anchored" profile spacing is dev-only; its dropdown option
                     // disappears on exit, so fall back to plain schematic to keep control+chart in sync.
                     if (profileXMode === 'schematic-anchored') { profileXMode = 'schematic'; rebuildProfilePanel(); }
@@ -3046,7 +3077,6 @@
                     if (rebuild) { buildParametricModel(); updateZoomClamp(); }
                 } else {
                     syncDevUI();
-                    document.getElementById('grp-debug').open = true;   // reveal the debug controls immediately
                 }
             };
             // Toggle developer mode. Reliable across platforms: ⌘+D (Mac) OR ⌘/Ctrl+Shift+D
@@ -3305,8 +3335,13 @@
                     : 'Drag rotates · right-drag pans · scroll zooms (free orbit).';
                 applyNavMode();
             };
-            document.getElementById('btn-nav-normal').addEventListener('click', () => setNavMode('normal'));
-            document.getElementById('btn-nav-power').addEventListener('click', () => setNavMode('power'));
+            // Flash the hint below the toggle so the (changed) navigation guidance draws the eye.
+            const flashNavHint = () => {
+                if (!navHint) return;
+                navHint.classList.remove('flash'); void navHint.offsetWidth; navHint.classList.add('flash');
+            };
+            document.getElementById('btn-nav-normal').addEventListener('click', () => { setNavMode('normal'); flashNavHint(); });
+            document.getElementById('btn-nav-power').addEventListener('click', () => { setNavMode('power'); flashNavHint(); });
 
             // On-canvas nav pad (Normal mode): HOLD an arrow to rotate/tilt continuously; a
             // quick tap gives a small nudge. Per-frame deltas (≈ rad/frame at ~60 fps).
@@ -3776,6 +3811,15 @@
         const HOVER_DWELL_MS = 600;
         function setupShaftInteraction() {
             const dom = renderer.domElement;
+            // First time the user touches the scene, bounce the Camera control group once so the
+            // (easy-to-miss) view controls are discovered. Fires once, on the first pointer/touch.
+            const bounceCameraOnce = () => {
+                const grp = document.getElementById('grp-camera');
+                if (grp) { grp.classList.add('cam-attn'); grp.addEventListener('animationend',
+                    () => grp.classList.remove('cam-attn'), { once: true }); }
+            };
+            dom.addEventListener('pointerdown', bounceCameraOnce, { once: true });
+            dom.addEventListener('touchstart', bounceCameraOnce, { once: true, passive: true });
             const tip = document.getElementById('shaft-tooltip');
             const HOVER_TOOLTIP = false;   // hover overlays disabled — click a shaft for its info panel
             let dwellTimer = null, dwellShaft = null, lastEv = null;
@@ -3965,13 +4009,14 @@
             if (rec.notes) { const np = provOf(rec, 'notes'); h += `<div class="ip-note">${rec.notes}</div>` + citeChip(np); }
             // Reasoning: combine the shaft's own paradata with its POSITION paradata (the
             // OSM-georeferencing caveats — e.g. the P2 offset — that would otherwise never surface).
+            // Reasoning is detailed provenance — show it only in developer mode, as a bullet list.
             const refIds = [...(rec.paradataRef || []), ...((rec.position && rec.position.paradataRef) || [])];
-            if (refIds.length) {
+            if (params.devMode && refIds.length) {
                 const seen = new Set();
                 const notes = refIds.filter(id => !seen.has(id) && seen.add(id))
                     .map(id => SSOT.paradata[id]).filter(Boolean);
-                if (notes.length) h += `<div class="ip-para"><b>Reasoning</b><br>` +
-                    notes.map(n => '‣ ' + n.rationale).join('<br><br>') + `</div>`;
+                if (notes.length) h += `<div class="ip-para"><b>Reasoning</b>` +
+                    `<ul class="ip-reasons">` + notes.map(n => `<li>${n.rationale}</li>`).join('') + `</ul></div>`;
             }
             body.innerHTML = h;
             showInspector();
