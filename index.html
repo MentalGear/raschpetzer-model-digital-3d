@@ -814,7 +814,7 @@
                ACT LiDAR DTM (2019) is referenced to the Luxembourg height datum (NG95&nbsp;/&nbsp;EVRF) and
                treated as consistent with the brochure's a.s.l. to within the stated 0.5–2.5&nbsp;m.</p>
             <ul>
-                <li>Brochure 2018 (Faber/Waringo/Werner) — site brochure &amp; survey</li>
+                <li>Brochure 2018 (Waringo/Faber/Werner) — site brochure &amp; survey</li>
                 <li>ACT LiDAR 2019 — 0.5&nbsp;m digital terrain model</li>
                 <li>OpenStreetMap — qanat shaft node coordinates</li>
                 <li>EU-DEM 25&nbsp;m — regional context only</li>
@@ -1788,6 +1788,20 @@
             }
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
             modelGroup.add(surfMesh);
+            // Cull-back-face is a VISUAL choice (hide the coloured/textured underside), not a
+            // depth one: with fillMat.side = FrontSide, viewing from below makes the fill mesh
+            // draw nothing there, so nothing occludes the contour lines / labels anchored to the
+            // same surface — they then read as "showing through" the terrain. Fix: an invisible,
+            // always-solid depth-only twin (DoubleSide, colorWrite:false) that keeps writing depth
+            // from underneath regardless of which face is visible, so terrain-anchored decorations
+            // are still properly hidden from below. Bypasses the opacity slider on purpose — this
+            // occluder represents the terrain's geometric shape, not its see-through opacity fade.
+            if (params.terrainCullBack) {
+                const depthMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true, side: THREE.DoubleSide });
+                const depthMesh = new THREE.Mesh(surfGeo, depthMat);
+                depthMesh.renderOrder = surfMesh.renderOrder - 1;   // write depth before the fill draws
+                modelGroup.add(depthMesh);
+            }
 
             // --- 2. CONTOUR LINES as real geometry (marching squares over the height field) ---
             // This renders the topography the way the reference does: thin brown
@@ -3016,6 +3030,7 @@
                 document.body.classList.toggle('dev-mode', params.devMode);
                 document.getElementById('row-pbr').style.display = params.devMode ? '' : 'none';
                 document.getElementById('grp-vexag').style.display = params.devMode ? '' : 'none';   // vertical exaggeration is dev-only
+                document.getElementById('grp-density').style.display = params.devMode ? '' : 'none'; // terrain density is dev-only
                 document.getElementById('row-shaft-cutaway').style.display = params.devMode ? '' : 'none';   // look-inside cutaway is dev-only
                 document.getElementById('row-see-inside').style.display = params.devMode ? '' : 'none';     // see-inside cutaway is dev-only
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
@@ -3937,6 +3952,7 @@
             let h = `<h3>${rec.id}</h3><div class="ip-sub">${rec.role || ''}` +
                 `${rec.existence ? ' · existence ' + rec.existence : ''}` +
                 `${rec.confidence ? ' · confidence ' + rec.confidence : ''}</div>`;
+            h += factRow('Surface elevation', rec, 'surfaceElevM', 'm a.s.l.');
             h += factRow('Depth', rec, 'depthM', 'm');
             h += factRow('Gallery floor', rec, 'floorElevM', 'm a.s.l.');
             h += factRow('Diameter', rec, 'diameterM', 'm');

@@ -14,7 +14,7 @@
     "crm": "E31_Document",
     "short": "Brochure 2018",
     "title": "The Raschpëtzer — A Roman Underground Water Supply System",
-    "authors": ["Faber, Sonja", "Waringo, Guy", "Werner, Henri"],
+    "authors": ["Waringo, Guy", "Faber, Sonja", "Werner, Henri"],
     "year": 2018,
     "publisher": "Syndicat d'initiative et de tourisme de la Commune de Walferdange",
     "isbn": "978-2-9199454-2-9",
@@ -137,7 +137,7 @@
   },
   "werner-sit-survey": {
     "type": "field-survey", "crm": "E73_Information_Object",
-    "short": "Henri Werner SIT shaft-coordinate survey",
+    "short": "Werner LUREF shaft survey (SIT Walferdange)",
     "title": "Coordonnées Raschpëtzer — surveyed shaft coordinates (SIT Walferdange), LUREF (EPSG:2169)",
     "authors": ["Werner, Henri"],
     "note": "Unpublished survey table (PDF: 'coordonnées Raschpetzer') plus CAD site plans (DXF/DWG), provided directly to this project by Henri Werner — a co-author of brochure2018 and one of the site's excavators/surveyors. Lists LUREF (EPSG:2169) X/Y and, for most points, a ground-surface Z (m a.s.l.) for the shaft CENTREPOINT ('Petz Mittelpunkt' — the well/shaft-mouth centre), for the main line P-1 through P9. P-1 and P0 are marked '~' (approximate marking, not a centrepoint survey); P2/P3 are 'Mittelpunkt Mulde' (centre of the surface depression, both still backfilled). Does NOT cover the western/auxiliary shafts P-4/P-5/P-5A/P-7A, which remain OSM-derived (see osm-qanat-shafts). Supersedes the OSM/similarity-fit reconciliation (pd-osm-georef) for the 11 covered shafts — the correction is largest at P2 (10.9 m), matching that reconciliation's own finding that the OSM 'P2' node read materially too far east."
