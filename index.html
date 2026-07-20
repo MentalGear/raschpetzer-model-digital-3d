@@ -89,7 +89,7 @@
         .modal-card { position: relative; max-width: 440px; width: 90%; max-height: 82vh; overflow-y: auto;
             background: #fbf8f3; color: #3a3226; border-radius: 12px; padding: 22px 24px 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5); border-top: 4px solid #e0a23b; box-sizing: border-box; }
-        .modal-card .modal-title, .modal-card h3 { font-size: 1.05rem; color: #2a2318; margin-bottom: 10px;
+        .modal-card .modal-title { font-size: 1.05rem; color: #2a2318; margin-bottom: 10px;
             padding-right: 26px; font-weight: 600; }
         .modal-card p { font-size: 0.82rem; line-height: 1.45; margin-bottom: 10px; }
         .modal-card b { color: #b06a00; }
@@ -98,7 +98,7 @@
             color: #8a7a63; font-size: 1.4rem; line-height: 1; cursor: pointer; }
         .modal-close:hover { color: #2a2318; }
         #profile-panel { max-width: min(560px, 94vw); font-size: 0.7rem; color: #4a3f2f; }
-        #profile-panel .pp-title { font-weight: 600; margin-bottom: 2px; color: #333; padding-right: 26px; }
+        #profile-panel .pp-title { margin-bottom: 2px; color: #333; }
         #profile-panel .pp-sub { color: #6f6250; margin-bottom: 4px; }
         #profile-panel .pp-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
             margin: 2px 0 6px; color: #4a3f2f; user-select: none; }
@@ -570,7 +570,7 @@
            dark surface so they match the rest of the (always-dark) chrome instead of glaring white. */
         @media (prefers-color-scheme: dark) {
             .modal-card { background: #1b1e26; color: #cdd3dd; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
-            .modal-card .modal-title, .modal-card h3 { color: #fff; }
+            .modal-card .modal-title { color: #fff; }
             .modal-card b { color: #f0a94b; }
             .modal-close { color: #8b93a3; }
             .modal-close:hover { color: #fff; }
@@ -578,6 +578,7 @@
             #profile-panel .pp-sub, #profile-panel .pp-credit { color: #9ca3af; }
             #profile-panel .pp-toggle { color: #cbd5e1; }
             #profile-panel .pp-toggle select { background: #2b2f3a; color: #e5e7eb; border-color: rgba(255,255,255,0.18); }
+            #legend-modal .legend-sep { background: rgba(255,255,255,0.14); }
         }
     </style>
     <script src="vendor/three.min.js"></script>
@@ -883,7 +884,7 @@
         <div id="measure-readout"></div>
         <div id="ortho-attrib" style="display:none;position:absolute;left:10px;bottom:10px;z-index:5;font-size:0.68rem;color:#e5e7eb;background:rgba(15,20,30,0.66);padding:3px 7px;border-radius:4px;pointer-events:none;">Aerial imagery © ACT · geoportail.lu (2019) · Luxembourg open data</div>
         <div id="profile-modal-backdrop" class="modal-backdrop">
-            <div id="profile-panel" class="modal-card"></div>
+            <div id="profile-panel" class="modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-title"></div>
         </div>
         <div id="tour-bar">
             <button id="tour-prev" type="button" aria-label="Previous">⏮</button>
@@ -2469,7 +2470,7 @@
             updateExagReadout();
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
             rebuildFlow();               // rebuild animated-flow particles for the new paths
-            if (profileOn) document.getElementById('profile-panel').innerHTML = buildProfileSVG();
+            rebuildProfilePanel();       // refresh the profile chart if it's open
             updateDensityReadout();      // refresh the dev density readout (segX/segZ just recomputed)
         }
 
@@ -3266,18 +3267,8 @@
                 const on = document.body.classList.toggle('timeline-on');
                 document.getElementById('btn-timeline').classList.toggle('active', on);
             });
-            // Legend: a modal (same shell as Data sources / Qanat Profile) — opened by its tool
-            // button, closed by its × / Esc / backdrop click, all via the shared modal helper.
-            document.getElementById('btn-legend').addEventListener('click', () => {
-                const opening = !isModalOpen('legend-modal-backdrop');
-                if (opening) closeOtherModals('legend-modal-backdrop');
-                setModalOpen('legend-modal-backdrop', opening);
-                document.getElementById('btn-legend').classList.toggle('active', opening);
-            });
-            document.getElementById('legend-close').addEventListener('click', () => {
-                setModalOpen('legend-modal-backdrop', false);
-                document.getElementById('btn-legend').classList.remove('active');
-            });
+            // Legend is a modal (same shell as Data sources / Qanat Profile) — wired in
+            // initSourcesModal() alongside the other two, so all modal wiring lives in one place.
 
             // Navigation mode: Normal (map-like, default) ⇄ Power (free orbit).
             const navHint = document.getElementById('nav-mode-hint');
@@ -4115,61 +4106,72 @@
             });
             lb.addEventListener('click', closeLightbox);   // click anywhere on the overlay closes
             document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
-            document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && lb.classList.contains('open')) closeLightbox(); });
+            // stopPropagation so Escape closes ONLY the lightbox when it's open (it can be
+            // opened from inside the Qanat Profile modal) — otherwise the window-level Escape
+            // handler for the Sources/Profile/Legend modals would also fire on the same keypress
+            // and close whatever modal the lightbox was opened from underneath it.
+            document.addEventListener('keydown', ev => {
+                if (ev.key === 'Escape' && lb.classList.contains('open')) { closeLightbox(); ev.stopPropagation(); }
+            });
         }
 
         // --- Generalized modal shell: Data sources / Qanat Profile / Legend share the same
         // backdrop+card chrome (`.modal-backdrop` / `.modal-card`, see CSS) and the same open/close
-        // mechanics — a helper here so each modal's own code only decides WHEN to open/close.
+        // mechanics. MODAL_REGISTRY is the single source of truth per modal — its trigger button
+        // (toggled active/inactive) and any extra reset an individual modal needs on close — so
+        // every call site (button clicks, backdrop clicks, Esc) shares one implementation instead
+        // of each repeating the button/state bookkeeping inline.
+        const MODAL_REGISTRY = {
+            'sources-modal-backdrop': { btnId: 'btn-sources' },
+            'profile-modal-backdrop': { btnId: 'btn-profile' },
+            'legend-modal-backdrop':  { btnId: 'btn-legend' },
+        };
         function isModalOpen(backdropId) {
             const el = document.getElementById(backdropId);
             return !!el && el.classList.contains('open');
         }
         function setModalOpen(backdropId, open) {
             const el = document.getElementById(backdropId);
-            if (el) el.classList.toggle('open', open);
+            if (!el) return;
+            el.classList.toggle('open', open);
+            const reg = MODAL_REGISTRY[backdropId];
+            if (reg && reg.btnId) document.getElementById(reg.btnId).classList.toggle('active', open);
         }
-        const MODAL_BACKDROPS = ['sources-modal-backdrop', 'profile-modal-backdrop', 'legend-modal-backdrop'];
-        // Only one of these three modals is ever meant to be open at once — closing the other
-        // two whenever one opens keeps that true even if two triggers are activated back to back.
+        // Only one of these modals is ever meant to be open at once — closing the others whenever
+        // one opens keeps that true even if two triggers are activated back to back.
         function closeOtherModals(exceptId) {
-            for (const id of MODAL_BACKDROPS) {
-                if (id === exceptId || !isModalOpen(id)) continue;
-                setModalOpen(id, false);
-                if (id === 'profile-modal-backdrop') { profileOn = false; document.getElementById('btn-profile').classList.remove('active'); }
-                if (id === 'legend-modal-backdrop') document.getElementById('btn-legend').classList.remove('active');
-            }
+            for (const id in MODAL_REGISTRY) if (id !== exceptId && isModalOpen(id)) setModalOpen(id, false);
         }
-        function closeTopmostModal() {
-            let closedAny = false;
-            for (const id of MODAL_BACKDROPS) if (isModalOpen(id)) { setModalOpen(id, false); closedAny = true; }
-            if (closedAny) {
-                profileOn = false;
-                document.getElementById('btn-profile').classList.remove('active');
-                document.getElementById('btn-legend').classList.remove('active');
-            }
+        function closeAllModals() {
+            for (const id in MODAL_REGISTRY) if (isModalOpen(id)) setModalOpen(id, false);
         }
 
         // --- Data-sources modal ---
         function openSourcesModal() { closeOtherModals('sources-modal-backdrop'); setModalOpen('sources-modal-backdrop', true); }
         function closeSourcesModal() { setModalOpen('sources-modal-backdrop', false); }
+        // --- Legend modal ---
+        function openLegendModal() { closeOtherModals('legend-modal-backdrop'); setModalOpen('legend-modal-backdrop', true); }
+        function closeLegendModal() { setModalOpen('legend-modal-backdrop', false); }
         function initSourcesModal() {
             document.getElementById('btn-sources').addEventListener('click', openSourcesModal);
             document.getElementById('sources-close').addEventListener('click', closeSourcesModal);
             document.getElementById('sources-modal-backdrop').addEventListener('click', ev => {
                 if (ev.target.id === 'sources-modal-backdrop') closeSourcesModal();
             });
+            document.getElementById('btn-legend').addEventListener('click', () => {
+                isModalOpen('legend-modal-backdrop') ? closeLegendModal() : openLegendModal();
+            });
+            document.getElementById('legend-close').addEventListener('click', closeLegendModal);
+            document.getElementById('legend-modal-backdrop').addEventListener('click', ev => {
+                if (ev.target.id === 'legend-modal-backdrop') closeLegendModal();
+            });
             document.getElementById('profile-modal-backdrop').addEventListener('click', ev => {
                 if (ev.target.id === 'profile-modal-backdrop') toggleProfile();
             });
-            document.getElementById('legend-modal-backdrop').addEventListener('click', ev => {
-                if (ev.target.id === 'legend-modal-backdrop') {
-                    setModalOpen('legend-modal-backdrop', false);
-                    document.getElementById('btn-legend').classList.remove('active');
-                }
-            });
-            // Esc closes whichever of the three modals is open.
-            window.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeTopmostModal(); });
+            // Esc closes whichever of these modals is open (the image lightbox is a separate,
+            // stackable-on-top overlay with its own Esc handler that stops propagation — see
+            // initLightbox — so this never fires for the lightbox alone).
+            window.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeAllModals(); });
         }
 
         // --- Guided tour (fly P-7A → P9, showing each shaft's SSOT record) ---
@@ -4445,12 +4447,13 @@
         }
 
         // --- Gallery longitudinal-profile chart (toggle) ---------------------
-        let profileOn = false;
+        // Open/closed state lives ONLY in the DOM (isModalOpen('profile-modal-backdrop')) — no
+        // separate JS boolean to keep in sync with it.
         let profileImgOn = false;   // show the Brochure geological cross-section (fig 4-2) in the modal
         let profileXMode = 'geo';   // 'geo' = georeferenced (LiDAR/OSM) | 'schematic' = Brochure fig 3-1 layout
         function rebuildProfilePanel() {
             const el = document.getElementById('profile-panel');
-            if (el && profileOn) el.innerHTML = buildProfileSVG();
+            if (el && isModalOpen('profile-modal-backdrop')) el.innerHTML = buildProfileSVG();
         }
         // The geological-section image toggle is SHARED between the profile modal and the
         // side-nav "Geological section" checkbox; keep the single state (profileImgOn) and both
@@ -4552,19 +4555,17 @@
                     ? `Spacing = Brochure fig 3‑1 diagram (schematic, not to scale), stretched to the real total length — shows the brochure's shaft order/proportions for comparison with the section image. The 3D shafts stay georeferenced.`
                     : `Spacing = W→E distance from the shaft positions: a direct SIT survey (Henri Werner) for the main line P‑1 to P9, provisional OSM coordinates for the western/auxiliary shafts (P‑4/P‑5/P‑5A/P‑7A). The 3D shafts stay in these positions.`;
             return `<button type="button" class="modal-close" onclick="toggleProfile()" aria-label="Close profile">×</button>` +
-                   `<div class="pp-title modal-title">Qanat Profile — longitudinal, true elevation (m a.s.l.)</div>` +
+                   `<div id="profile-title" class="pp-title modal-title">Qanat Profile — longitudinal, true elevation (m a.s.l.)</div>` +
                    controls +
                    `<div class="pp-sub">Computed by this project from the documented 0.1% grade + surveyed floors over the LiDAR surface. ` +
                    `Blue = near-level gallery floor · brown = LiDAR surface · gap = shaft depth. ` +
                    `Floor rises ${fall.toFixed(1)} m W→E over ${Math.round(maxD)} m (0.1% grade + P4/P6 steps; Brochure 2018 p.26–27). ${basis}.</div>` + svg;
         }
         function toggleProfile() {
-            profileOn = !profileOn;
-            if (profileOn) closeOtherModals('profile-modal-backdrop');
-            const el = document.getElementById('profile-panel');
-            document.getElementById('btn-profile').classList.toggle('active', profileOn);
-            setModalOpen('profile-modal-backdrop', profileOn);
-            if (profileOn) el.innerHTML = buildProfileSVG();
+            const opening = !isModalOpen('profile-modal-backdrop');
+            if (opening) closeOtherModals('profile-modal-backdrop');
+            setModalOpen('profile-modal-backdrop', opening);
+            if (opening) document.getElementById('profile-panel').innerHTML = buildProfileSVG();
         }
 
         // --- Animated water flow ---------------------------------------------
