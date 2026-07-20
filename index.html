@@ -4032,20 +4032,21 @@
             // a conversion for the map link, not the primary record.
             if (rec.geo && Array.isArray(rec.geo.luref)) {
                 const gp = provOf(rec, 'geo');
-                h += `<div class="ip-row"><span class="ip-k">LUREF/LTM (EPSG:2169)</span>` +
-                     `<span class="ip-v">${rec.geo.luref[0].toFixed(3)} E · ${rec.geo.luref[1].toFixed(3)} N` +
+                h += `<div class="ip-row"><span class="ip-k" title="LUREF/LTM, EPSG:2169">LUREF/LTM</span>` +
+                     `<span class="ip-v" style="white-space:nowrap">${rec.geo.luref[0].toFixed(1)} E · ${rec.geo.luref[1].toFixed(1)} N` +
                      `${statusBadge(rec.geo.status || gp.status)}</span></div>` + citeDetail(gp);
             }
-            // GPS coordinates (WGS84 lat/lon) — clickable to open a map. NOTE: the link drops a
-            // pin at OUR coordinate, which is accurate; OpenStreetMap's OWN pre-existing icons
-            // for this site (crowd-mapped, not survey-grade — see osm-qanat-shafts) may show up
-            // at a different, less accurate position on that page — don't confuse the two.
+            // GPS coordinates (WGS84 lat/lon) — clickable to open a map. Caveat note only when
+            // we hold an independent, more-precise LUREF measurement for this shaft (above) —
+            // that's specifically when we KNOW OpenStreetMap's own site icon can disagree with
+            // it; shafts without a LUREF fix are themselves OSM-derived, so there's no
+            // independent check to justify the caveat there.
             if (rec.geo && rec.geo.lat != null && rec.geo.lon != null) {
                 const lat = rec.geo.lat.toFixed(6), lon = rec.geo.lon.toFixed(6);
                 const osm = `https://www.openstreetmap.org/?mlat=${rec.geo.lat}&mlon=${rec.geo.lon}#map=18/${rec.geo.lat}/${rec.geo.lon}`;
                 h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
                      `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>` +
-                     osmCaveatNote();
+                     (Array.isArray(rec.geo.luref) ? osmCaveatNote() : '');
             }
             // Where on the shaft the survey measurement was taken (from the Werner SIT
             // survey table: "Petz Mittelpunkt" = shaft centrepoint, "Mittelpunkt Mulde" =
@@ -4117,8 +4118,7 @@
                 const lat = v.geo.lat.toFixed(6), lon = v.geo.lon.toFixed(6);
                 const osm = `https://www.openstreetmap.org/?mlat=${v.geo.lat}&mlon=${v.geo.lon}#map=18/${v.geo.lat}/${v.geo.lon}`;
                 h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
-                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a>${statusBadge('inferred')}</span></div>` +
-                     osmCaveatNote();
+                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a>${statusBadge('inferred')}</span></div>`;
             }
             if (v.approxElevationMasl != null) h += `<div class="ip-row"><span class="ip-k">Approx. elevation</span>` +
                 `<span class="ip-v">~${v.approxElevationMasl} m a.s.l.${statusBadge('inferred')}</span></div>`;
@@ -4139,8 +4139,7 @@
             const lat = spot.lat.toFixed(6), lon = spot.lon.toFixed(6);
             const osm = `https://www.openstreetmap.org/?mlat=${spot.lat}&mlon=${spot.lon}#map=18/${spot.lat}/${spot.lon}`;
             h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
-                 `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>` +
-                 osmCaveatNote();
+                 `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>`;
             if (Array.isArray(spot.luref))
                 h += `<div class="ip-row"><span class="ip-k">LUREF (EPSG:2169)</span>` +
                      `<span class="ip-v">${spot.luref[0]} E · ${spot.luref[1]} N</span></div>`;
