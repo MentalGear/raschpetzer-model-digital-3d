@@ -840,13 +840,14 @@
         <div id="sources-modal" role="dialog" aria-modal="true" aria-labelledby="sources-title">
             <button id="sources-close" type="button" aria-label="Close">×</button>
             <h3 id="sources-title">Data sources &amp; honesty note</h3>
-            <p>Surface: <b>ACT LiDAR 2019</b> (0.5&nbsp;m DTM). Shafts are placed from
-               <b>provisional OpenStreetMap coordinates</b> — the lowest-authority cross-check in
-               this project (the brochure gives no coordinate grid), elevation-checked against the
-               LiDAR to within 0.5–2.5&nbsp;m. Per-shaft position confidence varies and some nodes
-               are off (e.g. P2 reads too far east) — see each shaft's info panel. The qanat gallery
-               is drawn near-level, per the site brochure's surveyed profile. Solid shafts have a
-               documented depth; faded (translucent) shafts have an inferred depth.</p>
+            <p>Surface: <b>ACT LiDAR 2019</b> (0.5&nbsp;m DTM). The main-line shafts (P‑1 to P9) are
+               placed from a <b>direct SIT survey</b> (Henri Werner, LUREF/EPSG:2169 shaft
+               centrepoints) — the highest-authority position in this project. The western/auxiliary
+               shafts (P‑4/P‑5/P‑5A/P‑7A) aren't in that survey and stay on
+               <b>provisional OpenStreetMap coordinates</b>, elevation-checked against the LiDAR to
+               within 0.5–2.5&nbsp;m. Per-shaft position confidence varies — see each shaft's info
+               panel. The qanat gallery is drawn near-level, per the site brochure's surveyed profile.
+               Solid shafts have a documented depth; faded (translucent) shafts have an inferred depth.</p>
             <p style="font-size:0.76rem;color:#8b93a3">Elevations are the brochure's metres a.s.l.; the
                ACT LiDAR DTM (2019) is referenced to the Luxembourg height datum (NG95&nbsp;/&nbsp;EVRF) and
                treated as consistent with the brochure's a.s.l. to within the stated 0.5–2.5&nbsp;m.</p>
@@ -4544,7 +4545,7 @@
                 `<label class="pp-toggle"><input type="checkbox" onchange="toggleProfileImg(this)"` +
                     `${profileImgOn ? ' checked' : ''}> Geological section (Brochure fig&nbsp;4‑2)</label>` +
                 `<label class="pp-toggle">Spacing:&nbsp;<select onchange="setProfileXMode(this)">` +
-                    `<option value="geo"${!schematic ? ' selected' : ''}>OSM positions (provisional)</option>` +
+                    `<option value="geo"${!schematic ? ' selected' : ''}>Surveyed positions (SIT + OSM)</option>` +
                     `<option value="schematic"${profileXMode === 'schematic' ? ' selected' : ''}>Brochure schematic (fig&nbsp;3‑1)</option>` +
                     (params.devMode
                         ? `<option value="schematic-anchored"${anchored ? ' selected' : ''}>Brochure schematic · P2‑P3 anchored (dev)</option>`
@@ -4558,7 +4559,7 @@
                 ? `Spacing = Brochure fig 3‑1 diagram, scaled so the one documented gap (P2→P3 = 28 m) is exact; every other gap is diagram-proportional, not surveyed. The 3D shafts stay georeferenced.`
                 : schematic
                     ? `Spacing = Brochure fig 3‑1 diagram (schematic, not to scale), stretched to the real total length — shows the brochure's shaft order/proportions for comparison with the section image. The 3D shafts stay georeferenced.`
-                    : `Spacing = W→E distance from the provisional OSM positions (approximate metres — OSM is a provisional cross-check, not a survey; e.g. P2 reads too far east). The 3D shafts stay in these provisional positions.`;
+                    : `Spacing = W→E distance from the shaft positions: a direct SIT survey (Henri Werner) for the main line P‑1 to P9, provisional OSM coordinates for the western/auxiliary shafts (P‑4/P‑5/P‑5A/P‑7A). The 3D shafts stay in these positions.`;
             return `<button type="button" class="pp-close" onclick="toggleProfile()" aria-label="Close profile">×</button>` +
                    `<div class="pp-title">Qanat Profile — longitudinal, true elevation (m a.s.l.)</div>` +
                    controls +
