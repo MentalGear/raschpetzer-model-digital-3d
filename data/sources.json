@@ -62,11 +62,21 @@
     "title": "3D block model P-7A→P9 with a 100 m scale bar",
     "note": "The only figure showing all shaft positions along the route at a stated scale (100 m bar). Oblique 3D perspective — gives approximate along-route spacing, NOT georeferenced coordinates. Source of the schematic modelPos arrangement."
   },
+  "fig-5-1": {
+    "type": "figure", "partOf": "brochure2018", "crm": "E36_Visual_Item",
+    "short": "Brochure 2018, fig. 5-1", "locator": "fig.5-1, p.16",
+    "title": "P1 under the plateau edge prior to its excavation"
+  },
+  "fig-5-2": {
+    "type": "figure", "partOf": "brochure2018", "crm": "E36_Visual_Item",
+    "short": "Brochure 2018, fig. 5-2", "locator": "fig.5-2, p.16",
+    "title": "The intermediate gallery near P1, almost entirely filled with excavated material"
+  },
   "fig-5-3": {
     "type": "figure", "partOf": "brochure2018", "crm": "E36_Visual_Item",
     "short": "Brochure 2018, fig. 5-3", "locator": "fig.5-3, p.17",
     "title": "Schematic longitudinal section (initial planning)",
-    "note": "Slopes 'very exaggerated for reasons of clarity' — schematic, not to scale."
+    "note": "Slopes 'very exaggerated for reasons of clarity' — schematic, not to scale. Shows the intermediate 'Exploratory gallery' at P1 with its extent marked '?' on both sides."
   },
   "fig-5-4": {
     "type": "figure", "partOf": "brochure2018", "crm": "E36_Visual_Item",

@@ -427,6 +427,29 @@
       "notes": "At the bend in the route; likely the first shaft sunk; 6 m below the plateau edge in a natural depression. Total depth 30 m; an intermediate 'sounding' gallery at 20 m has no channel.",
       "source": "brochure2018",
       "status": "documented",
+      "soundingGallery": {
+        "id": "p1-sounding-gallery",
+        "crm": "E22_Human-Made_Object",
+        "depthM": 20,
+        "heightAboveMainFloorM": 10,
+        "orientation": "east-west",
+        "hasChannel": false,
+        "extentM": null,
+        "schematicExtentM": 6,
+        "purpose": "debated: (a) captured a pre-qanat natural spring, or (b) an exploratory sounding tunnel to locate the water table before P1 was lowered to its final depth",
+        "source": "brochure2018",
+        "status": "documented",
+        "paradataRef": ["pd-p1-sounding-gallery"],
+        "note": "An intermediate gallery ~10 m above the main gallery floor (documented at 20 m of P1's 30 m total depth), oriented east-west like the main gallery, but with NO channel — it never carried water. Almost entirely backfilled with excavated material. Its horizontal extent was never surveyed (fig 5-3 marks it '?' on both sides), so it is rendered as a short schematic stub, not a measured tunnel.",
+        "_prov": {
+          "depthM": { "loc": "p.16", "note": "\"at a depth of 20 m, an intermediate gallery also oriented in the east-west direction\"" },
+          "heightAboveMainFloorM": { "note": "derived: P1 total depth 30 m − sounding-gallery depth 20 m" },
+          "orientation": { "loc": "p.16" },
+          "hasChannel": { "loc": "p.16", "note": "\"It doesn't have a channel\"" },
+          "extentM": { "note": "horizontal extent not stated or surveyed; fig 5-3 marks it with '?' on both sides — not modelled as a measured length" },
+          "purpose": { "loc": "p.16", "note": "brochure presents both theories without resolving between them" }
+        }
+      },
       "_prov": {
         "depthM": {
           "loc": "p.16"

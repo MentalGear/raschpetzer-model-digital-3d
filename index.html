@@ -331,11 +331,7 @@
         @keyframes navHintFlash { 0% { background: rgba(96,165,250,0); } 18% { background: rgba(96,165,250,0.30); }
             100% { background: rgba(96,165,250,0); } }
         #nav-mode-hint.flash { animation: navHintFlash 0.9s ease; border-radius: 5px; }
-        @keyframes camBounce { 0%,100% { transform: translateY(0); } 18% { transform: translateY(-8px); }
-            36% { transform: translateY(0); } 52% { transform: translateY(-5px); } 68% { transform: translateY(0); }
-            84% { transform: translateY(-2px); } }
-        #nav-pad.cam-attn { animation: camBounce 1.1s ease 2; }
-        @media (prefers-reduced-motion: reduce) { #nav-pad.cam-attn, #nav-mode-hint.flash { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { #nav-mode-hint.flash { animation: none; } }
         .btn-tools { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
         /* Keyboard focus rings (accessibility) */
         :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
@@ -695,12 +691,14 @@
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
                 <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
+                <label class="check-row" id="row-realistic-diameters"><input type="checkbox" id="param-realistic-diameters"> Realistic&nbsp;diameters&nbsp;(≈3×&nbsp;true&nbsp;scale)</label>
                 <label class="check-row dev-opt" id="row-see-inside"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
                 <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 4px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
                 <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
                 <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
                 <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Underground opacity">
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
+                <label class="check-row" id="row-sounding"><input type="checkbox" id="param-sounding"> Exploratory&nbsp;sounding&nbsp;gallery&nbsp;(P1,&nbsp;abandoned)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
                 <label class="check-row"><input type="checkbox" id="param-villa" checked> Villa&nbsp;(inferred&nbsp;recipient)</label>
@@ -779,6 +777,7 @@
                 <div class="legend-item"><div class="color-box" style="background: var(--accent-blue);"></div>Qanat gallery — flows West → villa</div>
                 <div class="legend-item"><div class="color-box" style="background: #2bb0f0;"></div>Groundwater — flows East (in sandstone)</div>
                 <div class="legend-item"><div class="color-box" style="background: #8aa0b4;"></div>Auxiliary dry channel (P-7A/P-5A)</div>
+                <div class="legend-item"><div class="color-box" style="background: #9a8f76;"></div>Exploratory sounding gallery (P1, abandoned)</div>
                 <div class="legend-item"><div class="color-box" style="background: #d8c0a8;"></div>Weathered rock / soft ground</div>
                 <div class="legend-item"><div class="color-box" style="background: #b9d3e8;"></div>Luxembourg sandstone (water-bearing)</div>
                 <div class="legend-item"><div class="color-box" style="background: #8f95c4;"></div>Marl &amp; limestone strata</div>
@@ -932,12 +931,14 @@
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
+            showSounding: false,          // exploratory sounding gallery at P1 (documented, no channel, schematic extent)
             showPerched: false,           // perched pre-construction water table + drawdown band
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
             undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
             shaftCutaway: false,          // dev "Look inside": clip the camera-facing half through the subsurface centre
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
+            realisticDiameters: false,    // shaft/gallery cross-sections at ~3x true scale instead of the default, deliberately oversized-for-visibility radii
             terrainCullBack: true,        // cull the terrain surface back face (FrontSide) so the underside isn't drawn when viewing from below — default on
             qanatFront: true,             // pin the qanat to the front cut face (strata read behind it) — default on
             frontMarginM: 0,              // gap (m) between the front terrain edge and the end shaft (qanatFront); default 0
@@ -2002,6 +2003,18 @@
             // only as terrain opacity drops (they still occupy their true z). The above-ground
             // shaft CAPS are surface markers and stay x-ray regardless.
             const ugDT = !params.xrayUnderground;   // depthTest value for below-ground structures
+            // Shaft/gallery cross-sections are, by default, drawn several times wider than
+            // real life (the qanat's true ~1 m shaft / ~15-45 cm gallery would be sub-pixel
+            // against the 700 m terrain). "Realistic diameters" swaps the fixed, oversized
+            // radii below for radii derived from the SSOT's real dimensions at a fixed
+            // multiplier — a middle ground between the current ~6-30x exaggeration and true
+            // 1:1 scale (which would be nearly invisible at normal zoom).
+            const REALISM_FACTOR = 3;
+            const SHAFT_RADIUS_M = (SSOT.site.site.shaftDiameterRangeM[0] + SSOT.site.site.shaftDiameterRangeM[1]) / 4;
+            const GALLERY_RADIUS_M = ((SSOT.site.site.galleryWidthRangeM[0] + SSOT.site.site.galleryWidthRangeM[1]) / 2 +
+                (SSOT.site.site.galleryHeightRangeM[0] + SSOT.site.site.galleryHeightRangeM[1]) / 2) / 4;
+            const sceneRadius = (realRadiusM, exaggeratedRadius) => params.realisticDiameters ?
+                (realRadiusM * REALISM_FACTOR) / metersPerXUnit() : exaggeratedRadius;
             // Realistic mode: clad the solid shafts in the sandstone PBR set (lit, so the
             // normal/roughness show); otherwise the flat unlit overlay. (The "look inside"
             // cutaway is a clipping plane on the whole subsurface group — see applyCutaway.)
@@ -2070,7 +2083,8 @@
                 // mesh. Body: solid for documented depths (faded), else the ghost-fill +
                 // wireframe-cage MESH, with the below-ground body faded relative to the cap.
                 const addSeg = (h, cyY, order) => {
-                    const cyl = new THREE.CylinderGeometry(0.30, 0.30, h, 16);
+                    const shaftR = sceneRadius(SHAFT_RADIUS_M, 0.30);
+                    const cyl = new THREE.CylinderGeometry(shaftR, shaftR, h, 16);
                     const isCap = (order === 'cap');
                     const solid = isCap ? hasSurfaceCase : bodySolid;
                     // Caps are surface markers (always modelGroup / on top); below-ground bodies
@@ -2108,7 +2122,7 @@
             function tunnelTube(points, color) {
                 if (points.length < 2) return;
                 const cv = new THREE.CatmullRomCurve3(points);
-                const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), 0.16, 8, false);
+                const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), sceneRadius(GALLERY_RADIUS_M, 0.16), 8, false);
                 // Realistic mode: render the explored core as flowing water (lit, with a
                 // scrolling ripple normal — see animate()); otherwise the flat blue conduit.
                 let mat;
@@ -2136,7 +2150,7 @@
                     const seg = pts.slice(i, Math.min(pts.length, i + DASH + 1));
                     if (seg.length < 2) continue;
                     const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seg),
-                        Math.max(4, seg.length * 2), 0.13, 8, false);
+                        Math.max(4, seg.length * 2), sceneRadius(GALLERY_RADIUS_M * 0.8, 0.13), 8, false);
                     const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5; subsurfaceGroup.add(mm);
                 }
             }
@@ -2239,11 +2253,32 @@
                 // (its own thick grey tube through the shallower aux shafts, never joined to
                 // the main tube) with a two-line on-model caveat. Optional (params.showAux).
                 if (params.showAux && auxPts.length >= 2) {
-                    tunnelFatTube(auxPts, COL.auxChannel, 0.34);
+                    tunnelFatTube(auxPts, COL.auxChannel, sceneRadius(GALLERY_RADIUS_M * 1.1, 0.34));
                     const mid = auxPts[Math.floor(auxPts.length / 2)];
                     const s = createTextSprite('Auxiliary dry channel\n(no relationship to main · fig 5-14)', '#5d7387', 16);
                     s.scale.set(9, 1.9, 1);
                     s.position.set(mid.x, mid.y + 1.6, mid.z);
+                    modelGroup.add(s);
+                }
+
+                // Exploratory "sounding" gallery at P1: a documented intermediate gallery
+                // ~10 m above the main floor (at 20 m of P1's 30 m total depth), oriented
+                // E-W like the main gallery but with NO channel — abandoned, never carried
+                // water. Its horizontal extent was never surveyed (fig 5-3 marks it "?" on
+                // both sides), so it's drawn as a short schematic stub, not a measured
+                // tunnel. Two competing theories for its purpose (spring capture vs.
+                // exploratory sounding) are open — see pd-p1-sounding-gallery.
+                const p1SG = shaftById['P1'] && shaftById['P1'].soundingGallery;
+                if (params.showSounding && p1SG && shaftBaseById['P1']) {
+                    const p1 = shaftBaseById['P1'];
+                    const y = p1.y + metersToYDepth(p1SG.heightAboveMainFloorM);
+                    const halfLen = (p1SG.schematicExtentM / 2) / metersPerXUnit();
+                    const a = new THREE.Vector3(p1.x - halfLen, y, p1.z);
+                    const b = new THREE.Vector3(p1.x + halfLen, y, p1.z);
+                    tunnelDashed([a, b], COL.qanatDry);
+                    const s = createTextSprite('Sounding gallery (P1) — no channel', '#8a7a5d', 13);
+                    s.scale.set(6.5, 1.1, 1);
+                    s.position.set(p1.x, y + 1.1, p1.z);
                     modelGroup.add(s);
                 }
 
@@ -2327,7 +2362,7 @@
                     const mid = new THREE.Vector3((start.x + end.x) / 2,
                         (start.y + end.y) / 2, (start.z + end.z) / 2);
                     const cv = new THREE.CatmullRomCurve3([start, mid, end]);
-                    const g = new THREE.TubeGeometry(cv, 56, 0.16, 8, false);
+                    const g = new THREE.TubeGeometry(cv, 56, sceneRadius((oc.diameterCm / 100) / 2, 0.16), 8, false);
                     const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
                     mm.renderOrder = 5; subsurfaceGroup.add(mm);
                     // Weir tap marker + label at the branch point.
@@ -3203,6 +3238,12 @@
                 buildParametricModel();
             });
 
+            // Toggle the exploratory sounding gallery at P1
+            document.getElementById('param-sounding').addEventListener('change', e => {
+                params.showSounding = e.target.checked;
+                buildParametricModel();
+            });
+
             // Toggle the perched pre-construction water table + drawdown band
             document.getElementById('param-perched').addEventListener('change', e => {
                 params.showPerched = e.target.checked;
@@ -3231,6 +3272,10 @@
             // (geometry change → rebuild). Cutaway then reveals the walk-through interior.
             document.getElementById('param-detailed-gallery').addEventListener('change', e => {
                 params.detailedGallery = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-realistic-diameters').addEventListener('change', e => {
+                params.realisticDiameters = e.target.checked;
                 buildParametricModel();
             });
             // See inside (follow view): clip the view-facing half through the current view
@@ -3788,16 +3833,6 @@
         const HOVER_DWELL_MS = 600;
         function setupShaftInteraction() {
             const dom = renderer.domElement;
-            // First time the user touches the scene, bounce the on-canvas nav pad once so the
-            // (easy-to-miss) rotate/tilt controls are discovered. Fires once, on the first
-            // pointer/touch. No-op if the nav pad isn't shown (Power mode hides it).
-            const bounceCameraOnce = () => {
-                const grp = document.getElementById('nav-pad');
-                if (grp) { grp.classList.add('cam-attn'); grp.addEventListener('animationend',
-                    () => grp.classList.remove('cam-attn'), { once: true }); }
-            };
-            dom.addEventListener('pointerdown', bounceCameraOnce, { once: true });
-            dom.addEventListener('touchstart', bounceCameraOnce, { once: true, passive: true });
             const tip = document.getElementById('shaft-tooltip');
             const HOVER_TOOLTIP = false;   // hover overlays disabled — click a shaft for its info panel
             let dwellTimer = null, dwellShaft = null, lastEv = null;
