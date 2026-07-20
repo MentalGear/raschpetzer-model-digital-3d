@@ -291,7 +291,8 @@
           81289.726
         ],
         "status": "documented",
-        "note": "Approximate marking, not a centerpoint survey — Henri Werner SIT survey (LUREF)."
+        "note": "Approximate marking, not a centerpoint survey — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Markierung"
       },
       "depthM": null,
       "floorElevM": null,
@@ -358,7 +359,8 @@
           81278.083
         ],
         "status": "documented",
-        "note": "Approximate marking, not a centerpoint survey — Henri Werner SIT survey (LUREF)."
+        "note": "Approximate marking, not a centerpoint survey — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Markierung"
       },
       "depthM": null,
       "floorElevM": null,
@@ -420,7 +422,8 @@
           81272.928
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": 30,
       "floorElevM": null,
@@ -439,15 +442,32 @@
         "purpose": "debated: (a) captured a pre-qanat natural spring, or (b) an exploratory sounding tunnel to locate the water table before P1 was lowered to its final depth",
         "source": "brochure2018",
         "status": "documented",
-        "paradataRef": ["pd-p1-sounding-gallery"],
+        "paradataRef": [
+          "pd-p1-sounding-gallery"
+        ],
         "note": "An intermediate gallery ~10 m above the main gallery floor (documented at 20 m of P1's 30 m total depth), oriented east-west like the main gallery, but with NO channel — it never carried water. Almost entirely backfilled with excavated material. Its horizontal extent was never surveyed (fig 5-3 marks it '?' on both sides), so it is rendered as a short schematic stub, not a measured tunnel.",
         "_prov": {
-          "depthM": { "loc": "p.16", "note": "\"at a depth of 20 m, an intermediate gallery also oriented in the east-west direction\"" },
-          "heightAboveMainFloorM": { "note": "derived: P1 total depth 30 m − sounding-gallery depth 20 m" },
-          "orientation": { "loc": "p.16" },
-          "hasChannel": { "loc": "p.16", "note": "\"It doesn't have a channel\"" },
-          "extentM": { "note": "horizontal extent not stated or surveyed; fig 5-3 marks it with '?' on both sides — not modelled as a measured length" },
-          "purpose": { "loc": "p.16", "note": "brochure presents both theories without resolving between them" }
+          "depthM": {
+            "loc": "p.16",
+            "note": "\"at a depth of 20 m, an intermediate gallery also oriented in the east-west direction\""
+          },
+          "heightAboveMainFloorM": {
+            "note": "derived: P1 total depth 30 m − sounding-gallery depth 20 m"
+          },
+          "orientation": {
+            "loc": "p.16"
+          },
+          "hasChannel": {
+            "loc": "p.16",
+            "note": "\"It doesn't have a channel\""
+          },
+          "extentM": {
+            "note": "horizontal extent not stated or surveyed; fig 5-3 marks it with '?' on both sides — not modelled as a measured length"
+          },
+          "purpose": {
+            "loc": "p.16",
+            "note": "brochure presents both theories without resolving between them"
+          }
         }
       },
       "_prov": {
@@ -513,7 +533,8 @@
           81271.2
         ],
         "status": "documented",
-        "note": "Centre of the surface depression (still backfilled) — Henri Werner SIT survey (LUREF)."
+        "note": "Centre of the surface depression (still backfilled) — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Mittelpunkt Mulde"
       },
       "depthM": null,
       "floorElevM": null,
@@ -575,7 +596,8 @@
           81263.9
         ],
         "status": "documented",
-        "note": "Centre of the surface depression (still backfilled) — Henri Werner SIT survey (LUREF)."
+        "note": "Centre of the surface depression (still backfilled) — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Mittelpunkt Mulde"
       },
       "depthM": 35,
       "floorElevM": null,
@@ -640,7 +662,8 @@
           81264.586
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
       "floorElevM": null,
@@ -707,7 +730,8 @@
           81266.366
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": 36,
       "floorElevM": null,
@@ -786,7 +810,8 @@
           81265.982
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
       "floorElevM": null,
@@ -853,7 +878,8 @@
           81266.791
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
       "floorElevM": null,
@@ -920,7 +946,8 @@
           81265.977
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
       "floorElevM": null,
@@ -987,7 +1014,8 @@
           81263.939
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF)."
+        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
       "floorElevM": null,
