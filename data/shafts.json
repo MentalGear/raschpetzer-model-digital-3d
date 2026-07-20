@@ -291,7 +291,7 @@
           81289.726
         ],
         "status": "documented",
-        "note": "Approximate marking, not a centerpoint survey — Henri Werner SIT survey (LUREF).",
+        "note": "Approximate marking, not a centerpoint survey — LUREF/LTM shaft survey.",
         "measuredAt": "Markierung"
       },
       "depthM": null,
@@ -306,7 +306,7 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78622.238, 81289.726), converted to WGS84. Supersedes the OSM-derived position (previously 49.666161, 6.149026; corrected by 2.2 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78622.238, 81289.726), converted to WGS84. Supersedes the OSM-derived position (previously 49.666161, 6.149026; corrected by 2.2 m)."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -359,7 +359,7 @@
           81278.083
         ],
         "status": "documented",
-        "note": "Approximate marking, not a centerpoint survey — Henri Werner SIT survey (LUREF).",
+        "note": "Approximate marking, not a centerpoint survey — LUREF/LTM shaft survey.",
         "measuredAt": "Markierung"
       },
       "depthM": null,
@@ -373,7 +373,7 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78637.027, 81278.083), converted to WGS84. Supersedes the OSM-derived position (previously 49.666097, 6.149273; corrected by 3.3 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78637.027, 81278.083), converted to WGS84. Supersedes the OSM-derived position (previously 49.666097, 6.149273; corrected by 3.3 m)."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -422,7 +422,7 @@
           81272.928
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "note": "Shaft centerpoint — LUREF/LTM shaft survey.",
         "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": 30,
@@ -479,11 +479,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78652.704, 81272.928), converted to WGS84. Supersedes the OSM-derived position (previously 49.666029, 6.149463; corrected by 0.2 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78652.704, 81272.928), converted to WGS84. Supersedes the OSM-derived position (previously 49.666029, 6.149463; corrected by 0.2 m)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 386.1 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 386.1 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -533,7 +533,7 @@
           81271.2
         ],
         "status": "documented",
-        "note": "Centre of the surface depression (still backfilled) — Henri Werner SIT survey (LUREF).",
+        "note": "Centre of the surface depression (still backfilled) — LUREF/LTM shaft survey.",
         "measuredAt": "Mittelpunkt Mulde"
       },
       "depthM": null,
@@ -547,11 +547,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78667.700, 81271.200), converted to WGS84. Supersedes the OSM-derived position (previously 49.666079, 6.14978; corrected by 10.9 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78667.700, 81271.200), converted to WGS84. Supersedes the OSM-derived position (previously 49.666079, 6.14978; corrected by 10.9 m)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 391.8 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 391.8 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -596,7 +596,7 @@
           81263.9
         ],
         "status": "documented",
-        "note": "Centre of the surface depression (still backfilled) — Henri Werner SIT survey (LUREF).",
+        "note": "Centre of the surface depression (still backfilled) — LUREF/LTM shaft survey.",
         "measuredAt": "Mittelpunkt Mulde"
       },
       "depthM": 35,
@@ -613,11 +613,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78695.500, 81263.900), converted to WGS84. Supersedes the OSM-derived position (previously 49.665966, 6.149992; corrected by 4.9 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78695.500, 81263.900), converted to WGS84. Supersedes the OSM-derived position (previously 49.665966, 6.149992; corrected by 4.9 m)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 392.5 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 392.5 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -662,7 +662,7 @@
           81264.586
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "note": "Shaft centerpoint — LUREF/LTM shaft survey.",
         "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
@@ -682,11 +682,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78726.903, 81264.586), converted to WGS84. Supersedes the OSM-derived position (previously 49.665958, 6.150488; corrected by 0.6 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78726.903, 81264.586), converted to WGS84. Supersedes the OSM-derived position (previously 49.665958, 6.150488; corrected by 0.6 m)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 391.7 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 391.7 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -730,7 +730,7 @@
           81266.366
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "note": "Shaft centerpoint — LUREF/LTM shaft survey.",
         "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": 36,
@@ -756,11 +756,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78758.549, 81266.366), converted to WGS84. Supersedes the OSM-derived position (previously 49.665971, 6.150928; corrected by 0.2 m). X-coordinate's decimal point was missing in the source scan; corrected via spacing consistency with neighbouring shafts (see pd-werner-sit-survey)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78758.549, 81266.366), converted to WGS84. Supersedes the OSM-derived position (previously 49.665971, 6.150928; corrected by 0.2 m). X-coordinate's decimal point was missing in the source scan; corrected via spacing consistency with neighbouring shafts (see pd-werner-sit-survey)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 392.1 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 392.1 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -810,7 +810,7 @@
           81265.982
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "note": "Shaft centerpoint — LUREF/LTM shaft survey.",
         "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
@@ -824,11 +824,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78782.392, 81265.982), converted to WGS84. Supersedes the OSM-derived position (previously 49.665968, 6.151257; corrected by 0.2 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78782.392, 81265.982), converted to WGS84. Supersedes the OSM-derived position (previously 49.665968, 6.151257; corrected by 0.2 m)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 382.1 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 382.1 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -878,7 +878,7 @@
           81266.791
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "note": "Shaft centerpoint — LUREF/LTM shaft survey.",
         "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
@@ -892,11 +892,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78798.733, 81266.791), converted to WGS84. Supersedes the OSM-derived position (previously 49.665974, 6.151485; corrected by 0.1 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78798.733, 81266.791), converted to WGS84. Supersedes the OSM-derived position (previously 49.665974, 6.151485; corrected by 0.1 m)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 378.2 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 378.2 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -946,7 +946,7 @@
           81265.977
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "note": "Shaft centerpoint — LUREF/LTM shaft survey.",
         "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
@@ -960,11 +960,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78819.370, 81265.977), converted to WGS84. Supersedes the OSM-derived position (previously 49.665966, 6.15177)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78819.370, 81265.977), converted to WGS84. Supersedes the OSM-derived position (previously 49.665966, 6.15177)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 377.1 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 377.1 m)."
         },
         "dates": {
           "source": "brochure2018",
@@ -1014,7 +1014,7 @@
           81263.939
         ],
         "status": "documented",
-        "note": "Shaft centerpoint — Henri Werner SIT survey (LUREF).",
+        "note": "Shaft centerpoint — LUREF/LTM shaft survey.",
         "measuredAt": "Petz Mittelpunkt"
       },
       "depthM": null,
@@ -1028,11 +1028,11 @@
         },
         "geo": {
           "source": "werner-sit-survey",
-          "note": "SIT-surveyed shaft centerpoint (LUREF EPSG:2169 78841.430, 81263.939), converted to WGS84. Supersedes the OSM-derived position (previously 49.665948, 6.152078; corrected by 0.2 m)."
+          "note": "Surveyed shaft centerpoint (LUREF EPSG:2169 78841.430, 81263.939), converted to WGS84. Supersedes the OSM-derived position (previously 49.665948, 6.152078; corrected by 0.2 m)."
         },
         "surfaceElevM": {
           "source": "werner-sit-survey",
-          "note": "Directly surveyed ground elevation at the SIT centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 377.2 m)."
+          "note": "Directly surveyed ground elevation at the shaft centerpoint (m a.s.l.), superseding the LiDAR-at-OSM-point sample (previously 377.2 m)."
         },
         "dates": {
           "source": "brochure2018",

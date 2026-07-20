@@ -1,4 +1,4 @@
-# Henri Werner SIT shaft-coordinate survey (Git LFS)
+# LUREF/LTM shaft-coordinate survey (Git LFS)
 
 Original survey files for the Raschpëtzer qanat's main-line shafts (P-1
 through P9), provided directly to this project by **Henri Werner** — a
