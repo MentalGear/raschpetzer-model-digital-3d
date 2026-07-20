@@ -147,8 +147,8 @@
   },
   "werner-sit-survey": {
     "type": "field-survey", "crm": "E73_Information_Object",
-    "short": "Werner LUREF shaft survey (SIT Walferdange)",
-    "title": "Coordonnées Raschpëtzer — surveyed shaft coordinates (SIT Walferdange), LUREF (EPSG:2169)",
+    "short": "LUREF/LTM shaft survey",
+    "title": "Coordonnées Raschpëtzer — surveyed shaft coordinates, LUREF/LTM (EPSG:2169)",
     "authors": ["Werner, Henri"],
     "note": "Unpublished survey table (PDF: 'coordonnées Raschpetzer') plus CAD site plans (DXF/DWG: 'Situationsplan-RP-ACAD.dxf', 'raschpëtzer_complete.dwg', 'raschpëtzer_imprimerie.dwg'), provided directly to this project by Henri Werner — a co-author of brochure2018 and one of the site's excavators — who sent the files but is not necessarily the original surveying party. Coordinates are in Luxembourg's national LUREF/LTM (EPSG:2169) reference system, maintained by the Administration du Cadastre et de la Topographie (ACT) — see https://act.public.lu/fr/gps-reseaux/reseaux-geodesiques.html. Lists X/Y and, for most points, a ground-surface Z (m a.s.l.) for the shaft CENTREPOINT ('Petz Mittelpunkt' — the well/shaft-mouth centre), for the main line P-1 through P9. P-1 and P0 are marked '~' (approximate marking, not a centrepoint survey); P2/P3 are 'Mittelpunkt Mulde' (centre of the surface depression, both still backfilled) — see each shaft's geo.measuredAt for the per-shaft survey-point type. Does NOT cover the western/auxiliary shafts P-4/P-5/P-5A/P-7A, which remain OSM-derived (see osm-qanat-shafts). Supersedes the OSM/similarity-fit reconciliation (pd-osm-georef) for the 11 covered shafts — the correction is largest at P2 (10.9 m), matching that reconciliation's own finding that the OSM 'P2' node read materially too far east. Original files retained at sources/primary/werner-sit-survey/ (Git LFS)."
   }
