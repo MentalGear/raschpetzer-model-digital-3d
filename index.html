@@ -2358,8 +2358,8 @@
                 const az = 358 * Math.PI / 180;
                 const el = 21 * Math.PI / 180;
                 const horiz = dist * Math.cos(el);
-                DEFAULT_CAM.target.set(c.x, c.y, 0);
-                DEFAULT_CAM.pos.set(c.x + horiz * Math.sin(az), c.y + dist * Math.sin(el), horiz * Math.cos(az));
+                DEFAULT_CAM.target.copy(c);
+                DEFAULT_CAM.pos.set(c.x + horiz * Math.sin(az), c.y + dist * Math.sin(el), c.z + horiz * Math.cos(az));
                 if (!initialViewSet && camera && controls) {
                     camera.position.copy(DEFAULT_CAM.pos);
                     controls.target.copy(DEFAULT_CAM.target);
