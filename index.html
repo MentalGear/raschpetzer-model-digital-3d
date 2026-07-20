@@ -2333,15 +2333,19 @@
                 }
             }
 
-            // Default / reset camera: a 45° elevated three-quarter view from the south, centred
-            // on the qanat and framing its full length. (Was an edge-on side elevation.)
+            // Default / reset camera: azimuth 358° (just west of due south), elevation 21°,
+            // distance 142.8 units — a shallow, near-level three-quarter view centred on the
+            // qanat, framing its full length. Matches the readout's own convention: azimuth =
+            // atan2(off.x, off.z) (0° = due south), elevation = asin(off.y / distance).
             if (basePts.length) {
                 const c = basePts.reduce((a, p) => a.clone().add(p), new THREE.Vector3())
                     .multiplyScalar(1 / basePts.length);
-                const dist = Math.max(params.width * 1.6, 120);   // start further off
-                const el = Math.PI / 4;                           // 45° above the horizon
+                const dist = 142.8;
+                const az = 358 * Math.PI / 180;
+                const el = 21 * Math.PI / 180;
+                const horiz = dist * Math.cos(el);
                 DEFAULT_CAM.target.set(c.x, c.y, 0);
-                DEFAULT_CAM.pos.set(c.x, c.y + dist * Math.sin(el), dist * Math.cos(el));
+                DEFAULT_CAM.pos.set(c.x + horiz * Math.sin(az), c.y + dist * Math.sin(el), horiz * Math.cos(az));
                 if (!initialViewSet && camera && controls) {
                     camera.position.copy(DEFAULT_CAM.pos);
                     controls.target.copy(DEFAULT_CAM.target);
