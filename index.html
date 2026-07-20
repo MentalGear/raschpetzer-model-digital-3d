@@ -1811,7 +1811,13 @@
             // are still properly hidden from below. Bypasses the opacity slider on purpose — this
             // occluder represents the terrain's geometric shape, not its see-through opacity fade.
             if (params.terrainCullBack) {
-                const depthMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true, side: THREE.DoubleSide });
+                // Must match fillMat's polygonOffset exactly: both meshes share surfGeo, so
+                // without the same offset this occluder's un-shifted depth sits closer than
+                // fillMat's offset-pushed depth, and fillMat then fails its own depth test
+                // against it — the fill (and whatever base-layer texture it's draped with)
+                // silently stops rendering everywhere, leaving only the scene background.
+                const depthMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true, side: THREE.DoubleSide,
+                    polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0 });
                 const depthMesh = new THREE.Mesh(surfGeo, depthMat);
                 depthMesh.renderOrder = surfMesh.renderOrder - 1;   // write depth before the fill draws
                 modelGroup.add(depthMesh);
