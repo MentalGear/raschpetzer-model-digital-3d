@@ -714,6 +714,7 @@
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
+                <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
                 <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             </div>
@@ -942,6 +943,7 @@
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
             diameterRealism: 0,           // 0..1 slider: 0 = default oversized-for-visibility shaft/gallery radii, 1 = true 1:1 scale
             terrainCullBack: true,        // cull the terrain surface back face (FrontSide) so the underside isn't drawn when viewing from below — default on
+            sideCullBack: true,           // dev: cull the terrain side-wall back faces (FrontSide) so they're not visible from the far side — default on
             qanatFront: true,             // pin the qanat to the front cut face (strata read behind it) — default on
             frontMarginM: 0,              // gap (m) between the front terrain edge and the end shaft (qanatFront); default 0
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
@@ -1919,11 +1921,12 @@
             // Realistic mode: clad the cut faces in the sandstone PBR set (the "stone walls
             // with bump texture") — kept translucent so the subsurface still reads through.
             const wallPBR = params.pbr && TEX.wallColor;
+            const wallSide = params.sideCullBack ? THREE.FrontSide : THREE.DoubleSide;
             const mkWallMat = op => wallPBR
                 ? new THREE.MeshStandardMaterial({ map: TEX.wallColor, normalMap: TEX.wallNormal,
-                    roughnessMap: TEX.wallRough, roughness: 1.0, metalness: 0.0, side: THREE.FrontSide,
+                    roughnessMap: TEX.wallRough, roughness: 1.0, metalness: 0.0, side: wallSide,
                     transparent: true, opacity: op * tOpW, depthWrite: false })
-                : new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: THREE.FrontSide,
+                : new THREE.MeshStandardMaterial({ color: COL.wall, roughness: 0.95, side: wallSide,
                     transparent: true, opacity: op * tOpW, depthWrite: false });
             const sideMat  = mkWallMat(SIDE_MAX);
             const frontMat = mkWallMat(0.18);
@@ -3317,6 +3320,12 @@
                 buildParametricModel();
             });
 
+            // Dev: cull the terrain side-wall back faces (rebuild — the side is set at creation).
+            document.getElementById('param-side-cullback').addEventListener('change', e => {
+                params.sideCullBack = e.target.checked;
+                buildParametricModel();
+            });
+
             // Toggle the terrain block side walls
             document.getElementById('param-sides').addEventListener('change', e => {
                 params.showSides = e.target.checked;
@@ -3990,6 +3999,16 @@
             const cite = citeChip(pv);
             return `<div class="ip-detail" hidden><span class="ip-detail-status">${pv.status}</span>${cite}</div>`;
         }
+        // Caveat shown under every "GPS (WGS84)" map link: the link's own pin sits at OUR
+        // coordinate (accurate), but OpenStreetMap's page also shows ITS OWN pre-existing,
+        // crowd-mapped icons for this site, which can be positioned differently and shouldn't
+        // be mistaken for the pin we just dropped.
+        function osmCaveatNote() {
+            return `<div class="ip-note" style="font-size:0.7rem;color:#9ca3af;margin-top:-4px">` +
+                `Opens a pin at this exact coordinate. OpenStreetMap's own site icons on that ` +
+                `page are separately, crowd-mapped and may sit at a different spot — trust the ` +
+                `pin, not the icon.</div>`;
+        }
         function factRow(label, rec, field, unit) {
             const raw = rec[field]; if (raw == null) return '';
             const pv = provOf(rec, field);
@@ -4008,13 +4027,33 @@
             h += factRow('Depth', rec, 'depthM', 'm');
             h += factRow('Gallery floor', rec, 'floorElevM', 'm a.s.l.');
             h += factRow('Diameter', rec, 'diameterM', 'm');
-            // GPS coordinates (WGS84 lat/lon, OSM-sourced) — clickable to open a map.
+            // Original survey coordinates (LUREF/LTM, EPSG:2169) shown ABOVE the derived GPS —
+            // that's the CRS the source measurement was actually taken in; GPS/WGS84 below is
+            // a conversion for the map link, not the primary record.
+            if (rec.geo && Array.isArray(rec.geo.luref)) {
+                const gp = provOf(rec, 'geo');
+                h += `<div class="ip-row"><span class="ip-k" title="LUREF/LTM, EPSG:2169">LUREF/LTM</span>` +
+                     `<span class="ip-v" style="white-space:nowrap">${rec.geo.luref[0].toFixed(1)} E · ${rec.geo.luref[1].toFixed(1)} N` +
+                     `${statusBadge(rec.geo.status || gp.status)}</span></div>` + citeDetail(gp);
+            }
+            // GPS coordinates (WGS84 lat/lon) — clickable to open a map. Caveat note only when
+            // we hold an independent, more-precise LUREF measurement for this shaft (above) —
+            // that's specifically when we KNOW OpenStreetMap's own site icon can disagree with
+            // it; shafts without a LUREF fix are themselves OSM-derived, so there's no
+            // independent check to justify the caveat there.
             if (rec.geo && rec.geo.lat != null && rec.geo.lon != null) {
                 const lat = rec.geo.lat.toFixed(6), lon = rec.geo.lon.toFixed(6);
                 const osm = `https://www.openstreetmap.org/?mlat=${rec.geo.lat}&mlon=${rec.geo.lon}#map=18/${rec.geo.lat}/${rec.geo.lon}`;
                 h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
-                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>`;
+                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${lat}, ${lon}</a></span></div>` +
+                     (Array.isArray(rec.geo.luref) ? osmCaveatNote() : '');
             }
+            // Where on the shaft the survey measurement was taken (from the Werner SIT
+            // survey table: "Petz Mittelpunkt" = shaft centrepoint, "Mittelpunkt Mulde" =
+            // centre of the surface depression, "Markierung" = approximate marking only).
+            if (rec.geo && rec.geo.measuredAt)
+                h += `<div class="ip-row"><span class="ip-k">Survey point</span>` +
+                     `<span class="ip-v">${rec.geo.measuredAt}</span></div>`;
             if (rec.position && rec.position.status)
                 h += `<div class="ip-row"><span class="ip-k">Position</span>` +
                      `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(rec.position.status)}</span></div>` +
