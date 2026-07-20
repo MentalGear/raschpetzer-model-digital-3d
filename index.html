@@ -691,7 +691,9 @@
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
                 <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
-                <label class="check-row" id="row-realistic-diameters"><input type="checkbox" id="param-realistic-diameters"> Realistic&nbsp;diameters&nbsp;(≈3×&nbsp;true&nbsp;scale)</label>
+                <label id="lbl-realistic-diameters">Shaft/gallery diameter realism <span class="val" id="lbl-realism-val">0%</span></label>
+                <input type="range" id="param-realistic-diameters" min="0" max="1" step="0.05" value="0" aria-label="Shaft and gallery diameter realism: 0% is the default, deliberately oversized-for-visibility size; 100% is true 1:1 scale">
+                <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 8px;line-height:1.35;">0%&nbsp;=&nbsp;today's oversized-for-visibility default; 100%&nbsp;=&nbsp;true&nbsp;scale (real ~1&nbsp;m shafts, ~15-45&nbsp;cm gallery — thin against the 700&nbsp;m terrain).</div>
                 <label class="check-row dev-opt" id="row-see-inside"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
                 <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 4px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
                 <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
@@ -938,7 +940,7 @@
             shaftCutaway: false,          // dev "Look inside": clip the camera-facing half through the subsurface centre
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
-            realisticDiameters: false,    // shaft/gallery cross-sections at ~3x true scale instead of the default, deliberately oversized-for-visibility radii
+            diameterRealism: 0,           // 0..1 slider: 0 = default oversized-for-visibility shaft/gallery radii, 1 = true 1:1 scale
             terrainCullBack: true,        // cull the terrain surface back face (FrontSide) so the underside isn't drawn when viewing from below — default on
             qanatFront: true,             // pin the qanat to the front cut face (strata read behind it) — default on
             frontMarginM: 0,              // gap (m) between the front terrain edge and the end shaft (qanatFront); default 0
@@ -2005,16 +2007,17 @@
             const ugDT = !params.xrayUnderground;   // depthTest value for below-ground structures
             // Shaft/gallery cross-sections are, by default, drawn several times wider than
             // real life (the qanat's true ~1 m shaft / ~15-45 cm gallery would be sub-pixel
-            // against the 700 m terrain). "Realistic diameters" swaps the fixed, oversized
-            // radii below for radii derived from the SSOT's real dimensions at a fixed
-            // multiplier — a middle ground between the current ~6-30x exaggeration and true
-            // 1:1 scale (which would be nearly invisible at normal zoom).
-            const REALISM_FACTOR = 3;
+            // against the 700 m terrain). The "diameter realism" slider (0..1) blends from
+            // that fixed, oversized-for-visibility radius (0) toward the real dimension at
+            // true 1:1 scale (1), so the model can be dialled continuously between "always
+            // visible" and "geometrically honest".
             const SHAFT_RADIUS_M = (SSOT.site.site.shaftDiameterRangeM[0] + SSOT.site.site.shaftDiameterRangeM[1]) / 4;
             const GALLERY_RADIUS_M = ((SSOT.site.site.galleryWidthRangeM[0] + SSOT.site.site.galleryWidthRangeM[1]) / 2 +
                 (SSOT.site.site.galleryHeightRangeM[0] + SSOT.site.site.galleryHeightRangeM[1]) / 2) / 4;
-            const sceneRadius = (realRadiusM, exaggeratedRadius) => params.realisticDiameters ?
-                (realRadiusM * REALISM_FACTOR) / metersPerXUnit() : exaggeratedRadius;
+            const sceneRadius = (realRadiusM, exaggeratedRadius) => {
+                const trueRadius = realRadiusM / metersPerXUnit();
+                return exaggeratedRadius + (trueRadius - exaggeratedRadius) * params.diameterRealism;
+            };
             // Realistic mode: clad the solid shafts in the sandstone PBR set (lit, so the
             // normal/roughness show); otherwise the flat unlit overlay. (The "look inside"
             // cutaway is a clipping plane on the whole subsurface group — see applyCutaway.)
@@ -2714,14 +2717,18 @@
             // dip is legible without implying a surveyed section.
             if (params.showDip && gwPts.length > 1) {
                 const step = metersToYDepth(3.5), dip = metersToYDepth(16), dz = zF + 0.04, W = params.width;
-                const mat = new THREE.LineBasicMaterial({ color: 0x6f6450, transparent: true, opacity: 0.55, depthTest: false });
+                // Drawn as thin TUBES, not THREE.Line — WebGL ignores CSS-style linewidth on
+                // hairline Line segments, so at 1px they read as barely-there hairlines; a
+                // tube gives real, controllable thickness (same fix as the forest-path lines).
+                const mat = new THREE.MeshBasicMaterial({ color: 0x3f3222, transparent: true, opacity: 0.9, depthTest: false });
                 for (let k = 1; k <= 6; k++) {
                     const pts = gwPts.map(p => {
                         const frac = (p.x + halfW) / W;
                         return new THREE.Vector3(p.x, p.y - k * step - dip * (frac - 0.5), dz);
                     });
-                    const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat);
-                    ln.renderOrder = 3; modelGroup.add(ln);
+                    const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), Math.max(8, pts.length * 3), 0.09, 5, false);
+                    const mm = new THREE.Mesh(g, mat);
+                    mm.renderOrder = 3; modelGroup.add(mm);
                 }
                 const midp = gwPts[Math.floor(gwPts.length / 2)];
                 const s = createTextSprite('bedding dip ≈2% SE\n(schematic · exaggerated)', '#6f6450', 15);
@@ -3274,8 +3281,9 @@
                 params.detailedGallery = e.target.checked;
                 buildParametricModel();
             });
-            document.getElementById('param-realistic-diameters').addEventListener('change', e => {
-                params.realisticDiameters = e.target.checked;
+            document.getElementById('param-realistic-diameters').addEventListener('input', e => {
+                params.diameterRealism = parseFloat(e.target.value);
+                document.getElementById('lbl-realism-val').textContent = Math.round(params.diameterRealism * 100) + '%';
                 buildParametricModel();
             });
             // See inside (follow view): clip the view-facing half through the current view
