@@ -25,6 +25,7 @@
             color: var(--text-color);
             overflow: hidden;
             display: flex;
+            flex-direction: column;   /* #wip-banner on top, #app-row (canvas + panel) below */
             height: 100vh;
             height: 100dvh;   /* dynamic viewport: iOS Safari toolbars don't clip bottom UI */
         }
@@ -33,7 +34,8 @@
             order: 1;
             flex: 1 1 auto;
             min-width: 0;
-            height: 100%;
+            height: 100%;   /* 100% of #app-row's resolved height, not the viewport directly —
+                                so it automatically shrinks to make room for #wip-banner above */
             position: relative;
         }
 
@@ -169,8 +171,7 @@
             order: 2;
             flex: 0 0 var(--panel-w, 340px);
             width: var(--panel-w, 340px);
-            height: 100vh;
-            height: 100dvh;
+            height: 100%;   /* of #app-row, not the viewport — shrinks to make room for #wip-banner */
             position: relative;
             background: var(--panel-bg);
             border-left: 1px solid rgba(255, 255, 255, 0.08);
@@ -329,6 +330,10 @@
             cursor: pointer; transition: background 0.12s; }
         .segmented button:first-child { border-left: none; }
         .segmented button:hover { background: #4b5563; }
+        /* Pre-existing gap: .active was already toggled by JS on the Normal/Power nav buttons
+           (and now the Theme buttons), but no rule ever painted it — so the "selected" segment
+           never visually differed from the rest. */
+        .segmented button.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; font-weight: 600; }
         /* Attention cues */
         @keyframes navHintFlash { 0% { background: rgba(96,165,250,0); } 18% { background: rgba(96,165,250,0.30); }
             100% { background: rgba(96,165,250,0); } }
@@ -343,13 +348,19 @@
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
         }
-        /* Segmented icon tab bar for the layer groups */
         #panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-        /* Header + tab strip are pinned together at the top of the scrolling panel: the wrapper
-           cancels #ui-panel's own padding (negative margin) and re-applies it itself, so it sits
-           flush with the scrollport's top edge once stuck — no gap, no seam. */
+        /* Title + Settings/Inspector switch are pinned together at the top of the scrolling
+           panel: the wrapper cancels #ui-panel's own padding (negative margin) and re-applies
+           it itself, so it sits flush with the scrollport's top edge once stuck — no gap, no
+           seam. The Map/Qanat/Terrain tabs live below, in .tab-section, NOT here — they're
+           content-category navigation within Settings mode, not top-level chrome. */
+        /* A subtle bottom edge + drop shadow gives the pinned header a "floating above the
+           scrolled content" read — without it, the header shared the exact same flat panel
+           colour as everything sliding underneath, so nothing signalled it was stuck. */
         #panel-sticky { position: sticky; top: 0; z-index: 5; background: var(--panel-bg);
-            margin: -22px -22px 0; padding: 22px 22px 0; }
+            margin: -22px -22px 0; padding: 22px 22px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 18px -12px rgba(0,0,0,0.55); }
         /* Tab strip sits flush on top of the panes card so the two read as one container:
            rounded top corners, shared side borders, no bottom border (the panes continue it). */
         #tab-bar { display: flex; gap: 4px; margin: 8px 0 0; background: var(--panel-bg);
@@ -367,14 +378,16 @@
         .tab-pane > .control-group:first-child { margin-top: 2px; }
         .tab-pane > .control-group:last-child { margin-bottom: 4px; }
         /* Recessed content card, joined seamlessly to the tab strip above (no top border /
-           square top corners) and set apart from the actions below. */
+           square top corners) and set apart from the actions below. Back to being adjacent
+           to #tab-bar (both live in .tab-section again, out of the sticky header), so the
+           two read as one joined container. */
         #tab-panes { background: rgba(0,0,0,0.20); border: 1px solid rgba(255,255,255,0.07);
             border-top: none; border-radius: 0 0 10px 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
         #panel-actions { border-top: 1px solid rgba(255,255,255,0.10); padding-top: 16px; }
         /* Mobile drawer */
         #drawer-close { display: block; background: none; border: none; color: #9ca3af;
             font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 2px; }
-        #drawer-toggle { display: none; position: fixed; top: 12px; right: 12px; z-index: 41;
+        #drawer-toggle { display: none; position: fixed; top: calc(var(--wip-h) + 12px); right: 12px; z-index: 41;
             width: 46px; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.18);
             background: rgba(18,20,28,0.85); color: #fff; font-size: 1.3rem; line-height: 1; cursor: pointer;
             align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.45); }
@@ -387,15 +400,19 @@
         body.panel-resizing { cursor: ew-resize; user-select: none; }
         body.panel-hidden #ui-panel { display: none; }
         body.panel-hidden #drawer-toggle { display: flex; }   /* floating reopen button */
+        /* Fixed-position chrome (the mobile drawer, its reopen button) escapes the normal flex
+           flow entirely — it positions against the viewport regardless of DOM nesting — so it
+           needs this offset explicitly to clear #wip-banner. Measured by JS (banner text can
+           wrap to 2 lines on narrow screens) and 0 once the banner is dismissed. */
+        :root { --wip-h: 0px; }
         @media (max-width: 760px) {
-            body { display: block; }
             #panel-resize { display: none; }   /* mobile uses the drawer, not the resize handle */
-            /* Keep the canvas in normal flow sized to the dynamic viewport. An absolutely
-               positioned inset:0 canvas pins to the *layout* viewport, whose top sits behind
-               the iOS Safari address bar and clips the top of the scene; dvh in-flow fills
-               exactly the visible area (top and bottom) instead. */
-            #canvas-container { position: relative; width: 100%; height: 100vh; height: 100dvh; }
-            #ui-panel { position: fixed; top: 0; right: 0; height: 100%; width: min(360px, 88vw);
+            /* #app-row (flex:1 in the column-direction body) already sizes the canvas to
+               "dynamic viewport minus #wip-banner"; 100% of that (not another hardcoded 100vh)
+               is what avoids clipping the bottom behind the iOS Safari address bar. */
+            #canvas-container { position: relative; width: 100%; height: 100%; }
+            #ui-panel { position: fixed; top: var(--wip-h); right: 0; height: calc(100% - var(--wip-h));
+                width: min(360px, 88vw);
                 transform: translateX(100%); transition: transform 0.25s ease; z-index: 40; }
             body.drawer-open #ui-panel { transform: translateX(0); }
             #drawer-toggle { display: flex; }
@@ -434,12 +451,22 @@
                 align-items: center; justify-content: center; font-size: 1.7rem; }
             #compass { width: 56px; height: 56px; }
         }
-        /* Work-in-progress / feedback note at the top of the sidebar */
-        #wip-note { margin: 4px 0 12px; font-size: 0.74rem; line-height: 1.35; color: #e6b45a;
-            background: rgba(230,180,90,0.10); border: 1px solid rgba(230,180,90,0.30);
-            border-radius: 8px; padding: 7px 11px; }
-        #wip-note a { color: #f0a94b; font-weight: 700; text-decoration: underline; }
-        #wip-note a:hover { color: #ffc46f; }
+        /* Work-in-progress / feedback banner: full-width, top of the WINDOW (above both the 3D
+           view and the sidebar), not tucked inside the sidebar's scrolling content. Normal flow
+           (not fixed) so #app-row's flex:1 automatically reclaims its space on dismiss — no JS
+           resize needed elsewhere. */
+        #wip-banner { position: relative; flex: 0 0 auto; display: flex; align-items: center;
+            justify-content: center; gap: 10px; font-size: 0.78rem; line-height: 1.3; color: #e6b45a;
+            background: #1c1710; border-bottom: 1px solid rgba(230,180,90,0.30);
+            padding: 7px 40px; text-align: center; }
+        #wip-banner a { color: #f0a94b; font-weight: 700; text-decoration: underline; }
+        #wip-banner a:hover { color: #ffc46f; }
+        #wip-banner-close { position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: #b08a4a; font-size: 1.2rem; line-height: 1;
+            cursor: pointer; padding: 4px; }
+        #wip-banner-close:hover { color: #ffc46f; }
+        body.wip-dismissed #wip-banner { display: none; }
+        #app-row { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; }
         /* Touch-friendly panel controls: bigger checkbox + taller slider hit areas */
         .check-row input[type="checkbox"] { width: 18px; height: 18px; }
         @media (pointer: coarse) {
@@ -509,12 +536,37 @@
         #panel-mode .pm-btn .pm-ico { font-size: 0.95rem; line-height: 1; display: inline-block; }
         #panel-mode .pm-btn:hover { color: #d7dbe2; }
         #panel-mode .pm-btn.active { background: rgba(255,255,255,0.13); color: #fff; }
+
+        /* Quick views: curated one-tap states, the front door for people who don't want to
+           hand-tune the checkboxes/sliders below. "Overview" (wide) leads as the de-facto
+           reset/home card; the other four sit in a 2×2 grid beneath it. */
+        #preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+        .preset-card { display: flex; flex-direction: column; align-items: center; gap: 3px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 10px; padding: 11px 6px 10px; cursor: pointer; text-align: center;
+            transition: background 0.12s, border-color 0.12s, transform 0.08s; }
+        .preset-card.wide { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 9px; padding: 10px 6px; }
+        .preset-card:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.2); }
+        .preset-card:active { transform: scale(0.97); }
+        .preset-card.applied { background: rgba(59,130,246,0.22); border-color: var(--accent-blue); }
+        .preset-card .pc-ico { font-size: 1.25rem; line-height: 1; }
+        .preset-card .pc-label { font-size: 0.78rem; font-weight: 600; color: #fff; }
+        .preset-card .pc-desc { font-size: 0.65rem; color: #9ca3af; line-height: 1.25; }
+        .preset-card.wide .pc-desc { display: none; }   /* the wide card's label alone is self-explanatory */
+        /* Dev-set persistent preference (params.presetsCompact): a denser card for people who
+           want the one-tap views available without the fuller "brochure" footprint. */
+        body.presets-compact .preset-card { flex-direction: row; justify-content: flex-start;
+            gap: 7px; padding: 7px 9px; text-align: left; }
+        body.presets-compact .preset-card.wide { justify-content: flex-start; }
+        body.presets-compact .preset-card .pc-ico { font-size: 1rem; }
+        body.presets-compact .preset-card .pc-label { font-size: 0.72rem; }
+        body.presets-compact .preset-card .pc-desc { display: none; }   /* icon + label only */
         #inspector-pane { display: none; }
         #inspector-empty { color: #9ca3af; font-size: 0.84rem; line-height: 1.55; padding: 10px 2px; }
         #inspector-pane.has-selection #inspector-empty { display: none; }
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
-        body.mode-inspector #tab-bar,
+        body.mode-inspector #panel-presets,
         body.mode-inspector #panel-actions { display: none; }
         /* #panel-nav (Camera + Navigation) stays visible in Inspector mode so a selected feature
            can be reframed (Top/Side/rotate) without a round-trip back to Settings. */
@@ -578,7 +630,11 @@
         #tour-label { color: #f3f4f6; font-size: 0.82rem; min-width: 120px; text-align: center; font-weight: 600; }
 
         /* Dark mode: the paper-styled modals (Data sources / Qanat Profile / Legend) flip to a
-           dark surface so they match the rest of the (always-dark) chrome instead of glaring white. */
+           dark surface so they match the rest of the (always-dark) chrome instead of glaring
+           white. Default signal is the OS/browser preference; the panel-bottom Theme toggle can
+           pin it either way via <html data-theme>, which — being more specific than the plain
+           media query — wins in both directions (a "Light" pin still wins under an OS dark
+           preference, and vice versa). */
         @media (prefers-color-scheme: dark) {
             .modal-card { background: #1b1e26; color: #cdd3dd; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
             .modal-card .modal-title { color: #fff; }
@@ -591,6 +647,28 @@
             #profile-panel .pp-toggle select { background: #2b2f3a; color: #e5e7eb; border-color: rgba(255,255,255,0.18); }
             #legend-modal .legend-sep { background: rgba(255,255,255,0.14); }
         }
+        :root[data-theme="dark"] .modal-card { background: #1b1e26; color: #cdd3dd; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+        :root[data-theme="dark"] .modal-card .modal-title { color: #fff; }
+        :root[data-theme="dark"] .modal-card b { color: #f0a94b; }
+        :root[data-theme="dark"] .modal-close { color: #8b93a3; }
+        :root[data-theme="dark"] .modal-close:hover { color: #fff; }
+        :root[data-theme="dark"] #profile-panel .pp-title { color: #f3f4f6; }
+        :root[data-theme="dark"] #profile-panel .pp-sub, :root[data-theme="dark"] #profile-panel .pp-credit { color: #9ca3af; }
+        :root[data-theme="dark"] #profile-panel .pp-toggle { color: #cbd5e1; }
+        :root[data-theme="dark"] #profile-panel .pp-toggle select { background: #2b2f3a; color: #e5e7eb; border-color: rgba(255,255,255,0.18); }
+        :root[data-theme="dark"] #legend-modal .legend-sep { background: rgba(255,255,255,0.14); }
+        /* Explicit "Light" pin: forces the original paper values back on even under an OS dark
+           preference (the plain @media rule above would otherwise still apply). */
+        :root[data-theme="light"] .modal-card { background: #fbf8f3; color: #3a3226; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        :root[data-theme="light"] .modal-card .modal-title { color: #2a2318; }
+        :root[data-theme="light"] .modal-card b { color: #b06a00; }
+        :root[data-theme="light"] .modal-close { color: #8a7a63; }
+        :root[data-theme="light"] .modal-close:hover { color: #2a2318; }
+        :root[data-theme="light"] #profile-panel .pp-title { color: #333; }
+        :root[data-theme="light"] #profile-panel .pp-sub, :root[data-theme="light"] #profile-panel .pp-credit { color: #6f6250; }
+        :root[data-theme="light"] #profile-panel .pp-toggle { color: #4a3f2f; }
+        :root[data-theme="light"] #profile-panel .pp-toggle select { background: #fff; color: #3a3226; border-color: rgba(0,0,0,0.15); }
+        :root[data-theme="light"] #legend-modal .legend-sep { background: rgba(0,0,0,0.1); }
     </style>
     <script src="vendor/three.min.js"></script>
     <script src="vendor/OrbitControls.js"></script>
@@ -601,9 +679,14 @@
 </head>
 <body>
 
+    <div id="wip-banner">🚧 Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a>
+        <button id="wip-banner-close" type="button" aria-label="Dismiss">×</button>
+    </div>
+
     <button id="drawer-toggle" type="button" aria-label="Open controls">☰</button>
     <div id="drawer-scrim"></div>
 
+    <div id="app-row">
     <div id="ui-panel">
         <div id="panel-resize" title="Drag to resize · release small to hide"></div>
         <div id="panel-sticky">
@@ -614,71 +697,21 @@
                 </div>
                 <button id="drawer-close" type="button" aria-label="Close controls">×</button>
             </div>
-            <div id="tab-bar" role="tablist">
-                <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
-                <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
-                <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">⛰️</span><span class="tl">Terrain</span></button>
+            <div id="panel-mode" role="tablist" aria-label="Panel view">
+                <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">⚙</span><span>Settings</span></button>
+                <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
             </div>
-        </div>
-
-        <div id="wip-note">🚧 Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a></div>
-
-        <div id="panel-mode" role="tablist" aria-label="Panel view">
-            <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">⚙</span><span>Settings</span></button>
-            <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
-        </div>
-
-        <!-- Camera / navigation controls first: the most-used view controls sit at the top, and
-             stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
-        <div id="panel-nav">
-        <div class="control-group" id="grp-camera">
-            <label>Camera</label>
-            <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
-            <div class="segmented">
-                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
-                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
-                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
-                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
-            </div>
-            <div class="segmented" id="preset-cardinals">
-                <button id="btn-view-n" type="button" title="Face north">N</button>
-                <button id="btn-view-e" type="button" title="Face east">E</button>
-                <button id="btn-view-s" type="button" title="Face south">S</button>
-                <button id="btn-view-w" type="button" title="Face west">W</button>
-            </div>
-        </div>
-        <div class="control-group">
-            <label>Navigation</label>
-            <div class="segmented" id="nav-mode">
-                <button id="btn-nav-normal" type="button" class="active" title="Map-like: drag pans, right-drag / two-finger rotates">Normal</button>
-                <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
-            </div>
-            <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
-        </div>
-        </div>
-
-        <div id="inspector-pane">
-            <div id="info-body"></div>
-            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
         </div>
 
         <div class="tab-section">
+        <div id="tab-bar" role="tablist">
+            <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
+            <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
+            <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">⛰️</span><span class="tl">Terrain</span></button>
+        </div>
 
         <div id="tab-panes">
         <div class="tab-pane active" data-pane="map">
-            <div class="control-group">
-                <label for="param-baselayer">Base layer</label>
-                <select id="param-baselayer">
-                    <option value="contours">Contour lines</option>
-                    <option value="topo">Topographic map</option>
-                    <option value="satellite">Satellite (ACT 2019)</option>
-                    <option value="winter">Satellite — winter (leaf-off)</option>
-                    <option value="ortho1967">Satellite — historical (1967)</option>
-                    <option value="hillshade">LiDAR relief (2019)</option>
-                    <option value="none">Plain</option>
-                </select>
-                <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
-            </div>
             <div class="control-group" id="grp-contours">
                 <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
                 <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
@@ -756,6 +789,87 @@
         </div>
         </div>
 
+        <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
+             don't want to hand-tune the controls below. Presets SET the manual controls (they
+             don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
+        <div id="panel-presets" class="control-group">
+            <label>Quick views</label>
+            <div id="preset-grid">
+                <button class="preset-card wide" data-preset="overview" type="button">
+                    <span class="pc-ico" aria-hidden="true">🗺️</span>
+                    <span class="pc-label">Overview</span>
+                    <span class="pc-desc">The full site, today</span>
+                </button>
+                <button class="preset-card" data-preset="underground" type="button">
+                    <span class="pc-ico" aria-hidden="true">⛏️</span>
+                    <span class="pc-label">See beneath</span>
+                    <span class="pc-desc">Thin the hill to reveal the tunnel</span>
+                </button>
+                <button class="preset-card" data-preset="water" type="button">
+                    <span class="pc-ico" aria-hidden="true">💧</span>
+                    <span class="pc-label">Follow the water</span>
+                    <span class="pc-desc">East → west, to the villa</span>
+                </button>
+                <button class="preset-card" data-preset="construction" type="button">
+                    <span class="pc-ico" aria-hidden="true">🏛️</span>
+                    <span class="pc-label">Roman construction</span>
+                    <span class="pc-desc">~140 AD, freshly built</span>
+                </button>
+                <button class="preset-card" data-preset="geology" type="button">
+                    <span class="pc-ico" aria-hidden="true">🪨</span>
+                    <span class="pc-label">Geology cross-section</span>
+                    <span class="pc-desc">The strata behind the qanat</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Camera / navigation controls first: the most-used view controls sit at the top, and
+             stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
+        <div id="panel-nav">
+        <div class="control-group" id="grp-camera">
+            <label>Camera</label>
+            <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
+            <div class="segmented">
+                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
+                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
+                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
+                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
+            </div>
+            <div class="segmented" id="preset-cardinals">
+                <button id="btn-view-n" type="button" title="Face north">N</button>
+                <button id="btn-view-e" type="button" title="Face east">E</button>
+                <button id="btn-view-s" type="button" title="Face south">S</button>
+                <button id="btn-view-w" type="button" title="Face west">W</button>
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Navigation</label>
+            <div class="segmented" id="nav-mode">
+                <button id="btn-nav-normal" type="button" class="active" title="Map-like: drag pans, right-drag / two-finger rotates">Normal</button>
+                <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
+            </div>
+            <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
+        </div>
+        <div class="control-group" id="grp-baselayer">
+            <label for="param-baselayer">Map layer</label>
+            <select id="param-baselayer">
+                <option value="contours">Contour lines</option>
+                <option value="topo">Topographic map</option>
+                <option value="satellite">Satellite (ACT 2019)</option>
+                <option value="winter">Satellite — winter (leaf-off)</option>
+                <option value="ortho1967">Satellite — historical (1967)</option>
+                <option value="hillshade">LiDAR relief (2019)</option>
+                <option value="none">Plain</option>
+            </select>
+            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
+        </div>
+        </div>
+
+        <div id="inspector-pane">
+            <div id="info-body"></div>
+            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
+        </div>
+
         <div id="panel-actions">
         <div class="control-group">
             <label>Tools</label>
@@ -772,7 +886,16 @@
                 <button id="btn-tour" type="button">▶ Guided tour</button>
             </div>
         </div>
+        <div class="control-group" id="theme-toggle">
+            <label>Theme</label>
+            <div class="segmented">
+                <button type="button" data-theme="auto" title="Follow the OS/browser setting">Auto</button>
+                <button type="button" data-theme="light" title="Always light">☼ Light</button>
+                <button type="button" data-theme="dark" title="Always dark">☾ Dark</button>
+            </div>
+        </div>
         <div class="control-group">
+            <label class="check-row dev-opt" id="row-presets-compact"><input type="checkbox" id="param-presets-compact"> Compact&nbsp;quick-view&nbsp;cards</label>
             <button id="btn-dev-mode" type="button" class="dev-toggle">🛠 Developer mode</button>
         </div>
         </div>
@@ -916,8 +1039,24 @@
             <button id="tour-stop" type="button" aria-label="Stop">✕</button>
         </div>
     </div>
+    </div>
 
     <script>
+        // #wip-banner is a normal-flow flex item (so #app-row's flex:1 auto-reclaims its space
+        // on dismiss), but the drawer + its reopen button are position:fixed — those escape the
+        // flex flow entirely and position against the viewport, so they need the banner's real
+        // height (it can wrap to 2 lines on narrow screens) fed back in as a CSS var to clear it.
+        (function () {
+            const banner = document.getElementById('wip-banner');
+            const closeBtn = document.getElementById('wip-banner-close');
+            const sync = () => {
+                const h = (banner && !document.body.classList.contains('wip-dismissed')) ? banner.offsetHeight : 0;
+                document.documentElement.style.setProperty('--wip-h', h + 'px');
+            };
+            if (closeBtn) closeBtn.addEventListener('click', () => { document.body.classList.add('wip-dismissed'); sync(); });
+            window.addEventListener('resize', sync);
+            sync();
+        })();
         const params = {
             plateauHeight: 5.0,           // vertical unit reference (non-GeoData fallback datum)
             contourSpacing: 0.20,
@@ -960,6 +1099,7 @@
             frontMarginM: 0,              // gap (m) between the front terrain edge and the end shaft (qanatFront); default 0
             frontMarginSymmetric: false,  // mirror the same front-edge gap onto the back/north side (qanatFront)
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
+            presetsCompact: false,        // dev-set persistent preference: smaller "Quick views" preset cards
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
         };
 
@@ -1123,16 +1263,19 @@
         // Gallery cross-sections (Brochure 2018, fig 5-15): each is taken at a POINT ALONG the
         // qanat (frac: west 0 = P-5 mother shaft → east 1 = P9), not at a shaft. Clicking the
         // hotspot opens the drawing. Fractions traced from the figure's connector lines.
+        // w/h are the source images' real pixel dimensions (not display size) — passed through
+        // to <img width height> so the browser reserves the correct box before the image has
+        // loaded/decoded, instead of collapsing to 0 height and jumping once it arrives.
         const GALLERY_SECTIONS = [
-            { frac: 0.000, img: 'assets/gallery-sections/xsec-0.webp', label: 'Gallery cross-section — near the P-5 mother shaft; spring rising at the base (spoil-filled). Brochure 2018, fig 5-15' },
-            { frac: 0.214, img: 'assets/gallery-sections/xsec-1.webp', label: 'Gallery cross-section — spoil-filled shaft, limestone roof. Brochure 2018, fig 5-15' },
-            { frac: 0.273, img: 'assets/gallery-sections/xsec-2.webp', label: 'Gallery cross-section — open vault, rubble floor, limestone crown. Brochure 2018, fig 5-15' },
-            { frac: 0.583, img: 'assets/gallery-sections/xsec-3.webp', label: 'Gallery cross-section — collapsed vault with wall/ceiling breakout + rubble. Brochure 2018, fig 5-15' },
-            { frac: 0.672, img: 'assets/gallery-sections/xsec-4.webp', label: 'Gallery cross-section — broken vault, rubble floor. Brochure 2018, fig 5-15' },
-            { frac: 0.737, img: 'assets/gallery-sections/xsec-5.webp', label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
-            { frac: 0.803, img: 'assets/gallery-sections/xsec-6.webp', label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
-            { frac: 0.870, img: 'assets/gallery-sections/xsec-7.webp', label: 'Gallery cross-section — limestone base. Brochure 2018, fig 5-15' },
-            { frac: 0.928, img: 'assets/gallery-sections/xsec-8.webp', label: 'Gallery cross-section — wide dry-masonry channel in limestone. Brochure 2018, fig 5-15' }
+            { frac: 0.000, img: 'assets/gallery-sections/xsec-0.webp', w: 560, h: 1225, label: 'Gallery cross-section — near the P-5 mother shaft; spring rising at the base (spoil-filled). Brochure 2018, fig 5-15' },
+            { frac: 0.214, img: 'assets/gallery-sections/xsec-1.webp', w: 560, h: 1181, label: 'Gallery cross-section — spoil-filled shaft, limestone roof. Brochure 2018, fig 5-15' },
+            { frac: 0.273, img: 'assets/gallery-sections/xsec-2.webp', w: 560, h: 1166, label: 'Gallery cross-section — open vault, rubble floor, limestone crown. Brochure 2018, fig 5-15' },
+            { frac: 0.583, img: 'assets/gallery-sections/xsec-3.webp', w: 560, h: 1162, label: 'Gallery cross-section — collapsed vault with wall/ceiling breakout + rubble. Brochure 2018, fig 5-15' },
+            { frac: 0.672, img: 'assets/gallery-sections/xsec-4.webp', w: 560, h: 1183, label: 'Gallery cross-section — broken vault, rubble floor. Brochure 2018, fig 5-15' },
+            { frac: 0.737, img: 'assets/gallery-sections/xsec-5.webp', w: 560, h: 1183, label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
+            { frac: 0.803, img: 'assets/gallery-sections/xsec-6.webp', w: 560, h: 1176, label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
+            { frac: 0.870, img: 'assets/gallery-sections/xsec-7.webp', w: 560, h: 1166, label: 'Gallery cross-section — limestone base. Brochure 2018, fig 5-15' },
+            { frac: 0.928, img: 'assets/gallery-sections/xsec-8.webp', w: 560, h: 1227, label: 'Gallery cross-section — wide dry-masonry channel in limestone. Brochure 2018, fig 5-15' }
         ];
 
         // Terrain opacity drives the fill surface AND the contour lines together, live
@@ -1760,13 +1903,35 @@
         const SHAFT_RADIUS_M = (SSOT.site.site.shaftDiameterRangeM[0] + SSOT.site.site.shaftDiameterRangeM[1]) / 4;
         const GALLERY_RADIUS_M = ((SSOT.site.site.galleryWidthRangeM[0] + SSOT.site.site.galleryWidthRangeM[1]) / 2 +
             (SSOT.site.site.galleryHeightRangeM[0] + SSOT.site.site.galleryHeightRangeM[1]) / 2) / 4;
+        // Dark-mode preference. Defaults to following the OS/browser, but the panel-bottom
+        // "Theme" toggle can pin it to light/dark regardless (persisted across visits).
+        let themeOverride = (() => {
+            try { return localStorage.getItem('rasch-theme') || 'auto'; } catch (e) { return 'auto'; }
+        })();
+        function prefersDark() {
+            if (themeOverride === 'dark') return true;
+            if (themeOverride === 'light') return false;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        // Applies the theme choice: persists it, stamps <html data-theme> (the modal-card CSS
+        // keys off this, matching the artifact-style pattern of media-query default + explicit
+        // override), and re-tints the scene background + terrain fill for the new state.
+        function applyTheme(mode) {
+            themeOverride = mode;
+            try { localStorage.setItem('rasch-theme', mode); } catch (e) {}
+            document.documentElement.dataset.theme = (mode === 'auto') ? '' : mode;
+            if (scene) scene.background = new THREE.Color(sceneBackgroundColor());
+            if (typeof buildParametricModel === 'function' && modelGroup) buildParametricModel();
+            document.querySelectorAll('#theme-toggle .segmented button').forEach(b =>
+                b.classList.toggle('active', b.dataset.theme === mode));
+        }
         // Darkens the configured (light, paper-toned) scene background to match the OS/browser
         // dark-mode preference, since the sidebar chrome is always-dark but the 3D view background
         // otherwise stays a fixed light cream regardless of the user's theme.
         function sceneBackgroundColor() {
             const light = MODEL_CONFIG.background || '#f5f0ea';
             const dark = MODEL_CONFIG.backgroundDark || '#20242c';
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? dark : light;
+            return prefersDark() ? dark : light;
         }
         function sceneRadius(realRadiusM, exaggeratedRadius) {
             const trueRadius = realRadiusM / metersPerXUnit();
@@ -1804,7 +1969,12 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(sceneBackgroundColor());
             const darkModeMQ = window.matchMedia('(prefers-color-scheme: dark)');
-            darkModeMQ.addEventListener('change', () => { scene.background = new THREE.Color(sceneBackgroundColor()); });
+            darkModeMQ.addEventListener('change', () => {
+                if (themeOverride !== 'auto') return;   // an explicit Theme choice wins over the OS
+                scene.background = new THREE.Color(sceneBackgroundColor());
+                buildParametricModel();   // re-tint the terrain fill (dark slate vs. light beige)
+            });
+            document.documentElement.dataset.theme = (themeOverride === 'auto') ? '' : themeOverride;
 
             camera = new THREE.PerspectiveCamera(CAM.fov, container.clientWidth / container.clientHeight, CAM.near, CAM.far);
             // Low, wide oblique angle matching the reference panorama (from model-config.json).
@@ -1985,8 +2155,11 @@
             // brightening a lit surface toward white at full opacity, so it looked like a
             // different colour once transparency revealed the true tone. MeshBasicMaterial
             // renders the exact base colour at every opacity — one consistent beige.
+            // In dark mode (and only for the untextured contour/plain base — a satellite/
+            // LiDAR photographic drape below overrides this colour outright and stays as-is)
+            // the ground itself switches to a dark slate tone instead of light beige.
             const fillMat = new THREE.MeshBasicMaterial({
-                color: 0xf0e8d6,                                   // lighter beige (contour-map base)
+                color: prefersDark() ? 0x33363f : 0xf0e8d6,        // dark slate (dark mode) / lighter beige (contour-map base)
                 polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
                 side: params.terrainCullBack ? THREE.FrontSide : THREE.DoubleSide,   // dev: cull back face
                 transparent: true, opacity: params.terrainOpacity,
@@ -3329,6 +3502,8 @@
                 document.getElementById('row-xsec-cutaway').style.display = params.devMode ? '' : 'none';   // qanat lengthwise cutaway is dev-only
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
+                document.getElementById('panel-presets').style.display = params.devMode ? 'none' : '';   // Quick views hide while poking at dev options
+                document.getElementById('row-presets-compact').style.display = params.devMode ? '' : 'none';   // its own toggle is dev-only, but the effect persists once dev mode exits
                 document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
                 syncConditionalOptions();
             };
@@ -3376,6 +3551,20 @@
             });
             // Discoverable entry point: the button at the bottom of the panel.
             document.getElementById('btn-dev-mode').addEventListener('click', () => setDevMode(!params.devMode));
+
+            // Theme: Auto (OS/browser) / Light / Dark — pins the 3D background + terrain fill
+            // (and the modal cards) regardless of the system preference. Persisted.
+            document.querySelectorAll('#theme-toggle .segmented button').forEach(b => {
+                b.classList.toggle('active', b.dataset.theme === themeOverride);
+                b.addEventListener('click', () => applyTheme(b.dataset.theme));
+            });
+
+            // Dev-only control, persistent effect: shrinks the "Quick views" preset cards
+            // (icon + label only, no caption) once dev mode is exited and they reappear.
+            document.getElementById('param-presets-compact').addEventListener('change', e => {
+                params.presetsCompact = e.target.checked;
+                document.body.classList.toggle('presets-compact', params.presetsCompact);
+            });
             syncConditionalOptions();   // initial state
             // Dev mode can also be entered by loading with a `#dev` (or `?dev`) URL — a
             // keyboard-free, OS-proof way to reach the debug controls.
@@ -3663,6 +3852,102 @@
             document.getElementById('btn-view-e').addEventListener('click', () => presetView('east'));
             document.getElementById('btn-view-s').addEventListener('click', () => presetView('south'));
             document.getElementById('btn-view-w').addEventListener('click', () => presetView('west'));
+
+            // --- Quick views (presets): one-tap curated states for people who don't want to
+            // hand-tune the checkboxes/sliders below. Each preset is a FULL scene description
+            // (baseline + a few overrides), not a diff against whatever was already on screen —
+            // so results are deterministic no matter what state a previous preset (or manual
+            // tweaking) left behind. Controls are set directly (params + DOM value/checked +
+            // labels), not by dispatching input/change events: dispatching would fire ~20
+            // individual listeners, each doing its own buildParametricModel() rebuild — a
+            // visible multi-second stall. One rebuild at the end instead.
+            const PRESET_BASELINE = {
+                'param-baselayer': 'contours', 'param-geology': true, 'param-dip': false,
+                'param-underground': true, 'param-realistic-diameters': 0.5,
+                'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
+                'param-aux': false, 'param-sounding': false, 'param-overflow': false,
+                'param-perched': false, 'param-paths': false,
+                'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
+                'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
+                'param-terrain-opacity': 1.0, 'param-surround': 1.2,
+                'param-front-margin': 0, 'param-front-margin-symmetric': false
+            };
+            const PRESET_SETTERS = {
+                'param-baselayer': v => { params.baseLayer = v; },
+                'param-geology': v => { params.showGeology = v; },
+                'param-dip': v => { params.showDip = v; },
+                'param-underground': v => { params.xrayUnderground = v; },
+                'param-realistic-diameters': v => { params.diameterRealism = v; },
+                'param-underground-opacity': v => applyUndergroundOpacity(v),
+                'param-villa': v => { params.showVilla = v; },
+                'param-xsec': v => { params.showXsec = v; },
+                'param-aux': v => { params.showAux = v; },
+                'param-sounding': v => { params.showSounding = v; },
+                'param-overflow': v => { params.showOverflow = v; },
+                'param-perched': v => { params.showPerched = v; },
+                'param-paths': v => { params.showPaths = v; },
+                'ov-aquifer': v => { params.overlay.aquifer = v; },
+                'ov-contours': v => { params.overlay.contours = v; },
+                'ov-spot': v => { params.overlay.spot = v; },
+                'ov-break': v => { params.overlay.break = v; },
+                'param-sides': v => { params.showSides = v; },
+                'param-ghost-apron': v => { params.showGhostApron = v; },
+                'param-terrain-cullback': v => { params.terrainCullBack = v; },
+                'param-terrain-opacity': v => applyTerrainOpacity(v),
+                'param-surround': v => { params.surround = v; },
+                'param-front-margin': v => { params.frontMarginM = v; },
+                'param-front-margin-symmetric': v => { params.frontMarginSymmetric = v; }
+            };
+            // Labels these controls carry, formatted exactly like their own live listeners do.
+            const PRESET_LABELS = {
+                'param-realistic-diameters': v => ['lbl-realism-val', Math.round(v * 100) + '%'],
+                'param-underground-opacity': v => ['lbl-underground-opacity', v.toFixed(2)],
+                'param-terrain-opacity': v => ['lbl-terrain-opacity', v.toFixed(2)],
+                'param-surround': v => ['lbl-surround', v.toFixed(1) + '×'],
+                'param-front-margin': v => ['lbl-front-margin', v + ' m']
+            };
+            const PRESETS = {
+                overview: { year: 2025, controls: {},
+                    cam: () => presetView('iso') },
+                underground: { year: 2025, controls: { 'param-terrain-opacity': 0.35 },
+                    cam: () => presetView('iso') },
+                water: { year: 2025, controls: { 'param-baselayer': 'satellite', 'param-perched': true, 'param-overflow': true },
+                    cam: () => resetView() },
+                construction: { year: 140, controls: {},
+                    cam: () => presetView('iso') },
+                geology: { year: 2025, controls: { 'param-dip': true, 'param-terrain-opacity': 0.45 },
+                    cam: () => resetView() }
+            };
+            function applyPreset(key) {
+                const preset = PRESETS[key];
+                if (!preset) return;
+                const merged = Object.assign({}, PRESET_BASELINE, preset.controls);
+                Object.entries(merged).forEach(([id, v]) => {
+                    const el = document.getElementById(id);
+                    if (el) { if (el.type === 'checkbox') el.checked = v; else el.value = v; }
+                    const lbl = PRESET_LABELS[id];
+                    if (lbl) { const [lid, txt] = lbl(v); const le = document.getElementById(lid); if (le) le.textContent = txt; }
+                    (PRESET_SETTERS[id] || (() => {}))(v);
+                });
+                syncBaseLayerUI();
+                syncConditionalOptions();
+                tlPause();
+                tlT = yearToSlider(preset.year);
+                params.year = preset.year;
+                const yearSl = document.getElementById('param-year');
+                if (yearSl) yearSl.value = Math.round(tlT * 1000);
+                updateTimelineReadout();
+                buildParametricModel();
+                updateZoomClamp();
+                preset.cam();
+            }
+            document.querySelectorAll('.preset-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    applyPreset(card.dataset.preset);
+                    document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('applied'));
+                    card.classList.add('applied');
+                });
+            });
 
             setupShaftInteraction();
             updateControlVisibility();
@@ -4348,7 +4633,7 @@
             const gp = g._prov || {};
             const pos = x.frac != null ? ' · ≈' + Math.round(x.frac * 100) + '% from the west (P‑5→P9)' : '';
             let h = `<h3>Qanat cross-section</h3><div class="ip-sub">Section at a point along the qanat${pos}</div>`;
-            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
+            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" width="${x.w}" height="${x.h}" alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
             if (x.label) h += `<div class="ip-note">${x.label}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
                 `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
@@ -4917,7 +5202,7 @@
                         : ``) +
                 `</select></label>` +
                 `<div class="pp-geoimg" id="pp-geoimg" style="display:${profileImgOn ? 'block' : 'none'}">` +
-                    `<img class="lb-img" src="assets/geo-section-brochure.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)" title="Click to enlarge">` +
+                    `<img class="lb-img" src="assets/geo-section-brochure.webp" width="1200" height="617" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)" title="Click to enlarge">` +
                     `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Brochure 2018, fig 4‑2 · used with permission</div>` +
                 `</div>`;
             const basis = anchored
