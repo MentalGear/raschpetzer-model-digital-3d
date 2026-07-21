@@ -348,8 +348,13 @@
         /* Header + tab strip are pinned together at the top of the scrolling panel: the wrapper
            cancels #ui-panel's own padding (negative margin) and re-applies it itself, so it sits
            flush with the scrollport's top edge once stuck — no gap, no seam. */
+        /* A subtle bottom edge + drop shadow gives the pinned header a "floating above the
+           scrolled content" read — without it, the header/tab-bar shared the exact same flat
+           panel colour as everything sliding underneath, so nothing signalled it was stuck. */
         #panel-sticky { position: sticky; top: 0; z-index: 5; background: var(--panel-bg);
-            margin: -22px -22px 0; padding: 22px 22px 0; }
+            margin: -22px -22px 0; padding: 22px 22px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 18px -12px rgba(0,0,0,0.55); }
         /* Tab strip sits flush on top of the panes card so the two read as one container:
            rounded top corners, shared side borders, no bottom border (the panes continue it). */
         #tab-bar { display: flex; gap: 4px; margin: 8px 0 0; background: var(--panel-bg);
@@ -368,8 +373,12 @@
         .tab-pane > .control-group:last-child { margin-bottom: 4px; }
         /* Recessed content card, joined seamlessly to the tab strip above (no top border /
            square top corners) and set apart from the actions below. */
+        /* Stands alone as its own card: the tab bar now lives in the sticky header above (it
+           scrolls out of adjacency once Camera/Navigation/Presets sit between them), so this
+           needs all four corners + a full border rather than reading as the tab strip's
+           dropdown continuation. */
         #tab-panes { background: rgba(0,0,0,0.20); border: 1px solid rgba(255,255,255,0.07);
-            border-top: none; border-radius: 0 0 10px 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
+            border-radius: 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
         #panel-actions { border-top: 1px solid rgba(255,255,255,0.10); padding-top: 16px; }
         /* Mobile drawer */
         #drawer-close { display: block; background: none; border: none; color: #9ca3af;
@@ -509,12 +518,30 @@
         #panel-mode .pm-btn .pm-ico { font-size: 0.95rem; line-height: 1; display: inline-block; }
         #panel-mode .pm-btn:hover { color: #d7dbe2; }
         #panel-mode .pm-btn.active { background: rgba(255,255,255,0.13); color: #fff; }
+
+        /* Quick views: curated one-tap states, the front door for people who don't want to
+           hand-tune the checkboxes/sliders below. "Overview" (wide) leads as the de-facto
+           reset/home card; the other four sit in a 2×2 grid beneath it. */
+        #preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+        .preset-card { display: flex; flex-direction: column; align-items: center; gap: 3px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 10px; padding: 11px 6px 10px; cursor: pointer; text-align: center;
+            transition: background 0.12s, border-color 0.12s, transform 0.08s; }
+        .preset-card.wide { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 9px; padding: 10px 6px; }
+        .preset-card:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.2); }
+        .preset-card:active { transform: scale(0.97); }
+        .preset-card.applied { background: rgba(59,130,246,0.22); border-color: var(--accent-blue); }
+        .preset-card .pc-ico { font-size: 1.25rem; line-height: 1; }
+        .preset-card .pc-label { font-size: 0.78rem; font-weight: 600; color: #fff; }
+        .preset-card .pc-desc { font-size: 0.65rem; color: #9ca3af; line-height: 1.25; }
+        .preset-card.wide .pc-desc { display: none; }   /* the wide card's label alone is self-explanatory */
         #inspector-pane { display: none; }
         #inspector-empty { color: #9ca3af; font-size: 0.84rem; line-height: 1.55; padding: 10px 2px; }
         #inspector-pane.has-selection #inspector-empty { display: none; }
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
         body.mode-inspector #tab-bar,
+        body.mode-inspector #panel-presets,
         body.mode-inspector #panel-actions { display: none; }
         /* #panel-nav (Camera + Navigation) stays visible in Inspector mode so a selected feature
            can be reframed (Top/Side/rotate) without a round-trip back to Settings. */
@@ -628,6 +655,40 @@
             <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
         </div>
 
+        <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
+             don't want to hand-tune the controls below. Presets SET the manual controls (they
+             don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
+        <div id="panel-presets" class="control-group">
+            <label>Quick views</label>
+            <div id="preset-grid">
+                <button class="preset-card wide" data-preset="overview" type="button">
+                    <span class="pc-ico" aria-hidden="true">🗺️</span>
+                    <span class="pc-label">Overview</span>
+                    <span class="pc-desc">The full site, today</span>
+                </button>
+                <button class="preset-card" data-preset="underground" type="button">
+                    <span class="pc-ico" aria-hidden="true">⛏️</span>
+                    <span class="pc-label">See beneath</span>
+                    <span class="pc-desc">Thin the hill to reveal the tunnel</span>
+                </button>
+                <button class="preset-card" data-preset="water" type="button">
+                    <span class="pc-ico" aria-hidden="true">💧</span>
+                    <span class="pc-label">Follow the water</span>
+                    <span class="pc-desc">East → west, to the villa</span>
+                </button>
+                <button class="preset-card" data-preset="construction" type="button">
+                    <span class="pc-ico" aria-hidden="true">🏛️</span>
+                    <span class="pc-label">Roman construction</span>
+                    <span class="pc-desc">~140 AD, freshly built</span>
+                </button>
+                <button class="preset-card" data-preset="geology" type="button">
+                    <span class="pc-ico" aria-hidden="true">🪨</span>
+                    <span class="pc-label">Geology cross-section</span>
+                    <span class="pc-desc">The strata behind the qanat</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Camera / navigation controls first: the most-used view controls sit at the top, and
              stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
         <div id="panel-nav">
@@ -646,6 +707,19 @@
                 <button id="btn-view-s" type="button" title="Face south">S</button>
                 <button id="btn-view-w" type="button" title="Face west">W</button>
             </div>
+        </div>
+        <div class="control-group" id="grp-baselayer">
+            <label for="param-baselayer">Map layer</label>
+            <select id="param-baselayer">
+                <option value="contours">Contour lines</option>
+                <option value="topo">Topographic map</option>
+                <option value="satellite">Satellite (ACT 2019)</option>
+                <option value="winter">Satellite — winter (leaf-off)</option>
+                <option value="ortho1967">Satellite — historical (1967)</option>
+                <option value="hillshade">LiDAR relief (2019)</option>
+                <option value="none">Plain</option>
+            </select>
+            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
         </div>
         <div class="control-group">
             <label>Navigation</label>
@@ -666,19 +740,6 @@
 
         <div id="tab-panes">
         <div class="tab-pane active" data-pane="map">
-            <div class="control-group">
-                <label for="param-baselayer">Base layer</label>
-                <select id="param-baselayer">
-                    <option value="contours">Contour lines</option>
-                    <option value="topo">Topographic map</option>
-                    <option value="satellite">Satellite (ACT 2019)</option>
-                    <option value="winter">Satellite — winter (leaf-off)</option>
-                    <option value="ortho1967">Satellite — historical (1967)</option>
-                    <option value="hillshade">LiDAR relief (2019)</option>
-                    <option value="none">Plain</option>
-                </select>
-                <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
-            </div>
             <div class="control-group" id="grp-contours">
                 <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
                 <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
@@ -3672,6 +3733,102 @@
             document.getElementById('btn-view-e').addEventListener('click', () => presetView('east'));
             document.getElementById('btn-view-s').addEventListener('click', () => presetView('south'));
             document.getElementById('btn-view-w').addEventListener('click', () => presetView('west'));
+
+            // --- Quick views (presets): one-tap curated states for people who don't want to
+            // hand-tune the checkboxes/sliders below. Each preset is a FULL scene description
+            // (baseline + a few overrides), not a diff against whatever was already on screen —
+            // so results are deterministic no matter what state a previous preset (or manual
+            // tweaking) left behind. Controls are set directly (params + DOM value/checked +
+            // labels), not by dispatching input/change events: dispatching would fire ~20
+            // individual listeners, each doing its own buildParametricModel() rebuild — a
+            // visible multi-second stall. One rebuild at the end instead.
+            const PRESET_BASELINE = {
+                'param-baselayer': 'contours', 'param-geology': true, 'param-dip': false,
+                'param-underground': true, 'param-realistic-diameters': 0.5,
+                'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
+                'param-aux': false, 'param-sounding': false, 'param-overflow': false,
+                'param-perched': false, 'param-paths': false,
+                'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
+                'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
+                'param-terrain-opacity': 1.0, 'param-surround': 1.2,
+                'param-front-margin': 0, 'param-front-margin-symmetric': false
+            };
+            const PRESET_SETTERS = {
+                'param-baselayer': v => { params.baseLayer = v; },
+                'param-geology': v => { params.showGeology = v; },
+                'param-dip': v => { params.showDip = v; },
+                'param-underground': v => { params.xrayUnderground = v; },
+                'param-realistic-diameters': v => { params.diameterRealism = v; },
+                'param-underground-opacity': v => applyUndergroundOpacity(v),
+                'param-villa': v => { params.showVilla = v; },
+                'param-xsec': v => { params.showXsec = v; },
+                'param-aux': v => { params.showAux = v; },
+                'param-sounding': v => { params.showSounding = v; },
+                'param-overflow': v => { params.showOverflow = v; },
+                'param-perched': v => { params.showPerched = v; },
+                'param-paths': v => { params.showPaths = v; },
+                'ov-aquifer': v => { params.overlay.aquifer = v; },
+                'ov-contours': v => { params.overlay.contours = v; },
+                'ov-spot': v => { params.overlay.spot = v; },
+                'ov-break': v => { params.overlay.break = v; },
+                'param-sides': v => { params.showSides = v; },
+                'param-ghost-apron': v => { params.showGhostApron = v; },
+                'param-terrain-cullback': v => { params.terrainCullBack = v; },
+                'param-terrain-opacity': v => applyTerrainOpacity(v),
+                'param-surround': v => { params.surround = v; },
+                'param-front-margin': v => { params.frontMarginM = v; },
+                'param-front-margin-symmetric': v => { params.frontMarginSymmetric = v; }
+            };
+            // Labels these controls carry, formatted exactly like their own live listeners do.
+            const PRESET_LABELS = {
+                'param-realistic-diameters': v => ['lbl-realism-val', Math.round(v * 100) + '%'],
+                'param-underground-opacity': v => ['lbl-underground-opacity', v.toFixed(2)],
+                'param-terrain-opacity': v => ['lbl-terrain-opacity', v.toFixed(2)],
+                'param-surround': v => ['lbl-surround', v.toFixed(1) + '×'],
+                'param-front-margin': v => ['lbl-front-margin', v + ' m']
+            };
+            const PRESETS = {
+                overview: { year: 2025, controls: {},
+                    cam: () => presetView('iso') },
+                underground: { year: 2025, controls: { 'param-terrain-opacity': 0.35 },
+                    cam: () => presetView('iso') },
+                water: { year: 2025, controls: { 'param-baselayer': 'satellite', 'param-perched': true, 'param-overflow': true },
+                    cam: () => resetView() },
+                construction: { year: 140, controls: {},
+                    cam: () => presetView('iso') },
+                geology: { year: 2025, controls: { 'param-dip': true, 'param-terrain-opacity': 0.45 },
+                    cam: () => resetView() }
+            };
+            function applyPreset(key) {
+                const preset = PRESETS[key];
+                if (!preset) return;
+                const merged = Object.assign({}, PRESET_BASELINE, preset.controls);
+                Object.entries(merged).forEach(([id, v]) => {
+                    const el = document.getElementById(id);
+                    if (el) { if (el.type === 'checkbox') el.checked = v; else el.value = v; }
+                    const lbl = PRESET_LABELS[id];
+                    if (lbl) { const [lid, txt] = lbl(v); const le = document.getElementById(lid); if (le) le.textContent = txt; }
+                    (PRESET_SETTERS[id] || (() => {}))(v);
+                });
+                syncBaseLayerUI();
+                syncConditionalOptions();
+                tlPause();
+                tlT = yearToSlider(preset.year);
+                params.year = preset.year;
+                const yearSl = document.getElementById('param-year');
+                if (yearSl) yearSl.value = Math.round(tlT * 1000);
+                updateTimelineReadout();
+                buildParametricModel();
+                updateZoomClamp();
+                preset.cam();
+            }
+            document.querySelectorAll('.preset-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    applyPreset(card.dataset.preset);
+                    document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('applied'));
+                    card.classList.add('applied');
+                });
+            });
 
             setupShaftInteraction();
             updateControlVisibility();
