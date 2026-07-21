@@ -2458,7 +2458,7 @@
                 // Every shaft gets a short above-ground stub so its opening is visible
                 // over the terrain (inferred shafts included — they were previously hidden
                 // as sub-surface translucent pillars that blended into the contours).
-                const CAP = 0.7;                              // above-ground stub height (units)
+                const CAP = 0.35;                             // above-ground stub height (units) — half the previous 0.7
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
                 // Surface cap is rendered SOLID for shafts whose present-day head carries a
