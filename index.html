@@ -699,8 +699,7 @@
                 <label class="check-row dev-opt" id="row-see-inside"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
                 <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 4px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
                 <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
-                <label class="check-row" id="row-xsec-cutaway"><input type="checkbox" id="param-xsec-cutaway"> Qanat&nbsp;cross‑section&nbsp;cutaway&nbsp;(slice&nbsp;perpendicular&nbsp;to&nbsp;the&nbsp;route)</label>
-                <label class="check-row" id="row-xsec-follow" style="margin-left:22px"><input type="checkbox" id="param-xsec-follow"> Follow&nbsp;camera&nbsp;along&nbsp;the&nbsp;route&nbsp;(else&nbsp;fixed&nbsp;at&nbsp;the&nbsp;midpoint)</label>
+                <label class="check-row" id="row-xsec-cutaway"><input type="checkbox" id="param-xsec-cutaway"> Qanat&nbsp;cutaway&nbsp;(slice&nbsp;lengthwise&nbsp;along&nbsp;the&nbsp;route&nbsp;centreline)</label>
                 <label class="check-row" id="row-xsec-fullroute" style="margin-left:22px"><input type="checkbox" id="param-xsec-fullroute"> Extend&nbsp;hollow&nbsp;interior&nbsp;along&nbsp;the&nbsp;full&nbsp;route&nbsp;(incl.&nbsp;inferred&nbsp;ends)</label>
                 <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
                 <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Underground opacity">
@@ -947,8 +946,7 @@
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
             diameterRealism: 0.5,         // 0..1 slider: 0 = default oversized-for-visibility shaft/gallery radii, 1 = true 1:1 scale
-            xsecCutaway: false,           // Qanat cross-section cutaway: a plane locked perpendicular to the route slices the terrain + shaft/gallery open
-            xsecCutawayFollow: false,     // false = fixed at the route midpoint; true = the cut slides to follow the camera's orbit target along the route
+            xsecCutaway: false,           // Qanat cutaway: a plane locked along the route's Z-centreline slices the terrain + shaft/gallery open lengthwise (north/south half removed)
             xsecCutawayFullRoute: false,  // extend the hollow reconstructed bore across the whole route (inferred ends included), not just the explored core
             terrainCullBack: true,        // cull the terrain surface back face (FrontSide) so the underside isn't drawn when viewing from below — default on
             sideCullBack: true,           // dev: cull the terrain side-wall back faces (FrontSide) so they're not visible from the far side — default on
@@ -1083,7 +1081,8 @@
         let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
         let xsecClipMats = [];      // terrain/strata materials the qanat cross-section cutaway also slices (besides subsurfaceGroup)
         let lastBasePts = [];       // current build's main-gallery route polyline (qanat cross-section cutaway hole placement)
-        let xsecRouteMinX = 0, xsecRouteMaxX = 0, xsecRouteMidX = 0;   // route X-extent (same)
+        let xsecRouteZ = 0;          // route's characteristic Z (qanat cutaway's fixed lengthwise cut position)
+        let xsecHollowMinX = 0, xsecHollowMaxX = 0;   // X-range where the hollow reconstructed bore actually exists this build
         // --- Realistic PBR textures (loaded once; used only when params.pbr) --------------
         // Sandstone set (CC0, Poly Haven "sandstone_cracks") clads the rock-cut shafts to match
         // the surveyed shaft interiors (Brochure figs 6-7/6-8); a small procedural normal makes
@@ -1229,25 +1228,22 @@
             return false;
         }
 
-        // --- Qanat cross-section cutaway -------------------------------------------------
+        // --- Qanat cutaway (lengthwise, along the route centreline) ----------------------
         // Unlike the two cutaways above (which clip along an arbitrary camera-facing angle),
-        // this one is LOCKED perpendicular to the route (±X normal only), so orbiting never
-        // produces an oblique slice — always a true cross-section. It clips the terrain +
-        // strata (xsecClipMats) as well as the shaft/gallery (subsurfaceGroup), and draws a
-        // real transverse strata-cut face (rebuildXsecStrataCut) with a hole framing the
-        // gallery bore, so the reveal is an actual walk-through opening, not a solid clipped
-        // stub. Position is either fixed at the route midpoint, or — "follow camera" —
-        // slides along the route to wherever you're currently orbiting around.
-        let xsecCutPlane = null, xsecCutPlanes = null, xsecStrataMesh = null, _xsecLastCutX = null;
-        function xsecCutX() {
-            if (params.xsecCutawayFollow && controls)
-                return THREE.MathUtils.clamp(controls.target.x, xsecRouteMinX, xsecRouteMaxX);
-            return xsecRouteMidX;
-        }
+        // this one is LOCKED to a single plane running the length of the route at its
+        // characteristic Z (xsecRouteZ) — a plane through the qanat's centreline, splitting
+        // north/south, so orbiting never produces an oblique slice and the WHOLE tunnel run
+        // is opened in one continuous reveal (not just one cross-section point). It clips the
+        // terrain + strata (xsecClipMats) as well as the shaft/gallery (subsurfaceGroup), and
+        // draws a real lengthwise strata-cut face (rebuildXsecStrataCut) with a slot carved
+        // out wherever the hollow gallery bore runs, so the reveal is an actual walk-through
+        // opening along the tunnel, not a solid clipped stub. Which side (north/south) is
+        // removed follows the camera, live, every frame.
+        let xsecCutPlane = null, xsecCutPlanes = null, xsecStrataMesh = null;
         function applyXsecCutaway() {
             const active = params.xsecCutaway;
             if (active && !xsecCutPlane) {
-                xsecCutPlane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+                xsecCutPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
                 xsecCutPlanes = [xsecCutPlane];
             }
             const planes = active ? xsecCutPlanes : null;
@@ -1261,23 +1257,23 @@
                 (Array.isArray(o.material) ? o.material : [o.material]).forEach(apply);
             });
             xsecClipMats.forEach(apply);
-            if (active) { _xsecLastCutX = null; updateXsecCutawayPlane(); }
+            if (active) { updateXsecCutawayPlane(); rebuildXsecStrataCut(); }
             else if (xsecStrataMesh) {
                 modelGroup.remove(xsecStrataMesh);
                 xsecStrataMesh.geometry.dispose(); xsecStrataMesh.material.dispose();
                 xsecStrataMesh = null;
             }
         }
+        // Only the clip side needs a per-frame update (cheap) — the cut's position/geometry
+        // are fixed once built, so no per-frame geometry rebuild is needed here.
         function updateXsecCutawayPlane() {
             if (!params.xsecCutaway || !camera || !xsecCutPlane) return;
-            const cutX = xsecCutX();
-            const nx = camera.position.x >= cutX ? -1 : 1;   // point away from the camera, ±X only
-            xsecCutPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(nx, 0, 0), new THREE.Vector3(cutX, 0, 0));
-            if (cutX !== _xsecLastCutX) { _xsecLastCutX = cutX; rebuildXsecStrataCut(cutX); }
+            const nz = camera.position.z >= xsecRouteZ ? -1 : 1;   // point away from the camera, ±Z only
+            xsecCutPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, nz), new THREE.Vector3(0, 0, xsecRouteZ));
         }
         // Interpolate the route polyline (main-gallery shaft bases, in route order) to find
-        // the gallery's Y (floor) and Z (lateral offset) at an arbitrary X — the cut may fall
-        // between two shafts, not only at one.
+        // the gallery's Y (floor) at an arbitrary X — the cut runs the whole length, so every
+        // x-step along it needs its own floor height, not just one point.
         function pointOnRouteAtX(pts, x) {
             if (!pts.length) return new THREE.Vector3(x, 0, 0);
             if (pts.length === 1) return pts[0].clone();
@@ -1292,77 +1288,76 @@
             const first = pts[0], last = pts[pts.length - 1];
             return (Math.abs(x - first.x) < Math.abs(x - last.x)) ? first.clone() : last.clone();
         }
-        // The transverse strata-cut face itself: real documented strata bands (same formulas
-        // as addGeology, so the two cross-sections agree) framing a rectangular hole where the
-        // gallery bore passes through — the payoff that makes the cutaway read as "look inside
-        // the tunnel" rather than "a wall with the qanat's colour painted on it". SIMPLIFICATION
-        // (disclosed): drawn flat across its own Z-width — real N-S surface slope over that
-        // ~15-30 m span is not modelled, the same "schematic" honesty already used elsewhere
-        // for shaft/gallery scale. The hole is a rectangle bounding the hollow bore's vaulted
-        // profile (buildDetailedGallery), not the exact vault silhouette.
-        function rebuildXsecStrataCut(cutX) {
+        // The lengthwise strata-cut face: real documented strata bands, using the SAME
+        // per-x formulas as addGeology (so the two cross-sections agree), but positioned at
+        // the qanat's own centreline (xsecRouteZ) instead of the terrain's front edge, and
+        // with a long slot carved out wherever the hollow gallery bore runs — the payoff that
+        // makes the cutaway read as "look inside the tunnel" along its whole length, rather
+        // than "a wall with the qanat's colour painted on it". SIMPLIFICATION (disclosed): one
+        // fixed Z for the whole cut — the route's actual, slightly wiggling Z is averaged, the
+        // same "schematic" honesty already used elsewhere for shaft/gallery scale. The slot's
+        // cross-section is a rectangle bounding the hollow bore's vaulted profile
+        // (buildDetailedGallery), not the exact vault silhouette, and only exists over
+        // xsecHollowMinX..MaxX (wherever the bore actually is hollow this build).
+        function rebuildXsecStrataCut() {
             if (xsecStrataMesh) {
                 modelGroup.remove(xsecStrataMesh);
                 xsecStrataMesh.geometry.dispose(); xsecStrataMesh.material.dispose();
                 xsecStrataMesh = null;
             }
             if (!params.xsecCutaway || !modelGroup || !lastBasePts.length) return;
-            const halfW = params.width / 2, halfD = params.depth / 2, base = params.baseY;
+            const halfW = params.width / 2, base = params.baseY;
             const geoMode = (params.terrainSource === 'geodata' && geodata.ready);
             const C = strataColors();
-            const gp = pointOnRouteAtX(lastBasePts, cutX);
-            const HOLE_HW = 0.34, HOLE_H = metersToYDepth(1.9);   // matches buildDetailedGallery's fixed profile
-            const holeZ0 = gp.z - HOLE_HW, holeZ1 = gp.z + HOLE_HW, holeY0 = gp.y, holeY1 = gp.y + HOLE_H;
-
-            // Only the WEATHERED (topsoil) band directly mirrors surface topography, so it's
-            // sampled across the cut's Z-width (like addGeology samples along X) to actually
-            // follow the real ground line instead of poking through it. The deeper, more
-            // consolidated layers (sandstone/marl/keuper) follow the near-flat documented
-            // interface instead of the surface, so a single flat sample is a fair
-            // simplification for them (disclosed above).
-            const sMid = getTerrainHeight(cutX, gp.z);
-            let gY, mY, kY;
-            if (geoMode) {
-                const wYmid = sMid - metersToYDepth(COVER_M);
-                gY = Math.min(maslToY(interfaceMasl(cutX)), wYmid - 0.02);
-                mY = Math.max(gY - metersToYDepth(MARL_M), base + 0.6);
-                kY = Math.max(mY - metersToYDepth(KO_M), base + 0.3);
-            } else {
-                const wYmid = sMid - 0.45;
-                gY = Math.min(2.7 - cutX * 0.02, wYmid - 0.05);
-                mY = Math.max(gY - 2.6, base + 0.6);
-                kY = Math.max(mY - 0.30, base + 0.3);
-            }
-            const flatBands = [[gY, mY, C.marl], [mY, kY, C.ko], [kY, base, C.km]];
+            const cutZ = xsecRouteZ;
+            const HOLE_H = metersToYDepth(1.9);   // matches buildDetailedGallery's fixed profile
 
             const pos = [], col = [];
-            const quad = (zLo, zHi, yLo, yHi, c) => {
-                if (zHi - zLo < 0.01 || yHi - yLo < 0.005) return;
-                pos.push(cutX, yLo, zLo,  cutX, yLo, zHi,  cutX, yHi, zHi,
-                         cutX, yHi, zHi,  cutX, yHi, zLo,  cutX, yLo, zLo);
+            const quad = (x1, x2, y1a, y1b, y2a, y2b, c) => {
+                if ((y1a - y1b < 0.005) && (y2a - y2b < 0.005)) return;
+                pos.push(x1, y1a, cutZ,  x1, y1b, cutZ,  x2, y2a, cutZ,
+                         x2, y2a, cutZ,  x1, y1b, cutZ,  x2, y2b, cutZ);
                 for (let k = 0; k < 6; k++) col.push(c[0], c[1], c[2]);
             };
-            // A band rectangle, minus the hole: draw up to 4 framing quads (above/below/
-            // left/right of the hole) instead of the plain rectangle wherever they overlap
-            // (over the given z-range, not necessarily the cut's full width).
-            const pushFramed = (zLo, zHi, yLo, yHi, c) => {
-                if (yHi <= yLo || zHi <= zLo) return;
-                if (yHi <= holeY0 || yLo >= holeY1 || zHi <= holeZ0 || zLo >= holeZ1) { quad(zLo, zHi, yLo, yHi, c); return; }
-                if (yHi > holeY1) quad(zLo, zHi, holeY1, yHi, c);
-                if (yLo < holeY0) quad(zLo, zHi, yLo, holeY0, c);
-                const midLo = Math.max(yLo, holeY0), midHi = Math.min(yHi, holeY1);
-                if (zLo < holeZ0) quad(zLo, Math.min(zHi, holeZ0), midLo, midHi, c);
-                if (zHi > holeZ1) quad(Math.max(zLo, holeZ1), zHi, midLo, midHi, c);
+            // A band segment, minus the slot: split into an above-hole and a below-hole piece
+            // (per-corner clamped — a fair approximation at this segment resolution) wherever
+            // the hollow bore runs under this x-range; drawn whole elsewhere.
+            const pushSeg = (x1, x2, t1, b1, t2, b2, c, xmid) => {
+                if (t1 - b1 < 0.01 && t2 - b2 < 0.01) return;
+                if (xmid < xsecHollowMinX || xmid > xsecHollowMaxX) { quad(x1, x2, t1, b1, t2, b2, c); return; }
+                const gp = pointOnRouteAtX(lastBasePts, xmid);
+                const hY0 = gp.y, hY1 = gp.y + HOLE_H;
+                if (Math.max(t1, t2) <= hY0 || Math.min(b1, b2) >= hY1) { quad(x1, x2, t1, b1, t2, b2, c); return; }
+                quad(x1, x2, t1, Math.max(b1, hY1), t2, Math.max(b2, hY1), c);   // above the slot
+                quad(x1, x2, Math.min(t1, hY0), b1, Math.min(t2, hY0), b2, c);   // below the slot
             };
-            flatBands.forEach(([yTop, yBot, c]) => pushFramed(-halfD, halfD, Math.min(yTop, yBot), Math.max(yTop, yBot), c));
-            // Weathered band: z-sampled so its top tracks the real terrain surface.
-            const NZ = 24;
-            for (let i = 0; i < NZ; i++) {
-                const zLo = -halfD + i / NZ * params.depth, zHi = -halfD + (i + 1) / NZ * params.depth;
-                const zc = (zLo + zHi) / 2;
-                const sTop = getTerrainHeight(cutX, zc);
-                const wBot = Math.max(geoMode ? sTop - metersToYDepth(COVER_M) : sTop - 0.45, gY + 0.05);
-                pushFramed(zLo, zHi, wBot, sTop, C.weath);
+
+            const N = 96;
+            const xs = [];
+            for (let i = 0; i <= N; i++) xs.push(-halfW + i / N * params.width);
+            for (let i = 0; i < N; i++) {
+                const xa = xs[i], xb = xs[i + 1], xmid = (xa + xb) / 2;
+                const sA = getTerrainHeight(xa, cutZ), sB = getTerrainHeight(xb, cutZ);
+                let wA, wB, gA, gB, mA, mB, kA, kB;
+                if (geoMode) {
+                    wA = sA - metersToYDepth(COVER_M); wB = sB - metersToYDepth(COVER_M);
+                    gA = Math.min(maslToY(interfaceMasl(xa)), wA - 0.02);
+                    gB = Math.min(maslToY(interfaceMasl(xb)), wB - 0.02);
+                    mA = Math.max(gA - metersToYDepth(MARL_M), base + 0.6);
+                    mB = Math.max(gB - metersToYDepth(MARL_M), base + 0.6);
+                    kA = Math.max(mA - metersToYDepth(KO_M), base + 0.3);
+                    kB = Math.max(mB - metersToYDepth(KO_M), base + 0.3);
+                } else {
+                    wA = sA - 0.45; wB = sB - 0.45;
+                    gA = Math.min(2.7 - xa * 0.02, wA - 0.05); gB = Math.min(2.7 - xb * 0.02, wB - 0.05);
+                    mA = Math.max(gA - 2.6, base + 0.6); mB = Math.max(gB - 2.6, base + 0.6);
+                    kA = Math.max(mA - 0.30, base + 0.3); kB = Math.max(mB - 0.30, base + 0.3);
+                }
+                pushSeg(xa, xb, sA, wA, sB, wB, C.weath, xmid);
+                pushSeg(xa, xb, wA, gA, wB, gB, C.sand, xmid);
+                pushSeg(xa, xb, gA, mA, gB, mB, C.marl, xmid);
+                pushSeg(xa, xb, mA, kA, mB, kB, C.ko, xmid);
+                pushSeg(xa, xb, kA, base, kB, base, C.km, xmid);
             }
 
             const g = new THREE.BufferGeometry();
@@ -2302,14 +2297,11 @@
                 modelGroup.add(lbl);
             });
             maxShaftLenUnits = localMaxLen || 5;          // calibrates metres for non-geo modes
-            // Route X-extent + the current build's polyline, for the qanat cross-section
-            // cutaway (fixed midpoint, or "follow camera" clamped to stay on the route).
+            // The current build's route polyline + its characteristic Z, for the qanat cutaway
+            // (a lengthwise cut through the route's centreline — see xsecRouteZ's use below).
             lastBasePts = basePts;
-            if (basePts.length) {
-                xsecRouteMinX = Math.min(...basePts.map(p => p.x));
-                xsecRouteMaxX = Math.max(...basePts.map(p => p.x));
-                xsecRouteMidX = (xsecRouteMinX + xsecRouteMaxX) / 2;
-            }
+            if (basePts.length)
+                xsecRouteZ = basePts.reduce((s, p) => s + p.z, 0) / basePts.length;
             const mpuNow = metersPerYUnit();
             shaftMeshes.forEach(m => m.userData.depthMeters =
                 (m.userData.depthM != null) ? m.userData.depthM : m.userData.depthUnits * mpuNow);
@@ -2440,7 +2432,10 @@
                 const wantHollow = params.detailedGallery || params.xsecCutaway;
                 const fullRouteHollow = params.xsecCutaway && params.xsecCutawayFullRoute;
                 if (wantHollow) {
-                    buildDetailedGallery(fullRouteHollow ? basePts : basePts.slice(start, end));
+                    const hollowPts = fullRouteHollow ? basePts : basePts.slice(start, end);
+                    buildDetailedGallery(hollowPts);
+                    xsecHollowMinX = Math.min(...hollowPts.map(p => p.x));
+                    xsecHollowMaxX = Math.max(...hollowPts.map(p => p.x));
                     const mid = basePts[Math.floor((fullRouteHollow ? n : (start + end)) / 2)];
                     const label = fullRouteHollow
                         ? 'Reconstructed gallery profile\n(fig 5-15 shape · extended schematically over the inferred ends)'
@@ -2450,6 +2445,7 @@
                     modelGroup.add(s);
                 } else {
                     tunnelTube(basePts.slice(start, end), galleryColor);   // explored (solid)
+                    xsecHollowMinX = xsecHollowMaxX = 0;   // no hollow reach this build — no slot to carve
                 }
                 if (!fullRouteHollow) {
                     tunnelDashed(basePts.slice(0, start + 1), galleryColor);   // inferred west (dashed)
@@ -3501,15 +3497,11 @@
                 params.shaftCutaway = e.target.checked;
                 applyCutaway(); syncCutawayNote();
             });
-            // Qanat cross-section cutaway: rebuild is needed because the hollow bore's reach
-            // (explored-only vs. full route) is decided at model-build time.
+            // Qanat cutaway: rebuild is needed because the hollow bore's reach (explored-only
+            // vs. full route) and the lengthwise strata-cut mesh are both decided at build time.
             document.getElementById('param-xsec-cutaway').addEventListener('change', e => {
                 params.xsecCutaway = e.target.checked;
                 buildParametricModel();
-            });
-            document.getElementById('param-xsec-follow').addEventListener('change', e => {
-                params.xsecCutawayFollow = e.target.checked;
-                updateXsecCutawayPlane();
             });
             document.getElementById('param-xsec-fullroute').addEventListener('change', e => {
                 params.xsecCutawayFullRoute = e.target.checked;
