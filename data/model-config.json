@@ -2,6 +2,7 @@
   "_doc": "VISUALIZATION-ONLY config. Nothing here is citable — it only affects how the picture looks. Facts live in the other data/*.json files and are joined here by id/code.",
   "camera": { "fov": 14, "position": [0, 24, 104], "target": [0, 6, 0], "near": 1, "far": 1000 },
   "background": "#f5f0ea",
+  "backgroundDark": "#20242c",
   "sceneScale": {
     "width": 70, "depth": 40, "baseY": -2,
     "plateauHeight": 5.0, "hillsideDrop": 4.5, "depressionDepth": 3.0,
