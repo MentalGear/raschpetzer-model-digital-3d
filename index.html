@@ -345,14 +345,16 @@
         }
         /* Segmented icon tab bar for the layer groups */
         #panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+        /* Header + tab strip are pinned together at the top of the scrolling panel: the wrapper
+           cancels #ui-panel's own padding (negative margin) and re-applies it itself, so it sits
+           flush with the scrollport's top edge once stuck — no gap, no seam. */
+        #panel-sticky { position: sticky; top: 0; z-index: 5; background: var(--panel-bg);
+            margin: -22px -22px 0; padding: 22px 22px 0; }
         /* Tab strip sits flush on top of the panes card so the two read as one container:
            rounded top corners, shared side borders, no bottom border (the panes continue it). */
-        /* Opaque panel-coloured fill (not translucent): it's sticky, so a see-through bg would
-           let the scrolling pane content bleed through underneath it. */
         #tab-bar { display: flex; gap: 4px; margin: 8px 0 0; background: var(--panel-bg);
             padding: 4px; border-radius: 10px 10px 0 0;
-            border: 1px solid rgba(255,255,255,0.07); border-bottom: none;
-            position: sticky; top: 0; z-index: 2; }
+            border: 1px solid rgba(255,255,255,0.07); border-bottom: none; }
         #tab-bar .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
             background: transparent; border: none; border-radius: 7px; padding: 7px 2px; cursor: pointer;
             color: #9ca3af; transition: background 0.12s, color 0.12s; }
@@ -512,6 +514,7 @@
         #inspector-pane.has-selection #inspector-empty { display: none; }
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
+        body.mode-inspector #tab-bar,
         body.mode-inspector #panel-actions { display: none; }
         /* #panel-nav (Camera + Navigation) stays visible in Inspector mode so a selected feature
            can be reframed (Top/Side/rotate) without a round-trip back to Settings. */
@@ -603,12 +606,19 @@
 
     <div id="ui-panel">
         <div id="panel-resize" title="Drag to resize · release small to hide"></div>
-        <div id="panel-head">
-            <div>
-                <h1>Raschpëtzer Roman Qanat</h1>
-                <h2>3D geological visualization · Walferdange, Luxembourg</h2>
+        <div id="panel-sticky">
+            <div id="panel-head">
+                <div>
+                    <h1>Raschpëtzer Roman Qanat</h1>
+                    <h2>3D geological visualization · Walferdange, Luxembourg</h2>
+                </div>
+                <button id="drawer-close" type="button" aria-label="Close controls">×</button>
             </div>
-            <button id="drawer-close" type="button" aria-label="Close controls">×</button>
+            <div id="tab-bar" role="tablist">
+                <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
+                <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
+                <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">⛰️</span><span class="tl">Terrain</span></button>
+            </div>
         </div>
 
         <div id="wip-note">🚧 Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a></div>
@@ -653,11 +663,6 @@
         </div>
 
         <div class="tab-section">
-        <div id="tab-bar" role="tablist">
-            <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
-            <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
-            <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">⛰️</span><span class="tl">Terrain</span></button>
-        </div>
 
         <div id="tab-panes">
         <div class="tab-pane active" data-pane="map">
@@ -695,12 +700,12 @@
                 <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
                 <label id="lbl-realistic-diameters">Shaft/gallery diameter realism <span class="val" id="lbl-realism-val">50%</span></label>
                 <input type="range" id="param-realistic-diameters" min="0" max="1" step="0.05" value="0.5" aria-label="Shaft and gallery diameter realism: 0% is the default, deliberately oversized-for-visibility size; 100% is true 1:1 scale">
-                <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 8px;line-height:1.35;">0%&nbsp;=&nbsp;today's oversized-for-visibility default; 100%&nbsp;=&nbsp;true&nbsp;scale (real ~1&nbsp;m shafts, ~15-45&nbsp;cm gallery — thin against the 700&nbsp;m terrain).</div>
+                <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 10px;line-height:1.35;">0%&nbsp;=&nbsp;today's oversized-for-visibility default; 100%&nbsp;=&nbsp;true&nbsp;scale (real ~1&nbsp;m shafts, ~15-45&nbsp;cm gallery — thin against the 700&nbsp;m terrain).</div>
                 <label class="check-row dev-opt" id="row-see-inside"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
-                <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 4px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
+                <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 10px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
                 <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
-                <label class="check-row" id="row-xsec-cutaway"><input type="checkbox" id="param-xsec-cutaway"> Qanat&nbsp;cutaway&nbsp;(slice&nbsp;lengthwise&nbsp;along&nbsp;the&nbsp;route&nbsp;centreline)</label>
-                <label class="check-row" id="row-xsec-fullroute" style="margin-left:22px"><input type="checkbox" id="param-xsec-fullroute"> Extend&nbsp;hollow&nbsp;interior&nbsp;along&nbsp;the&nbsp;full&nbsp;route&nbsp;(incl.&nbsp;inferred&nbsp;ends)</label>
+                <label class="check-row dev-opt" id="row-xsec-cutaway"><input type="checkbox" id="param-xsec-cutaway"> Qanat&nbsp;cutaway&nbsp;(slice&nbsp;lengthwise&nbsp;along&nbsp;the&nbsp;route&nbsp;centreline)</label>
+                <label class="check-row dev-opt" id="row-xsec-fullroute" style="margin-left:22px"><input type="checkbox" id="param-xsec-fullroute"> Extend&nbsp;hollow&nbsp;interior&nbsp;along&nbsp;the&nbsp;full&nbsp;route&nbsp;(incl.&nbsp;inferred&nbsp;ends)</label>
                 <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
                 <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Underground opacity">
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
@@ -725,7 +730,8 @@
             <div class="control-group" id="grp-frontedge">
                 <label>Qanat front-edge gap <span class="val" id="lbl-front-margin">0&nbsp;m</span></label>
                 <input type="range" id="param-front-margin" min="0" max="500" step="5" value="0" aria-label="Qanat front-edge gap (metres): 0 pins the qanat to the front cut face">
-                <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;min-height:1em;">0&nbsp;=&nbsp;qanat at the front cut face (strata read behind it); slide back to inset it.</div>
+                <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;margin-bottom:10px;line-height:1.35;">0&nbsp;=&nbsp;qanat at the front cut face (strata read behind it); slide back to inset it.</div>
+                <label class="check-row" id="row-front-margin-symmetric"><input type="checkbox" id="param-front-margin-symmetric"> Symmetric&nbsp;(mirror&nbsp;the&nbsp;same&nbsp;gap&nbsp;on&nbsp;the&nbsp;back/north&nbsp;side)</label>
             </div>
             <div class="control-group" id="grp-terrain-opacity">
                 <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
@@ -952,6 +958,7 @@
             sideCullBack: true,           // dev: cull the terrain side-wall back faces (FrontSide) so they're not visible from the far side — default on
             qanatFront: true,             // pin the qanat to the front cut face (strata read behind it) — default on
             frontMarginM: 0,              // gap (m) between the front terrain edge and the end shaft (qanatFront); default 0
+            frontMarginSymmetric: false,  // mirror the same front-edge gap onto the back/north side (qanatFront)
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
         };
@@ -1037,6 +1044,9 @@
         // by the "Qanat at front edge" debug mode to pin the cross-section right at the qanat.
         const _shaftLats = SHAFTS.filter(s => s.geo).map(s => s.geo.lat);
         const QANAT_LAT_S = _shaftLats.length ? Math.min(..._shaftLats) : 49.6659;
+        // Northernmost georeferenced shaft latitude — the qanat's back (-Z/north) edge, used
+        // by the "Symmetric" front-gap option to mirror the same margin on that side too.
+        const QANAT_LAT_N = _shaftLats.length ? Math.max(..._shaftLats) : 49.6659;
         let pillarDefs = SHAFT_BASE.map(p => ({ id: p.id, x: p.x, z: p.z }));
         // Map a real WGS84 coordinate into the current scene window (georeferenced placement).
         function geoToScene(lat, lon) {
@@ -1494,10 +1504,22 @@
                 // Only ~540 m of data lies north of the qanat, so shrink the square to fit
                 // (cheap — no extra sampling); the qanat stays pinned at the front.
                 const frontMarginLat = params.frontMarginM / 111320;   // gap south of the end shaft (dev slider)
-                const availLat = (GEO_BBOX.north - QANAT_LAT_S) + frontMarginLat;
-                if (spanLat > availLat) { spanLat = availLat; spanLon = spanLat / cosLat; }
-                south = QANAT_LAT_S - frontMarginLat;
-                north = south + spanLat;
+                if (params.frontMarginSymmetric) {
+                    // Mirror the same gap on the back/north side: the square is now pinned by
+                    // BOTH ends of the qanat route (+ margin) rather than floating freely north.
+                    south = QANAT_LAT_S - frontMarginLat;
+                    north = QANAT_LAT_N + frontMarginLat;
+                    spanLat = Math.max(spanLat, north - south);
+                    if (spanLat > (GEO_BBOX.north - GEO_BBOX.south)) spanLat = GEO_BBOX.north - GEO_BBOX.south;
+                    spanLon = spanLat / cosLat;
+                    const mid = (south + north) / 2;
+                    south = mid - spanLat / 2; north = mid + spanLat / 2;
+                } else {
+                    const availLat = (GEO_BBOX.north - QANAT_LAT_S) + frontMarginLat;
+                    if (spanLat > availLat) { spanLat = availLat; spanLon = spanLat / cosLat; }
+                    south = QANAT_LAT_S - frontMarginLat;
+                    north = south + spanLat;
+                }
             } else {
                 south = cLat - spanLat / 2; north = cLat + spanLat / 2;
             }
@@ -1738,6 +1760,14 @@
         const SHAFT_RADIUS_M = (SSOT.site.site.shaftDiameterRangeM[0] + SSOT.site.site.shaftDiameterRangeM[1]) / 4;
         const GALLERY_RADIUS_M = ((SSOT.site.site.galleryWidthRangeM[0] + SSOT.site.site.galleryWidthRangeM[1]) / 2 +
             (SSOT.site.site.galleryHeightRangeM[0] + SSOT.site.site.galleryHeightRangeM[1]) / 2) / 4;
+        // Darkens the configured (light, paper-toned) scene background to match the OS/browser
+        // dark-mode preference, since the sidebar chrome is always-dark but the 3D view background
+        // otherwise stays a fixed light cream regardless of the user's theme.
+        function sceneBackgroundColor() {
+            const light = MODEL_CONFIG.background || '#f5f0ea';
+            const dark = MODEL_CONFIG.backgroundDark || '#20242c';
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? dark : light;
+        }
         function sceneRadius(realRadiusM, exaggeratedRadius) {
             const trueRadius = realRadiusM / metersPerXUnit();
             return exaggeratedRadius + (trueRadius - exaggeratedRadius) * params.diameterRealism;
@@ -1772,7 +1802,9 @@
 
             const CAM = MODEL_CONFIG.camera || { fov: 13, position: [0, 20, 96], target: [2, 3, 0], near: 1, far: 1000 };
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(MODEL_CONFIG.background || '#f5f0ea');
+            scene.background = new THREE.Color(sceneBackgroundColor());
+            const darkModeMQ = window.matchMedia('(prefers-color-scheme: dark)');
+            darkModeMQ.addEventListener('change', () => { scene.background = new THREE.Color(sceneBackgroundColor()); });
 
             camera = new THREE.PerspectiveCamera(CAM.fov, container.clientWidth / container.clientHeight, CAM.near, CAM.far);
             // Low, wide oblique angle matching the reference panorama (from model-config.json).
@@ -2424,13 +2456,13 @@
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
                 const start = Math.floor((n - exC) / 2), end = start + exC;
-                // The hollow reconstructed bore (walkable interior, not a solid slug) is needed
-                // wherever the Qanat cross-section cutaway might cut — else the cut would expose
-                // a solid tube's flat clipped face instead of the tunnel's empty interior. Its
-                // reach is the explored core by default, or the WHOLE route (documented AND
-                // inferred ends) when "Extend hollow along full route" is on.
-                const wantHollow = params.detailedGallery || params.xsecCutaway;
-                const fullRouteHollow = params.xsecCutaway && params.xsecCutawayFullRoute;
+                // The hollow reconstructed bore (walkable interior, not a solid slug) is its
+                // own dev toggle ("Detailed gallery") — the Qanat cutaway does NOT turn it on
+                // by itself; if only the cutaway is active it slices open a solid tube (still
+                // shows position/depth), and "Extend hollow along full route" only matters
+                // when the detailed gallery is also on.
+                const wantHollow = params.detailedGallery;
+                const fullRouteHollow = params.detailedGallery && params.xsecCutawayFullRoute;
                 if (wantHollow) {
                     const hollowPts = fullRouteHollow ? basePts : basePts.slice(start, end);
                     buildDetailedGallery(hollowPts);
@@ -3218,6 +3250,15 @@
                 buildParametricModel();
                 updateZoomClamp();
             });
+            // Mirror the same front-edge gap onto the back/north side, so the qanat sits
+            // centred with an equal margin at both ends instead of the terrain floating
+            // freely north.
+            document.getElementById('param-front-margin-symmetric').addEventListener('change', e => {
+                params.frontMarginSymmetric = e.target.checked;
+                sliceReadout();
+                buildParametricModel();
+                updateZoomClamp();
+            });
             // Debug: terrain tessellation density multiplier — rebuilds the mesh/contours so the
             // quality-vs-cost trade-off (and the contour-occlusion fix) can be checked live.
             document.getElementById('param-density').addEventListener('input', e => {
@@ -3272,6 +3313,7 @@
                 // Detailed strata is a DEV-only overlay AND needs geology shown.
                 document.getElementById('row-strata-detail').style.display = (g && params.devMode) ? '' : 'none';
                 document.getElementById('row-perched').style.display = g ? '' : 'none';
+                document.getElementById('row-xsec-fullroute').style.display = (params.devMode && params.xsecCutaway) ? '' : 'none';
             };
 
             // Developer mode (Super/⌘ + D): red screen frame + exposes the dev-only toggles
@@ -3284,6 +3326,7 @@
                 document.getElementById('grp-density').style.display = params.devMode ? '' : 'none'; // terrain density is dev-only
                 document.getElementById('row-shaft-cutaway').style.display = params.devMode ? '' : 'none';   // look-inside cutaway is dev-only
                 document.getElementById('row-see-inside').style.display = params.devMode ? '' : 'none';     // see-inside cutaway is dev-only
+                document.getElementById('row-xsec-cutaway').style.display = params.devMode ? '' : 'none';   // qanat lengthwise cutaway is dev-only
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
                 document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
@@ -3303,6 +3346,12 @@
                         document.getElementById('param-see-inside').checked = false;
                         applyCutaway();
                         const cn = document.getElementById('cutaway-note'); if (cn) cn.style.display = 'none';
+                    }
+                    if (params.xsecCutaway) {
+                        params.xsecCutaway = false; params.xsecCutawayFullRoute = false;
+                        document.getElementById('param-xsec-cutaway').checked = false;
+                        document.getElementById('param-xsec-fullroute').checked = false;
+                        rebuild = true;
                     }
                     // The "P2-P3 anchored" profile spacing is dev-only; its dropdown option
                     // disappears on exit, so fall back to plain schematic to keep control+chart in sync.
@@ -3501,6 +3550,7 @@
             // vs. full route) and the lengthwise strata-cut mesh are both decided at build time.
             document.getElementById('param-xsec-cutaway').addEventListener('change', e => {
                 params.xsecCutaway = e.target.checked;
+                syncConditionalOptions();   // "extend hollow along full route" only makes sense once this is on
                 buildParametricModel();
             });
             document.getElementById('param-xsec-fullroute').addEventListener('change', e => {
