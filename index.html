@@ -1814,8 +1814,14 @@
                     south = routeMid - half; north = routeMid + half;
                     spanLat = north - south;
                 } else {
+                    // Same "not a square" fix as the Symmetric branch above: capping spanLat
+                    // here used to also recompute spanLon = spanLat / cosLat, so moving the
+                    // clip-off margin (which shifts availLat) silently resized the E–W width
+                    // too — the margin looked like it was squaring the window instead of only
+                    // adjusting the front (south) edge. spanLon (and params.width) now stays
+                    // exactly whatever "Surrounding area" set; only spanLat/depth change here.
                     const availLat = (GEO_BBOX.north - QANAT_LAT_S) + frontMarginLat;
-                    if (spanLat > availLat) { spanLat = availLat; spanLon = spanLat / cosLat; }
+                    if (spanLat > availLat) spanLat = availLat;
                     south = QANAT_LAT_S - frontMarginLat;
                     north = south + spanLat;
                 }
