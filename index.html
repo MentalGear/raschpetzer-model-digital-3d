@@ -1696,11 +1696,12 @@
         const GEO_BBOX = { west: 6.138, east: 6.162, south: 49.6618, north: 49.6708 };
         const GEO_COLS = 40, GEO_ROWS = 22;
 
-        // Default rendered window = a ~866 m SQUARE patch of ground centred on the grid,
-        // framing the ~300 m qanat. `lon` sets the E–W span; the N–S span is derived to match
-        // in metres (see recomputeGeoView), so the surrounding area is always square. `lat` is
-        // retained only for the offline procedural fallback.
-        const GEO_VIEW_SPAN = { lon: 0.012, lat: 0.0045 };
+        // Default rendered window = a 1000 m SQUARE patch of ground centred on the grid at
+        // "Surrounding area" = 1x, framing the ~300 m qanat. `lon` sets the E–W span; the N–S
+        // span is derived to match in metres (see recomputeGeoView), so the surrounding area
+        // is always square. `lat` is retained only for the offline procedural fallback (kept
+        // in step with `lon` here so the two stay dimensionally consistent).
+        const GEO_VIEW_SPAN = { lon: 0.013879, lat: 0.008983 };
         // Cached view window (WGS84 bbox); recomputed whenever "Surrounding area" moves.
         // The window is always CENTERED on the full grid; `surround` grows it out to the full
         // sampled extent. In GeoData mode shafts are placed by their real geo coordinates
@@ -2831,7 +2832,7 @@
                     const m = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 10),
                         new THREE.MeshBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.95 }));
                     m.position.set(p.x, p.y + 0.16, p.z); m.renderOrder = 15;   // sits on the gallery tube
-                    m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac };
+                    m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac, w: s.w, h: s.h };
                     modelGroup.add(m); xsecMeshes.push(m);
                 });
             }
@@ -4745,7 +4746,8 @@
             const gp = g._prov || {};
             const pos = x.frac != null ? ' · ≈' + Math.round(x.frac * 100) + '% from the west (P‑5→P9)' : '';
             let h = `<h3>Qanat cross-section</h3><div class="ip-sub">Section at a point along the qanat${pos}</div>`;
-            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" width="${x.w}" height="${x.h}" alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
+            const dims = (x.w && x.h) ? ` width="${x.w}" height="${x.h}"` : '';
+            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}"${dims} alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
             if (x.label) h += `<div class="ip-note">${x.label}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
                 `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
