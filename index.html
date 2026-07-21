@@ -25,6 +25,7 @@
             color: var(--text-color);
             overflow: hidden;
             display: flex;
+            flex-direction: column;   /* #wip-banner on top, #app-row (canvas + panel) below */
             height: 100vh;
             height: 100dvh;   /* dynamic viewport: iOS Safari toolbars don't clip bottom UI */
         }
@@ -33,7 +34,8 @@
             order: 1;
             flex: 1 1 auto;
             min-width: 0;
-            height: 100%;
+            height: 100%;   /* 100% of #app-row's resolved height, not the viewport directly —
+                                so it automatically shrinks to make room for #wip-banner above */
             position: relative;
         }
 
@@ -169,8 +171,7 @@
             order: 2;
             flex: 0 0 var(--panel-w, 340px);
             width: var(--panel-w, 340px);
-            height: 100vh;
-            height: 100dvh;
+            height: 100%;   /* of #app-row, not the viewport — shrinks to make room for #wip-banner */
             position: relative;
             background: var(--panel-bg);
             border-left: 1px solid rgba(255, 255, 255, 0.08);
@@ -386,7 +387,7 @@
         /* Mobile drawer */
         #drawer-close { display: block; background: none; border: none; color: #9ca3af;
             font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 2px; }
-        #drawer-toggle { display: none; position: fixed; top: 12px; right: 12px; z-index: 41;
+        #drawer-toggle { display: none; position: fixed; top: calc(var(--wip-h) + 12px); right: 12px; z-index: 41;
             width: 46px; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.18);
             background: rgba(18,20,28,0.85); color: #fff; font-size: 1.3rem; line-height: 1; cursor: pointer;
             align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.45); }
@@ -399,15 +400,19 @@
         body.panel-resizing { cursor: ew-resize; user-select: none; }
         body.panel-hidden #ui-panel { display: none; }
         body.panel-hidden #drawer-toggle { display: flex; }   /* floating reopen button */
+        /* Fixed-position chrome (the mobile drawer, its reopen button) escapes the normal flex
+           flow entirely — it positions against the viewport regardless of DOM nesting — so it
+           needs this offset explicitly to clear #wip-banner. Measured by JS (banner text can
+           wrap to 2 lines on narrow screens) and 0 once the banner is dismissed. */
+        :root { --wip-h: 0px; }
         @media (max-width: 760px) {
-            body { display: block; }
             #panel-resize { display: none; }   /* mobile uses the drawer, not the resize handle */
-            /* Keep the canvas in normal flow sized to the dynamic viewport. An absolutely
-               positioned inset:0 canvas pins to the *layout* viewport, whose top sits behind
-               the iOS Safari address bar and clips the top of the scene; dvh in-flow fills
-               exactly the visible area (top and bottom) instead. */
-            #canvas-container { position: relative; width: 100%; height: 100vh; height: 100dvh; }
-            #ui-panel { position: fixed; top: 0; right: 0; height: 100%; width: min(360px, 88vw);
+            /* #app-row (flex:1 in the column-direction body) already sizes the canvas to
+               "dynamic viewport minus #wip-banner"; 100% of that (not another hardcoded 100vh)
+               is what avoids clipping the bottom behind the iOS Safari address bar. */
+            #canvas-container { position: relative; width: 100%; height: 100%; }
+            #ui-panel { position: fixed; top: var(--wip-h); right: 0; height: calc(100% - var(--wip-h));
+                width: min(360px, 88vw);
                 transform: translateX(100%); transition: transform 0.25s ease; z-index: 40; }
             body.drawer-open #ui-panel { transform: translateX(0); }
             #drawer-toggle { display: flex; }
@@ -446,12 +451,22 @@
                 align-items: center; justify-content: center; font-size: 1.7rem; }
             #compass { width: 56px; height: 56px; }
         }
-        /* Work-in-progress / feedback note at the top of the sidebar */
-        #wip-note { margin: 4px 0 12px; font-size: 0.74rem; line-height: 1.35; color: #e6b45a;
-            background: rgba(230,180,90,0.10); border: 1px solid rgba(230,180,90,0.30);
-            border-radius: 8px; padding: 7px 11px; }
-        #wip-note a { color: #f0a94b; font-weight: 700; text-decoration: underline; }
-        #wip-note a:hover { color: #ffc46f; }
+        /* Work-in-progress / feedback banner: full-width, top of the WINDOW (above both the 3D
+           view and the sidebar), not tucked inside the sidebar's scrolling content. Normal flow
+           (not fixed) so #app-row's flex:1 automatically reclaims its space on dismiss — no JS
+           resize needed elsewhere. */
+        #wip-banner { position: relative; flex: 0 0 auto; display: flex; align-items: center;
+            justify-content: center; gap: 10px; font-size: 0.78rem; line-height: 1.3; color: #e6b45a;
+            background: #1c1710; border-bottom: 1px solid rgba(230,180,90,0.30);
+            padding: 7px 40px; text-align: center; }
+        #wip-banner a { color: #f0a94b; font-weight: 700; text-decoration: underline; }
+        #wip-banner a:hover { color: #ffc46f; }
+        #wip-banner-close { position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: #b08a4a; font-size: 1.2rem; line-height: 1;
+            cursor: pointer; padding: 4px; }
+        #wip-banner-close:hover { color: #ffc46f; }
+        body.wip-dismissed #wip-banner { display: none; }
+        #app-row { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; }
         /* Touch-friendly panel controls: bigger checkbox + taller slider hit areas */
         .check-row input[type="checkbox"] { width: 18px; height: 18px; }
         @media (pointer: coarse) {
@@ -664,9 +679,14 @@
 </head>
 <body>
 
+    <div id="wip-banner">🚧 Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a>
+        <button id="wip-banner-close" type="button" aria-label="Dismiss">×</button>
+    </div>
+
     <button id="drawer-toggle" type="button" aria-label="Open controls">☰</button>
     <div id="drawer-scrim"></div>
 
+    <div id="app-row">
     <div id="ui-panel">
         <div id="panel-resize" title="Drag to resize · release small to hide"></div>
         <div id="panel-sticky">
@@ -769,8 +789,6 @@
         </div>
         </div>
 
-        <div id="wip-note">🚧 Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a></div>
-
         <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
              don't want to hand-tune the controls below. Presets SET the manual controls (they
              don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
@@ -824,6 +842,14 @@
                 <button id="btn-view-w" type="button" title="Face west">W</button>
             </div>
         </div>
+        <div class="control-group">
+            <label>Navigation</label>
+            <div class="segmented" id="nav-mode">
+                <button id="btn-nav-normal" type="button" class="active" title="Map-like: drag pans, right-drag / two-finger rotates">Normal</button>
+                <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
+            </div>
+            <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
+        </div>
         <div class="control-group" id="grp-baselayer">
             <label for="param-baselayer">Map layer</label>
             <select id="param-baselayer">
@@ -836,14 +862,6 @@
                 <option value="none">Plain</option>
             </select>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
-        </div>
-        <div class="control-group">
-            <label>Navigation</label>
-            <div class="segmented" id="nav-mode">
-                <button id="btn-nav-normal" type="button" class="active" title="Map-like: drag pans, right-drag / two-finger rotates">Normal</button>
-                <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
-            </div>
-            <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
         </div>
         </div>
 
@@ -1021,8 +1039,24 @@
             <button id="tour-stop" type="button" aria-label="Stop">✕</button>
         </div>
     </div>
+    </div>
 
     <script>
+        // #wip-banner is a normal-flow flex item (so #app-row's flex:1 auto-reclaims its space
+        // on dismiss), but the drawer + its reopen button are position:fixed — those escape the
+        // flex flow entirely and position against the viewport, so they need the banner's real
+        // height (it can wrap to 2 lines on narrow screens) fed back in as a CSS var to clear it.
+        (function () {
+            const banner = document.getElementById('wip-banner');
+            const closeBtn = document.getElementById('wip-banner-close');
+            const sync = () => {
+                const h = (banner && !document.body.classList.contains('wip-dismissed')) ? banner.offsetHeight : 0;
+                document.documentElement.style.setProperty('--wip-h', h + 'px');
+            };
+            if (closeBtn) closeBtn.addEventListener('click', () => { document.body.classList.add('wip-dismissed'); sync(); });
+            window.addEventListener('resize', sync);
+            sync();
+        })();
         const params = {
             plateauHeight: 5.0,           // vertical unit reference (non-GeoData fallback datum)
             contourSpacing: 0.20,
@@ -1229,16 +1263,19 @@
         // Gallery cross-sections (Brochure 2018, fig 5-15): each is taken at a POINT ALONG the
         // qanat (frac: west 0 = P-5 mother shaft → east 1 = P9), not at a shaft. Clicking the
         // hotspot opens the drawing. Fractions traced from the figure's connector lines.
+        // w/h are the source images' real pixel dimensions (not display size) — passed through
+        // to <img width height> so the browser reserves the correct box before the image has
+        // loaded/decoded, instead of collapsing to 0 height and jumping once it arrives.
         const GALLERY_SECTIONS = [
-            { frac: 0.000, img: 'assets/gallery-sections/xsec-0.webp', label: 'Gallery cross-section — near the P-5 mother shaft; spring rising at the base (spoil-filled). Brochure 2018, fig 5-15' },
-            { frac: 0.214, img: 'assets/gallery-sections/xsec-1.webp', label: 'Gallery cross-section — spoil-filled shaft, limestone roof. Brochure 2018, fig 5-15' },
-            { frac: 0.273, img: 'assets/gallery-sections/xsec-2.webp', label: 'Gallery cross-section — open vault, rubble floor, limestone crown. Brochure 2018, fig 5-15' },
-            { frac: 0.583, img: 'assets/gallery-sections/xsec-3.webp', label: 'Gallery cross-section — collapsed vault with wall/ceiling breakout + rubble. Brochure 2018, fig 5-15' },
-            { frac: 0.672, img: 'assets/gallery-sections/xsec-4.webp', label: 'Gallery cross-section — broken vault, rubble floor. Brochure 2018, fig 5-15' },
-            { frac: 0.737, img: 'assets/gallery-sections/xsec-5.webp', label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
-            { frac: 0.803, img: 'assets/gallery-sections/xsec-6.webp', label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
-            { frac: 0.870, img: 'assets/gallery-sections/xsec-7.webp', label: 'Gallery cross-section — limestone base. Brochure 2018, fig 5-15' },
-            { frac: 0.928, img: 'assets/gallery-sections/xsec-8.webp', label: 'Gallery cross-section — wide dry-masonry channel in limestone. Brochure 2018, fig 5-15' }
+            { frac: 0.000, img: 'assets/gallery-sections/xsec-0.webp', w: 560, h: 1225, label: 'Gallery cross-section — near the P-5 mother shaft; spring rising at the base (spoil-filled). Brochure 2018, fig 5-15' },
+            { frac: 0.214, img: 'assets/gallery-sections/xsec-1.webp', w: 560, h: 1181, label: 'Gallery cross-section — spoil-filled shaft, limestone roof. Brochure 2018, fig 5-15' },
+            { frac: 0.273, img: 'assets/gallery-sections/xsec-2.webp', w: 560, h: 1166, label: 'Gallery cross-section — open vault, rubble floor, limestone crown. Brochure 2018, fig 5-15' },
+            { frac: 0.583, img: 'assets/gallery-sections/xsec-3.webp', w: 560, h: 1162, label: 'Gallery cross-section — collapsed vault with wall/ceiling breakout + rubble. Brochure 2018, fig 5-15' },
+            { frac: 0.672, img: 'assets/gallery-sections/xsec-4.webp', w: 560, h: 1183, label: 'Gallery cross-section — broken vault, rubble floor. Brochure 2018, fig 5-15' },
+            { frac: 0.737, img: 'assets/gallery-sections/xsec-5.webp', w: 560, h: 1183, label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
+            { frac: 0.803, img: 'assets/gallery-sections/xsec-6.webp', w: 560, h: 1176, label: 'Gallery cross-section — rounded vault in marl. Brochure 2018, fig 5-15' },
+            { frac: 0.870, img: 'assets/gallery-sections/xsec-7.webp', w: 560, h: 1166, label: 'Gallery cross-section — limestone base. Brochure 2018, fig 5-15' },
+            { frac: 0.928, img: 'assets/gallery-sections/xsec-8.webp', w: 560, h: 1227, label: 'Gallery cross-section — wide dry-masonry channel in limestone. Brochure 2018, fig 5-15' }
         ];
 
         // Terrain opacity drives the fill surface AND the contour lines together, live
@@ -4596,7 +4633,7 @@
             const gp = g._prov || {};
             const pos = x.frac != null ? ' · ≈' + Math.round(x.frac * 100) + '% from the west (P‑5→P9)' : '';
             let h = `<h3>Qanat cross-section</h3><div class="ip-sub">Section at a point along the qanat${pos}</div>`;
-            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
+            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" width="${x.w}" height="${x.h}" alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
             if (x.label) h += `<div class="ip-note">${x.label}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
                 `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
@@ -5165,7 +5202,7 @@
                         : ``) +
                 `</select></label>` +
                 `<div class="pp-geoimg" id="pp-geoimg" style="display:${profileImgOn ? 'block' : 'none'}">` +
-                    `<img class="lb-img" src="assets/geo-section-brochure.webp" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)" title="Click to enlarge">` +
+                    `<img class="lb-img" src="assets/geo-section-brochure.webp" width="1200" height="617" alt="Simplified geological cross-section through the Raschpëtzer catchment (Brochure 2018, fig 4-2)" title="Click to enlarge">` +
                     `<div class="pp-credit">© R. Maquil / S. Faber / H. Werner / R. Colbach · Brochure 2018, fig 4‑2 · used with permission</div>` +
                 `</div>`;
             const basis = anchored
