@@ -2804,17 +2804,22 @@
                     modelGroup.add(s);
                 }
 
-                // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate)
+                // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate).
+                // Coloured to match the shaft's own documented-status orange (COL.shaft), not
+                // the gallery's water blue: a floor step is a structural/construction fact, not
+                // a hydrological one, and reusing the water colour read as "water pools here"
+                // even though the real reason the gallery is blue (water still runs through it
+                // today, ~180 m³/day per Brochure 2018 p.4/29) has nothing to do with this marker.
                 SSOT.gallery.gallery.steps.forEach(step => {
                     const id = step.underShaft, txt = step.dropM + ' m step';
                     const bp = shaftBaseById[id];
                     if (!bp) return;
                     const tick = new THREE.Mesh(
                         new THREE.CylinderGeometry(0.07, 0.07, 0.9, 8),
-                        new THREE.MeshBasicMaterial({ color: galleryColor, depthTest: false }));
+                        new THREE.MeshBasicMaterial({ color: COL.shaft, depthTest: false }));
                     tick.position.set(bp.x, bp.y + 0.45, bp.z); tick.renderOrder = 5;
                     subsurfaceGroup.add(tick);
-                    const s = createTextSprite(txt, '#1d6fd6', 20);
+                    const s = createTextSprite(txt, COL.shaft, 20);
                     s.scale.set(3.0, 0.8, 1);
                     s.position.set(bp.x, bp.y + 1.35, bp.z);
                     modelGroup.add(s);
