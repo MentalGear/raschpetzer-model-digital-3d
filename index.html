@@ -329,6 +329,10 @@
             cursor: pointer; transition: background 0.12s; }
         .segmented button:first-child { border-left: none; }
         .segmented button:hover { background: #4b5563; }
+        /* Pre-existing gap: .active was already toggled by JS on the Normal/Power nav buttons
+           (and now the Theme buttons), but no rule ever painted it — so the "selected" segment
+           never visually differed from the rest. */
+        .segmented button.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; font-weight: 600; }
         /* Attention cues */
         @keyframes navHintFlash { 0% { background: rgba(96,165,250,0); } 18% { background: rgba(96,165,250,0.30); }
             100% { background: rgba(96,165,250,0); } }
@@ -535,6 +539,14 @@
         .preset-card .pc-label { font-size: 0.78rem; font-weight: 600; color: #fff; }
         .preset-card .pc-desc { font-size: 0.65rem; color: #9ca3af; line-height: 1.25; }
         .preset-card.wide .pc-desc { display: none; }   /* the wide card's label alone is self-explanatory */
+        /* Dev-set persistent preference (params.presetsCompact): a denser card for people who
+           want the one-tap views available without the fuller "brochure" footprint. */
+        body.presets-compact .preset-card { flex-direction: row; justify-content: flex-start;
+            gap: 7px; padding: 7px 9px; text-align: left; }
+        body.presets-compact .preset-card.wide { justify-content: flex-start; }
+        body.presets-compact .preset-card .pc-ico { font-size: 1rem; }
+        body.presets-compact .preset-card .pc-label { font-size: 0.72rem; }
+        body.presets-compact .preset-card .pc-desc { display: none; }   /* icon + label only */
         #inspector-pane { display: none; }
         #inspector-empty { color: #9ca3af; font-size: 0.84rem; line-height: 1.55; padding: 10px 2px; }
         #inspector-pane.has-selection #inspector-empty { display: none; }
@@ -605,7 +617,11 @@
         #tour-label { color: #f3f4f6; font-size: 0.82rem; min-width: 120px; text-align: center; font-weight: 600; }
 
         /* Dark mode: the paper-styled modals (Data sources / Qanat Profile / Legend) flip to a
-           dark surface so they match the rest of the (always-dark) chrome instead of glaring white. */
+           dark surface so they match the rest of the (always-dark) chrome instead of glaring
+           white. Default signal is the OS/browser preference; the panel-bottom Theme toggle can
+           pin it either way via <html data-theme>, which — being more specific than the plain
+           media query — wins in both directions (a "Light" pin still wins under an OS dark
+           preference, and vice versa). */
         @media (prefers-color-scheme: dark) {
             .modal-card { background: #1b1e26; color: #cdd3dd; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
             .modal-card .modal-title { color: #fff; }
@@ -618,6 +634,28 @@
             #profile-panel .pp-toggle select { background: #2b2f3a; color: #e5e7eb; border-color: rgba(255,255,255,0.18); }
             #legend-modal .legend-sep { background: rgba(255,255,255,0.14); }
         }
+        :root[data-theme="dark"] .modal-card { background: #1b1e26; color: #cdd3dd; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+        :root[data-theme="dark"] .modal-card .modal-title { color: #fff; }
+        :root[data-theme="dark"] .modal-card b { color: #f0a94b; }
+        :root[data-theme="dark"] .modal-close { color: #8b93a3; }
+        :root[data-theme="dark"] .modal-close:hover { color: #fff; }
+        :root[data-theme="dark"] #profile-panel .pp-title { color: #f3f4f6; }
+        :root[data-theme="dark"] #profile-panel .pp-sub, :root[data-theme="dark"] #profile-panel .pp-credit { color: #9ca3af; }
+        :root[data-theme="dark"] #profile-panel .pp-toggle { color: #cbd5e1; }
+        :root[data-theme="dark"] #profile-panel .pp-toggle select { background: #2b2f3a; color: #e5e7eb; border-color: rgba(255,255,255,0.18); }
+        :root[data-theme="dark"] #legend-modal .legend-sep { background: rgba(255,255,255,0.14); }
+        /* Explicit "Light" pin: forces the original paper values back on even under an OS dark
+           preference (the plain @media rule above would otherwise still apply). */
+        :root[data-theme="light"] .modal-card { background: #fbf8f3; color: #3a3226; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        :root[data-theme="light"] .modal-card .modal-title { color: #2a2318; }
+        :root[data-theme="light"] .modal-card b { color: #b06a00; }
+        :root[data-theme="light"] .modal-close { color: #8a7a63; }
+        :root[data-theme="light"] .modal-close:hover { color: #2a2318; }
+        :root[data-theme="light"] #profile-panel .pp-title { color: #333; }
+        :root[data-theme="light"] #profile-panel .pp-sub, :root[data-theme="light"] #profile-panel .pp-credit { color: #6f6250; }
+        :root[data-theme="light"] #profile-panel .pp-toggle { color: #4a3f2f; }
+        :root[data-theme="light"] #profile-panel .pp-toggle select { background: #fff; color: #3a3226; border-color: rgba(0,0,0,0.15); }
+        :root[data-theme="light"] #legend-modal .legend-sep { background: rgba(0,0,0,0.1); }
     </style>
     <script src="vendor/three.min.js"></script>
     <script src="vendor/OrbitControls.js"></script>
@@ -646,6 +684,87 @@
                 <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
                 <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">⛰️</span><span class="tl">Terrain</span></button>
             </div>
+        </div>
+
+        <div class="tab-section">
+
+        <div id="tab-panes">
+        <div class="tab-pane active" data-pane="map">
+            <div class="control-group" id="grp-contours">
+                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
+                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
+            </div>
+            <div class="control-group">
+                <label>Overlays (geoportail)</label>
+                <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
+                <label class="check-row"><input type="checkbox" id="ov-contours"> Official&nbsp;contour&nbsp;lines</label>
+                <label class="check-row"><input type="checkbox" id="ov-spot"> Spot&nbsp;elevations</label>
+                <label class="check-row"><input type="checkbox" id="ov-break"> Break&nbsp;lines</label>
+            </div>
+        </div>
+        <div class="tab-pane" data-pane="qanat">
+            <div class="control-group">
+                <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
+                <label class="check-row"><input type="checkbox" id="param-dip"> Bedding&nbsp;dip&nbsp;(≈2%&nbsp;SE,&nbsp;exaggerated)</label>
+                <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
+                <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
+                <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
+                <label id="lbl-realistic-diameters">Shaft/gallery diameter realism <span class="val" id="lbl-realism-val">50%</span></label>
+                <input type="range" id="param-realistic-diameters" min="0" max="1" step="0.05" value="0.5" aria-label="Shaft and gallery diameter realism: 0% is the default, deliberately oversized-for-visibility size; 100% is true 1:1 scale">
+                <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 10px;line-height:1.35;">0%&nbsp;=&nbsp;today's oversized-for-visibility default; 100%&nbsp;=&nbsp;true&nbsp;scale (real ~1&nbsp;m shafts, ~15-45&nbsp;cm gallery — thin against the 700&nbsp;m terrain).</div>
+                <label class="check-row dev-opt" id="row-see-inside"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
+                <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 10px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
+                <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
+                <label class="check-row dev-opt" id="row-xsec-cutaway"><input type="checkbox" id="param-xsec-cutaway"> Qanat&nbsp;cutaway&nbsp;(slice&nbsp;lengthwise&nbsp;along&nbsp;the&nbsp;route&nbsp;centreline)</label>
+                <label class="check-row dev-opt" id="row-xsec-fullroute" style="margin-left:22px"><input type="checkbox" id="param-xsec-fullroute"> Extend&nbsp;hollow&nbsp;interior&nbsp;along&nbsp;the&nbsp;full&nbsp;route&nbsp;(incl.&nbsp;inferred&nbsp;ends)</label>
+                <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
+                <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Underground opacity">
+                <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
+                <label class="check-row" id="row-sounding"><input type="checkbox" id="param-sounding"> Exploratory&nbsp;sounding&nbsp;gallery&nbsp;(P1,&nbsp;abandoned)</label>
+                <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
+                <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
+                <label class="check-row"><input type="checkbox" id="param-villa" checked> Villa&nbsp;(inferred&nbsp;recipient)</label>
+                <label class="check-row"><input type="checkbox" id="param-xsec" checked> Qanat&nbsp;cross‑sections</label>
+                <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
+            </div>
+        </div>
+        <div class="tab-pane" data-pane="terrain">
+            <div class="control-group">
+                <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
+                <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
+                <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
+                <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
+                <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
+                <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
+                <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
+            </div>
+            <div class="control-group" id="grp-frontedge">
+                <label>Qanat front-edge gap <span class="val" id="lbl-front-margin">0&nbsp;m</span></label>
+                <input type="range" id="param-front-margin" min="0" max="500" step="5" value="0" aria-label="Qanat front-edge gap (metres): 0 pins the qanat to the front cut face">
+                <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;margin-bottom:10px;line-height:1.35;">0&nbsp;=&nbsp;qanat at the front cut face (strata read behind it); slide back to inset it.</div>
+                <label class="check-row" id="row-front-margin-symmetric"><input type="checkbox" id="param-front-margin-symmetric"> Symmetric&nbsp;(mirror&nbsp;the&nbsp;same&nbsp;gap&nbsp;on&nbsp;the&nbsp;back/north&nbsp;side)</label>
+            </div>
+            <div class="control-group" id="grp-terrain-opacity">
+                <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
+                <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0" aria-label="Terrain opacity">
+            </div>
+            <div class="control-group" id="grp-surround">
+                <label>Surrounding area <span class="val" id="lbl-surround">1.20×</span></label>
+                <input type="range" id="param-surround" min="0.45" max="1.20" step="0.05" value="1.20" aria-label="Surrounding area extent">
+                <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            </div>
+            <div class="control-group" id="grp-density">
+                <label>Terrain density <span class="val" id="lbl-density">1.0×</span></label>
+                <input type="range" id="param-density" min="0.5" max="2.0" step="0.25" value="1.0" aria-label="Terrain mesh density">
+                <div id="density-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            </div>
+            <div class="control-group" id="grp-vexag">
+                <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
+                <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0" aria-label="Vertical exaggeration">
+                <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
+            </div>
+        </div>
+        </div>
         </div>
 
         <div id="wip-note">🚧 Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a></div>
@@ -736,87 +855,6 @@
             <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
         </div>
 
-        <div class="tab-section">
-
-        <div id="tab-panes">
-        <div class="tab-pane active" data-pane="map">
-            <div class="control-group" id="grp-contours">
-                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
-                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
-            </div>
-            <div class="control-group">
-                <label>Overlays (geoportail)</label>
-                <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
-                <label class="check-row"><input type="checkbox" id="ov-contours"> Official&nbsp;contour&nbsp;lines</label>
-                <label class="check-row"><input type="checkbox" id="ov-spot"> Spot&nbsp;elevations</label>
-                <label class="check-row"><input type="checkbox" id="ov-break"> Break&nbsp;lines</label>
-            </div>
-        </div>
-        <div class="tab-pane" data-pane="qanat">
-            <div class="control-group">
-                <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
-                <label class="check-row"><input type="checkbox" id="param-dip"> Bedding&nbsp;dip&nbsp;(≈2%&nbsp;SE,&nbsp;exaggerated)</label>
-                <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
-                <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
-                <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
-                <label id="lbl-realistic-diameters">Shaft/gallery diameter realism <span class="val" id="lbl-realism-val">50%</span></label>
-                <input type="range" id="param-realistic-diameters" min="0" max="1" step="0.05" value="0.5" aria-label="Shaft and gallery diameter realism: 0% is the default, deliberately oversized-for-visibility size; 100% is true 1:1 scale">
-                <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 10px;line-height:1.35;">0%&nbsp;=&nbsp;today's oversized-for-visibility default; 100%&nbsp;=&nbsp;true&nbsp;scale (real ~1&nbsp;m shafts, ~15-45&nbsp;cm gallery — thin against the 700&nbsp;m terrain).</div>
-                <label class="check-row dev-opt" id="row-see-inside"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
-                <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 10px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
-                <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
-                <label class="check-row dev-opt" id="row-xsec-cutaway"><input type="checkbox" id="param-xsec-cutaway"> Qanat&nbsp;cutaway&nbsp;(slice&nbsp;lengthwise&nbsp;along&nbsp;the&nbsp;route&nbsp;centreline)</label>
-                <label class="check-row dev-opt" id="row-xsec-fullroute" style="margin-left:22px"><input type="checkbox" id="param-xsec-fullroute"> Extend&nbsp;hollow&nbsp;interior&nbsp;along&nbsp;the&nbsp;full&nbsp;route&nbsp;(incl.&nbsp;inferred&nbsp;ends)</label>
-                <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
-                <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Underground opacity">
-                <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
-                <label class="check-row" id="row-sounding"><input type="checkbox" id="param-sounding"> Exploratory&nbsp;sounding&nbsp;gallery&nbsp;(P1,&nbsp;abandoned)</label>
-                <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
-                <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
-                <label class="check-row"><input type="checkbox" id="param-villa" checked> Villa&nbsp;(inferred&nbsp;recipient)</label>
-                <label class="check-row"><input type="checkbox" id="param-xsec" checked> Qanat&nbsp;cross‑sections</label>
-                <label class="check-row" style="display:none"><input type="checkbox" id="param-flowanim"> Animate&nbsp;water&nbsp;flow</label>
-            </div>
-        </div>
-        <div class="tab-pane" data-pane="terrain">
-            <div class="control-group">
-                <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
-                <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
-                <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
-                <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
-                <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
-                <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
-                <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
-            </div>
-            <div class="control-group" id="grp-frontedge">
-                <label>Qanat front-edge gap <span class="val" id="lbl-front-margin">0&nbsp;m</span></label>
-                <input type="range" id="param-front-margin" min="0" max="500" step="5" value="0" aria-label="Qanat front-edge gap (metres): 0 pins the qanat to the front cut face">
-                <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;margin-bottom:10px;line-height:1.35;">0&nbsp;=&nbsp;qanat at the front cut face (strata read behind it); slide back to inset it.</div>
-                <label class="check-row" id="row-front-margin-symmetric"><input type="checkbox" id="param-front-margin-symmetric"> Symmetric&nbsp;(mirror&nbsp;the&nbsp;same&nbsp;gap&nbsp;on&nbsp;the&nbsp;back/north&nbsp;side)</label>
-            </div>
-            <div class="control-group" id="grp-terrain-opacity">
-                <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
-                <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0" aria-label="Terrain opacity">
-            </div>
-            <div class="control-group" id="grp-surround">
-                <label>Surrounding area <span class="val" id="lbl-surround">1.20×</span></label>
-                <input type="range" id="param-surround" min="0.45" max="1.20" step="0.05" value="1.20" aria-label="Surrounding area extent">
-                <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-            </div>
-            <div class="control-group" id="grp-density">
-                <label>Terrain density <span class="val" id="lbl-density">1.0×</span></label>
-                <input type="range" id="param-density" min="0.5" max="2.0" step="0.25" value="1.0" aria-label="Terrain mesh density">
-                <div id="density-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-            </div>
-            <div class="control-group" id="grp-vexag">
-                <label>Vertical exaggeration <span class="val" id="lbl-vexag">1.0×</span></label>
-                <input type="range" id="param-vexag" min="0.5" max="5.0" step="0.1" value="1.0" aria-label="Vertical exaggeration">
-                <div id="exag-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
-            </div>
-        </div>
-        </div>
-        </div>
-
         <div id="panel-actions">
         <div class="control-group">
             <label>Tools</label>
@@ -833,7 +871,16 @@
                 <button id="btn-tour" type="button">▶ Guided tour</button>
             </div>
         </div>
+        <div class="control-group" id="theme-toggle">
+            <label>Theme</label>
+            <div class="segmented">
+                <button type="button" data-theme="auto" title="Follow the OS/browser setting">Auto</button>
+                <button type="button" data-theme="light" title="Always light">☼ Light</button>
+                <button type="button" data-theme="dark" title="Always dark">☾ Dark</button>
+            </div>
+        </div>
         <div class="control-group">
+            <label class="check-row dev-opt" id="row-presets-compact"><input type="checkbox" id="param-presets-compact"> Compact&nbsp;quick-view&nbsp;cards</label>
             <button id="btn-dev-mode" type="button" class="dev-toggle">🛠 Developer mode</button>
         </div>
         </div>
@@ -1021,6 +1068,7 @@
             frontMarginM: 0,              // gap (m) between the front terrain edge and the end shaft (qanatFront); default 0
             frontMarginSymmetric: false,  // mirror the same front-edge gap onto the back/north side (qanatFront)
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
+            presetsCompact: false,        // dev-set persistent preference: smaller "Quick views" preset cards
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
         };
 
@@ -1821,9 +1869,28 @@
         const SHAFT_RADIUS_M = (SSOT.site.site.shaftDiameterRangeM[0] + SSOT.site.site.shaftDiameterRangeM[1]) / 4;
         const GALLERY_RADIUS_M = ((SSOT.site.site.galleryWidthRangeM[0] + SSOT.site.site.galleryWidthRangeM[1]) / 2 +
             (SSOT.site.site.galleryHeightRangeM[0] + SSOT.site.site.galleryHeightRangeM[1]) / 2) / 4;
-        // Dark-mode preference, checked live (not cached) so a mid-session OS theme switch
-        // is picked up the next time these are read.
-        function prefersDark() { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+        // Dark-mode preference. Defaults to following the OS/browser, but the panel-bottom
+        // "Theme" toggle can pin it to light/dark regardless (persisted across visits).
+        let themeOverride = (() => {
+            try { return localStorage.getItem('rasch-theme') || 'auto'; } catch (e) { return 'auto'; }
+        })();
+        function prefersDark() {
+            if (themeOverride === 'dark') return true;
+            if (themeOverride === 'light') return false;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        // Applies the theme choice: persists it, stamps <html data-theme> (the modal-card CSS
+        // keys off this, matching the artifact-style pattern of media-query default + explicit
+        // override), and re-tints the scene background + terrain fill for the new state.
+        function applyTheme(mode) {
+            themeOverride = mode;
+            try { localStorage.setItem('rasch-theme', mode); } catch (e) {}
+            document.documentElement.dataset.theme = (mode === 'auto') ? '' : mode;
+            if (scene) scene.background = new THREE.Color(sceneBackgroundColor());
+            if (typeof buildParametricModel === 'function' && modelGroup) buildParametricModel();
+            document.querySelectorAll('#theme-toggle .segmented button').forEach(b =>
+                b.classList.toggle('active', b.dataset.theme === mode));
+        }
         // Darkens the configured (light, paper-toned) scene background to match the OS/browser
         // dark-mode preference, since the sidebar chrome is always-dark but the 3D view background
         // otherwise stays a fixed light cream regardless of the user's theme.
@@ -1869,9 +1936,11 @@
             scene.background = new THREE.Color(sceneBackgroundColor());
             const darkModeMQ = window.matchMedia('(prefers-color-scheme: dark)');
             darkModeMQ.addEventListener('change', () => {
+                if (themeOverride !== 'auto') return;   // an explicit Theme choice wins over the OS
                 scene.background = new THREE.Color(sceneBackgroundColor());
                 buildParametricModel();   // re-tint the terrain fill (dark slate vs. light beige)
             });
+            document.documentElement.dataset.theme = (themeOverride === 'auto') ? '' : themeOverride;
 
             camera = new THREE.PerspectiveCamera(CAM.fov, container.clientWidth / container.clientHeight, CAM.near, CAM.far);
             // Low, wide oblique angle matching the reference panorama (from model-config.json).
@@ -3399,6 +3468,8 @@
                 document.getElementById('row-xsec-cutaway').style.display = params.devMode ? '' : 'none';   // qanat lengthwise cutaway is dev-only
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
+                document.getElementById('panel-presets').style.display = params.devMode ? 'none' : '';   // Quick views hide while poking at dev options
+                document.getElementById('row-presets-compact').style.display = params.devMode ? '' : 'none';   // its own toggle is dev-only, but the effect persists once dev mode exits
                 document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
                 syncConditionalOptions();
             };
@@ -3446,6 +3517,20 @@
             });
             // Discoverable entry point: the button at the bottom of the panel.
             document.getElementById('btn-dev-mode').addEventListener('click', () => setDevMode(!params.devMode));
+
+            // Theme: Auto (OS/browser) / Light / Dark — pins the 3D background + terrain fill
+            // (and the modal cards) regardless of the system preference. Persisted.
+            document.querySelectorAll('#theme-toggle .segmented button').forEach(b => {
+                b.classList.toggle('active', b.dataset.theme === themeOverride);
+                b.addEventListener('click', () => applyTheme(b.dataset.theme));
+            });
+
+            // Dev-only control, persistent effect: shrinks the "Quick views" preset cards
+            // (icon + label only, no caption) once dev mode is exited and they reappear.
+            document.getElementById('param-presets-compact').addEventListener('change', e => {
+                params.presetsCompact = e.target.checked;
+                document.body.classList.toggle('presets-compact', params.presetsCompact);
+            });
             syncConditionalOptions();   // initial state
             // Dev mode can also be entered by loading with a `#dev` (or `?dev`) URL — a
             // keyboard-free, OS-proof way to reach the debug controls.
