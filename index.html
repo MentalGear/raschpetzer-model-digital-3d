@@ -857,6 +857,13 @@
                 <input type="range" id="param-front-margin" min="1" max="500" step="5" value="1" aria-label="Qanat clip-off margin (metres): how far beyond the qanat's cut edge the terrain is shown">
                 <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;margin-bottom:10px;line-height:1.35;">Crops the terrain close around the qanat; larger values reveal more surrounding ground. Off, only the front (south) edge insets — strata read behind it; with Symmetric, both ends clip evenly.</div>
                 <label class="check-row" id="row-front-margin-symmetric"><input type="checkbox" id="param-front-margin-symmetric"> Symmetric&nbsp;(mirror&nbsp;on&nbsp;the&nbsp;back&nbsp;side)</label>
+                <div id="row-clip-centerline" style="display:none;margin-top:8px">
+                    <label for="param-clip-centerline">Qanat centreline</label>
+                    <select id="param-clip-centerline">
+                        <option value="p3p9">Straight line (P3–P9)</option>
+                        <option value="fit">Best-fit line (P‑1…P9)</option>
+                    </select>
+                </div>
             </div>
             <div class="control-group" id="grp-terrain-opacity">
                 <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
@@ -1143,6 +1150,7 @@
             qanatFront: true,             // pin the qanat to the front cut face (strata read behind it) — default on
             frontMarginM: 1,              // qanat clip-off margin (m) beyond the cut edge(s) (qanatFront); slider min 1
             frontMarginSymmetric: false,  // mirror the clip-off margin onto the back/north side too (qanatFront)
+            clipCenterline: 'p3p9',       // which line the Symmetric clip-off measures its margin from: 'p3p9' | 'fit'
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
             presetsCompact: false,        // dev-set persistent preference: smaller "Quick views" preset cards
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
@@ -1254,6 +1262,40 @@
         // Northernmost georeferenced shaft latitude — the qanat's back (-Z/north) edge, used
         // by the "Symmetric" front-gap option to mirror the same margin on that side too.
         const QANAT_LAT_N = _shaftLats.length ? Math.max(..._shaftLats) : 49.6659;
+        // The qanat is NOT one straight line: shaft notes document a real bend at P1 ("at the
+        // bend in the route") — P-7A/P-5A/P-5/P-4 sit on a separate west leg, 40-80 m off the
+        // P-1..P9 run (confirmed by fitting both). QANAT_LAT_S/N above span BOTH legs, so their
+        // midpoint/half-extent made a poor "centre" for the Symmetric clip-off: even a small
+        // margin looked huge, because the baseline itself already spanned the full bend.
+        // Two lines through the documented straight leg instead — offered as a UI choice
+        // (param-clip-centerline) since neither is definitively "more correct":
+        //  - p3p9: the exact line through P3 and P9 alone. Tightest fit to P4-P8 (<3 m
+        //    residual) since P3/P9 anchor it exactly; P-1/P0/P1/P2 (nearer the bend) drift
+        //    further off it. Default — simplest to reason about, and P3-P9 line up almost
+        //    exactly in latitude already (near-perfect east-west).
+        //  - fit: least-squares through the whole documented run P-1..P9. Slightly looser on
+        //    P4-P8 (better on average across all 11 points) but spreads the bend's influence
+        //    into the line's slope rather than concentrating it in the P-1/P0/P1/P2 residuals.
+        function fitLine(ids) {
+            const pts = ids.map(id => shaftById[id]).filter(s => s && s.geo).map(s => [s.geo.lon, s.geo.lat]);
+            const n = pts.length;
+            const sumX = pts.reduce((a, p) => a + p[0], 0), sumY = pts.reduce((a, p) => a + p[1], 0);
+            const sumXY = pts.reduce((a, p) => a + p[0] * p[1], 0), sumXX = pts.reduce((a, p) => a + p[0] * p[0], 0);
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            return { slope, intercept: (sumY - slope * sumX) / n };
+        }
+        function lineThrough(idA, idB) {
+            const a = shaftById[idA].geo, b = shaftById[idB].geo;
+            const slope = (b.lat - a.lat) / (b.lon - a.lon);
+            return { slope, intercept: a.lat - slope * a.lon };
+        }
+        const QANAT_STRAIGHT_RUN = ['P-1', 'P0', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9'];
+        const QANAT_LINE_P3P9 = lineThrough('P3', 'P9');
+        const QANAT_LINE_FIT = fitLine(QANAT_STRAIGHT_RUN);
+        function qanatCenterlineAt(lon) {
+            const line = params.clipCenterline === 'fit' ? QANAT_LINE_FIT : QANAT_LINE_P3P9;
+            return line.slope * lon + line.intercept;
+        }
         let pillarDefs = SHAFT_BASE.map(p => ({ id: p.id, x: p.x, z: p.z }));
         // Map a real WGS84 coordinate into the current scene window (georeferenced placement).
         function geoToScene(lat, lon) {
@@ -1745,23 +1787,30 @@
                 // (cheap — no extra sampling); the qanat stays pinned at the front.
                 const frontMarginLat = params.frontMarginM / 111320;   // clip-off margin (dev slider)
                 if (params.frontMarginSymmetric) {
-                    // "Qanat clip-off margin", mirrored to both ends: crop the window tight
-                    // around the qanat's OWN real extent (QANAT_LAT_S..QANAT_LAT_N) plus a
-                    // uniform margin on each side — independent of the surround-driven span,
-                    // not additive on top of it. At the slider's low end the window is barely
-                    // wider than the qanat itself (almost everything else clipped away);
-                    // larger margins relax the clip and reveal more surrounding ground.
-                    // Earlier versions added the margin ON TOP of spanLat/2 (the surround-driven
-                    // half-span) instead of the qanat's own half-length — since surround's span
-                    // dwarfs a small margin, the low end of the slider never actually tightened
-                    // the crop, which read as "the margin doesn't do anything." Anchoring to the
-                    // qanat's real ends instead of a surround-sized square fixes that. Capped by
-                    // the sampled data's own extent so it can't request terrain outside GEO_BBOX.
-                    const routeMid = (QANAT_LAT_S + QANAT_LAT_N) / 2;
-                    const routeHalfLat = (QANAT_LAT_N - QANAT_LAT_S) / 2;
-                    const half = Math.min(routeHalfLat + frontMarginLat, fullLat / 2);
+                    // "Qanat clip-off margin", mirrored to both ends: a THICK STRIP running the
+                    // full current E–W extent (spanLon — whatever "Surrounding area" set, left
+                    // untouched here), clipped tight in the N–S direction to a straight
+                    // reference line through the qanat (qanatCenterlineAt — the "Qanat
+                    // centreline" select, P3–P9 by default) plus a uniform margin on each side.
+                    // At the slider's low end the strip is barely thicker than the margin
+                    // itself; larger margins widen the strip and reveal more ground to the
+                    // north and south. An earlier version centred on the MIDPOINT of
+                    // QANAT_LAT_S/N (the naive north/southmost shaft latitudes) with a base
+                    // half-thickness from their spread — but the qanat genuinely bends at P1
+                    // (see QANAT_LINE_P3P9/_FIT above), so that span already covered ~80 m of
+                    // real bend before the margin added anything, making even a 1 m margin look
+                    // huge. Anchoring to a line through the straight run instead means the
+                    // margin alone sets the strip's half-thickness — no hidden base amount.
+                    // NOT a square: an earlier version recomputed spanLon = spanLat / cosLat
+                    // afterward, forcing a square patch that grew/shrank in BOTH directions —
+                    // so the slider looked like it was resizing a square window centred on the
+                    // qanat, not thickening a full-length strip across it. spanLon (and
+                    // therefore params.width) is deliberately left alone below; only spanLat
+                    // (and params.depth) come from the centreline + margin.
+                    const routeMid = qanatCenterlineAt(cLon);
+                    const half = Math.min(frontMarginLat, fullLat / 2);
                     south = routeMid - half; north = routeMid + half;
-                    spanLat = north - south; spanLon = spanLat / cosLat;
+                    spanLat = north - south;
                 } else {
                     const availLat = (GEO_BBOX.north - QANAT_LAT_S) + frontMarginLat;
                     if (spanLat > availLat) { spanLat = availLat; spanLon = spanLat / cosLat; }
@@ -1775,10 +1824,13 @@
             QSCALE = (params.terrainSource === 'geodata') ? (GEO_VIEW_SPAN.lon / spanLon) : 1;
             // Mesh grows with the window: width tracks spanLon so metersPerXUnit =
             // (spanLon × mPerDegLon) / width stays CONSTANT (the qanat keeps its on-screen
-            // size/position); depth == width so the block — and the metres-per-unit scale —
-            // stay square and isotropic (metersPerZUnit == metersPerXUnit).
+            // size/position). depth tracks spanLat via the SAME real-world scale (not just set
+            // equal to width) so metersPerZUnit stays equal to metersPerXUnit — isotropic even
+            // when the window isn't square (the Symmetric clip-off strip: full E–W width, a
+            // narrower N–S thickness). In every other branch spanLat == spanLon·cosLat exactly,
+            // so this reduces to depth == width, unchanged from before.
             params.width = BASE_WIDTH * (spanLon / GEO_VIEW_SPAN.lon);
-            params.depth = params.width;
+            params.depth = params.width * (spanLat / (spanLon * cosLat));
             applyQanatScale();
             return geoView;
         }
@@ -2801,17 +2853,22 @@
                     modelGroup.add(s);
                 }
 
-                // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate)
+                // Stepped-fall markers from SSOT (steps are ~1 m — sub-visible — so annotate).
+                // Coloured to match the shaft's own documented-status orange (COL.shaft), not
+                // the gallery's water blue: a floor step is a structural/construction fact, not
+                // a hydrological one, and reusing the water colour read as "water pools here"
+                // even though the real reason the gallery is blue (water still runs through it
+                // today, ~180 m³/day per Brochure 2018 p.4/29) has nothing to do with this marker.
                 SSOT.gallery.gallery.steps.forEach(step => {
                     const id = step.underShaft, txt = step.dropM + ' m step';
                     const bp = shaftBaseById[id];
                     if (!bp) return;
                     const tick = new THREE.Mesh(
                         new THREE.CylinderGeometry(0.07, 0.07, 0.9, 8),
-                        new THREE.MeshBasicMaterial({ color: galleryColor, depthTest: false }));
+                        new THREE.MeshBasicMaterial({ color: COL.shaft, depthTest: false }));
                     tick.position.set(bp.x, bp.y + 0.45, bp.z); tick.renderOrder = 5;
                     subsurfaceGroup.add(tick);
-                    const s = createTextSprite(txt, '#1d6fd6', 20);
+                    const s = createTextSprite(txt, COL.shaft, 20);
                     s.scale.set(3.0, 0.8, 1);
                     s.position.set(bp.x, bp.y + 1.35, bp.z);
                     modelGroup.add(s);
@@ -3544,6 +3601,15 @@
             // freely north.
             document.getElementById('param-front-margin-symmetric').addEventListener('change', e => {
                 params.frontMarginSymmetric = e.target.checked;
+                syncConditionalOptions();
+                sliceReadout();
+                buildParametricModel();
+                updateZoomClamp();
+            });
+            // Which straight reference line the Symmetric clip-off measures its margin from
+            // (only meaningful while Symmetric is on — see qanatCenterlineAt/QANAT_LINE_*).
+            document.getElementById('param-clip-centerline').addEventListener('change', e => {
+                params.clipCenterline = e.target.value;
                 sliceReadout();
                 buildParametricModel();
                 updateZoomClamp();
@@ -3603,6 +3669,8 @@
                 document.getElementById('row-strata-detail').style.display = (g && params.devMode) ? '' : 'none';
                 document.getElementById('row-perched').style.display = g ? '' : 'none';
                 document.getElementById('row-xsec-fullroute').style.display = (params.devMode && params.xsecCutaway) ? '' : 'none';
+                // "Qanat centreline" only matters while Symmetric clip-off is on.
+                document.getElementById('row-clip-centerline').style.display = params.frontMarginSymmetric ? '' : 'none';
             };
 
             // Developer mode (Super/⌘ + D): red screen frame + exposes the dev-only toggles
@@ -3987,10 +4055,11 @@
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
                 'param-terrain-opacity': 1.0, 'param-surround': 1.0,
                 'param-front-margin': 1, 'param-front-margin-symmetric': false,
-                'param-detailed-gallery': false
+                'param-clip-centerline': 'p3p9', 'param-detailed-gallery': false
             };
             const PRESET_SETTERS = {
                 'param-baselayer': v => { params.baseLayer = v; },
+                'param-clip-centerline': v => { params.clipCenterline = v; },
                 'param-geology': v => { params.showGeology = v; },
                 'param-dip': v => { params.showDip = v; },
                 'param-underground': v => { params.xrayUnderground = v; },
