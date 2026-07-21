@@ -347,14 +347,15 @@
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
         }
-        /* Segmented icon tab bar for the layer groups */
         #panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-        /* Header + tab strip are pinned together at the top of the scrolling panel: the wrapper
-           cancels #ui-panel's own padding (negative margin) and re-applies it itself, so it sits
-           flush with the scrollport's top edge once stuck — no gap, no seam. */
+        /* Title + Settings/Inspector switch are pinned together at the top of the scrolling
+           panel: the wrapper cancels #ui-panel's own padding (negative margin) and re-applies
+           it itself, so it sits flush with the scrollport's top edge once stuck — no gap, no
+           seam. The Map/Qanat/Terrain tabs live below, in .tab-section, NOT here — they're
+           content-category navigation within Settings mode, not top-level chrome. */
         /* A subtle bottom edge + drop shadow gives the pinned header a "floating above the
-           scrolled content" read — without it, the header/tab-bar shared the exact same flat
-           panel colour as everything sliding underneath, so nothing signalled it was stuck. */
+           scrolled content" read — without it, the header shared the exact same flat panel
+           colour as everything sliding underneath, so nothing signalled it was stuck. */
         #panel-sticky { position: sticky; top: 0; z-index: 5; background: var(--panel-bg);
             margin: -22px -22px 0; padding: 22px 22px 12px;
             border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -376,13 +377,11 @@
         .tab-pane > .control-group:first-child { margin-top: 2px; }
         .tab-pane > .control-group:last-child { margin-bottom: 4px; }
         /* Recessed content card, joined seamlessly to the tab strip above (no top border /
-           square top corners) and set apart from the actions below. */
-        /* Stands alone as its own card: the tab bar now lives in the sticky header above (it
-           scrolls out of adjacency once Camera/Navigation/Presets sit between them), so this
-           needs all four corners + a full border rather than reading as the tab strip's
-           dropdown continuation. */
+           square top corners) and set apart from the actions below. Back to being adjacent
+           to #tab-bar (both live in .tab-section again, out of the sticky header), so the
+           two read as one joined container. */
         #tab-panes { background: rgba(0,0,0,0.20); border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
+            border-top: none; border-radius: 0 0 10px 10px; padding: 12px 14px 8px; margin-bottom: 20px; }
         #panel-actions { border-top: 1px solid rgba(255,255,255,0.10); padding-top: 16px; }
         /* Mobile drawer */
         #drawer-close { display: block; background: none; border: none; color: #9ca3af;
@@ -552,7 +551,6 @@
         #inspector-pane.has-selection #inspector-empty { display: none; }
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
-        body.mode-inspector #tab-bar,
         body.mode-inspector #panel-presets,
         body.mode-inspector #panel-actions { display: none; }
         /* #panel-nav (Camera + Navigation) stays visible in Inspector mode so a selected feature
@@ -683,14 +681,14 @@
                 <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">⚙</span><span>Settings</span></button>
                 <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
             </div>
-            <div id="tab-bar" role="tablist">
-                <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
-                <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
-                <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">⛰️</span><span class="tl">Terrain</span></button>
-            </div>
         </div>
 
         <div class="tab-section">
+        <div id="tab-bar" role="tablist">
+            <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
+            <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
+            <button class="tab" data-tab="terrain" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">⛰️</span><span class="tl">Terrain</span></button>
+        </div>
 
         <div id="tab-panes">
         <div class="tab-pane active" data-pane="map">
