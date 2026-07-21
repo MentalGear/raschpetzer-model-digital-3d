@@ -504,8 +504,8 @@
             .check-row input[type="checkbox"] { width: 26px; height: 26px; }
         }
         /* Collapsible control sections */
-        #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 4px; }
-        #ui-panel details > summary { list-style: none; cursor: pointer; padding: 9px 0 5px;
+        #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 12px; }
+        #ui-panel details > summary { list-style: none; cursor: pointer; padding: 16px 0 14px;
             font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
             color: #9ca3af; font-weight: 700; user-select: none; display: flex; align-items: center; gap: 6px; }
         #ui-panel details > summary::-webkit-details-marker { display: none; }
@@ -568,12 +568,13 @@
         #panel-mode .pm-btn:hover { color: #d7dbe2; }
         #panel-mode .pm-btn.active { background: rgba(255,255,255,0.13); color: #fff; }
 
+        /* #grp-baselayer (Map layer, the first control in the panel) carries the extra top
+           margin instead — it's the first thing below the sticky header now, and needs its
+           own breathing room rather than sitting flush against it. */
+        #grp-baselayer { margin-top: 14px; }
         /* Quick views: curated one-tap states, the front door for people who don't want to
            hand-tune the checkboxes/sliders below. Four alternate states sit in a 2×2 grid;
-           "Overview" (wide) trails last as the de-facto reset/home card. Extra top margin
-           on the panel itself (not just the label) — it's the first thing below the sticky
-           header, and needs its own breathing room rather than sitting flush against it. */
-        #panel-presets { margin-top: 14px; }
+           "Overview" (wide) trails last as the de-facto reset/home card. */
         #preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
         .preset-card { display: flex; flex-direction: column; align-items: center; gap: 3px;
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
@@ -599,11 +600,13 @@
         #inspector-pane.has-selection #inspector-empty { display: none; }
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
+        body.mode-inspector #grp-baselayer,
         body.mode-inspector #panel-presets,
         body.mode-inspector #panel-nav,
         body.mode-inspector #panel-actions { display: none; }
         /* Inspector mode shows ONLY inspectable-element detail — Camera/Navigation/Map layer
-           (in #panel-nav) used to stay visible here so a selection could be reframed without a
+           (#grp-baselayer now sits outside #panel-nav structurally, but is still hidden here
+           alongside it) used to stay visible here so a selection could be reframed without a
            round-trip to Settings, but that mixed "control panel" chrome into what's meant to
            read as a focused detail view. */
         #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
@@ -739,10 +742,27 @@
             </div>
         </div>
 
+        <!-- Map layer first: the base imagery choice grounds everything else, including what
+             the Quick View thumbnails below actually mean. Hidden in Inspector mode along with
+             the rest of #panel-nav (see the body.mode-inspector rule) even though it now sits
+             outside that wrapper structurally. -->
+        <div class="control-group" id="grp-baselayer">
+            <label for="param-baselayer">Map layer</label>
+            <select id="param-baselayer">
+                <option value="contours">Contour lines</option>
+                <option value="topo">Topographic map</option>
+                <option value="satellite">Satellite (ACT 2019)</option>
+                <option value="winter">Satellite — winter (leaf-off)</option>
+                <option value="ortho1967">Satellite — historical (1967)</option>
+                <option value="hillshade">LiDAR relief (2019)</option>
+                <option value="none">Plain</option>
+            </select>
+            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
+        </div>
+
         <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
              don't want to hand-tune the controls below. Presets SET the manual controls (they
-             don't hide them) — clicking one still leaves every checkbox/slider re-syncable.
-             Topmost in Settings mode: the front door, before any manual control. -->
+             don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
         <div id="panel-presets" class="control-group">
             <label>Quick views</label>
             <div id="preset-grid">
@@ -775,7 +795,7 @@
         </div>
 
         <details class="tab-section" id="display-options">
-        <summary>Display options</summary>
+        <summary>Advanced configuration</summary>
         <div id="tab-bar" role="tablist">
             <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
             <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
@@ -861,23 +881,9 @@
         </div>
         </details>
 
-        <!-- Map layer first (the base imagery choice grounds everything else), then camera /
-             navigation controls — the most-used view controls sit near the top, and stay
-             visible in Inspector mode (above the selected feature) so it can be reframed. -->
+        <!-- Camera / navigation controls: the most-used view controls sit near the top, and
+             stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
         <div id="panel-nav">
-        <div class="control-group" id="grp-baselayer">
-            <label for="param-baselayer">Map layer</label>
-            <select id="param-baselayer">
-                <option value="contours">Contour lines</option>
-                <option value="topo">Topographic map</option>
-                <option value="satellite">Satellite (ACT 2019)</option>
-                <option value="winter">Satellite — winter (leaf-off)</option>
-                <option value="ortho1967">Satellite — historical (1967)</option>
-                <option value="hillshade">LiDAR relief (2019)</option>
-                <option value="none">Plain</option>
-            </select>
-            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
-        </div>
         <div class="control-group" id="grp-camera">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
