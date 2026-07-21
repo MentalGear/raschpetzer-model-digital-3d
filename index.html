@@ -2916,7 +2916,13 @@
                         new THREE.MeshBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.95 }));
                     m.position.set(p.x, p.y + 0.16, p.z); m.renderOrder = 15;   // sits on the gallery tube
                     m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac, w: s.w, h: s.h };
-                    modelGroup.add(m); xsecMeshes.push(m);
+                    // Added to subsurfaceGroup (not modelGroup directly) so "Underground x-ray"
+                    // actually reaches these markers: applyXrayMode() only traverses
+                    // subsurfaceGroup, flipping renderOrder so x-ray-off content draws behind the
+                    // opaque terrain. These used to be siblings of subsurfaceGroup instead of
+                    // members of it, so turning x-ray off never touched them — they stayed
+                    // pinned on top regardless of the toggle.
+                    subsurfaceGroup.add(m); xsecMeshes.push(m);
                 });
             }
 
