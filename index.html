@@ -185,8 +185,15 @@
         h2 { font-size: 0.78rem; color: #9ca3af; margin-bottom: 18px; font-weight: 400; }
 
         .control-group { margin-bottom: 16px; }
+        /* Every label in a control-group — checkbox row or plain slider/value label alike —
+           gets the SAME margin-top, so the gap above it is consistent no matter what kind of
+           control precedes it. Without this, only .check-row set its own margin-top (9px);
+           a plain label directly after a checkbox collapsed against just that checkbox's
+           margin-bottom (5px) and looked cramped, which had been patched ad hoc in a couple of
+           spots with inline style="margin-top:8px" instead of fixed at the source. */
         .control-group label { display: flex; justify-content: space-between;
-            font-size: 0.82rem; margin-bottom: 5px; color: #d1d5db; }
+            font-size: 0.82rem; margin: 9px 0 5px; color: #d1d5db; }
+        .control-group > label:first-child { margin-top: 0; }
         .control-group label span.val { color: var(--accent-blue); font-weight: 600; font-size: 0.82rem; }
         /* The group's OWN title (Camera, Navigation, Theme, Terrain opacity, ...) reads as a
            section header, distinct from the checkbox/value labels beneath it — previously every
@@ -310,7 +317,7 @@
         @media (pointer: coarse) { .instructions { display: none !important; } }
 
         .control-group label.check-row { display: flex; justify-content: flex-start; align-items: center;
-            gap: 8px; cursor: pointer; margin-top: 9px; font-size: 0.8rem; color: #d1d5db; }
+            gap: 8px; cursor: pointer; font-size: 0.8rem; color: #d1d5db; }
         .check-row input { accent-color: var(--accent-blue); cursor: pointer; flex: 0 0 auto; }
 
         .btn-row { display: flex; gap: 8px; }
@@ -447,7 +454,8 @@
            without affecting the compact mouse layout. */
         @media (pointer: coarse) {
             .check-row input { width: 22px; height: 22px; }
-            .control-group label.check-row { min-height: 38px; margin-top: 4px; gap: 11px; }
+            .control-group label.check-row { min-height: 38px; gap: 11px; }
+            .control-group label { margin-top: 4px; }
             input[type="range"] { height: 32px; }
             input[type="range"]::-webkit-slider-runnable-track { height: 8px; }
             input[type="range"]::-moz-range-track { height: 8px; }
@@ -601,7 +609,7 @@
         .ip-figure img { width: 100%; height: auto; display: block; border-radius: 5px; cursor: zoom-in; }
         /* Compact single-letter knowledge-status badge; click to reveal the source detail. */
         .ip-badge { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px;
-            border-radius: 50%; font-size: 0.62rem; font-weight: 700; color: #fff; border: none; cursor: pointer;
+            border-radius: 50%; font-size: 0.62rem; font-weight: 700; color: #fff; border: none; cursor: help;
             margin-left: 7px; padding: 0; vertical-align: middle; line-height: 1; }
         .ip-badge:hover { filter: brightness(1.15); }
         .ip-badge.open { box-shadow: 0 0 0 2px rgba(255,255,255,0.5); }
@@ -723,6 +731,41 @@
             </div>
         </div>
 
+        <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
+             don't want to hand-tune the controls below. Presets SET the manual controls (they
+             don't hide them) — clicking one still leaves every checkbox/slider re-syncable.
+             Topmost in Settings mode: the front door, before any manual control. -->
+        <div id="panel-presets" class="control-group">
+            <label>Quick views</label>
+            <div id="preset-grid">
+                <button class="preset-card wide" data-preset="overview" type="button">
+                    <span class="pc-ico" aria-hidden="true">🗺️</span>
+                    <span class="pc-label">Overview</span>
+                    <span class="pc-desc">The full site, today</span>
+                </button>
+                <button class="preset-card" data-preset="underground" type="button">
+                    <span class="pc-ico" aria-hidden="true">⛏️</span>
+                    <span class="pc-label">See beneath</span>
+                    <span class="pc-desc">Thin the hill to reveal the tunnel</span>
+                </button>
+                <button class="preset-card" data-preset="water" type="button">
+                    <span class="pc-ico" aria-hidden="true">💧</span>
+                    <span class="pc-label">Follow the water</span>
+                    <span class="pc-desc">East → west, to the villa</span>
+                </button>
+                <button class="preset-card" data-preset="geology" type="button">
+                    <span class="pc-ico" aria-hidden="true">🪨</span>
+                    <span class="pc-label">Geology cross-section</span>
+                    <span class="pc-desc">The strata behind the qanat</span>
+                </button>
+                <button class="preset-card" data-preset="satellite" type="button">
+                    <span class="pc-ico" aria-hidden="true">🛰️</span>
+                    <span class="pc-label">Aerial + overlays</span>
+                    <span class="pc-desc">2019 satellite, aquifer &amp; forest paths layered on top</span>
+                </button>
+            </div>
+        </div>
+
         <div class="tab-section">
         <div id="tab-bar" role="tablist">
             <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
@@ -759,7 +802,7 @@
                 <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
                 <label class="check-row dev-opt" id="row-xsec-cutaway"><input type="checkbox" id="param-xsec-cutaway"> Qanat&nbsp;cutaway&nbsp;(slice&nbsp;lengthwise&nbsp;along&nbsp;the&nbsp;route&nbsp;centreline)</label>
                 <label class="check-row dev-opt" id="row-xsec-fullroute" style="margin-left:22px"><input type="checkbox" id="param-xsec-fullroute"> Extend&nbsp;hollow&nbsp;interior&nbsp;along&nbsp;the&nbsp;full&nbsp;route&nbsp;(incl.&nbsp;inferred&nbsp;ends)</label>
-                <label style="margin-top:8px">Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
+                <label>Underground opacity <span class="val" id="lbl-underground-opacity">1.00</span></label>
                 <input type="range" id="param-underground-opacity" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Underground opacity">
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
                 <label class="check-row" id="row-sounding"><input type="checkbox" id="param-sounding"> Exploratory&nbsp;sounding&nbsp;gallery&nbsp;(P1,&nbsp;abandoned)</label>
@@ -807,40 +850,6 @@
             </div>
         </div>
         </div>
-        </div>
-
-        <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
-             don't want to hand-tune the controls below. Presets SET the manual controls (they
-             don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
-        <div id="panel-presets" class="control-group">
-            <label>Quick views</label>
-            <div id="preset-grid">
-                <button class="preset-card wide" data-preset="overview" type="button">
-                    <span class="pc-ico" aria-hidden="true">🗺️</span>
-                    <span class="pc-label">Overview</span>
-                    <span class="pc-desc">The full site, today</span>
-                </button>
-                <button class="preset-card" data-preset="underground" type="button">
-                    <span class="pc-ico" aria-hidden="true">⛏️</span>
-                    <span class="pc-label">See beneath</span>
-                    <span class="pc-desc">Thin the hill to reveal the tunnel</span>
-                </button>
-                <button class="preset-card" data-preset="water" type="button">
-                    <span class="pc-ico" aria-hidden="true">💧</span>
-                    <span class="pc-label">Follow the water</span>
-                    <span class="pc-desc">East → west, to the villa</span>
-                </button>
-                <button class="preset-card" data-preset="satellite" type="button">
-                    <span class="pc-ico" aria-hidden="true">🛰️</span>
-                    <span class="pc-label">Aerial + overlays</span>
-                    <span class="pc-desc">2019 satellite, aquifer &amp; contours layered on top</span>
-                </button>
-                <button class="preset-card" data-preset="geology" type="button">
-                    <span class="pc-ico" aria-hidden="true">🪨</span>
-                    <span class="pc-label">Geology cross-section</span>
-                    <span class="pc-desc">The strata behind the qanat</span>
-                </button>
-            </div>
         </div>
 
         <!-- Camera / navigation controls first: the most-used view controls sit at the top, and
@@ -935,8 +944,8 @@
                 <div class="legend-item"><div class="color-box" style="background: #8aa0b4;"></div>Auxiliary dry channel (P-7A/P-5A)</div>
                 <div class="legend-item"><div class="color-box" style="background: #9a8f76;"></div>Exploratory sounding gallery (P1, abandoned)</div>
                 <div class="legend-item"><div class="color-box" style="background: #d8c0a8;"></div>Weathered rock / soft ground</div>
-                <div class="legend-item"><div class="color-box" style="background: #b9d3e8;"></div>Luxembourg sandstone (water-bearing)</div>
-                <div class="legend-item"><div class="color-box" style="background: #8f95c4;"></div>Marl &amp; limestone strata</div>
+                <div class="legend-item"><div class="color-box" style="background: #5a86c2;"></div>Luxembourg sandstone (water-bearing)</div>
+                <div class="legend-item"><div class="color-box" style="background: #7ab0a8;"></div>Marl &amp; limestone strata</div>
                 <div class="legend-sep"></div>
                 <div class="legend-item"><div class="color-box" style="background: var(--accent-orange);"></div>Solid shaft — <b>documented</b> depth</div>
                 <div class="legend-item"><div class="color-box" style="background: transparent; border: 1.5px solid #b99866; box-shadow: inset 0 0 0 2px rgba(185,152,102,0.18);"></div>Wireframe / ghost shaft — <b>inferred</b> depth</div>
@@ -1138,8 +1147,20 @@
             annotation: '#e11d8f', annotationSel: '#ffd23f', measure: '#ffd23f',
             overflow: '#35c4e8', qanatDry: '#9a8f76'   // silted / dry gallery (out of service)
         }, MODEL_CONFIG.colors || {});
+        // Colour-matched to the actual cited source figure (Brochure 2018 fig 4-2 —
+        // assets/geo-section-brochure.webp), sampled directly from its own legend swatches
+        // rather than invented independently: weathered ≈ #d9c1b5 (kept as-is, already close),
+        // sandstone ≈ #7fa7d7, marl/limestone ≈ #9dc7d9. Both blues were pushed further apart
+        // in saturation/hue than the raw samples (sandstone more saturated navy, marl shifted
+        // toward teal rather than the cyan-leaning sample) since the source figure separates
+        // them with a second channel we don't have — a dot pattern vs. hatching — so relying on
+        // hue/lightness alone needs more contrast than a literal colour-pick would give. Keuper
+        // (ko) and km3 sit below the reach of that figure (no digitised source to match), so
+        // they continue the same warm/cool logic rather than matching anything: ko as a
+        // brownish-red (continental redbed facies is the real-world Keuper convention) and km3
+        // as a paler buff/ochre, keeping the whole sequence visually ordered front-to-back.
         const STRATA = Object.assign({
-            cover: '#d8c0a8', li2: '#b9d3e8', li1: '#8f95c4', ko: '#e58a9a', km3: '#f2d9a0'
+            cover: '#d8c0a8', li2: '#5a86c2', li1: '#7ab0a8', ko: '#a56a5c', km3: '#d9bd7a'
         }, MODEL_CONFIG.strataColors || {});
         // Same hue, muted toward grey — NOT a different hue — for inferred/unexplored elements
         // (ghost shafts, dashed gallery ends). Keeps the domain-identity colour (orange=shaft,
@@ -1262,7 +1283,12 @@
         let selectionMarker = null;
         function initSelectionMarker() {
             const geo = new THREE.RingGeometry(0.55, 0.78, 40);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.95,
+            // Gold, not blue: blue is already the qanat's own colour (and close to groundwater's
+            // cyan), so a blue ring on a blue gallery read as "part of the model", not "this is
+            // selected". Reuses the app's existing annotationSel/measure gold (#ffd23f) — already
+            // established elsewhere as the "this is the active/selected thing" accent — rather
+            // than introducing a new colour with no other meaning in the palette.
+            const mat = new THREE.MeshBasicMaterial({ color: COL.annotationSel || 0xffd23f, transparent: true, opacity: 0.95,
                 depthTest: false, depthWrite: false, side: THREE.DoubleSide });
             selectionMarker = new THREE.Mesh(geo, mat);
             selectionMarker.renderOrder = 60;
@@ -1670,11 +1696,12 @@
         const GEO_BBOX = { west: 6.138, east: 6.162, south: 49.6618, north: 49.6708 };
         const GEO_COLS = 40, GEO_ROWS = 22;
 
-        // Default rendered window = a ~866 m SQUARE patch of ground centred on the grid,
-        // framing the ~300 m qanat. `lon` sets the E–W span; the N–S span is derived to match
-        // in metres (see recomputeGeoView), so the surrounding area is always square. `lat` is
-        // retained only for the offline procedural fallback.
-        const GEO_VIEW_SPAN = { lon: 0.012, lat: 0.0045 };
+        // Default rendered window = a 1000 m SQUARE patch of ground centred on the grid at
+        // "Surrounding area" = 1x, framing the ~300 m qanat. `lon` sets the E–W span; the N–S
+        // span is derived to match in metres (see recomputeGeoView), so the surrounding area
+        // is always square. `lat` is retained only for the offline procedural fallback (kept
+        // in step with `lon` here so the two stay dimensionally consistent).
+        const GEO_VIEW_SPAN = { lon: 0.013879, lat: 0.008983 };
         // Cached view window (WGS84 bbox); recomputed whenever "Surrounding area" moves.
         // The window is always CENTERED on the full grid; `surround` grows it out to the full
         // sampled extent. In GeoData mode shafts are placed by their real geo coordinates
@@ -2805,7 +2832,7 @@
                     const m = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 10),
                         new THREE.MeshBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.95 }));
                     m.position.set(p.x, p.y + 0.16, p.z); m.renderOrder = 15;   // sits on the gallery tube
-                    m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac };
+                    m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac, w: s.w, h: s.h };
                     modelGroup.add(m); xsecMeshes.push(m);
                 });
             }
@@ -3238,7 +3265,7 @@
                 const label = (txt, y, col) => { const s = createTextSprite(txt, col, 16); s.scale.set(8, 1.0, 1); s.position.set(lx, y, dz); s.renderOrder = 6; modelGroup.add(s); };
                 label('weathered rock', sTop - cover * 0.4, '#6f5f47');
                 label('Luxembourg sandstone', (sTop - cover + iY(lx)) / 2, '#3f6fb0');
-                label('sandy marl & limestone banks', (iY(lx) + marlBotY(lx)) / 2, '#4c5b73');
+                label('sandy marl & limestone banks', (iY(lx) + marlBotY(lx)) / 2, '#2f5c56');
             }
 
             // --- Perched pre-construction water table + drawdown (optional) ---------------
@@ -3940,7 +3967,8 @@
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
                 'param-terrain-opacity': 1.0, 'param-surround': 1.2,
-                'param-front-margin': 0, 'param-front-margin-symmetric': false
+                'param-front-margin': 0, 'param-front-margin-symmetric': false,
+                'param-detailed-gallery': false
             };
             const PRESET_SETTERS = {
                 'param-baselayer': v => { params.baseLayer = v; },
@@ -3966,7 +3994,8 @@
                 'param-terrain-opacity': v => applyTerrainOpacity(v),
                 'param-surround': v => { params.surround = v; },
                 'param-front-margin': v => { params.frontMarginM = v; },
-                'param-front-margin-symmetric': v => { params.frontMarginSymmetric = v; }
+                'param-front-margin-symmetric': v => { params.frontMarginSymmetric = v; },
+                'param-detailed-gallery': v => { params.detailedGallery = v; }
             };
             // Labels these controls carry, formatted exactly like their own live listeners do.
             const PRESET_LABELS = {
@@ -3979,14 +4008,22 @@
             const PRESETS = {
                 overview: { year: 2025, controls: {},
                     cam: () => presetView('iso') },
-                underground: { year: 2025, controls: { 'param-terrain-opacity': 0.35 },
+                // Distinct from Overview on more than one axis, not just a slightly-lower
+                // opacity value that read as barely-different at a glance: terrain fades much
+                // further AND the hollow reconstructed gallery bore switches on, so there's an
+                // actual walk-through tunnel to see through the ghosted hill, not just fainter
+                // ground.
+                underground: { year: 2025, controls: { 'param-terrain-opacity': 0.12, 'param-detailed-gallery': true },
                     cam: () => presetView('iso') },
                 water: { year: 2025, controls: { 'param-baselayer': 'satellite', 'param-overflow': true },
                     cam: () => resetView() },
-                satellite: { year: 2025, controls: { 'param-baselayer': 'satellite', 'ov-aquifer': true, 'ov-contours': true },
-                    cam: () => topView() },
                 geology: { year: 2025, controls: { 'param-dip': true, 'param-terrain-opacity': 0.45 },
-                    cam: () => resetView() }
+                    cam: () => resetView() },
+                // Forest paths, not the official-contours overlay, alongside the aerial: contour
+                // LINES drawn over a satellite photo mostly just clutter it, whereas the paths
+                // overlay reads as useful, real-world context on top of real imagery.
+                satellite: { year: 2025, controls: { 'param-baselayer': 'satellite', 'ov-aquifer': true, 'param-paths': true },
+                    cam: () => topView() }
             };
             function applyPreset(key) {
                 const preset = PRESETS[key];
@@ -4585,7 +4622,8 @@
                     return;
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
-                if (shit) { selectAt(shit.point); renderSpotPanel(shit.object.userData); }
+                if (shit) { selectAt(shit.point); renderSpotPanel(shit.object.userData); return; }
+                clearSelectionMarker();   // tapped empty terrain/space: drop the previous selection
             });
         }
 
@@ -4708,7 +4746,8 @@
             const gp = g._prov || {};
             const pos = x.frac != null ? ' · ≈' + Math.round(x.frac * 100) + '% from the west (P‑5→P9)' : '';
             let h = `<h3>Qanat cross-section</h3><div class="ip-sub">Section at a point along the qanat${pos}</div>`;
-            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}" width="${x.w}" height="${x.h}" alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
+            const dims = (x.w && x.h) ? ` width="${x.w}" height="${x.h}"` : '';
+            h += `<div class="ip-figure"><img class="lb-img" src="${x.img}"${dims} alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
             if (x.label) h += `<div class="ip-note">${x.label}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
                 `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
@@ -4789,7 +4828,7 @@
         }
         function initInfoPanel() {
             const bs = document.getElementById('mode-settings'), bi = document.getElementById('mode-inspector');
-            if (bs) bs.addEventListener('click', () => setPanelMode('settings'));
+            if (bs) bs.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('settings'); });
             // Manually switching to Inspector shows the initial prompt again (clearing any stale
             // selection); clicking a shaft/spring/villa repopulates it via showInspector().
             if (bi) bi.addEventListener('click', () => {

@@ -21,8 +21,8 @@
     "annotation": "#e11d8f", "annotationSel": "#ffd23f", "measure": "#ffd23f"
   },
   "strataColors": {
-    "cover": "#d8c0a8", "li2": "#b9d3e8", "li1": "#8f95c4", "ko": "#e58a9a", "km3": "#f2d9a0",
-    "_note": "Keyed by geology stratum `code`; thicknesses/roles are facts in geology.json."
+    "cover": "#d8c0a8", "li2": "#5a86c2", "li1": "#7ab0a8", "ko": "#a56a5c", "km3": "#d9bd7a",
+    "_note": "Keyed by geology stratum `code`; thicknesses/roles are facts in geology.json. Colour-matched to the cited source figure (Brochure 2018 fig 4-2 / assets/geo-section-brochure.webp) rather than invented independently: li2/li1 sampled from that figure's own legend swatches (sandstone/marl), then pushed further apart in saturation since the figure separates them with a dot-vs-hatch pattern we don't render. ko/km3 have no digitised source figure to match (fig 4-3 is cited but not in the repo), so they continue the same warm/cool sequencing logic instead (ko = brownish-red, the real-world Keuper redbed convention)."
   },
   "statusStyle": {
     "documented": { "color": "#4ade80", "label": "documented" },
