@@ -1760,13 +1760,16 @@
         const SHAFT_RADIUS_M = (SSOT.site.site.shaftDiameterRangeM[0] + SSOT.site.site.shaftDiameterRangeM[1]) / 4;
         const GALLERY_RADIUS_M = ((SSOT.site.site.galleryWidthRangeM[0] + SSOT.site.site.galleryWidthRangeM[1]) / 2 +
             (SSOT.site.site.galleryHeightRangeM[0] + SSOT.site.site.galleryHeightRangeM[1]) / 2) / 4;
+        // Dark-mode preference, checked live (not cached) so a mid-session OS theme switch
+        // is picked up the next time these are read.
+        function prefersDark() { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
         // Darkens the configured (light, paper-toned) scene background to match the OS/browser
         // dark-mode preference, since the sidebar chrome is always-dark but the 3D view background
         // otherwise stays a fixed light cream regardless of the user's theme.
         function sceneBackgroundColor() {
             const light = MODEL_CONFIG.background || '#f5f0ea';
             const dark = MODEL_CONFIG.backgroundDark || '#20242c';
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? dark : light;
+            return prefersDark() ? dark : light;
         }
         function sceneRadius(realRadiusM, exaggeratedRadius) {
             const trueRadius = realRadiusM / metersPerXUnit();
@@ -1804,7 +1807,10 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(sceneBackgroundColor());
             const darkModeMQ = window.matchMedia('(prefers-color-scheme: dark)');
-            darkModeMQ.addEventListener('change', () => { scene.background = new THREE.Color(sceneBackgroundColor()); });
+            darkModeMQ.addEventListener('change', () => {
+                scene.background = new THREE.Color(sceneBackgroundColor());
+                buildParametricModel();   // re-tint the terrain fill (dark slate vs. light beige)
+            });
 
             camera = new THREE.PerspectiveCamera(CAM.fov, container.clientWidth / container.clientHeight, CAM.near, CAM.far);
             // Low, wide oblique angle matching the reference panorama (from model-config.json).
@@ -1985,8 +1991,11 @@
             // brightening a lit surface toward white at full opacity, so it looked like a
             // different colour once transparency revealed the true tone. MeshBasicMaterial
             // renders the exact base colour at every opacity — one consistent beige.
+            // In dark mode (and only for the untextured contour/plain base — a satellite/
+            // LiDAR photographic drape below overrides this colour outright and stays as-is)
+            // the ground itself switches to a dark slate tone instead of light beige.
             const fillMat = new THREE.MeshBasicMaterial({
-                color: 0xf0e8d6,                                   // lighter beige (contour-map base)
+                color: prefersDark() ? 0x33363f : 0xf0e8d6,        // dark slate (dark mode) / lighter beige (contour-map base)
                 polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0,
                 side: params.terrainCullBack ? THREE.FrontSide : THREE.DoubleSide,   // dev: cull back face
                 transparent: true, opacity: params.terrainOpacity,
