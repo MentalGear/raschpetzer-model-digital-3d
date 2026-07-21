@@ -396,7 +396,13 @@
         #tab-bar .tab .ti { font-size: 1.05rem; line-height: 1; }
         #tab-bar .tab .tl { font-size: 0.62rem; letter-spacing: 0.3px; }
         #tab-bar .tab:hover { color: #e5e7eb; }
-        #tab-bar .tab.active { background: var(--accent-blue); color: #fff; }
+        /* Tabs are genuine persistent state (a pane really is/isn't showing), unlike the Quick
+           View preset cards — which just fire-and-forget a batch of settings a user can freely
+           re-tune afterward, so marking one "active" would misrepresent the current config.
+           This soft blue-tint treatment used to live on .preset-card.applied; tabs are the
+           honest place for it. */
+        #tab-bar .tab.active { background: rgba(59,130,246,0.22); color: #fff;
+            box-shadow: inset 0 0 0 1px var(--accent-blue); }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
         .tab-pane > .control-group:first-child { margin-top: 2px; }
@@ -563,8 +569,11 @@
         #panel-mode .pm-btn.active { background: rgba(255,255,255,0.13); color: #fff; }
 
         /* Quick views: curated one-tap states, the front door for people who don't want to
-           hand-tune the checkboxes/sliders below. "Overview" (wide) leads as the de-facto
-           reset/home card; the other four sit in a 2×2 grid beneath it. */
+           hand-tune the checkboxes/sliders below. Four alternate states sit in a 2×2 grid;
+           "Overview" (wide) trails last as the de-facto reset/home card. Extra top margin
+           on the panel itself (not just the label) — it's the first thing below the sticky
+           header, and needs its own breathing room rather than sitting flush against it. */
+        #panel-presets { margin-top: 14px; }
         #preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
         .preset-card { display: flex; flex-direction: column; align-items: center; gap: 3px;
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
@@ -573,7 +582,6 @@
         .preset-card.wide { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 9px; padding: 10px 6px; }
         .preset-card:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.2); }
         .preset-card:active { transform: scale(0.97); }
-        .preset-card.applied { background: rgba(59,130,246,0.22); border-color: var(--accent-blue); }
         .preset-card .pc-ico { font-size: 1.25rem; line-height: 1; }
         .preset-card .pc-label { font-size: 0.78rem; font-weight: 600; color: #fff; }
         .preset-card .pc-desc { font-size: 0.65rem; color: #9ca3af; line-height: 1.25; }
@@ -738,15 +746,10 @@
         <div id="panel-presets" class="control-group">
             <label>Quick views</label>
             <div id="preset-grid">
-                <button class="preset-card wide" data-preset="overview" type="button">
-                    <span class="pc-ico" aria-hidden="true">🗺️</span>
-                    <span class="pc-label">Overview</span>
-                    <span class="pc-desc">The full site, today</span>
-                </button>
                 <button class="preset-card" data-preset="underground" type="button">
                     <span class="pc-ico" aria-hidden="true">⛏️</span>
                     <span class="pc-label">See beneath</span>
-                    <span class="pc-desc">Thin the hill to reveal the tunnel</span>
+                    <span class="pc-desc">Reset to the default view</span>
                 </button>
                 <button class="preset-card" data-preset="water" type="button">
                     <span class="pc-ico" aria-hidden="true">💧</span>
@@ -763,10 +766,16 @@
                     <span class="pc-label">Aerial + overlays</span>
                     <span class="pc-desc">2019 satellite, aquifer &amp; forest paths layered on top</span>
                 </button>
+                <button class="preset-card wide" data-preset="overview" type="button">
+                    <span class="pc-ico" aria-hidden="true">🗺️</span>
+                    <span class="pc-label">Overview</span>
+                    <span class="pc-desc">The full site, today</span>
+                </button>
             </div>
         </div>
 
-        <div class="tab-section">
+        <details class="tab-section" id="display-options">
+        <summary>Display options</summary>
         <div id="tab-bar" role="tablist">
             <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
             <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
@@ -824,9 +833,9 @@
                 <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             </div>
             <div class="control-group" id="grp-frontedge">
-                <label>Qanat front-edge gap <span class="val" id="lbl-front-margin">0&nbsp;m</span></label>
-                <input type="range" id="param-front-margin" min="0" max="500" step="5" value="0" aria-label="Qanat front-edge gap (metres): 0 pins the qanat to the front cut face">
-                <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;margin-bottom:10px;line-height:1.35;">0&nbsp;=&nbsp;qanat at the front cut face (strata read behind it); slide back to inset it.</div>
+                <label>Qanat clip-off margin <span class="val" id="lbl-front-margin">1&nbsp;m</span></label>
+                <input type="range" id="param-front-margin" min="1" max="500" step="5" value="1" aria-label="Qanat clip-off margin (metres): how far beyond the qanat's cut edge the terrain is shown">
+                <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;margin-bottom:10px;line-height:1.35;">Crops the terrain close around the qanat; larger values reveal more surrounding ground. Off, only the front (south) edge insets — strata read behind it; with Symmetric, both ends clip evenly.</div>
                 <label class="check-row" id="row-front-margin-symmetric"><input type="checkbox" id="param-front-margin-symmetric"> Symmetric&nbsp;(mirror&nbsp;on&nbsp;the&nbsp;back&nbsp;side)</label>
             </div>
             <div class="control-group" id="grp-terrain-opacity">
@@ -834,8 +843,8 @@
                 <input type="range" id="param-terrain-opacity" min="0" max="1.0" step="0.05" value="1.0" aria-label="Terrain opacity">
             </div>
             <div class="control-group" id="grp-surround">
-                <label>Surrounding area <span class="val" id="lbl-surround">1.20×</span></label>
-                <input type="range" id="param-surround" min="0.45" max="1.20" step="0.05" value="1.20" aria-label="Surrounding area extent">
+                <label>Surrounding area <span class="val" id="lbl-surround">1.00×</span></label>
+                <input type="range" id="param-surround" min="0.45" max="1.00" step="0.05" value="1.00" aria-label="Surrounding area extent">
                 <div id="slice-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;"></div>
             </div>
             <div class="control-group" id="grp-density">
@@ -850,11 +859,25 @@
             </div>
         </div>
         </div>
-        </div>
+        </details>
 
-        <!-- Camera / navigation controls first: the most-used view controls sit at the top, and
-             stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
+        <!-- Map layer first (the base imagery choice grounds everything else), then camera /
+             navigation controls — the most-used view controls sit near the top, and stay
+             visible in Inspector mode (above the selected feature) so it can be reframed. -->
         <div id="panel-nav">
+        <div class="control-group" id="grp-baselayer">
+            <label for="param-baselayer">Map layer</label>
+            <select id="param-baselayer">
+                <option value="contours">Contour lines</option>
+                <option value="topo">Topographic map</option>
+                <option value="satellite">Satellite (ACT 2019)</option>
+                <option value="winter">Satellite — winter (leaf-off)</option>
+                <option value="ortho1967">Satellite — historical (1967)</option>
+                <option value="hillshade">LiDAR relief (2019)</option>
+                <option value="none">Plain</option>
+            </select>
+            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
+        </div>
         <div class="control-group" id="grp-camera">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
@@ -878,19 +901,6 @@
                 <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
             </div>
             <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
-        </div>
-        <div class="control-group" id="grp-baselayer">
-            <label for="param-baselayer">Map layer</label>
-            <select id="param-baselayer">
-                <option value="contours">Contour lines</option>
-                <option value="topo">Topographic map</option>
-                <option value="satellite">Satellite (ACT 2019)</option>
-                <option value="winter">Satellite — winter (leaf-off)</option>
-                <option value="ortho1967">Satellite — historical (1967)</option>
-                <option value="hillshade">LiDAR relief (2019)</option>
-                <option value="none">Plain</option>
-            </select>
-            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
         </div>
         </div>
 
@@ -1094,7 +1104,7 @@
             baseY: -2,
             terrainSource: 'geodata',     // GeoData (LiDAR) is the only terrain source
             vExag: 1.0,                   // TRUE vertical exaggeration (1.0 = true scale)
-            surround: 1.2,                // how much surrounding DEM to show — default to max (full window)
+            surround: 1.0,                // how much surrounding DEM to show — default to max (full window)
             navMode: 'normal',            // camera navigation: 'normal' (map-like, default) | 'power' (free orbit)
             flipWE: false,                // mirror the terrain West<->East
             baseLayer: 'contours',        // terrain surface graphic: 'contours' | 'satellite' | 'none'
@@ -1125,8 +1135,8 @@
             terrainCullBack: true,        // cull the terrain surface back face (FrontSide) so the underside isn't drawn when viewing from below — default on
             sideCullBack: true,           // dev: cull the terrain side-wall back faces (FrontSide) so they're not visible from the far side — default on
             qanatFront: true,             // pin the qanat to the front cut face (strata read behind it) — default on
-            frontMarginM: 0,              // gap (m) between the front terrain edge and the end shaft (qanatFront); default 0
-            frontMarginSymmetric: false,  // mirror the same front-edge gap onto the back/north side (qanatFront)
+            frontMarginM: 1,              // qanat clip-off margin (m) beyond the cut edge(s) (qanatFront); slider min 1
+            frontMarginSymmetric: false,  // mirror the clip-off margin onto the back/north side too (qanatFront)
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
             presetsCompact: false,        // dev-set persistent preference: smaller "Quick views" preset cards
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
@@ -1727,23 +1737,23 @@
                 // cross-section sits right in front of it; the square then extends north.
                 // Only ~540 m of data lies north of the qanat, so shrink the square to fit
                 // (cheap — no extra sampling); the qanat stays pinned at the front.
-                const frontMarginLat = params.frontMarginM / 111320;   // gap south of the end shaft (dev slider)
+                const frontMarginLat = params.frontMarginM / 111320;   // clip-off margin (dev slider)
                 if (params.frontMarginSymmetric) {
-                    // Mirror the same gap on the back/north side: the margin is an ADDITIVE
-                    // inset applied on top of the surround-driven span, centred on the route —
-                    // NOT a Math.max() floor against it. A floor was the original (buggy)
-                    // approach here: whenever the surround-driven span already exceeded the
-                    // margin-inclusive route span (true almost all the time, since "Surrounding
-                    // area" defaults near its max), recentring against that floor made the
-                    // margin's south-ward and north-ward pulls cancel out EXACTLY — the slider
-                    // visibly moved but the rendered window never budged.
-                    // No "available data" cap here, matching the asymmetric branch below (which
-                    // likewise lets its margin-anchored south edge run past GEO_BBOX unclamped)
-                    // — capping against the ~0.009°-tall sampled window turned out to clamp
-                    // `half` right back down at margin=0 already (the surround-driven span alone
-                    // is usually already close to that ceiling), silently eating the margin.
+                    // "Qanat clip-off margin", mirrored to both ends: crop the window tight
+                    // around the qanat's OWN real extent (QANAT_LAT_S..QANAT_LAT_N) plus a
+                    // uniform margin on each side — independent of the surround-driven span,
+                    // not additive on top of it. At the slider's low end the window is barely
+                    // wider than the qanat itself (almost everything else clipped away);
+                    // larger margins relax the clip and reveal more surrounding ground.
+                    // Earlier versions added the margin ON TOP of spanLat/2 (the surround-driven
+                    // half-span) instead of the qanat's own half-length — since surround's span
+                    // dwarfs a small margin, the low end of the slider never actually tightened
+                    // the crop, which read as "the margin doesn't do anything." Anchoring to the
+                    // qanat's real ends instead of a surround-sized square fixes that. Capped by
+                    // the sampled data's own extent so it can't request terrain outside GEO_BBOX.
                     const routeMid = (QANAT_LAT_S + QANAT_LAT_N) / 2;
-                    const half = spanLat / 2 + frontMarginLat;
+                    const routeHalfLat = (QANAT_LAT_N - QANAT_LAT_S) / 2;
+                    const half = Math.min(routeHalfLat + frontMarginLat, fullLat / 2);
                     south = routeMid - half; north = routeMid + half;
                     spanLat = north - south; spanLon = spanLat / cosLat;
                 } else {
@@ -3494,11 +3504,14 @@
                 const cLat = (GEO_BBOX.south + GEO_BBOX.north) / 2;
                 const fullLat = GEO_BBOX.north - GEO_BBOX.south;
                 const surMax = (fullLat / Math.cos(cLat * Math.PI / 180)) / GEO_VIEW_SPAN.lon;
-                // Allow the slider up to 1.2x even where the data-honest square would snap
-                // lower — recomputeGeoView() already shrinks spanLon to match whenever spanLat
-                // hits its data limit, so values past the honest bound are a no-op, not a
-                // stretch/repeat past the sampled extent.
-                surSl.max = Math.max(1.2, Math.floor(surMax / 0.05) * 0.05).toFixed(2);
+                // Cap the slider AT the data-honest bound (floor, never over it) instead of
+                // forcing a fixed "1.2x" ceiling regardless of where the real data runs out.
+                // A fixed floor here used to be harmless when GEO_VIEW_SPAN made 1x ≈ 866 m
+                // (the honest bound sat close to 1.2 anyway); now that 1x is calibrated to an
+                // exact 1000 m and the sampled window's N–S extent is only ~1002 m, the honest
+                // bound sits just past 1.0 — a fixed "always allow up to 1.2" left most of the
+                // slider's top range a dead no-op (thumb moves, rendered window doesn't).
+                surSl.max = (Math.floor(surMax / 0.05) * 0.05).toFixed(2);
                 if (params.surround > parseFloat(surSl.max)) params.surround = parseFloat(surSl.max);
             })();
             surSl.value = params.surround; surLb.innerText = params.surround.toFixed(1) + '×';
@@ -3966,8 +3979,8 @@
                 'param-perched': false, 'param-paths': false,
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
-                'param-terrain-opacity': 1.0, 'param-surround': 1.2,
-                'param-front-margin': 0, 'param-front-margin-symmetric': false,
+                'param-terrain-opacity': 1.0, 'param-surround': 1.0,
+                'param-front-margin': 1, 'param-front-margin-symmetric': false,
                 'param-detailed-gallery': false
             };
             const PRESET_SETTERS = {
@@ -4008,12 +4021,7 @@
             const PRESETS = {
                 overview: { year: 2025, controls: {},
                     cam: () => presetView('iso') },
-                // Distinct from Overview on more than one axis, not just a slightly-lower
-                // opacity value that read as barely-different at a glance: terrain fades much
-                // further AND the hollow reconstructed gallery bore switches on, so there's an
-                // actual walk-through tunnel to see through the ghosted hill, not just fainter
-                // ground.
-                underground: { year: 2025, controls: { 'param-terrain-opacity': 0.12, 'param-detailed-gallery': true },
+                underground: { year: 2025, controls: {},
                     cam: () => presetView('iso') },
                 water: { year: 2025, controls: { 'param-baselayer': 'satellite', 'param-overflow': true },
                     cam: () => resetView() },
@@ -4049,11 +4057,7 @@
                 preset.cam();
             }
             document.querySelectorAll('.preset-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    applyPreset(card.dataset.preset);
-                    document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('applied'));
-                    card.classList.add('applied');
-                });
+                card.addEventListener('click', () => applyPreset(card.dataset.preset));
             });
 
             setupShaftInteraction();
