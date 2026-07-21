@@ -116,7 +116,7 @@
         #profile-panel .pp-toggle input { accent-color: var(--accent-blue); cursor: pointer; }
         #profile-panel .pp-toggle select { font-size: 0.68rem; padding: 1px 3px; border-radius: 4px;
             border: 1px solid rgba(0,0,0,0.2); background: #fff; color: #4a3f2f; }
-        #profile-panel .pp-geoimg img { width: 100%; display: block; border-radius: 4px;
+        #profile-panel .pp-geoimg img { width: 100%; height: auto; display: block; border-radius: 4px;
             border: 1px solid rgba(0,0,0,0.12); }
         #profile-panel .pp-credit { color: #6a5f4c; font-size: 0.62rem; margin: 3px 0 8px; line-height: 1.3; }
         /* Developer mode: red screen frame + badge (toggle with Super/⌘ + D) */
@@ -175,7 +175,7 @@
             position: relative;
             background: var(--panel-bg);
             border-left: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 22px;
+            padding: 0 22px 22px;   /* no top padding: #panel-sticky supplies its own (see below) */
             box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35);
             z-index: 10;
             overflow-y: auto;
@@ -187,7 +187,18 @@
         .control-group { margin-bottom: 16px; }
         .control-group label { display: flex; justify-content: space-between;
             font-size: 0.82rem; margin-bottom: 5px; color: #d1d5db; }
-        .control-group label span.val { color: var(--accent-blue); font-weight: 600; }
+        .control-group label span.val { color: var(--accent-blue); font-weight: 600; font-size: 0.82rem; }
+        /* The group's OWN title (Camera, Navigation, Theme, Terrain opacity, ...) reads as a
+           section header, distinct from the checkbox/value labels beneath it — previously every
+           label in the sidebar shared one flat style, so nothing signalled "this is the
+           heading" vs. "this is one option among several". Scoped to the first, non-checkbox
+           label only: groups that open directly with a checkbox (a plain options list, already
+           named by its tab) correctly get no separate header. */
+        .control-group > label:first-child:not(.check-row) {
+            font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+            color: #8b93a3; margin-bottom: 8px; }
+        .control-group > label:first-child:not(.check-row) span.val {
+            font-size: 0.78rem; letter-spacing: normal; text-transform: none; }
 
         /* The input's own box is the (larger) touch hit-area; the visible track is the thin
            runnable-track pseudo-element centered inside it, so a bigger tap target never
@@ -350,15 +361,21 @@
         }
         #panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
         /* Title + Settings/Inspector switch are pinned together at the top of the scrolling
-           panel: the wrapper cancels #ui-panel's own padding (negative margin) and re-applies
-           it itself, so it sits flush with the scrollport's top edge once stuck — no gap, no
-           seam. The Map/Qanat/Terrain tabs live below, in .tab-section, NOT here — they're
-           content-category navigation within Settings mode, not top-level chrome. */
+           panel. Only cancels #ui-panel's LEFT/RIGHT padding (negative horizontal margin) and
+           supplies its own top padding directly — it must NOT try to cancel top padding the
+           same way: position:sticky's `top` offset is measured from the scrollport's PADDING
+           EDGE, so a sticky element can never render above that line no matter what negative
+           margin pulls it — the old "margin: -22px -22px 0" (canceling top too) just got
+           clamped back down to the padding edge, reintroducing the exact 22px gap it was
+           trying to remove. Removing #ui-panel's top padding entirely (see #ui-panel) sidesteps
+           the issue rather than fighting it. The Map/Qanat/Terrain tabs live below, in
+           .tab-section, NOT here — they're content-category navigation within Settings mode,
+           not top-level chrome. */
         /* A subtle bottom edge + drop shadow gives the pinned header a "floating above the
            scrolled content" read — without it, the header shared the exact same flat panel
            colour as everything sliding underneath, so nothing signalled it was stuck. */
         #panel-sticky { position: sticky; top: 0; z-index: 5; background: var(--panel-bg);
-            margin: -22px -22px 0; padding: 22px 22px 12px;
+            margin: 0 -22px 0; padding: 22px 22px 12px;
             border-bottom: 1px solid rgba(255,255,255,0.08);
             box-shadow: 0 10px 18px -12px rgba(0,0,0,0.55); }
         /* Tab strip sits flush on top of the panes card so the two read as one container:
@@ -567,9 +584,12 @@
         body.mode-inspector #inspector-pane { display: block; }
         body.mode-inspector .tab-section,
         body.mode-inspector #panel-presets,
+        body.mode-inspector #panel-nav,
         body.mode-inspector #panel-actions { display: none; }
-        /* #panel-nav (Camera + Navigation) stays visible in Inspector mode so a selected feature
-           can be reframed (Top/Side/rotate) without a round-trip back to Settings. */
+        /* Inspector mode shows ONLY inspectable-element detail — Camera/Navigation/Map layer
+           (in #panel-nav) used to stay visible here so a selection could be reframed without a
+           round-trip to Settings, but that mixed "control panel" chrome into what's meant to
+           read as a focused detail view. */
         #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -578,7 +598,7 @@
         .ip-row .ip-v { color: #f3f4f6; font-weight: 600; text-align: right; }
         .ip-note { font-size: 0.78rem; color: #cbd5e1; margin: 10px 0; line-height: 1.45; }
         .ip-figure { margin: 4px 0 8px; background: #f7f4ec; border-radius: 8px; padding: 6px; }
-        .ip-figure img { width: 100%; display: block; border-radius: 5px; cursor: zoom-in; }
+        .ip-figure img { width: 100%; height: auto; display: block; border-radius: 5px; cursor: zoom-in; }
         /* Compact single-letter knowledge-status badge; click to reveal the source detail. */
         .ip-badge { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px;
             border-radius: 50%; font-size: 0.62rem; font-weight: 700; color: #fff; border: none; cursor: pointer;
@@ -679,7 +699,7 @@
 </head>
 <body>
 
-    <div id="wip-banner">🚧 Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a>
+    <div id="wip-banner">🚧 Private Beta — Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a>
         <button id="wip-banner-close" type="button" aria-label="Dismiss">×</button>
     </div>
 
@@ -764,7 +784,7 @@
                 <label>Qanat front-edge gap <span class="val" id="lbl-front-margin">0&nbsp;m</span></label>
                 <input type="range" id="param-front-margin" min="0" max="500" step="5" value="0" aria-label="Qanat front-edge gap (metres): 0 pins the qanat to the front cut face">
                 <div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;margin-bottom:10px;line-height:1.35;">0&nbsp;=&nbsp;qanat at the front cut face (strata read behind it); slide back to inset it.</div>
-                <label class="check-row" id="row-front-margin-symmetric"><input type="checkbox" id="param-front-margin-symmetric"> Symmetric&nbsp;(mirror&nbsp;the&nbsp;same&nbsp;gap&nbsp;on&nbsp;the&nbsp;back/north&nbsp;side)</label>
+                <label class="check-row" id="row-front-margin-symmetric"><input type="checkbox" id="param-front-margin-symmetric"> Symmetric&nbsp;(mirror&nbsp;on&nbsp;the&nbsp;back&nbsp;side)</label>
             </div>
             <div class="control-group" id="grp-terrain-opacity">
                 <label>Terrain opacity <span class="val" id="lbl-terrain-opacity">1.00</span></label>
@@ -810,10 +830,10 @@
                     <span class="pc-label">Follow the water</span>
                     <span class="pc-desc">East → west, to the villa</span>
                 </button>
-                <button class="preset-card" data-preset="construction" type="button">
-                    <span class="pc-ico" aria-hidden="true">🏛️</span>
-                    <span class="pc-label">Roman construction</span>
-                    <span class="pc-desc">~140 AD, freshly built</span>
+                <button class="preset-card" data-preset="satellite" type="button">
+                    <span class="pc-ico" aria-hidden="true">🛰️</span>
+                    <span class="pc-label">Aerial + overlays</span>
+                    <span class="pc-desc">2019 satellite, aquifer &amp; contours layered on top</span>
                 </button>
                 <button class="preset-card" data-preset="geology" type="button">
                     <span class="pc-ico" aria-hidden="true">🪨</span>
@@ -919,7 +939,7 @@
                 <div class="legend-item"><div class="color-box" style="background: #8f95c4;"></div>Marl &amp; limestone strata</div>
                 <div class="legend-sep"></div>
                 <div class="legend-item"><div class="color-box" style="background: var(--accent-orange);"></div>Solid shaft — <b>documented</b> depth</div>
-                <div class="legend-item"><div class="color-box" style="background: transparent; border: 1.5px solid var(--accent-orange); box-shadow: inset 0 0 0 2px rgba(224,162,59,0.18);"></div>Wireframe / ghost shaft — <b>inferred</b> depth</div>
+                <div class="legend-item"><div class="color-box" style="background: transparent; border: 1.5px solid #b99866; box-shadow: inset 0 0 0 2px rgba(185,152,102,0.18);"></div>Wireframe / ghost shaft — <b>inferred</b> depth</div>
             </div>
         </div>
     </div>
@@ -1121,6 +1141,16 @@
         const STRATA = Object.assign({
             cover: '#d8c0a8', li2: '#b9d3e8', li1: '#8f95c4', ko: '#e58a9a', km3: '#f2d9a0'
         }, MODEL_CONFIG.strataColors || {});
+        // Same hue, muted toward grey — NOT a different hue — for inferred/unexplored elements
+        // (ghost shafts, dashed gallery ends). Keeps the domain-identity colour (orange=shaft,
+        // blue=qanat) reading as "the same kind of thing", while a lower saturation/lightness
+        // does the "less certain" signalling, reinforcing the existing wireframe/dashed shape
+        // language instead of competing with it on a second, unrelated hue.
+        function mutedColor(hex, amount = 0.55) {
+            return new THREE.Color(hex).lerp(new THREE.Color(0x8a8a8a), amount).getHex();
+        }
+        const COL_SHAFT_INFERRED = mutedColor(COL.shaft);
+        const COL_QANAT_INFERRED = mutedColor(COL.qanat);
 
         // Scene-scale slider defaults come from model-config.sceneScale (single source).
         for (const k of ['plateauHeight', 'contourSpacing', 'width', 'depth', 'baseY'])
@@ -1225,6 +1255,30 @@
         };
 
         let scene, camera, renderer, controls, modelGroup;
+        // Selection highlight: a single camera-facing ring, repositioned at the raycast hit
+        // point of whatever was clicked (shaft, spring/villa, gallery cross-section hotspot) —
+        // one mechanism for every inspectable type instead of type-specific highlight logic per
+        // mesh. Lives directly on `scene` (not `modelGroup`) so it survives model rebuilds.
+        let selectionMarker = null;
+        function initSelectionMarker() {
+            const geo = new THREE.RingGeometry(0.55, 0.78, 40);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.95,
+                depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+            selectionMarker = new THREE.Mesh(geo, mat);
+            selectionMarker.renderOrder = 60;
+            selectionMarker.visible = false;
+            selectionMarker.raycast = () => {};   // never itself pickable
+            scene.add(selectionMarker);
+        }
+        function selectAt(point) {
+            if (!selectionMarker || !point) return;
+            selectionMarker.position.copy(point);
+            selectionMarker.quaternion.copy(camera.quaternion);   // billboards toward the camera
+            selectionMarker.visible = true;
+        }
+        function clearSelectionMarker() {
+            if (selectionMarker) selectionMarker.visible = false;
+        }
         let contourMaterial, crossSectionMaterial;
         let lastTerrainSeg = { x: 0, z: 0 };   // last terrain tessellation (dev density readout)
         let subsurfaceGroup;                   // all man-made underground structures (x-ray unit)
@@ -1648,15 +1702,23 @@
                 // (cheap — no extra sampling); the qanat stays pinned at the front.
                 const frontMarginLat = params.frontMarginM / 111320;   // gap south of the end shaft (dev slider)
                 if (params.frontMarginSymmetric) {
-                    // Mirror the same gap on the back/north side: the square is now pinned by
-                    // BOTH ends of the qanat route (+ margin) rather than floating freely north.
-                    south = QANAT_LAT_S - frontMarginLat;
-                    north = QANAT_LAT_N + frontMarginLat;
-                    spanLat = Math.max(spanLat, north - south);
-                    if (spanLat > (GEO_BBOX.north - GEO_BBOX.south)) spanLat = GEO_BBOX.north - GEO_BBOX.south;
-                    spanLon = spanLat / cosLat;
-                    const mid = (south + north) / 2;
-                    south = mid - spanLat / 2; north = mid + spanLat / 2;
+                    // Mirror the same gap on the back/north side: the margin is an ADDITIVE
+                    // inset applied on top of the surround-driven span, centred on the route —
+                    // NOT a Math.max() floor against it. A floor was the original (buggy)
+                    // approach here: whenever the surround-driven span already exceeded the
+                    // margin-inclusive route span (true almost all the time, since "Surrounding
+                    // area" defaults near its max), recentring against that floor made the
+                    // margin's south-ward and north-ward pulls cancel out EXACTLY — the slider
+                    // visibly moved but the rendered window never budged.
+                    // No "available data" cap here, matching the asymmetric branch below (which
+                    // likewise lets its margin-anchored south edge run past GEO_BBOX unclamped)
+                    // — capping against the ~0.009°-tall sampled window turned out to clamp
+                    // `half` right back down at margin=0 already (the surround-driven span alone
+                    // is usually already close to that ceiling), silently eating the margin.
+                    const routeMid = (QANAT_LAT_S + QANAT_LAT_N) / 2;
+                    const half = spanLat / 2 + frontMarginLat;
+                    south = routeMid - half; north = routeMid + half;
+                    spanLat = north - south; spanLon = spanLat / cosLat;
                 } else {
                     const availLat = (GEO_BBOX.north - QANAT_LAT_S) + frontMarginLat;
                     if (spanLat > availLat) { spanLat = availLat; spanLon = spanLat / cosLat; }
@@ -1968,6 +2030,7 @@
             const CAM = MODEL_CONFIG.camera || { fov: 13, position: [0, 20, 96], target: [2, 3, 0], near: 1, far: 1000 };
             scene = new THREE.Scene();
             scene.background = new THREE.Color(sceneBackgroundColor());
+            initSelectionMarker();
             const darkModeMQ = window.matchMedia('(prefers-color-scheme: dark)');
             darkModeMQ.addEventListener('change', () => {
                 if (themeOverride !== 'auto') return;   // an explicit Theme choice wins over the OS
@@ -2407,20 +2470,22 @@
             // Realistic mode: clad the solid shafts in the sandstone PBR set (lit, so the
             // normal/roughness show); otherwise the flat unlit overlay. (The "look inside"
             // cutaway is a clipping plane on the whole subsurface group — see applyCutaway.)
-            const mkShaftMat = (op, dt = false) => params.pbr && TEX.color
+            // col defaults to the vivid documented colour; ghost/cage calls below pass the muted
+            // COL_SHAFT_INFERRED instead — same hue, lower saturation, not a different hue.
+            const mkShaftMat = (op, dt = false, col = COL.shaft) => params.pbr && TEX.color
                 ? new THREE.MeshStandardMaterial({ map: TEX.color, normalMap: TEX.normal,
                     roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0,
                     depthTest: dt, depthWrite: false, transparent: op < 0.999, opacity: op })
                 : new THREE.MeshBasicMaterial({
-                    color: COL.shaft, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
+                    color: col, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
             const capSolidMat = mkShaftMat(1.0);          // above-ground cap: always x-ray
             const belowFaintMat = mkShaftMat(0.4, ugDT);  // below-ground body: respects the toggle
-            const ghostFillMat = mkShaftMat(0.12);        // inferred cap ghost fill (x-ray)
-            const ghostFillFaintMat = mkShaftMat(0.06, ugDT); // inferred below-ground ghost fill
-            const mkCageMat = (op, dt = false) => new THREE.LineBasicMaterial({
-                color: COL.shaft, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
-            const cageMat = mkCageMat(0.95);              // inferred cap cage (crisp, x-ray)
-            const cageFaintMat = mkCageMat(0.4, ugDT);    // inferred below-ground cage
+            const ghostFillMat = mkShaftMat(0.16, false, COL_SHAFT_INFERRED);        // inferred cap ghost fill (x-ray)
+            const ghostFillFaintMat = mkShaftMat(0.08, ugDT, COL_SHAFT_INFERRED);    // inferred below-ground ghost fill
+            const mkCageMat = (op, dt = false, col = COL.shaft) => new THREE.LineBasicMaterial({
+                color: col, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
+            const cageMat = mkCageMat(0.95, false, COL_SHAFT_INFERRED);   // inferred cap cage (crisp, x-ray)
+            const cageFaintMat = mkCageMat(0.4, ugDT, COL_SHAFT_INFERRED); // inferred below-ground cage
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
@@ -2458,7 +2523,7 @@
                 // Every shaft gets a short above-ground stub so its opening is visible
                 // over the terrain (inferred shafts included — they were previously hidden
                 // as sub-surface translucent pillars that blended into the contours).
-                const CAP = 0.7;                              // above-ground stub height (units)
+                const CAP = 0.35;                             // above-ground stub height (units) — half the previous 0.7
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented };
                 // Surface cap is rendered SOLID for shafts whose present-day head carries a
@@ -2653,8 +2718,10 @@
                     xsecHollowMinX = xsecHollowMaxX = 0;   // no hollow reach this build — no slot to carve
                 }
                 if (!fullRouteHollow) {
-                    tunnelDashed(basePts.slice(0, start + 1), galleryColor);   // inferred west (dashed)
-                    tunnelDashed(basePts.slice(end - 1), galleryColor);       // inferred east (dashed)
+                    // Muted (same hue, lower saturation) rather than the vivid explored blue —
+                    // reinforces "inferred" alongside the dashing instead of only the dashing.
+                    tunnelDashed(basePts.slice(0, start + 1), COL_QANAT_INFERRED);   // inferred west (dashed)
+                    tunnelDashed(basePts.slice(end - 1), COL_QANAT_INFERRED);       // inferred east (dashed)
                 }
 
                 // Auxiliary dry channel (P-7A → P-5A): a separate, higher, DRY conduit with
@@ -3180,7 +3247,10 @@
             // drainage boundaries (fig 4-2 / 5-3); the qanat lowered it — that vertical gap is
             // the DRAWDOWN. The mound magnitude here is illustrative (not surveyed), so it's
             // labelled as such. Only meaningful with the strata shown (this runs inside addGeology).
-            if (params.showPerched && geoMode && gwPts.length >= 2) {
+            // Auto-shows itself for any pre-construction year on the timeline (there's no qanat
+            // yet to have drawn the table down) regardless of the manual checkbox, which stays
+            // available as a manual override for years after that.
+            if ((params.showPerched || params.year < 131) && geoMode && gwPts.length >= 2) {
                 const MOUND_MAX_M = 6;                       // illustrative peak mounding
                 const perchedPts = [];
                 for (let k = 0; k < gwPts.length; k++) {
@@ -3911,10 +3981,10 @@
                     cam: () => presetView('iso') },
                 underground: { year: 2025, controls: { 'param-terrain-opacity': 0.35 },
                     cam: () => presetView('iso') },
-                water: { year: 2025, controls: { 'param-baselayer': 'satellite', 'param-perched': true, 'param-overflow': true },
+                water: { year: 2025, controls: { 'param-baselayer': 'satellite', 'param-overflow': true },
                     cam: () => resetView() },
-                construction: { year: 140, controls: {},
-                    cam: () => presetView('iso') },
+                satellite: { year: 2025, controls: { 'param-baselayer': 'satellite', 'ov-aquifer': true, 'ov-contours': true },
+                    cam: () => topView() },
                 geology: { year: 2025, controls: { 'param-dip': true, 'param-terrain-opacity': 0.45 },
                     cam: () => resetView() }
             };
@@ -4024,6 +4094,10 @@
             const y = params.year;
             const yTxt = y >= 2025 ? 'present' : (y + ' AD');
             if (lbl) lbl.textContent = yTxt;
+            // Reflect the perched water table's auto-show (pre-construction years) in the
+            // checkbox too, so it doesn't look "off" while the feature is visibly rendered.
+            const perchedCb = document.getElementById('param-perched');
+            if (perchedCb) perchedCb.checked = params.showPerched || y < 131;
             // Match the native range thumb (inset by half its width), so the knob sits exactly
             // under the pointer instead of drifting by ~half a thumb toward the ends.
             if (ph) ph.style.left = 'calc(var(--tl-thumb) / 2 + ' + yearToSlider(y).toFixed(4) + ' * (100% - var(--tl-thumb)))';
@@ -4502,15 +4576,16 @@
                     return;
                 }
                 const xhit = pickXsec(ev);   // gallery cross-section hotspot → inspector
-                if (xhit) { renderXsecPanel(xhit.object.userData); return; }
+                if (xhit) { selectAt(xhit.point); renderXsecPanel(xhit.object.userData); return; }
                 const hit = pick(ev);
                 if (hit) {
                     // Tapping a shaft opens the info overlay (no camera fly).
+                    selectAt(hit.point);
                     renderInfoPanel(shaftById[hit.object.userData.name]);
                     return;
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
-                if (shit) renderSpotPanel(shit.object.userData);
+                if (shit) { selectAt(shit.point); renderSpotPanel(shit.object.userData); }
             });
         }
 
@@ -4722,6 +4797,7 @@
                 const pane = document.getElementById('inspector-pane');
                 if (body) body.innerHTML = '';
                 if (pane) pane.classList.remove('has-selection');
+                clearSelectionMarker();
                 setPanelMode('inspector');
             });
             // Clicking a status badge (e.g. green "D") reveals that row's source detail.
@@ -5289,6 +5365,7 @@
             if (measureMode) updateMeasureOverlay();
             updateCutawayPlane();   // keep the look-inside cut facing the camera
             updateXsecCutawayPlane();   // keep the qanat cross-section cut on the correct side (and following, if enabled)
+            if (selectionMarker && selectionMarker.visible) selectionMarker.quaternion.copy(camera.quaternion);
             controls.update();
             renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
