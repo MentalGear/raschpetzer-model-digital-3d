@@ -1745,23 +1745,23 @@
                 // (cheap — no extra sampling); the qanat stays pinned at the front.
                 const frontMarginLat = params.frontMarginM / 111320;   // clip-off margin (dev slider)
                 if (params.frontMarginSymmetric) {
-                    // "Qanat clip-off margin", mirrored to both ends: crop the window tight
-                    // around the qanat's OWN real extent (QANAT_LAT_S..QANAT_LAT_N) plus a
-                    // uniform margin on each side — independent of the surround-driven span,
-                    // not additive on top of it. At the slider's low end the window is barely
-                    // wider than the qanat itself (almost everything else clipped away);
-                    // larger margins relax the clip and reveal more surrounding ground.
-                    // Earlier versions added the margin ON TOP of spanLat/2 (the surround-driven
-                    // half-span) instead of the qanat's own half-length — since surround's span
-                    // dwarfs a small margin, the low end of the slider never actually tightened
-                    // the crop, which read as "the margin doesn't do anything." Anchoring to the
-                    // qanat's real ends instead of a surround-sized square fixes that. Capped by
-                    // the sampled data's own extent so it can't request terrain outside GEO_BBOX.
+                    // "Qanat clip-off margin", mirrored to both ends: a THICK STRIP running the
+                    // full current E–W extent (spanLon — whatever "Surrounding area" set, left
+                    // untouched here), clipped tight in the N–S direction to the qanat's own real
+                    // extent (QANAT_LAT_S..QANAT_LAT_N) plus a uniform margin on each side. At the
+                    // slider's low end the strip is barely thicker than the qanat itself; larger
+                    // margins widen the strip and reveal more ground to the north and south.
+                    // NOT a square: an earlier version recomputed spanLon = spanLat / cosLat
+                    // afterward, forcing a square patch that grew/shrank in BOTH directions —
+                    // so the slider looked like it was resizing a square window centred on the
+                    // qanat, not thickening a full-length strip across it. spanLon (and
+                    // therefore params.width) is deliberately left alone below; only spanLat
+                    // (and params.depth) come from the qanat's real ends + margin.
                     const routeMid = (QANAT_LAT_S + QANAT_LAT_N) / 2;
                     const routeHalfLat = (QANAT_LAT_N - QANAT_LAT_S) / 2;
                     const half = Math.min(routeHalfLat + frontMarginLat, fullLat / 2);
                     south = routeMid - half; north = routeMid + half;
-                    spanLat = north - south; spanLon = spanLat / cosLat;
+                    spanLat = north - south;
                 } else {
                     const availLat = (GEO_BBOX.north - QANAT_LAT_S) + frontMarginLat;
                     if (spanLat > availLat) { spanLat = availLat; spanLon = spanLat / cosLat; }
@@ -1775,10 +1775,13 @@
             QSCALE = (params.terrainSource === 'geodata') ? (GEO_VIEW_SPAN.lon / spanLon) : 1;
             // Mesh grows with the window: width tracks spanLon so metersPerXUnit =
             // (spanLon × mPerDegLon) / width stays CONSTANT (the qanat keeps its on-screen
-            // size/position); depth == width so the block — and the metres-per-unit scale —
-            // stay square and isotropic (metersPerZUnit == metersPerXUnit).
+            // size/position). depth tracks spanLat via the SAME real-world scale (not just set
+            // equal to width) so metersPerZUnit stays equal to metersPerXUnit — isotropic even
+            // when the window isn't square (the Symmetric clip-off strip: full E–W width, a
+            // narrower N–S thickness). In every other branch spanLat == spanLon·cosLat exactly,
+            // so this reduces to depth == width, unchanged from before.
             params.width = BASE_WIDTH * (spanLon / GEO_VIEW_SPAN.lon);
-            params.depth = params.width;
+            params.depth = params.width * (spanLat / (spanLon * cosLat));
             applyQanatScale();
             return geoView;
         }
