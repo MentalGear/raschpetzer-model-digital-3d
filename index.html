@@ -836,6 +836,7 @@
                 <label class="check-row" id="row-aux"><input type="checkbox" id="param-aux"> Auxiliary&nbsp;dry&nbsp;channel&nbsp;(P‑7A/P‑5A)</label>
                 <label class="check-row" id="row-sounding"><input type="checkbox" id="param-sounding"> Exploratory&nbsp;sounding&nbsp;gallery&nbsp;(P1,&nbsp;abandoned)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
+                <label class="check-row" id="row-steps"><input type="checkbox" id="param-steps"> Floor&nbsp;step&nbsp;markers&nbsp;(P4,&nbsp;P6)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
                 <label class="check-row"><input type="checkbox" id="param-villa" checked> Villa&nbsp;(inferred&nbsp;recipient)</label>
                 <label class="check-row"><input type="checkbox" id="param-xsec" checked> Qanat&nbsp;cross‑sections</label>
@@ -1136,6 +1137,7 @@
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showSounding: false,          // exploratory sounding gallery at P1 (documented, no channel, schematic extent)
+            showSteps: false,             // gallery floor-drop step markers (P4/P6) — off by default
             showPerched: false,           // perched pre-construction water table + drawdown band
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
             undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
@@ -2859,7 +2861,9 @@
                 // a hydrological one, and reusing the water colour read as "water pools here"
                 // even though the real reason the gallery is blue (water still runs through it
                 // today, ~180 m³/day per Brochure 2018 p.4/29) has nothing to do with this marker.
-                SSOT.gallery.gallery.steps.forEach(step => {
+                // Off by default (params.showSteps) — a sub-visible ~1 m annotation that clutters
+                // the default view more than it informs.
+                if (params.showSteps) SSOT.gallery.gallery.steps.forEach(step => {
                     const id = step.underShaft, txt = step.dropM + ' m step';
                     const bp = shaftBaseById[id];
                     if (!bp) return;
@@ -3844,6 +3848,11 @@
                 buildParametricModel();
             });
 
+            document.getElementById('param-steps').addEventListener('change', e => {
+                params.showSteps = e.target.checked;
+                buildParametricModel();
+            });
+
             // Toggle the optional inferred recipient villa marker
             document.getElementById('param-villa').addEventListener('change', e => {
                 params.showVilla = e.target.checked;
@@ -4050,7 +4059,7 @@
                 'param-underground': true, 'param-realistic-diameters': 0.5,
                 'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
                 'param-aux': false, 'param-sounding': false, 'param-overflow': false,
-                'param-perched': false, 'param-paths': false,
+                'param-steps': false, 'param-perched': false, 'param-paths': false,
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
                 'param-terrain-opacity': 1.0, 'param-surround': 1.0,
@@ -4070,6 +4079,7 @@
                 'param-aux': v => { params.showAux = v; },
                 'param-sounding': v => { params.showSounding = v; },
                 'param-overflow': v => { params.showOverflow = v; },
+                'param-steps': v => { params.showSteps = v; },
                 'param-perched': v => { params.showPerched = v; },
                 'param-paths': v => { params.showPaths = v; },
                 'ov-aquifer': v => { params.overlay.aquifer = v; },
