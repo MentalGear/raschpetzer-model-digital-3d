@@ -3,7 +3,7 @@
 // Dependency-free (Node fs only). Usage: node scripts/build.mjs   (or: npm run build)
 import { execSync } from 'node:child_process';
 import {
-  rmSync, mkdirSync, cpSync, copyFileSync, existsSync, statSync,
+  rmSync, mkdirSync, cpSync, copyFileSync, existsSync, statSync, readFileSync, writeFileSync,
 } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -43,6 +43,26 @@ copyFile('index.html');
 copyDir('vendor');   // three.min.js, OrbitControls.js
 copyDir('assets');   // data.bundle.js (generated), geodata-walferdange.js, reference-fig2.jpg
 copyDir('docs');     // human-readable knowledge base (optional)
+
+// 3b. Cache-busting: every <script src> in dist/index.html is a fixed filename that never
+// changes between deploys (vendor/three.min.js, assets/data.bundle.js, ...), so a browser or
+// the GitHub Pages CDN caching one under its old headers has no signal that a new deploy
+// happened — it can keep serving stale JS/data indefinitely. GitHub Pages doesn't let us set
+// our own Cache-Control headers, so the fix that actually works regardless of what headers it
+// assigns is to make the URL itself change: append the commit SHA as a query string, which
+// forces a cache miss (and a fresh fetch) on every deploy that ships a new commit.
+const version = (() => {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 12);
+  try { return execSync('git rev-parse HEAD', { cwd: abs('.') }).toString().trim().slice(0, 12); }
+  catch { return String(Date.now()); }   // last resort: outside git, still busts on every rebuild
+})();
+const indexPath = abs('dist/index.html');
+const busted = readFileSync(indexPath, 'utf8').replace(
+  /<script src="([^"]+)"><\/script>/g,
+  (whole, src) => /^https?:\/\//.test(src) ? whole : `<script src="${src}?v=${version}"></script>`
+);
+writeFileSync(indexPath, busted);
+console.log('› cache-busted <script src> refs with ?v=' + version);
 
 // 4. Report.
 console.log('› copied into dist/:');
