@@ -2607,6 +2607,12 @@
             const cageMat = mkCageMat(0.95, false, COL_SHAFT_INFERRED);   // inferred cap cage (crisp, x-ray)
             const cageFaintMat = mkCageMat(0.4, ugDT, COL_SHAFT_INFERRED); // inferred below-ground cage
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
+            // Research status (fig 6-4) also colours each SHAFT's own body black/grey —
+            // a separate per-shaft fact from the gallery-segment tube colouring above (they
+            // don't always agree at the same shaft; see pd-fig-6-4-status). When active this
+            // overrides the normal documented/inferred solid-or-cage rendering entirely, since
+            // the figure draws every shaft as one uniform solid bar.
+            const RS_SHAFTS = params.showResearchStatus && SSOT.gallery && SSOT.gallery.gallery.researchStatus;
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
             const basePts = [], auxPts = [], shaftBaseById = {};
@@ -2654,6 +2660,15 @@
                 // ghost-fill + wireframe MESH.
                 const hasSurfaceCase = !!(rec && rec.surfaceCase);
                 const bodySolid = documented && st.solid;      // documented solid pillar vs inferred ghost+cage
+                // Research-status shaft-body colour (fig 6-4): explored=black, unexplored=grey,
+                // or the special construction-red body (P-5) — null if the toggle is off or this
+                // shaft isn't in the figure.
+                let rsColor = null;
+                if (RS_SHAFTS) {
+                    if (RS_SHAFTS.shaftSpecial && RS_SHAFTS.shaftSpecial[p.id]) rsColor = 0xb3273f;
+                    else if (RS_SHAFTS.shaftExplored && p.id in RS_SHAFTS.shaftExplored)
+                        rsColor = RS_SHAFTS.shaftExplored[p.id] ? 0x232323 : 0xa3a3a3;
+                }
                 // Build one shaft segment. Cap: solid iff a real surface case exists, else
                 // mesh. Body: solid for documented depths (faded), else the ghost-fill +
                 // wireframe-cage MESH, with the below-ground body faded relative to the cap.
@@ -2661,10 +2676,18 @@
                     const shaftR = sceneRadius(SHAFT_RADIUS_M);
                     const cyl = new THREE.CylinderGeometry(shaftR, shaftR, h, 16);
                     const isCap = (order === 'cap');
+                    const dest = isCap ? modelGroup : subsurfaceGroup;
+                    if (rsColor != null) {
+                        // The figure draws every shaft as one uniform solid bar — bypass the
+                        // documented/inferred ghost-cage distinction entirely while this is on.
+                        const m = new THREE.Mesh(cyl, mkShaftMat(isCap ? 1.0 : 0.9, isCap ? false : ugDT, rsColor));
+                        m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
+                        dest.add(m); shaftMeshes.push(m);
+                        return;
+                    }
                     const solid = isCap ? hasSurfaceCase : bodySolid;
                     // Caps are surface markers (always modelGroup / on top); below-ground bodies
                     // join the subsurface x-ray group.
-                    const dest = isCap ? modelGroup : subsurfaceGroup;
                     if (solid) {
                         const m = new THREE.Mesh(cyl, isCap ? capSolidMat : belowFaintMat);
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
