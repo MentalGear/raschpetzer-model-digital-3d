@@ -2660,14 +2660,17 @@
                 // ghost-fill + wireframe MESH.
                 const hasSurfaceCase = !!(rec && rec.surfaceCase);
                 const bodySolid = documented && st.solid;      // documented solid pillar vs inferred ghost+cage
-                // Research-status shaft-body colour (fig 6-4): explored=black, unexplored=grey,
-                // or the special construction-red body (P-5) — null if the toggle is off or this
-                // shaft isn't in the figure.
-                let rsColor = null;
+                // Research-status shaft colour (fig 6-4): explored=black, unexplored=grey, or
+                // the special construction-red body (P-5) — null if the toggle is off or this
+                // shaft isn't in the figure. The figure draws a handful of shafts (P-1, P4) with
+                // a short black "collar" cap above an otherwise-grey body — shaftCapExplored
+                // overrides the CAP segment's colour only, independent of the body.
+                let rsColor = null, rsColorCap = null;
                 if (RS_SHAFTS) {
                     if (RS_SHAFTS.shaftSpecial && RS_SHAFTS.shaftSpecial[p.id]) rsColor = 0xb3273f;
                     else if (RS_SHAFTS.shaftExplored && p.id in RS_SHAFTS.shaftExplored)
                         rsColor = RS_SHAFTS.shaftExplored[p.id] ? 0x232323 : 0xa3a3a3;
+                    rsColorCap = (RS_SHAFTS.shaftCapExplored && RS_SHAFTS.shaftCapExplored[p.id]) ? 0x232323 : rsColor;
                 }
                 // Build one shaft segment. Cap: solid iff a real surface case exists, else
                 // mesh. Body: solid for documented depths (faded), else the ghost-fill +
@@ -2677,10 +2680,11 @@
                     const cyl = new THREE.CylinderGeometry(shaftR, shaftR, h, 16);
                     const isCap = (order === 'cap');
                     const dest = isCap ? modelGroup : subsurfaceGroup;
-                    if (rsColor != null) {
+                    const rsCol = isCap ? rsColorCap : rsColor;
+                    if (rsCol != null) {
                         // The figure draws every shaft as one uniform solid bar — bypass the
                         // documented/inferred ghost-cage distinction entirely while this is on.
-                        const m = new THREE.Mesh(cyl, mkShaftMat(isCap ? 1.0 : 0.9, isCap ? false : ugDT, rsColor));
+                        const m = new THREE.Mesh(cyl, mkShaftMat(isCap ? 1.0 : 0.9, isCap ? false : ugDT, rsCol));
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
                         dest.add(m); shaftMeshes.push(m);
                         return;

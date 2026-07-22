@@ -59,6 +59,10 @@
         "P-1": false, "P0": false, "P1": true, "P2": false, "P3": false, "P4": false,
         "P5": true, "P6": true, "P7": true, "P8": true, "P9": true
       },
+      "shaftCapExplored": {
+        "_doc": "P-1 and P4 are each drawn with a short BLACK collar right at the surface, above an otherwise-grey body (shaftExplored above gives their overall body colour as unexplored/grey) — a finer-grained fact than a single per-shaft colour. Modelled as an override on the shaft's above-ground CAP segment only; the below-ground body keeps shaftExplored's colour. No other shaft in the figure shows this split coding.",
+        "P-1": true, "P4": true
+      },
       "shaftSpecial": { "P-5": "constructionRed" }
     },
     "auxiliaryChannel": {
