@@ -2662,25 +2662,25 @@
                 const bodySolid = documented && st.solid;      // documented solid pillar vs inferred ghost+cage
                 // Research-status shaft colour (fig 6-4): explored=black, unexplored=grey, or
                 // the special construction-red body (P-5) — null if the toggle is off or this
-                // shaft isn't in the figure. The figure draws a handful of shafts (P-1, P4) with
-                // a short black "collar" cap above an otherwise-grey body — shaftCapExplored
-                // overrides the CAP segment's colour only, independent of the body.
-                let rsColor = null, rsColorCap = null;
+                // shaft isn't in the figure.
+                let rsColor = null;
                 if (RS_SHAFTS) {
                     if (RS_SHAFTS.shaftSpecial && RS_SHAFTS.shaftSpecial[p.id]) rsColor = 0xb3273f;
                     else if (RS_SHAFTS.shaftExplored && p.id in RS_SHAFTS.shaftExplored)
                         rsColor = RS_SHAFTS.shaftExplored[p.id] ? 0x232323 : 0xa3a3a3;
-                    rsColorCap = (RS_SHAFTS.shaftCapExplored && RS_SHAFTS.shaftCapExplored[p.id]) ? 0x232323 : rsColor;
                 }
                 // Build one shaft segment. Cap: solid iff a real surface case exists, else
                 // mesh. Body: solid for documented depths (faded), else the ghost-fill +
                 // wireframe-cage MESH, with the below-ground body faded relative to the cap.
-                const addSeg = (h, cyY, order) => {
+                // colorOverride lets a caller force a specific research-status colour for just
+                // this segment (the P-1/P4 explored collar at the top of an otherwise-grey body)
+                // without touching the shaft's own rsColor.
+                const addSeg = (h, cyY, order, colorOverride) => {
                     const shaftR = sceneRadius(SHAFT_RADIUS_M);
                     const cyl = new THREE.CylinderGeometry(shaftR, shaftR, h, 16);
                     const isCap = (order === 'cap');
                     const dest = isCap ? modelGroup : subsurfaceGroup;
-                    const rsCol = isCap ? rsColorCap : rsColor;
+                    const rsCol = colorOverride !== undefined ? colorOverride : rsColor;
                     if (rsCol != null) {
                         // The figure draws every shaft as one uniform solid bar — bypass the
                         // documented/inferred ghost-cage distinction entirely while this is on.
@@ -2709,7 +2709,18 @@
                 // ALWAYS built now; the "Underground x-ray" toggle only sets whether the body
                 // is drawn atop the terrain (x-ray) or occluded by it (see ugDT above).
                 addSeg(CAP, sy + CAP / 2, 'cap');
-                addSeg(len, sy - len / 2, 'body');
+                // Research status: P-1/P4 carry a real explored (black) depth at the TOP of an
+                // otherwise-unexplored (grey) body — see shaftCollarDepthM (an inferred, low/
+                // medium-confidence estimate, not a documented measurement; pd-fig-6-4-status).
+                const collarInfo = RS_SHAFTS && RS_SHAFTS.shaftCollarDepthM && RS_SHAFTS.shaftCollarDepthM[p.id];
+                if (rsColor != null && collarInfo) {
+                    const collarLen = Math.min(len * 0.6, metersToYDepth(collarInfo.depthM));
+                    const restLen = len - collarLen;
+                    addSeg(collarLen, sy - collarLen / 2, 'body', 0x232323);
+                    addSeg(restLen, sy - collarLen - restLen / 2, 'body');
+                } else {
+                    addSeg(len, sy - len / 2, 'body');
+                }
                 const lbl = createTextSprite(p.id, '#1a1a1a', 24);
                 lbl.position.set(p.x, sy + CAP + 0.5, p.z);
                 modelGroup.add(lbl);
