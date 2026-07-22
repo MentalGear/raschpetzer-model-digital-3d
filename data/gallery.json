@@ -36,6 +36,21 @@
       { "from": "P0", "to": "P-5", "host": "marl", "profile": "backfilled" }
     ],
     "_sectionsProv": { "source": "brochure2018", "loc": "p.23; fig.5-15" },
+    "researchStatus": {
+      "_doc": "Visual reading of fig.6-4 (the 'status of the present research' schematic): which stretches of the main-line gallery have actually been explored/walked, vs. only inferred to exist between documented shafts. This is a DIFFERENT, finer-grained fact than the sections[] host/profile data above (from fig.5-15) — fig.6-4 shows P-5→P-4→P-1 as still unexplored even though the shafts themselves are documented.",
+      "source": "fig-6-4", "status": "reconstructed", "paradataRef": ["pd-fig-6-4-status"],
+      "_prov": { "note": "Digitised from the figure's black (explored) / grey (unexplored) bar coding; segment boundaries read at the shaft they visually break on, not measured to the metre." },
+      "exploredSegments": [
+        { "from": "P-5", "to": "P-4", "explored": false },
+        { "from": "P-4", "to": "P-1", "explored": false },
+        { "from": "P-1", "to": "P9", "explored": true }
+      ],
+      "constructionWorkDefault": true,
+      "constructionWorkExceptions": [
+        { "shaft": "P-5", "done": false,
+          "note": "Drawn hollow in the figure, next to the 'channel enclosure and visitor's gallery' (b) annotation — reads as planned/not yet built, unlike every other shaft's filled marker." }
+      ]
+    },
     "auxiliaryChannel": {
       "shafts": ["P-7A", "P-5A"], "type": "dry", "relationToMain": "higher, unconnected",
       "source": "brochure2018", "status": "documented", "paradataRef": ["pd-aux-system"],

@@ -1,5 +1,10 @@
 {
   "_doc": "Paradata registry (London Charter / Seville Principles): the reasoning behind modeled or inferred choices. Facts reference these by id in `paradataRef` instead of repeating prose.",
+  "pd-fig-6-4-status": {
+    "rationale": "fig.6-4 ('Schematic section through the qanat system showing the status of the present research', H. Werner) codes each stretch of the route black (explored/walked) or grey (unexplored), and each shaft head's construction-work marker filled (done) or hollow (not done/planned). Digitised by eye from the figure at normal viewing resolution, not measured: segment breaks are read at whichever shaft the colour visibly changes on, so a break a few metres either side of a shaft would look identical in the source and can't be ruled out. Read as explored throughout P-1..P9 and unexplored P-5..P-4..P-1; every shaft's marker read as filled/done except P-5, which is hollow — it sits directly beside the figure's 'channel enclosure and visitor's gallery' (b) annotation, also drawn hollow, so the two most plausibly describe the same not-yet-built feature. The lateral channel (a) and the visitor's-gallery enclosure (b) themselves are NOT yet modelled here — their exact position/extent isn't recoverable from this schematic alone.",
+    "basis": "Brochure 2018, fig.6-4, p.31",
+    "author": "project team", "date": "2026-07-22"
+  },
   "pd-gallery-gradient": {
     "rationale": "The gallery is modeled near-level at ~0.1% (10 cm per 100 m), the documented constant fall from P9 to P-5, with the two documented stepped falls (1 m under P4, 1.2 m under P6). Step magnitudes are ~1 m and therefore sub-visible at scene scale, so they are shown as annotated markers rather than literal geometry.",
     "basis": "Brochure 2018, p.26-27",

@@ -837,6 +837,7 @@
                 <label class="check-row" id="row-sounding"><input type="checkbox" id="param-sounding"> Exploratory&nbsp;sounding&nbsp;gallery&nbsp;(P1,&nbsp;abandoned)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-steps"><input type="checkbox" id="param-steps"> Floor&nbsp;step&nbsp;markers&nbsp;(P4,&nbsp;P6)</label>
+                <label class="check-row" id="row-research-status"><input type="checkbox" id="param-research-status"> Research&nbsp;status&nbsp;(explored&nbsp;vs&nbsp;unexplored,&nbsp;fig&nbsp;6-4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
                 <label class="check-row"><input type="checkbox" id="param-villa" checked> Villa&nbsp;(inferred&nbsp;recipient)</label>
                 <label class="check-row"><input type="checkbox" id="param-xsec" checked> Qanat&nbsp;cross‑sections</label>
@@ -1138,6 +1139,7 @@
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showSounding: false,          // exploratory sounding gallery at P1 (documented, no channel, schematic extent)
             showSteps: false,             // gallery floor-drop step markers (P4/P6) — off by default
+            showResearchStatus: false,    // explored/unexplored + construction-work status (fig 6-4) — off by default
             showPerched: false,           // perched pre-construction water table + drawdown band
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
             undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
@@ -1400,6 +1402,7 @@
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
         const spotMeshes = [];    // springs / boreholes / resurgence pins, for click raycasting
         const xsecMeshes = [];    // gallery cross-section hotspots (click → lightbox image)
+        const strataMeshes = [];  // geology cross-section strata bands, for click → inspector info
         // Gallery cross-sections (Brochure 2018, fig 5-15): each is taken at a POINT ALONG the
         // qanat (frac: west 0 = P-5 mother shaft → east 1 = P9), not at a shaft. Clicking the
         // hotspot opens the drawing. Fractions traced from the figure's connector lines.
@@ -2287,6 +2290,7 @@
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
             xsecMeshes.length = 0;   // gallery cross-section hotspots
+            strataMeshes.length = 0;   // geology cross-section strata bands
             waterMats = [];          // PBR water materials (scrolled in animate); rebuilt each build
             // All man-made underground structures (shaft bodies, gallery + aux tunnels, overflow,
             // step markers, gallery flow arrows) go in ONE group so the "Underground x-ray" toggle
@@ -2723,6 +2727,44 @@
                 const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: ugDT }));
                 mm.renderOrder = 5; subsurfaceGroup.add(mm);
             }
+            // Alternate gallery visualisation (toggle, off by default): replaces the usual
+            // solid-explored/dashed-inferred tube with the fig 6-4 reading — per-segment
+            // explored (black) vs unexplored (grey), plus a construction-work marker (filled
+            // red = done, hollow = not yet) at every main-line shaft head. A DIFFERENT,
+            // finer-grained fact than the usual view: fig 6-4 shows P-5→P-4→P-1 as still
+            // unexplored even though those shafts are themselves documented, which the default
+            // view (solid core between the outer dashed ends) doesn't capture.
+            function renderResearchStatus(basePts) {
+                const RS = SSOT.gallery && SSOT.gallery.gallery.researchStatus;
+                if (!RS) return;
+                (RS.exploredSegments || []).forEach(seg => {
+                    const a = shaftBaseById[seg.from], b = shaftBaseById[seg.to];
+                    if (!a || !b) return;
+                    const lo = Math.min(a.x, b.x) - 0.01, hi = Math.max(a.x, b.x) + 0.01;
+                    const pts = basePts.filter(p => p.x >= lo && p.x <= hi);
+                    tunnelTube(pts, seg.explored ? 0x232323 : 0xa3a3a3);   // explored=black, unexplored=grey (fig 6-4 coding)
+                });
+                const exceptions = Object.fromEntries((RS.constructionWorkExceptions || []).map(e => [e.shaft, e.done]));
+                const markerGeo = new THREE.BoxGeometry(0.55, 0.32, 0.14);
+                Object.entries(shaftBaseById).forEach(([id, bp]) => {
+                    const done = (id in exceptions) ? exceptions[id] : RS.constructionWorkDefault;
+                    const surfY = getTerrainHeight(bp.x, bp.z);
+                    const mat = new THREE.MeshBasicMaterial({ color: 0xb3273f, wireframe: !done, depthTest: false });
+                    const m = new THREE.Mesh(markerGeo, mat);
+                    m.position.set(bp.x, surfY + 0.55, bp.z);
+                    m.renderOrder = 20;
+                    modelGroup.add(m);
+                });
+                const mid = basePts[Math.floor(basePts.length / 2)];
+                if (mid) {
+                    const s = createTextSprite('Research status — Brochure 2018 fig 6-4 (H. Werner)\n' +
+                        'black = explored · grey = unexplored · red square = construction-work marker (hollow = not built)',
+                        '#5a5a5a', 14);
+                    s.scale.set(17, 2.0, 1);
+                    s.position.set(mid.x, mid.y + 3.0, mid.z);
+                    modelGroup.add(s);
+                }
+            }
             // Reconstructed HOLLOW gallery bore over the explored reach: sweep an open vaulted
             // profile (walls + arch + floor, traced from Brochure 2018 fig 5-15) along the
             // centreline as a two-sided shell, so the cutaway ("See inside") reveals a real
@@ -2804,7 +2846,10 @@
                 // when the detailed gallery is also on.
                 const wantHollow = params.detailedGallery;
                 const fullRouteHollow = params.detailedGallery && params.xsecCutawayFullRoute;
-                if (wantHollow) {
+                if (params.showResearchStatus) {
+                    renderResearchStatus(basePts);
+                    xsecHollowMinX = xsecHollowMaxX = 0;
+                } else if (wantHollow) {
                     const hollowPts = fullRouteHollow ? basePts : basePts.slice(start, end);
                     buildDetailedGallery(hollowPts);
                     xsecHollowMinX = Math.min(...hollowPts.map(p => p.x));
@@ -2820,7 +2865,7 @@
                     tunnelTube(basePts.slice(start, end), galleryColor);   // explored (solid)
                     xsecHollowMinX = xsecHollowMaxX = 0;   // no hollow reach this build — no slot to carve
                 }
-                if (!fullRouteHollow) {
+                if (!fullRouteHollow && !params.showResearchStatus) {
                     // Muted (same hue, lower saturation) rather than the vivid explored blue —
                     // reinforces "inferred" alongside the dashing instead of only the dashing.
                     tunnelDashed(basePts.slice(0, start + 1), COL_QANAT_INFERRED);   // inferred west (dashed)
@@ -3226,7 +3271,6 @@
             if (!params.showGeology) return;
             const zF = halfD - 0.03;
             const N = 96;
-            const C = strataColors();
             const base = params.baseY;
             const geoMode = (params.terrainSource === 'geodata' && geodata.ready);
             // GeoData: anchor the sandstone/marl interface (= groundwater table, ≈ gallery
@@ -3239,11 +3283,14 @@
             const wThk = 0.45, marlThk = 2.6, koThk = 0.30;   // schematic fallback (scene units)
             const gwYschem = x => 2.7 - x * 0.02;
 
-            const pos = [], col = [], gwPts = [];
-            const push = (x1, x2, t1, b1, t2, b2, c) => {
+            // One geometry PER BAND (not one vertex-coloured sheet) so each stratum is its own
+            // pickable object — clicking a band opens its inspector info (name/thickness/source
+            // from data/geology.json), the same way shafts/springs/xsec hotspots already do.
+            const bandPos = { weath: [], sand: [], marl: [], ko: [], km: [] };
+            const gwPts = [];
+            const push = (band, x1, x2, t1, b1, t2, b2) => {
                 if (t1 - b1 < 0.01 && t2 - b2 < 0.01) return;
-                pos.push(x1, t1, zF, x1, b1, zF, x2, t2, zF,  x2, t2, zF, x1, b1, zF, x2, b2, zF);
-                for (let k = 0; k < 6; k++) col.push(c[0], c[1], c[2]);
+                bandPos[band].push(x1, t1, zF, x1, b1, zF, x2, t2, zF,  x2, t2, zF, x1, b1, zF, x2, b2, zF);
             };
             const xs = [];
             for (let i = 0; i <= N; i++) xs.push(-halfW + i / N * params.width);
@@ -3267,26 +3314,32 @@
                     mA = Math.max(gA - marlThk, base + 0.6); mB = Math.max(gB - marlThk, base + 0.6);
                     kA = Math.max(mA - koThk, base + 0.3); kB = Math.max(mB - koThk, base + 0.3);
                 }
-                push(xa, xb, sA, wA, sB, wB, C.weath);   // weathered
-                push(xa, xb, wA, gA, wB, gB, C.sand);    // sandstone
-                push(xa, xb, gA, mA, gB, mB, C.marl);    // marl & limestone
-                push(xa, xb, mA, kA, mB, kB, C.ko);      // red mudstone
-                push(xa, xb, kA, base, kB, base, C.km);  // dolomitic marl
+                push('weath', xa, xb, sA, wA, sB, wB);   // weathered
+                push('sand', xa, xb, wA, gA, wB, gB);    // sandstone
+                push('marl', xa, xb, gA, mA, gB, mB);    // marl & limestone
+                push('ko', xa, xb, mA, kA, mB, kB);      // red mudstone
+                push('km', xa, xb, kA, base, kB, base);  // dolomitic marl
                 gwPts.push(new THREE.Vector3(xa, gA, zF));
                 if (i === N - 1) gwPts.push(new THREE.Vector3(xb, gB, zF));
             }
-            const g = new THREE.BufferGeometry();
-            g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-            g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-            // Back-face cull the strata sheet, like the terrain side walls: the cross-section
-            // lives on the front cut plane (zF, +Z normal) and is meant to be read from the
-            // south/front. FrontSide drops its rear face so it no longer bleeds through the
-            // terrain when the camera orbits round to the north/back.
-            const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial(
-                { vertexColors: true, transparent: true, opacity: 0.5, side: THREE.FrontSide, depthWrite: false }));
-            mesh.renderOrder = 2;
-            modelGroup.add(mesh);
-            xsecClipMats.push(mesh.material);   // qanat cross-section cutaway also slices this sheet
+            // band key -> data/geology.json `code`, so a click can look up its SSOT record.
+            const BAND_CODE = { weath: 'cover', sand: 'li2', marl: 'li1', ko: 'ko', km: 'km3' };
+            Object.entries(bandPos).forEach(([band, posArr]) => {
+                if (!posArr.length) return;
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(posArr, 3));
+                // Back-face cull the strata sheet, like the terrain side walls: the cross-section
+                // lives on the front cut plane (zF, +Z normal) and is meant to be read from the
+                // south/front. FrontSide drops its rear face so it no longer bleeds through the
+                // terrain when the camera orbits round to the north/back.
+                const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial(
+                    { color: STRATA[BAND_CODE[band]], transparent: true, opacity: 0.5, side: THREE.FrontSide, depthWrite: false }));
+                mesh.renderOrder = 2;
+                mesh.userData = { kind: 'strata', code: BAND_CODE[band] };
+                modelGroup.add(mesh);
+                xsecClipMats.push(mesh.material);   // qanat cross-section cutaway also slices this sheet
+                strataMeshes.push(mesh);
+            });
 
             // Bright groundwater band along the sandstone base. (The static eastward
             // groundwater flow-direction arrows were removed at the user's request.)
@@ -3865,6 +3918,11 @@
                 buildParametricModel();
             });
 
+            document.getElementById('param-research-status').addEventListener('change', e => {
+                params.showResearchStatus = e.target.checked;
+                buildParametricModel();
+            });
+
             // Toggle the optional inferred recipient villa marker
             document.getElementById('param-villa').addEventListener('change', e => {
                 params.showVilla = e.target.checked;
@@ -4071,7 +4129,7 @@
                 'param-underground': true, 'param-realistic-diameters': 0.5,
                 'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
                 'param-aux': false, 'param-sounding': false, 'param-overflow': false,
-                'param-steps': false, 'param-perched': false, 'param-paths': false,
+                'param-steps': false, 'param-research-status': false, 'param-perched': false, 'param-paths': false,
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
                 'param-terrain-opacity': 1.0, 'param-surround': 1.0,
@@ -4092,6 +4150,7 @@
                 'param-sounding': v => { params.showSounding = v; },
                 'param-overflow': v => { params.showOverflow = v; },
                 'param-steps': v => { params.showSteps = v; },
+                'param-research-status': v => { params.showResearchStatus = v; },
                 'param-perched': v => { params.showPerched = v; },
                 'param-paths': v => { params.showPaths = v; },
                 'ov-aquifer': v => { params.overlay.aquifer = v; },
@@ -4628,6 +4687,13 @@
                 raycaster.setFromCamera(ndc, camera);
                 return raycaster.intersectObjects(xsecMeshes, false)[0];
             }
+            function pickStrata(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                return raycaster.intersectObjects(strataMeshes, false).find(h => !clipHidesHit(h));
+            }
             function showTooltip(hit, ev) {
                 const d = hit.object.userData;
                 let html = '<span class="t-name">' + d.name + '</span><br>' +
@@ -4671,8 +4737,8 @@
                         }
                     }
                 } else {
-                    // No shaft under the cursor: show a pointer over clickable spots / hotspots too.
-                    dom.style.cursor = (pickSpot(ev) || pickXsec(ev)) ? 'pointer' : 'default';
+                    // No shaft under the cursor: show a pointer over clickable spots / hotspots / strata too.
+                    dom.style.cursor = (pickSpot(ev) || pickXsec(ev) || pickStrata(ev)) ? 'pointer' : 'default';
                     if (hoverActive) { tip.style.display = 'none'; hoverActive = false; clearDwell(); }
                 }
             });
@@ -4724,6 +4790,8 @@
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
                 if (shit) { selectAt(shit.point); renderSpotPanel(shit.object.userData); return; }
+                const sthit = pickStrata(ev);   // geology strata band (weathered/sandstone/marl/keuper)
+                if (sthit) { selectAt(sthit.point); renderStrataPanel(sthit.object.userData.code); return; }
                 clearSelectionMarker();   // tapped empty terrain/space: drop the previous selection
             });
         }
@@ -4834,6 +4902,35 @@
                     .map(id => SSOT.paradata[id]).filter(Boolean);
                 if (notes.length) h += `<div class="ip-para"><b>Reasoning</b>` +
                     `<ul class="ip-reasons">` + notes.map(n => `<li>${n.rationale}</li>`).join('') + `</ul></div>`;
+            }
+            body.innerHTML = h;
+            showInspector();
+        }
+        // Geology strata band (weathered/sandstone/marl/keuper) → inspector: name/role/
+        // thickness/elevation from data/geology.json, looked up by the band's `code`. Records
+        // that don't carry their own source/status (a few of the shallower units) fall back to
+        // the brochure — every figure in this dataset traces back to it one way or another.
+        function renderStrataPanel(code) {
+            const raw = (SSOT.geology && SSOT.geology.geology.strata || []).find(s => s.code === code);
+            if (!raw) return;
+            const rec = Object.assign({ source: 'brochure2018', status: 'documented' }, raw);
+            const geo = SSOT.geology.geology;
+            const body = document.getElementById('info-body');
+            let h = `<h3>${rec.name}</h3><div class="ip-sub">${rec.role || ''}</div>`;
+            h += factRow('Thickness', rec, 'thicknessRangeM', 'm');
+            h += factRow('Thickness', rec, 'thicknessM', 'm');
+            h += factRow('Thickness (at least)', rec, 'thicknessMinM', 'm');
+            h += factRow('Liassic package (li2 + li1 combined)', rec, 'liassicPackageM', 'm');
+            h += factRow('Elevation', rec, 'elevationRangeMasl', 'm a.s.l.');
+            if (code === 'li2' || code === 'li1') {
+                h += `<div class="ip-row"><span class="ip-k">Bedding dip</span>` +
+                    `<span class="ip-v">${geo.strataDipPct}% ${geo.dipDirection}${statusBadge('documented')}</span></div>` +
+                    citeDetail(provOf(geo, 'strataDipPct'));
+            }
+            if (code === 'li2' && geo.groundwater) {
+                h += `<div class="ip-note">This is the aquifer: groundwater accumulates at the ` +
+                    `${geo.groundwater.accumulatesAt}, flowing ${geo.groundwater.flowDirection}.</div>` +
+                    citeChip(provOf(geo.groundwater, 'accumulatesAt'));
             }
             body.innerHTML = h;
             showInspector();
