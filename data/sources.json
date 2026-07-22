@@ -99,6 +99,12 @@
     "short": "Brochure 2018, fig. 5-24", "locator": "fig.5-24, p.28",
     "title": "Gallery near P7 with channel; floor at sandstone/marl boundary"
   },
+  "fig-6-4": {
+    "type": "figure", "partOf": "brochure2018", "crm": "E36_Visual_Item",
+    "short": "Brochure 2018, fig. 6-4", "locator": "fig.6-4, p.31",
+    "title": "Schematic section through the qanat system showing the status of the present research",
+    "note": "Credited to H. Werner. Per-segment explored (black) vs. unexplored (grey) status along the whole route P-7A→P9, plus a construction-work marker (filled/hollow red) at each shaft head. Labels two features near P-5/P-4 not yet otherwise in the SSOT: (a) a lateral channel, (b) a channel enclosure and visitor's gallery (drawn hollow/unbuilt at P-5)."
+  },
   "fig-6-7": {
     "type": "figure", "partOf": "brochure2018", "crm": "E36_Visual_Item",
     "short": "Brochure 2018, fig. 6-7", "locator": "fig.6-7, p.32",

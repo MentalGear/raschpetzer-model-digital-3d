@@ -22,6 +22,7 @@ Dataset 1.0.0 · CC-BY-4.0.
 - **Brochure 2018, fig. 5-11** — P-4 overflow weir and lateral channel (plan + cross sections)
 - **Brochure 2018, fig. 5-14** — P-7A debris-filled drop-shaft technique
 - **Brochure 2018, fig. 5-24** — Gallery near P7 with channel; floor at sandstone/marl boundary
+- **Brochure 2018, fig. 6-4** — Schematic section through the qanat system showing the status of the present research
 - **Brochure 2018, fig. 6-7** — View into the 36 m deep shaft P5
 - **Brochure 2018, shaft-detail survey (wg 1:2000)** — Surveyed shaft-floor elevations (m a.s.l.)
 - **OpenStreetMap (qanat shaft nodes)** — Raschpëtzer qanat shaft nodes (historic=archaeological_site) in OpenStreetMap <https://www.openstreetmap.org/> (accessed 2026-07-01)
