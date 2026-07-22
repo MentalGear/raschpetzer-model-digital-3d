@@ -712,6 +712,7 @@
     <script src="vendor/three.min.js"></script>
     <script src="vendor/OrbitControls.js"></script>
     <script src="assets/geodata-walferdange.js"></script>
+    <script src="assets/geodata-inset-raschpetzer.js"></script>
     <script src="assets/data.bundle.js"></script>
     <script src="assets/vectors-walferdange.js"></script>
     <script src="assets/paths-walferdange.js"></script>
@@ -849,6 +850,8 @@
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
+                <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
+                <label class="check-row"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
@@ -1141,6 +1144,8 @@
             showVilla: true,              // inferred recipient villa marker (default on)
             showXsec: true,               // gallery cross-section hotspots along the qanat (fig 5-15)
             showGhostApron: true,         // faded low-res terrain apron west toward the inferred villa
+            showHiresInset: false,        // higher-resolution LiDAR patch over the immediate qanat-shaft area
+            hiresInsetTint: false,        // tint that patch a distinct colour instead of matching the terrain
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
@@ -1696,6 +1701,38 @@
         // grid: normalized 0..1 elevation, `cols` west->east, `rows` north->south.
         const geodata = { ready: false, loading: false, source: '', data: null,
                           cols: 0, rows: 0, minM: 0, maxM: 0 };
+
+        // --- Optional hi-res inset: a small, denser LiDAR patch over just the immediate
+        //     qanat-shaft area (see scripts/sample-lidar.mjs / bake-lidar.mjs --out/--var).
+        //     Stores RAW metres (not normalised) plus its own small bbox; heights are mapped
+        //     into the main geodata's min/max span (see buildHiresInsetMesh) so it sits at the
+        //     exact same vertical scale as the surrounding coarse terrain, not its own. ---
+        const geodataInset = { ready: false, cols: 0, rows: 0, west: 0, east: 0, south: 0, north: 0, meters: null };
+        function loadInsetGeoData() {
+            const g = window.BAKED_GEODATA_INSET;
+            if (!g || !g.meters) return;
+            geodataInset.cols = g.cols; geodataInset.rows = g.rows;
+            geodataInset.west = g.west; geodataInset.east = g.east;
+            geodataInset.south = g.south; geodataInset.north = g.north;
+            geodataInset.meters = g.meters;
+            geodataInset.ready = true;
+        }
+        // Bilinear sample of the inset grid at a real (lon,lat), returning raw metres (masl).
+        // Clamps to the inset's own small bbox — this patch is never used outside it.
+        function sampleGeoInsetMasl(lon, lat) {
+            const g = geodataInset, C = g.cols, R = g.rows, d = g.meters;
+            const gu = (lon - g.west) / (g.east - g.west);
+            const gv = (g.north - lat) / (g.north - g.south);
+            const ix = Math.min(Math.max(gu, 0), 1) * (C - 1);
+            const iy = Math.min(Math.max(gv, 0), 1) * (R - 1);
+            const x0 = Math.floor(ix), y0 = Math.floor(iy);
+            const x1 = Math.min(x0 + 1, C - 1), y1 = Math.min(y0 + 1, R - 1);
+            const fx = ix - x0, fy = iy - y0;
+            const g00 = d[y0 * C + x0], g10 = d[y0 * C + x1];
+            const g01 = d[y1 * C + x0], g11 = d[y1 * C + x1];
+            const gx0 = g00 + (g10 - g00) * fx, gx1 = g01 + (g11 - g01) * fx;
+            return gx0 + (gx1 - gx0) * fy;
+        }
 
         // --- Base-map drape textures (optional): georeferenced rasters baked for GEO_BBOX,
         //     draped on the terrain via per-vertex lon/lat UVs. Each maps a `baseLayer` value
@@ -2277,6 +2314,7 @@
             initTour();
             openLegendModal();
             // Load the baked LiDAR terrain (synchronous), then build.
+            loadInsetGeoData();   // optional hi-res inset patch, if the asset shipped
             loadGeoData(() => buildParametricModel());
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
             loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
@@ -3160,6 +3198,47 @@
                     apron.position.set(cx, 0, 0); apron.renderOrder = -1;    // behind the main terrain
                     modelGroup.add(apron);
                 }
+            }
+
+            // --- Hi-res LiDAR inset: a small, denser patch (see scripts/sample-lidar.mjs /
+            // bake-lidar.mjs --out/--var) covering just the immediate qanat-shaft area, laid
+            // on top of the coarser main terrain grid. Heights are mapped into the MAIN
+            // geodata's min/max span (not the inset's own, narrower one) so it sits at the
+            // exact same vertical scale as the surrounding terrain — only the horizontal
+            // sampling density differs. A tiny constant lift avoids z-fighting with the
+            // coarse fill mesh underneath, since the two grids rarely agree to the millimetre.
+            if (params.showHiresInset && isGeo && geodataInset.ready) {
+                const insetSeg = 88;   // dense tessellation; independent of the main grid's segX/segZ
+                const insetGeo = new THREE.PlaneGeometry(1, 1, insetSeg, insetSeg);
+                insetGeo.rotateX(-Math.PI / 2);
+                const ipos = insetGeo.attributes.position;
+                const span = (geodata.maxM - geodata.minM) || 1;
+                const gvm = geoVMul();
+                for (let k = 0; k < ipos.count; k++) {
+                    // ipos.getX/getZ range over [-0.5, 0.5] before rotation-preserved scale of 1x1
+                    const fx = ipos.getX(k) + 0.5;   // 0 (west) -> 1 (east), local to the inset bbox
+                    const fz = ipos.getZ(k) + 0.5;   // 0 (north) -> 1 (south), local to the inset bbox
+                    const lon = geodataInset.west + fx * (geodataInset.east - geodataInset.west);
+                    const lat = geodataInset.north - fz * (geodataInset.north - geodataInset.south);
+                    const masl = sampleGeoInsetMasl(lon, lat);
+                    const s = geoToScene(lat, lon);
+                    ipos.setX(k, s.x);
+                    ipos.setY(k, (masl - geodata.minM) / span * gvm + 0.05);
+                    ipos.setZ(k, s.z);
+                }
+                insetGeo.computeVertexNormals();
+                const insetColor = params.hiresInsetTint ? 0xf2b134 : (prefersDark() ? 0x33363f : 0xf0e8d6);
+                const insetMat = new THREE.MeshBasicMaterial({
+                    color: insetColor,
+                    polygonOffset: true, polygonOffsetFactor: 0.5, polygonOffsetUnits: 0.5,
+                    side: THREE.DoubleSide, transparent: true, opacity: params.terrainOpacity, depthWrite: false
+                });
+                insetMat.userData.baseOpacity = 1.0;
+                terrainFadeMats.push(insetMat);
+                xsecClipMats.push(insetMat);
+                const insetMesh = new THREE.Mesh(insetGeo, insetMat);
+                insetMesh.renderOrder = 1;   // draw after the main fill mesh
+                modelGroup.add(insetMesh);
             }
 
             // --- 6a. Inferred recipient villa at the valley (west) end (SSOT: site.villa).
@@ -4127,6 +4206,16 @@
                 buildParametricModel();
             });
 
+            // Hi-res LiDAR inset over the immediate qanat-shaft area (+ optional tint)
+            document.getElementById('param-hires-inset').addEventListener('change', e => {
+                params.showHiresInset = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-hires-inset-tint').addEventListener('change', e => {
+                params.hiresInsetTint = e.target.checked;
+                buildParametricModel();
+            });
+
             // Terrain opacity: lets shafts/gallery show through the fill surface.
             const opSl = document.getElementById('param-terrain-opacity');
             const opLb = document.getElementById('lbl-terrain-opacity');
@@ -4212,6 +4301,7 @@
                 'param-steps': false, 'param-research-status': false, 'param-perched': false, 'param-paths': false,
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
+                'param-hires-inset': false, 'param-hires-inset-tint': false,
                 'param-terrain-opacity': 1.0, 'param-surround': 1.0,
                 'param-front-margin': 1, 'param-front-margin-symmetric': false,
                 'param-clip-centerline': 'p3p9', 'param-detailed-gallery': false
@@ -4239,6 +4329,8 @@
                 'ov-break': v => { params.overlay.break = v; },
                 'param-sides': v => { params.showSides = v; },
                 'param-ghost-apron': v => { params.showGhostApron = v; },
+                'param-hires-inset': v => { params.showHiresInset = v; },
+                'param-hires-inset-tint': v => { params.hiresInsetTint = v; },
                 'param-terrain-cullback': v => { params.terrainCullBack = v; },
                 'param-terrain-opacity': v => applyTerrainOpacity(v),
                 'param-surround': v => { params.surround = v; },

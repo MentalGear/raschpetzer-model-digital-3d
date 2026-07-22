@@ -14,6 +14,7 @@
 // Usage:
 //   node scripts/bake-lidar.mjs
 //   node scripts/bake-lidar.mjs --bbox W,S,E,N --cols N --rows M
+//   node scripts/bake-lidar.mjs --bbox W,S,E,N --cols N --rows M --out assets/geodata-foo.js --var BAKED_GEODATA_FOO
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
 
 const ROOT = new URL('../', import.meta.url);
@@ -30,6 +31,8 @@ function parseArgs(argv) {
     if (t === '--bbox') a.bbox = argv[++i];
     else if (t === '--cols') a.cols = Number(argv[++i]);
     else if (t === '--rows') a.rows = Number(argv[++i]);
+    else if (t === '--out') a.out = argv[++i];
+    else if (t === '--var') a.varName = argv[++i];
   }
   return a;
 }
@@ -159,6 +162,10 @@ function main() {
     process.exit(1);
   }
 
+  const varName = args.varName || 'BAKED_GEODATA';
+  const outURL = args.out ? new URL(args.out, ROOT) : GEODATA;
+  const outLabel = args.out || 'assets/geodata-walferdange.js';
+
   const header =
     '// Baked terrain grid for the Raschpetzer qanat corridor (Walferdange/Helmsange, LU).\n' +
     '// SOURCE: ACT LiDAR 2019 0.5 m DTM (data.public.lu), sampled via map.geoportail.lu/raster\n' +
@@ -171,14 +178,14 @@ function main() {
     minM, maxM,
     meters
   };
-  const out = header + 'window.BAKED_GEODATA = ' + JSON.stringify(obj) + ';\n';
+  const out = header + `window.${varName} = ` + JSON.stringify(obj) + ';\n';
 
   // backup then write
-  if (existsSync(GEODATA)) copyFileSync(GEODATA, new URL('assets/geodata-walferdange.js.bak', ROOT));
-  writeFileSync(GEODATA, out);
+  if (existsSync(outURL)) copyFileSync(outURL, new URL(outLabel + '.bak', ROOT));
+  writeFileSync(outURL, out);
 
-  console.log(`Baked assets/geodata-walferdange.js ✓  ${cols}×${rows}, ${meters.length} nodes, min ${minM} m / max ${maxM} m`);
-  console.log(`(backup: assets/geodata-walferdange.js.bak)`);
+  console.log(`Baked ${outLabel} ✓  ${cols}×${rows}, ${meters.length} nodes, min ${minM} m / max ${maxM} m (window.${varName})`);
+  console.log(`(backup: ${outLabel}.bak)`);
 }
 
 try { main(); } catch (e) { console.error(e.message || e); process.exit(1); }
