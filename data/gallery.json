@@ -37,18 +37,21 @@
     ],
     "_sectionsProv": { "source": "brochure2018", "loc": "p.23; fig.5-15" },
     "researchStatus": {
-      "_doc": "Visual reading of fig.6-4 (the 'status of the present research' schematic): which stretches of the main-line gallery have actually been explored/walked, vs. only inferred to exist between documented shafts. This is a DIFFERENT, finer-grained fact than the sections[] host/profile data above (from fig.5-15) — fig.6-4 shows P-5→P-4→P-1 as still unexplored even though the shafts themselves are documented.",
+      "_doc": "Visual reading of fig.6-4 (the 'status of the present research' schematic): which stretches of the main-line gallery have actually been explored/walked, vs. only inferred to exist between documented shafts. This is a DIFFERENT, finer-grained fact than the sections[] host/profile data above (from fig.5-15) — fig.6-4 shows the gallery alternating explored/unexplored TWICE (not once): grey P-5→P-1, black P-1→P2, grey P2→P4, black P4→P9.",
       "source": "fig-6-4", "status": "reconstructed", "paradataRef": ["pd-fig-6-4-status"],
-      "_prov": { "note": "Digitised from the figure's black (explored) / grey (unexplored) bar coding; segment boundaries read at the shaft they visually break on, not measured to the metre." },
+      "_prov": { "note": "Digitised from the figure's black (explored) / grey (unexplored) bar coding; segment boundaries read at the shaft they visually break on (one break, between P-4 and P-1, falls between shafts, not on one), not measured to the metre." },
       "exploredSegments": [
-        { "from": "P-5", "to": "P-4", "explored": false },
-        { "from": "P-4", "to": "P-1", "explored": false },
-        { "from": "P-1", "to": "P9", "explored": true }
+        { "from": "P-5", "to": "P-1", "explored": false },
+        { "from": "P-1", "to": "P2", "explored": true },
+        { "from": "P2", "to": "P4", "explored": false },
+        { "from": "P4", "to": "P9", "explored": true }
       ],
       "constructionWorkDefault": true,
+      "constructionWorkNoMarker": ["P-1", "P0", "P2", "P3"],
+      "_provNoMarker": { "note": "These four shafts carry no construction-work square in the figure at all (unlike every other main-line shaft, which all show a filled marker) — read as 'not applicable' rather than 'not done'." },
       "constructionWorkExceptions": [
         { "shaft": "P-5", "done": false,
-          "note": "Drawn hollow in the figure, next to the 'channel enclosure and visitor's gallery' (b) annotation — reads as planned/not yet built, unlike every other shaft's filled marker." }
+          "note": "Drawn hollow in the figure — and, uniquely, the whole P-5 shaft body is drawn in the construction-work red rather than black/grey — sitting directly beside the 'channel enclosure and visitor's gallery' (b) annotation, itself also drawn hollow. Reads as planned/not-yet-built, unlike every other shaft's filled marker. (This visualisation renders P-5's marker hollow but does not additionally recolour its shaft body red — see pd-fig-6-4-status.)" }
       ]
     },
     "auxiliaryChannel": {
