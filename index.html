@@ -837,6 +837,7 @@
                 <label class="check-row" id="row-sounding"><input type="checkbox" id="param-sounding"> Exploratory&nbsp;sounding&nbsp;gallery&nbsp;(P1,&nbsp;abandoned)</label>
                 <label class="check-row" id="row-overflow"><input type="checkbox" id="param-overflow"> Overflow&nbsp;channel&nbsp;(P‑4)</label>
                 <label class="check-row" id="row-steps"><input type="checkbox" id="param-steps"> Floor&nbsp;step&nbsp;markers&nbsp;(P4,&nbsp;P6)</label>
+                <label class="check-row" id="row-research-status"><input type="checkbox" id="param-research-status"> Research&nbsp;status&nbsp;(explored&nbsp;vs&nbsp;unexplored,&nbsp;fig&nbsp;6-4)</label>
                 <label class="check-row" id="row-perched"><input type="checkbox" id="param-perched"> Perched&nbsp;water&nbsp;table&nbsp;+&nbsp;drawdown</label>
                 <label class="check-row"><input type="checkbox" id="param-villa" checked> Villa&nbsp;(inferred&nbsp;recipient)</label>
                 <label class="check-row"><input type="checkbox" id="param-xsec" checked> Qanat&nbsp;cross‑sections</label>
@@ -1138,6 +1139,7 @@
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showSounding: false,          // exploratory sounding gallery at P1 (documented, no channel, schematic extent)
             showSteps: false,             // gallery floor-drop step markers (P4/P6) — off by default
+            showResearchStatus: false,    // explored/unexplored + construction-work status (fig 6-4) — off by default
             showPerched: false,           // perched pre-construction water table + drawdown band
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
             undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
@@ -2725,6 +2727,44 @@
                 const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: ugDT }));
                 mm.renderOrder = 5; subsurfaceGroup.add(mm);
             }
+            // Alternate gallery visualisation (toggle, off by default): replaces the usual
+            // solid-explored/dashed-inferred tube with the fig 6-4 reading — per-segment
+            // explored (black) vs unexplored (grey), plus a construction-work marker (filled
+            // red = done, hollow = not yet) at every main-line shaft head. A DIFFERENT,
+            // finer-grained fact than the usual view: fig 6-4 shows P-5→P-4→P-1 as still
+            // unexplored even though those shafts are themselves documented, which the default
+            // view (solid core between the outer dashed ends) doesn't capture.
+            function renderResearchStatus(basePts) {
+                const RS = SSOT.gallery && SSOT.gallery.gallery.researchStatus;
+                if (!RS) return;
+                (RS.exploredSegments || []).forEach(seg => {
+                    const a = shaftBaseById[seg.from], b = shaftBaseById[seg.to];
+                    if (!a || !b) return;
+                    const lo = Math.min(a.x, b.x) - 0.01, hi = Math.max(a.x, b.x) + 0.01;
+                    const pts = basePts.filter(p => p.x >= lo && p.x <= hi);
+                    tunnelTube(pts, seg.explored ? 0x232323 : 0xa3a3a3);   // explored=black, unexplored=grey (fig 6-4 coding)
+                });
+                const exceptions = Object.fromEntries((RS.constructionWorkExceptions || []).map(e => [e.shaft, e.done]));
+                const markerGeo = new THREE.BoxGeometry(0.55, 0.32, 0.14);
+                Object.entries(shaftBaseById).forEach(([id, bp]) => {
+                    const done = (id in exceptions) ? exceptions[id] : RS.constructionWorkDefault;
+                    const surfY = getTerrainHeight(bp.x, bp.z);
+                    const mat = new THREE.MeshBasicMaterial({ color: 0xb3273f, wireframe: !done, depthTest: false });
+                    const m = new THREE.Mesh(markerGeo, mat);
+                    m.position.set(bp.x, surfY + 0.55, bp.z);
+                    m.renderOrder = 20;
+                    modelGroup.add(m);
+                });
+                const mid = basePts[Math.floor(basePts.length / 2)];
+                if (mid) {
+                    const s = createTextSprite('Research status — Brochure 2018 fig 6-4 (H. Werner)\n' +
+                        'black = explored · grey = unexplored · red square = construction-work marker (hollow = not built)',
+                        '#5a5a5a', 14);
+                    s.scale.set(17, 2.0, 1);
+                    s.position.set(mid.x, mid.y + 3.0, mid.z);
+                    modelGroup.add(s);
+                }
+            }
             // Reconstructed HOLLOW gallery bore over the explored reach: sweep an open vaulted
             // profile (walls + arch + floor, traced from Brochure 2018 fig 5-15) along the
             // centreline as a two-sided shell, so the cutaway ("See inside") reveals a real
@@ -2806,7 +2846,10 @@
                 // when the detailed gallery is also on.
                 const wantHollow = params.detailedGallery;
                 const fullRouteHollow = params.detailedGallery && params.xsecCutawayFullRoute;
-                if (wantHollow) {
+                if (params.showResearchStatus) {
+                    renderResearchStatus(basePts);
+                    xsecHollowMinX = xsecHollowMaxX = 0;
+                } else if (wantHollow) {
                     const hollowPts = fullRouteHollow ? basePts : basePts.slice(start, end);
                     buildDetailedGallery(hollowPts);
                     xsecHollowMinX = Math.min(...hollowPts.map(p => p.x));
@@ -2822,7 +2865,7 @@
                     tunnelTube(basePts.slice(start, end), galleryColor);   // explored (solid)
                     xsecHollowMinX = xsecHollowMaxX = 0;   // no hollow reach this build — no slot to carve
                 }
-                if (!fullRouteHollow) {
+                if (!fullRouteHollow && !params.showResearchStatus) {
                     // Muted (same hue, lower saturation) rather than the vivid explored blue —
                     // reinforces "inferred" alongside the dashing instead of only the dashing.
                     tunnelDashed(basePts.slice(0, start + 1), COL_QANAT_INFERRED);   // inferred west (dashed)
@@ -3875,6 +3918,11 @@
                 buildParametricModel();
             });
 
+            document.getElementById('param-research-status').addEventListener('change', e => {
+                params.showResearchStatus = e.target.checked;
+                buildParametricModel();
+            });
+
             // Toggle the optional inferred recipient villa marker
             document.getElementById('param-villa').addEventListener('change', e => {
                 params.showVilla = e.target.checked;
@@ -4081,7 +4129,7 @@
                 'param-underground': true, 'param-realistic-diameters': 0.5,
                 'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
                 'param-aux': false, 'param-sounding': false, 'param-overflow': false,
-                'param-steps': false, 'param-perched': false, 'param-paths': false,
+                'param-steps': false, 'param-research-status': false, 'param-perched': false, 'param-paths': false,
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
                 'param-terrain-opacity': 1.0, 'param-surround': 1.0,
@@ -4102,6 +4150,7 @@
                 'param-sounding': v => { params.showSounding = v; },
                 'param-overflow': v => { params.showOverflow = v; },
                 'param-steps': v => { params.showSteps = v; },
+                'param-research-status': v => { params.showResearchStatus = v; },
                 'param-perched': v => { params.showPerched = v; },
                 'param-paths': v => { params.showPaths = v; },
                 'ov-aquifer': v => { params.overlay.aquifer = v; },
