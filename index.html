@@ -2593,7 +2593,7 @@
             // col defaults to the vivid documented colour; ghost/cage calls below pass the muted
             // COL_SHAFT_INFERRED instead — same hue, lower saturation, not a different hue.
             const mkShaftMat = (op, dt = false, col = COL.shaft) => params.pbr && TEX.color
-                ? new THREE.MeshStandardMaterial({ map: TEX.color, normalMap: TEX.normal,
+                ? new THREE.MeshStandardMaterial({ color: col, map: TEX.color, normalMap: TEX.normal,
                     roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0,
                     depthTest: dt, depthWrite: false, transparent: op < 0.999, opacity: op })
                 : new THREE.MeshBasicMaterial({
@@ -2722,14 +2722,17 @@
 
             // Tunnel polyline through the shaft bases: solid explored core +
             // dashed inferred ends.
-            function tunnelTube(points, color, pickable = false) {
+            function tunnelTube(points, color, pickable = false, allowWaterPBR = true) {
                 if (points.length < 2) return;
                 const cv = new THREE.CatmullRomCurve3(points);
                 const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), sceneRadius(GALLERY_RADIUS_M), 8, false);
                 // Realistic mode: render the explored core as flowing water (lit, with a
                 // scrolling ripple normal — see animate()); otherwise the flat blue conduit.
+                // Callers that reuse this tube for a non-water semantic (e.g. the fig 6-4
+                // research-status colouring) pass allowWaterPBR=false so their colour isn't
+                // replaced by the fixed water blue.
                 let mat;
-                if (params.pbr && TEX.water) {
+                if (allowWaterPBR && params.pbr && TEX.water) {
                     mat = new THREE.MeshStandardMaterial({ color: 0x2f6fae, normalMap: TEX.water,
                         roughness: 0.16, metalness: 0.2, transparent: true, opacity: 0.92, depthTest: ugDT });
                     waterMats.push(mat);
@@ -2785,7 +2788,7 @@
                     if (!a || !b) return;
                     const lo = Math.min(a.x, b.x) - 0.01, hi = Math.max(a.x, b.x) + 0.01;
                     const pts = basePts.filter(p => p.x >= lo && p.x <= hi);
-                    tunnelTube(pts, seg.explored ? 0x232323 : 0xa3a3a3, true);   // explored=black, unexplored=grey (fig 6-4 coding)
+                    tunnelTube(pts, seg.explored ? 0x232323 : 0xa3a3a3, true, false);   // explored=black, unexplored=grey (fig 6-4 coding); never the water PBR tint
                 });
                 const exceptions = Object.fromEntries((RS.constructionWorkExceptions || []).map(e => [e.shaft, e.done]));
                 const noMarker = new Set(RS.constructionWorkNoMarker || []);
@@ -5474,6 +5477,11 @@
             const camPos = camera.position.clone();
             const groups = {};
             const push = (layer, segs, color) => { if (segs.length) (groups[layer] = groups[layer] || []).push({ segs, color }); };
+            // Respect any active cutaway (Look inside / See inside / Qanat cutaway): those set
+            // material.clippingPlanes on the affected meshes, GPU-clipping half of them away on
+            // screen. Without this, the export would include geometry the camera can't see.
+            const clipOk = (mat, p) => !mat || !mat.clippingPlanes || !mat.clippingPlanes.length ||
+                mat.clippingPlanes.every(pl => pl.distanceToPoint(p) >= 0);
             modelGroup.traverse(obj => {
                 const layer = obj.userData && obj.userData.vecLayer;
                 if (!layer || obj.visible === false) return;
@@ -5490,9 +5498,10 @@
                     const segs = [];
                     const step = obj.isLineSegments ? 2 : 1;
                     for (let i = 0; i + 1 < pts.length; i += step) segs.push([pts[i], pts[i + 1]]);
-                    push(layer, segs, color);
+                    push(layer, segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color);
                 } else if (obj.userData.vecMode === 'silhouette') {
-                    push(layer, meshSilhouetteSegments(obj, camPos), color);
+                    const segs = meshSilhouetteSegments(obj, camPos);
+                    push(layer, segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color);
                 }
             });
             // Terrain footprint boundary — the current width×depth window's four edges,
