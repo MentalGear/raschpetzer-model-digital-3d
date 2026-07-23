@@ -185,6 +185,12 @@
         h2 { font-size: 0.78rem; color: #9ca3af; margin-bottom: 18px; font-weight: 400; }
 
         .control-group { margin-bottom: 16px; }
+        /* Visually bundles a feature's own sub-options (e.g. the hi-res LiDAR inset's tint /
+           native-res toggles) into one boxed group, distinct from the plain checkbox list
+           around it — same subtle boxed treatment as #panel-mode above. */
+        .opt-group { background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 9px; padding: 10px 12px 8px; margin: 6px 0 14px; }
+        .opt-group .check-row:first-child { margin-top: 0; }
         /* Every label in a control-group — checkbox row or plain slider/value label alike —
            gets the SAME margin-top, so the gap above it is consistent no matter what kind of
            control precedes it. Without this, only .check-row set its own margin-top (9px);
@@ -850,10 +856,12 @@
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
-                <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
-                <div id="hires-inset-note" style="display:none;font-size:0.72rem;color:#9ca3af;margin:2px 0 8px 22px;line-height:1.35;">Denser LiDAR patch (~3.6&nbsp;m cells vs. the main terrain's ~7.5&nbsp;m) over just the shaft area. Subtle at normal zoom &mdash; mainly useful up close, or as a base for future higher-res sampling.</div>
-                <label class="check-row" id="row-hires-inset-tint" style="display:none;margin-left:22px"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
-                <label class="check-row dev-opt" id="row-hires-inset-native" style="display:none;margin-left:22px"><input type="checkbox" id="param-hires-inset-native"> Native&nbsp;inset&nbsp;render&nbsp;res&nbsp;(match&nbsp;fetched&nbsp;grid&nbsp;&mdash;&nbsp;may&nbsp;be&nbsp;slow)</label>
+                <div class="opt-group" id="grp-hires-inset">
+                    <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
+                    <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 8px;line-height:1.35;">Denser LiDAR patch (~3.6&nbsp;m cells vs. the main terrain's ~7.5&nbsp;m) over just the shaft area. Subtle at normal zoom &mdash; mainly useful up close, or as a base for future higher-res sampling.</div>
+                    <label class="check-row" id="row-hires-inset-tint" style="display:none"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
+                    <label class="check-row dev-opt" id="row-hires-inset-native" style="display:none"><input type="checkbox" id="param-hires-inset-native"> Native&nbsp;inset&nbsp;render&nbsp;res&nbsp;(match&nbsp;fetched&nbsp;grid&nbsp;&mdash;&nbsp;may&nbsp;be&nbsp;slow)</label>
+                </div>
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
@@ -3922,7 +3930,6 @@
                 // Research-status legend entries only make sense while that overlay is on.
                 document.getElementById('legend-research-status').style.display = params.showResearchStatus ? '' : 'none';
                 // The inset's tint/native-res options only mean anything while the inset itself is on.
-                document.getElementById('hires-inset-note').style.display = params.showHiresInset ? '' : 'none';
                 document.getElementById('row-hires-inset-tint').style.display = params.showHiresInset ? '' : 'none';
                 document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none';
             };
@@ -4241,7 +4248,6 @@
             // nested under it (see syncConditionalOptions for the devMode-gated native-res row).
             document.getElementById('param-hires-inset').addEventListener('change', e => {
                 params.showHiresInset = e.target.checked;
-                document.getElementById('hires-inset-note').style.display = params.showHiresInset ? '' : 'none';
                 document.getElementById('row-hires-inset-tint').style.display = params.showHiresInset ? '' : 'none';
                 document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none';
                 buildParametricModel();
