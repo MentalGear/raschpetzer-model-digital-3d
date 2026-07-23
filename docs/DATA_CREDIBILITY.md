@@ -89,3 +89,39 @@ agreement).
 Tolerances are deliberately loose (LiDAR/OSM are ~metre-scale, not survey-grade). Drop-shaft
 P‑7A is a documented exception to *aux-higher* (it drains downward), which is why that check is
 a warning with a 2 m tolerance rather than a hard error.
+
+## Despiking the main terrain grid — considered, not applied (2026-07-23)
+
+`scripts/bake-lidar.mjs` gained a despike pass (clamp any cell whose value is >3 m from its
+local 3×3-cell median to that median) while building the optional hi-res LiDAR inset
+(`assets/geodata-inset-raschpetzer.js`), to denoise a handful of single-cell sensor/
+interpolation artifacts on that finer 3.6 m/cell grid. The obvious next question was whether
+to apply the same pass to the **main** terrain grid (`assets/geodata-walferdange.js`, 240×132,
+~7.5 m/cell) — we checked, and decided not to, for now:
+
+- **The same 3 m threshold flags far more cells on the main grid**: 168 of 31,680 (0.53%)
+  vs. 13 of 8,100 (0.16%) on the fine inset grid. A coarser grid genuinely averages more real
+  relief into each cell, so a fixed absolute-metres threshold isn't comparable across the two
+  grid densities — it's not evidence of more *noise*, just more *real relief per cell*.
+- **The flagged cells cluster geographically, not randomly.** Several sit tightly together
+  around ~6.1465–6.1510° E, 49.6686–49.6699° N — just north of the qanat corridor, on the
+  slope up to the Pëtschend plateau. Random sensor noise wouldn't cluster like that; this
+  reads as a real drainage gully/ravine cutting into the hillside.
+- **This LiDAR dataset is specifically credited (above) with resolving the Haedchen
+  depression drop** that every coarser DEM missed — real, documented, physically important
+  relief. A blanket despike risks flattening exactly that kind of feature elsewhere in the
+  corridor that isn't yet cross-checked against a documented fact the way Haedchen is.
+- **Blast radius**: unlike the inset (new, isolated, opt-in), the main grid drives shaft
+  placement, the gallery floor calculation, contour lines, and the specific numbers in the
+  credibility table above — a rebake needs `bun run validate` plus a visual regression pass,
+  not just a rebake-and-ship.
+- At a much more conservative **8 m** threshold, only 3 of 31,680 cells qualify — a bar high
+  enough that a genuine single-cell outlier is far more plausible than real terrain. That's
+  the threshold worth revisiting first if this comes up again, ideally starting from the 3
+  candidate cells to confirm (not assume) they're artifacts rather than a small real feature,
+  before touching the shipped grid.
+
+**If revisiting**: re-bake with `node scripts/bake-lidar.mjs` (no `--bbox`, defaults to the
+densest full-extent manifest run), inspect whichever cells the chosen threshold flags against
+the source imagery/contours before trusting the clamp, then `bun run validate` and re-check the
+`lidar≈floor+depth` invariants above before committing.

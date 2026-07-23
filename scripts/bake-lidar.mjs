@@ -14,6 +14,7 @@
 // Usage:
 //   node scripts/bake-lidar.mjs
 //   node scripts/bake-lidar.mjs --bbox W,S,E,N --cols N --rows M
+//   node scripts/bake-lidar.mjs --bbox W,S,E,N --cols N --rows M --out assets/geodata-foo.js --var BAKED_GEODATA_FOO
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
 
 const ROOT = new URL('../', import.meta.url);
@@ -30,6 +31,8 @@ function parseArgs(argv) {
     if (t === '--bbox') a.bbox = argv[++i];
     else if (t === '--cols') a.cols = Number(argv[++i]);
     else if (t === '--rows') a.rows = Number(argv[++i]);
+    else if (t === '--out') a.out = argv[++i];
+    else if (t === '--var') a.varName = argv[++i];
   }
   return a;
 }
@@ -151,6 +154,32 @@ function main() {
     }
   }
 
+  // Despike: raw point-cloud DTMs occasionally carry single-cell sensor/interpolation
+  // noise (a stray return, an edge-of-lattice interpolation wobble) that reads as a
+  // sharp spike/pit against every neighbour. Clamp only cells that deviate >3 m from
+  // their local 3x3 median to that median — denoising the BAKED grid, not the raw
+  // samples.ndjson cache, which stays exactly as fetched. Real terrain features (a
+  // shaft collar, a slope break) span multiple cells and are far below this threshold
+  // at this grid density, so this only catches true single-cell outliers.
+  const DESPIKE_M = 3.0;
+  const at2 = (i, j) => meters[j * cols + i];
+  let despiked = 0;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const nbrs = [];
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        if (di === 0 && dj === 0) continue;
+        const ni = i + di, nj = j + dj;
+        if (ni >= 0 && ni < cols && nj >= 0 && nj < rows) nbrs.push(at2(ni, nj));
+      }
+      nbrs.sort((a, b) => a - b);
+      const median = nbrs[Math.floor(nbrs.length / 2)];
+      const v = at2(i, j);
+      if (Math.abs(v - median) > DESPIKE_M) { meters[j * cols + i] = median; despiked++; }
+    }
+  }
+  if (despiked) console.log(`Despiked ${despiked} cell(s) (>${DESPIKE_M} m from local 3x3 median)`);
+
   const minM = Math.round(Math.min(...meters) * 10) / 10;
   const maxM = Math.round(Math.max(...meters) * 10) / 10;
 
@@ -158,6 +187,10 @@ function main() {
     console.error(`ABORT: new grid min/max ${minM}/${maxM} m outside sane range ${SANE_MIN}-${SANE_MAX} m. Not overwriting.`);
     process.exit(1);
   }
+
+  const varName = args.varName || 'BAKED_GEODATA';
+  const outURL = args.out ? new URL(args.out, ROOT) : GEODATA;
+  const outLabel = args.out || 'assets/geodata-walferdange.js';
 
   const header =
     '// Baked terrain grid for the Raschpetzer qanat corridor (Walferdange/Helmsange, LU).\n' +
@@ -171,14 +204,14 @@ function main() {
     minM, maxM,
     meters
   };
-  const out = header + 'window.BAKED_GEODATA = ' + JSON.stringify(obj) + ';\n';
+  const out = header + `window.${varName} = ` + JSON.stringify(obj) + ';\n';
 
   // backup then write
-  if (existsSync(GEODATA)) copyFileSync(GEODATA, new URL('assets/geodata-walferdange.js.bak', ROOT));
-  writeFileSync(GEODATA, out);
+  if (existsSync(outURL)) copyFileSync(outURL, new URL(outLabel + '.bak', ROOT));
+  writeFileSync(outURL, out);
 
-  console.log(`Baked assets/geodata-walferdange.js ✓  ${cols}×${rows}, ${meters.length} nodes, min ${minM} m / max ${maxM} m`);
-  console.log(`(backup: assets/geodata-walferdange.js.bak)`);
+  console.log(`Baked ${outLabel} ✓  ${cols}×${rows}, ${meters.length} nodes, min ${minM} m / max ${maxM} m (window.${varName})`);
+  console.log(`(backup: ${outLabel}.bak)`);
 }
 
 try { main(); } catch (e) { console.error(e.message || e); process.exit(1); }

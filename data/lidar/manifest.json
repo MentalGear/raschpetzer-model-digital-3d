@@ -3,7 +3,7 @@
   "endpoint": "https://map.geoportail.lu/raster",
   "crs": "EPSG:2169",
   "sourceVersion": "20200121-082330",
-  "totalPoints": 36096,
+  "totalPoints": 44194,
   "runs": [
     {
       "run": "seed-grid",
@@ -89,6 +89,21 @@
       "nRequested": 31680,
       "nNew": 31676,
       "nSkipped": 4
+    },
+    {
+      "run": "inset-raschpetzer-hires-90x90",
+      "date": "2026-07-23T01:09:31.344Z",
+      "bbox": [
+        6.147767042627416,
+        49.66487720212001,
+        6.152207957372584,
+        49.66775179787999
+      ],
+      "cols": 90,
+      "rows": 90,
+      "nRequested": 8100,
+      "nNew": 8098,
+      "nSkipped": 2
     }
   ]
 }

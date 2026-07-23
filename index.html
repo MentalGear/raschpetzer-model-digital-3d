@@ -609,7 +609,7 @@
            alongside it) used to stay visible here so a selection could be reframed without a
            round-trip to Settings, but that mixed "control panel" chrome into what's meant to
            read as a focused detail view. */
-        #info-body h3 { font-size: 1.05rem; color: #fff; margin-bottom: 2px; }
+        #info-body h3 { font-size: 1.3rem; color: #fff; margin-top: 14px; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
             padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.82rem; }
@@ -712,6 +712,7 @@
     <script src="vendor/three.min.js"></script>
     <script src="vendor/OrbitControls.js"></script>
     <script src="assets/geodata-walferdange.js"></script>
+    <script src="assets/geodata-inset-raschpetzer.js"></script>
     <script src="assets/data.bundle.js"></script>
     <script src="assets/vectors-walferdange.js"></script>
     <script src="assets/paths-walferdange.js"></script>
@@ -823,9 +824,9 @@
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
                 <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
                 <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
-                <label id="lbl-realistic-diameters">Shaft/gallery diameter realism <span class="val" id="lbl-realism-val">50%</span></label>
-                <input type="range" id="param-realistic-diameters" min="0" max="1" step="0.05" value="0.5" aria-label="Shaft and gallery diameter realism: 0% is the default, deliberately oversized-for-visibility size; 100% is true 1:1 scale">
-                <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 10px;line-height:1.35;">0%&nbsp;=&nbsp;today's oversized-for-visibility default; 100%&nbsp;=&nbsp;true&nbsp;scale (real ~1&nbsp;m shafts, ~15-45&nbsp;cm gallery — thin against the 700&nbsp;m terrain).</div>
+                <label id="lbl-realistic-diameters">Shaft/gallery diameter realism <span class="val" id="lbl-realism-val">1.25x</span></label>
+                <input type="range" id="param-realistic-diameters" min="1" max="10" step="0.25" value="1.25" aria-label="Shaft and gallery diameter realism, as a multiple of true 1:1 scale: 1x is real size (~1 m shafts, ~15-45 cm gallery); higher values exaggerate for visibility against the 700 m terrain">
+                <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 10px;line-height:1.35;">1x&nbsp;=&nbsp;real&nbsp;size (true 1:1 scale); higher values exaggerate for visibility against the 700&nbsp;m terrain.</div>
                 <label class="check-row dev-opt" id="row-see-inside"><input type="checkbox" id="param-see-inside"> See&nbsp;inside&nbsp;(cut&nbsp;view‑facing&nbsp;half,&nbsp;follows&nbsp;camera)</label>
                 <div id="cutaway-note" style="display:none;font-size:0.7rem;color:#9ca3af;margin:2px 0 10px 22px;line-height:1.35;">Slices the model's <b>solid</b> volumes open to show position &amp; depth — not the hollow gallery interior. The real qanat is a walk‑through tunnel (see the Qanat cross‑sections along the tube).</div>
                 <label class="check-row dev-opt" id="row-shaft-cutaway"><input type="checkbox" id="param-shaft-cutaway"> Look&nbsp;inside&nbsp;(cut&nbsp;camera‑facing&nbsp;half,&nbsp;fixed&nbsp;centre)</label>
@@ -849,6 +850,9 @@
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
+                <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
+                <label class="check-row"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
+                <label class="check-row dev-opt" id="row-hires-inset-native"><input type="checkbox" id="param-hires-inset-native"> Native&nbsp;inset&nbsp;render&nbsp;res&nbsp;(match&nbsp;fetched&nbsp;grid&nbsp;&mdash;&nbsp;may&nbsp;be&nbsp;slow)</label>
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
@@ -933,6 +937,7 @@
                 <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
                 <button id="btn-profile" type="button">📈 Qanat Profile</button>
                 <button id="btn-sources" type="button">ⓘ Data sources</button>
+                <button id="btn-export-svg" type="button" class="dev-opt" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
             </div>
             <div class="btn-row" style="display:none">
                 <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
@@ -974,6 +979,13 @@
                 <div class="legend-sep"></div>
                 <div class="legend-item"><div class="color-box" style="background: var(--accent-orange);"></div>Solid shaft — <b>documented</b> depth</div>
                 <div class="legend-item"><div class="color-box" style="background: transparent; border: 1.5px solid #b99866; box-shadow: inset 0 0 0 2px rgba(185,152,102,0.18);"></div>Wireframe / ghost shaft — <b>inferred</b> depth</div>
+                <div id="legend-research-status" style="display:none">
+                    <div class="legend-sep"></div>
+                    <div class="legend-item"><div class="color-box" style="background: #232323;"></div>Research status (fig 6-4) — explored</div>
+                    <div class="legend-item"><div class="color-box" style="background: #a3a3a3;"></div>Research status (fig 6-4) — unexplored</div>
+                    <div class="legend-item"><div class="color-box" style="background: #b3273f;"></div>Construction work — done</div>
+                    <div class="legend-item"><div class="color-box" style="background: transparent; border: 1.5px solid #b3273f;"></div>Construction work — not done</div>
+                </div>
             </div>
         </div>
     </div>
@@ -1133,6 +1145,9 @@
             showVilla: true,              // inferred recipient villa marker (default on)
             showXsec: true,               // gallery cross-section hotspots along the qanat (fig 5-15)
             showGhostApron: true,         // faded low-res terrain apron west toward the inferred villa
+            showHiresInset: false,        // higher-resolution LiDAR patch over the immediate qanat-shaft area
+            hiresInsetTint: false,        // tint that patch a distinct colour instead of matching the terrain
+            hiresInsetNativeRes: false,   // dev-only: tessellate to match the fetched grid instead of a fixed cap (perf risk)
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
@@ -1146,7 +1161,7 @@
             shaftCutaway: false,          // dev "Look inside": clip the camera-facing half through the subsurface centre
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
-            diameterRealism: 0.5,         // 0..1 slider: 0 = default oversized-for-visibility shaft/gallery radii, 1 = true 1:1 scale
+            diameterRealism: 1.25,        // multiplier of true 1:1 scale for shaft/gallery radii: 1x = real size, higher = exaggerated for visibility
             xsecCutaway: false,           // Qanat cutaway: a plane locked along the route's Z-centreline slices the terrain + shaft/gallery open lengthwise (north/south half removed)
             xsecCutawayFullRoute: false,  // extend the hollow reconstructed bore across the whole route (inferred ends included), not just the explored core
             terrainCullBack: true,        // cull the terrain surface back face (FrontSide) so the underside isn't drawn when viewing from below — default on
@@ -1403,6 +1418,7 @@
         const spotMeshes = [];    // springs / boreholes / resurgence pins, for click raycasting
         const xsecMeshes = [];    // gallery cross-section hotspots (click → lightbox image)
         const strataMeshes = [];  // geology cross-section strata bands, for click → inspector info
+        const qanatMeshes = [];   // gallery/tunnel tube meshes (main + aux + overflow), for click → inspector info
         // Gallery cross-sections (Brochure 2018, fig 5-15): each is taken at a POINT ALONG the
         // qanat (frac: west 0 = P-5 mother shaft → east 1 = P9), not at a shaft. Clicking the
         // hotspot opens the drawing. Fractions traced from the figure's connector lines.
@@ -1687,6 +1703,38 @@
         // grid: normalized 0..1 elevation, `cols` west->east, `rows` north->south.
         const geodata = { ready: false, loading: false, source: '', data: null,
                           cols: 0, rows: 0, minM: 0, maxM: 0 };
+
+        // --- Optional hi-res inset: a small, denser LiDAR patch over just the immediate
+        //     qanat-shaft area (see scripts/sample-lidar.mjs / bake-lidar.mjs --out/--var).
+        //     Stores RAW metres (not normalised) plus its own small bbox; heights are mapped
+        //     into the main geodata's min/max span (see buildHiresInsetMesh) so it sits at the
+        //     exact same vertical scale as the surrounding coarse terrain, not its own. ---
+        const geodataInset = { ready: false, cols: 0, rows: 0, west: 0, east: 0, south: 0, north: 0, meters: null };
+        function loadInsetGeoData() {
+            const g = window.BAKED_GEODATA_INSET;
+            if (!g || !g.meters) return;
+            geodataInset.cols = g.cols; geodataInset.rows = g.rows;
+            geodataInset.west = g.west; geodataInset.east = g.east;
+            geodataInset.south = g.south; geodataInset.north = g.north;
+            geodataInset.meters = g.meters;
+            geodataInset.ready = true;
+        }
+        // Bilinear sample of the inset grid at a real (lon,lat), returning raw metres (masl).
+        // Clamps to the inset's own small bbox — this patch is never used outside it.
+        function sampleGeoInsetMasl(lon, lat) {
+            const g = geodataInset, C = g.cols, R = g.rows, d = g.meters;
+            const gu = (lon - g.west) / (g.east - g.west);
+            const gv = (g.north - lat) / (g.north - g.south);
+            const ix = Math.min(Math.max(gu, 0), 1) * (C - 1);
+            const iy = Math.min(Math.max(gv, 0), 1) * (R - 1);
+            const x0 = Math.floor(ix), y0 = Math.floor(iy);
+            const x1 = Math.min(x0 + 1, C - 1), y1 = Math.min(y0 + 1, R - 1);
+            const fx = ix - x0, fy = iy - y0;
+            const g00 = d[y0 * C + x0], g10 = d[y0 * C + x1];
+            const g01 = d[y1 * C + x0], g11 = d[y1 * C + x1];
+            const gx0 = g00 + (g10 - g00) * fx, gx1 = g01 + (g11 - g01) * fx;
+            return gx0 + (gx1 - gx0) * fy;
+        }
 
         // --- Base-map drape textures (optional): georeferenced rasters baked for GEO_BBOX,
         //     draped on the terrain via per-vertex lon/lat UVs. Each maps a `baseLayer` value
@@ -2061,10 +2109,10 @@
                 return depthM / metersPerYUnit();     // consistent with the terrain vertical scale
             return depthM * params.plateauHeight / NOMINAL_RANGE_M;
         }
-        // Shaft/gallery cross-sections are, by default, drawn several times wider than real
-        // life (the qanat's true ~1 m shaft / ~15-45 cm gallery would be sub-pixel against the
-        // 700 m terrain). The "diameter realism" slider (0..1) blends from that fixed,
-        // oversized-for-visibility radius (0) toward the real dimension at true 1:1 scale (1).
+        // Shaft/gallery cross-sections are drawn as a multiple of their true 1:1 scale (the
+        // qanat's real ~1 m shaft / ~15-45 cm gallery would be sub-pixel against the 700 m
+        // terrain at 1x). The "diameter realism" slider IS that multiplier: 1x = real size,
+        // higher values exaggerate every element proportionally for visibility.
         // Hoisted to top level (not rebuilt per model rebuild) since both only depend on the
         // static SSOT ranges / the current params — shared by the shaft/gallery builders AND
         // the qanat cross-section cutaway's hole-carving (so the hole always matches the tube).
@@ -2101,9 +2149,8 @@
             const dark = MODEL_CONFIG.backgroundDark || '#20242c';
             return prefersDark() ? dark : light;
         }
-        function sceneRadius(realRadiusM, exaggeratedRadius) {
-            const trueRadius = realRadiusM / metersPerXUnit();
-            return exaggeratedRadius + (trueRadius - exaggeratedRadius) * params.diameterRealism;
+        function sceneRadius(realRadiusM) {
+            return (realRadiusM / metersPerXUnit()) * params.diameterRealism;
         }
         // Real strata thicknesses (m), shared by the longitudinal geology cross-section
         // (addGeology) and the qanat cross-section cutaway's transverse strata cut, so both
@@ -2269,6 +2316,7 @@
             initTour();
             openLegendModal();
             // Load the baked LiDAR terrain (synchronous), then build.
+            loadInsetGeoData();   // optional hi-res inset patch, if the asset shipped
             loadGeoData(() => buildParametricModel());
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
             loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
@@ -2291,6 +2339,7 @@
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
             xsecMeshes.length = 0;   // gallery cross-section hotspots
             strataMeshes.length = 0;   // geology cross-section strata bands
+            qanatMeshes.length = 0;   // gallery/tunnel tube meshes
             waterMats = [];          // PBR water materials (scrolled in animate); rebuilt each build
             // All man-made underground structures (shaft bodies, gallery + aux tunnels, overflow,
             // step markers, gallery flow arrows) go in ONE group so the "Underground x-ray" toggle
@@ -2445,11 +2494,15 @@
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
             const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
-            modelGroup.add(new THREE.LineSegments(regGeo, regMat));
+            const regLS = new THREE.LineSegments(regGeo, regMat);
+            regLS.userData.vecMode = 'line'; regLS.userData.vecLayer = 'contour';
+            modelGroup.add(regLS);
             const idxGeo = new THREE.BufferGeometry();
             idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
             const idxMat = new THREE.LineBasicMaterial({ color: COL.contourIndex, transparent: true, opacity: tOp });
-            modelGroup.add(new THREE.LineSegments(idxGeo, idxMat));
+            const idxLS = new THREE.LineSegments(idxGeo, idxMat);
+            idxLS.userData.vecMode = 'line'; idxLS.userData.vecLayer = 'contour';
+            modelGroup.add(idxLS);
             regMat.userData.baseOpacity = 1.0;
             idxMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(regMat, idxMat);
@@ -2580,7 +2633,7 @@
             // col defaults to the vivid documented colour; ghost/cage calls below pass the muted
             // COL_SHAFT_INFERRED instead — same hue, lower saturation, not a different hue.
             const mkShaftMat = (op, dt = false, col = COL.shaft) => params.pbr && TEX.color
-                ? new THREE.MeshStandardMaterial({ map: TEX.color, normalMap: TEX.normal,
+                ? new THREE.MeshStandardMaterial({ color: col, map: TEX.color, normalMap: TEX.normal,
                     roughnessMap: TEX.rough, roughness: 1.0, metalness: 0.0,
                     depthTest: dt, depthWrite: false, transparent: op < 0.999, opacity: op })
                 : new THREE.MeshBasicMaterial({
@@ -2594,6 +2647,12 @@
             const cageMat = mkCageMat(0.95, false, COL_SHAFT_INFERRED);   // inferred cap cage (crisp, x-ray)
             const cageFaintMat = mkCageMat(0.4, ugDT, COL_SHAFT_INFERRED); // inferred below-ground cage
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
+            // Research status (fig 6-4) also colours each SHAFT's own body black/grey —
+            // a separate per-shaft fact from the gallery-segment tube colouring above (they
+            // don't always agree at the same shaft; see pd-fig-6-4-status). When active this
+            // overrides the normal documented/inferred solid-or-cage rendering entirely, since
+            // the figure draws every shaft as one uniform solid bar.
+            const RS_SHAFTS = params.showResearchStatus && SSOT.gallery && SSOT.gallery.gallery.researchStatus;
 
             // P-5A & P-7A form a separate, higher "auxiliary" dry channel (from SSOT roles).
             const basePts = [], auxPts = [], shaftBaseById = {};
@@ -2632,7 +2691,8 @@
                 // as sub-surface translucent pillars that blended into the contours).
                 const CAP = 0.35;                             // above-ground stub height (units) — half the previous 0.7
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
-                             floorM: floorM, depthM: depthM, documented: documented };
+                             floorM: floorM, depthM: depthM, documented: documented,
+                             vecMode: 'silhouette', vecLayer: 'shaft' };
                 // Surface cap is rendered SOLID for shafts whose present-day head carries a
                 // physical cover — a modern metal lid, a windowed viewing cover, or P4's
                 // concrete slab (surfaceCase:true in the SSOT: the 10 excavated shafts).
@@ -2640,17 +2700,38 @@
                 // ghost-fill + wireframe MESH.
                 const hasSurfaceCase = !!(rec && rec.surfaceCase);
                 const bodySolid = documented && st.solid;      // documented solid pillar vs inferred ghost+cage
+                // Research-status shaft colour (fig 6-4): explored=black, unexplored=grey, or
+                // the special construction-red body (P-5) — null if the toggle is off or this
+                // shaft isn't in the figure.
+                let rsColor = null;
+                if (RS_SHAFTS) {
+                    if (RS_SHAFTS.shaftSpecial && RS_SHAFTS.shaftSpecial[p.id]) rsColor = 0xb3273f;
+                    else if (RS_SHAFTS.shaftExplored && p.id in RS_SHAFTS.shaftExplored)
+                        rsColor = RS_SHAFTS.shaftExplored[p.id] ? 0x232323 : 0xa3a3a3;
+                }
                 // Build one shaft segment. Cap: solid iff a real surface case exists, else
                 // mesh. Body: solid for documented depths (faded), else the ghost-fill +
                 // wireframe-cage MESH, with the below-ground body faded relative to the cap.
-                const addSeg = (h, cyY, order) => {
-                    const shaftR = sceneRadius(SHAFT_RADIUS_M, 0.30);
+                // colorOverride lets a caller force a specific research-status colour for just
+                // this segment (the P-1/P4 explored collar at the top of an otherwise-grey body)
+                // without touching the shaft's own rsColor.
+                const addSeg = (h, cyY, order, colorOverride) => {
+                    const shaftR = sceneRadius(SHAFT_RADIUS_M);
                     const cyl = new THREE.CylinderGeometry(shaftR, shaftR, h, 16);
                     const isCap = (order === 'cap');
+                    const dest = isCap ? modelGroup : subsurfaceGroup;
+                    const rsCol = colorOverride !== undefined ? colorOverride : rsColor;
+                    if (rsCol != null) {
+                        // The figure draws every shaft as one uniform solid bar — bypass the
+                        // documented/inferred ghost-cage distinction entirely while this is on.
+                        const m = new THREE.Mesh(cyl, mkShaftMat(isCap ? 1.0 : 0.9, isCap ? false : ugDT, rsCol));
+                        m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
+                        dest.add(m); shaftMeshes.push(m);
+                        return;
+                    }
                     const solid = isCap ? hasSurfaceCase : bodySolid;
                     // Caps are surface markers (always modelGroup / on top); below-ground bodies
                     // join the subsurface x-ray group.
-                    const dest = isCap ? modelGroup : subsurfaceGroup;
                     if (solid) {
                         const m = new THREE.Mesh(cyl, isCap ? capSolidMat : belowFaintMat);
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 12; m.userData = ud;
@@ -2668,7 +2749,18 @@
                 // ALWAYS built now; the "Underground x-ray" toggle only sets whether the body
                 // is drawn atop the terrain (x-ray) or occluded by it (see ugDT above).
                 addSeg(CAP, sy + CAP / 2, 'cap');
-                addSeg(len, sy - len / 2, 'body');
+                // Research status: P-1/P4 carry a real explored (black) depth at the TOP of an
+                // otherwise-unexplored (grey) body — see shaftCollarDepthM (an inferred, low/
+                // medium-confidence estimate, not a documented measurement; pd-fig-6-4-status).
+                const collarInfo = RS_SHAFTS && RS_SHAFTS.shaftCollarDepthM && RS_SHAFTS.shaftCollarDepthM[p.id];
+                if (rsColor != null && collarInfo) {
+                    const collarLen = Math.min(len * 0.6, metersToYDepth(collarInfo.depthM));
+                    const restLen = len - collarLen;
+                    addSeg(collarLen, sy - collarLen / 2, 'body', 0x232323);
+                    addSeg(restLen, sy - collarLen - restLen / 2, 'body');
+                } else {
+                    addSeg(len, sy - len / 2, 'body');
+                }
                 const lbl = createTextSprite(p.id, '#1a1a1a', 24);
                 lbl.position.set(p.x, sy + CAP + 0.5, p.z);
                 modelGroup.add(lbl);
@@ -2685,14 +2777,17 @@
 
             // Tunnel polyline through the shaft bases: solid explored core +
             // dashed inferred ends.
-            function tunnelTube(points, color) {
+            function tunnelTube(points, color, pickable = false, allowWaterPBR = true) {
                 if (points.length < 2) return;
                 const cv = new THREE.CatmullRomCurve3(points);
-                const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), sceneRadius(GALLERY_RADIUS_M, 0.16), 8, false);
+                const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), sceneRadius(GALLERY_RADIUS_M), 8, false);
                 // Realistic mode: render the explored core as flowing water (lit, with a
                 // scrolling ripple normal — see animate()); otherwise the flat blue conduit.
+                // Callers that reuse this tube for a non-water semantic (e.g. the fig 6-4
+                // research-status colouring) pass allowWaterPBR=false so their colour isn't
+                // replaced by the fixed water blue.
                 let mat;
-                if (params.pbr && TEX.water) {
+                if (allowWaterPBR && params.pbr && TEX.water) {
                     mat = new THREE.MeshStandardMaterial({ color: 0x2f6fae, normalMap: TEX.water,
                         roughness: 0.16, metalness: 0.2, transparent: true, opacity: 0.92, depthTest: ugDT });
                     waterMats.push(mat);
@@ -2700,12 +2795,14 @@
                     mat = new THREE.MeshBasicMaterial({ color, depthTest: ugDT });
                 }
                 const mm = new THREE.Mesh(g, mat);
-                mm.renderOrder = 5; subsurfaceGroup.add(mm);
+                mm.renderOrder = 5; mm.userData.vecMode = 'silhouette'; mm.userData.vecLayer = 'tunnel';
+                subsurfaceGroup.add(mm);
+                if (pickable) { mm.userData.kind = 'qanat'; qanatMeshes.push(mm); }
             }
             // Inferred gallery ends: a DASHED tube (short tube segments) instead of a 1px
             // hairline, so the inferred extent reads at the same weight as the solid explored
             // core — just broken to signal "reconstructed, not surveyed".
-            function tunnelDashed(points, color) {
+            function tunnelDashed(points, color, pickable = false) {
                 if (points.length < 2) return;
                 const cv = new THREE.CatmullRomCurve3(points);
                 const SAMPLES = Math.max(60, points.length * 24);
@@ -2716,8 +2813,11 @@
                     const seg = pts.slice(i, Math.min(pts.length, i + DASH + 1));
                     if (seg.length < 2) continue;
                     const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(seg),
-                        Math.max(4, seg.length * 2), sceneRadius(GALLERY_RADIUS_M * 0.8, 0.13), 8, false);
-                    const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5; subsurfaceGroup.add(mm);
+                        Math.max(4, seg.length * 2), sceneRadius(GALLERY_RADIUS_M * 0.8), 8, false);
+                    const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5;
+                    mm.userData.vecMode = 'silhouette'; mm.userData.vecLayer = 'tunnel';
+                    subsurfaceGroup.add(mm);
+                    if (pickable) { mm.userData.kind = 'qanat'; qanatMeshes.push(mm); }
                 }
             }
             function tunnelFatTube(points, color, radius) {
@@ -2725,7 +2825,8 @@
                 const cv = new THREE.CatmullRomCurve3(points);
                 const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), radius, 8, false);
                 const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: ugDT }));
-                mm.renderOrder = 5; subsurfaceGroup.add(mm);
+                mm.renderOrder = 5; mm.userData.vecMode = 'silhouette'; mm.userData.vecLayer = 'tunnel';
+                subsurfaceGroup.add(mm);
             }
             // Alternate gallery visualisation (toggle, off by default): replaces the usual
             // solid-explored/dashed-inferred tube with the fig 6-4 reading — per-segment
@@ -2742,17 +2843,20 @@
                     if (!a || !b) return;
                     const lo = Math.min(a.x, b.x) - 0.01, hi = Math.max(a.x, b.x) + 0.01;
                     const pts = basePts.filter(p => p.x >= lo && p.x <= hi);
-                    tunnelTube(pts, seg.explored ? 0x232323 : 0xa3a3a3);   // explored=black, unexplored=grey (fig 6-4 coding)
+                    tunnelTube(pts, seg.explored ? 0x232323 : 0xa3a3a3, true, false);   // explored=black, unexplored=grey (fig 6-4 coding); never the water PBR tint
                 });
                 const exceptions = Object.fromEntries((RS.constructionWorkExceptions || []).map(e => [e.shaft, e.done]));
+                const noMarker = new Set(RS.constructionWorkNoMarker || []);
                 const markerGeo = new THREE.BoxGeometry(0.55, 0.32, 0.14);
                 Object.entries(shaftBaseById).forEach(([id, bp]) => {
+                    if (noMarker.has(id)) return;   // fig 6-4 draws no construction-work marker at this shaft
                     const done = (id in exceptions) ? exceptions[id] : RS.constructionWorkDefault;
                     const surfY = getTerrainHeight(bp.x, bp.z);
                     const mat = new THREE.MeshBasicMaterial({ color: 0xb3273f, wireframe: !done, depthTest: false });
                     const m = new THREE.Mesh(markerGeo, mat);
                     m.position.set(bp.x, surfY + 0.55, bp.z);
                     m.renderOrder = 20;
+                    m.userData.vecMode = 'silhouette'; m.userData.vecLayer = 'marker';
                     modelGroup.add(m);
                 });
                 const mid = basePts[Math.floor(basePts.length / 2)];
@@ -2761,7 +2865,7 @@
                         'black = explored · grey = unexplored · red square = construction-work marker (hollow = not built)',
                         '#5a5a5a', 14);
                     s.scale.set(17, 2.0, 1);
-                    s.position.set(mid.x, mid.y + 3.0, mid.z);
+                    s.position.set(mid.x, mid.y + 5.6, mid.z);   // cleared above the shaft ID labels (see fig64 comparison)
                     modelGroup.add(s);
                 }
             }
@@ -2823,11 +2927,17 @@
                 g.setIndex(idx); g.computeVertexNormals();
                 const mat = new THREE.MeshStandardMaterial({ color: 0xcdbfa2, roughness: 0.95, metalness: 0.0,
                     side: THREE.DoubleSide, transparent: true, opacity: 0.96, depthTest: ugDT, depthWrite: false });
-                const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5; subsurfaceGroup.add(mm);
+                const mm = new THREE.Mesh(g, mat); mm.renderOrder = 5;
+                mm.userData.vecMode = 'silhouette'; mm.userData.vecLayer = 'tunnel';
+                mm.userData.kind = 'qanat'; qanatMeshes.push(mm);
+                subsurfaceGroup.add(mm);
                 // Water channel: a thin ribbon along the floor centreline.
                 const wg = new THREE.TubeGeometry(curve, SEG, 0.06, 6, false);
                 const wm = new THREE.MeshBasicMaterial({ color: COL.qanat, depthTest: ugDT, transparent: true, opacity: 0.95 });
-                const wmm = new THREE.Mesh(wg, wm); wmm.renderOrder = 6; subsurfaceGroup.add(wmm);
+                const wmm = new THREE.Mesh(wg, wm); wmm.renderOrder = 6;
+                wmm.userData.vecMode = 'silhouette'; wmm.userData.vecLayer = 'tunnel';
+                wmm.userData.kind = 'qanat'; qanatMeshes.push(wmm);
+                subsurfaceGroup.add(wmm);
             }
             // The gallery + channel exist only once the qanat is built (≥131 AD).
             const galleryBuilt = params.year >= 131;
@@ -2862,14 +2972,14 @@
                     s.scale.set(11, 2.3, 1); s.position.set(mid.x, mid.y + 2.2, mid.z);
                     modelGroup.add(s);
                 } else {
-                    tunnelTube(basePts.slice(start, end), galleryColor);   // explored (solid)
+                    tunnelTube(basePts.slice(start, end), galleryColor, true);   // explored (solid)
                     xsecHollowMinX = xsecHollowMaxX = 0;   // no hollow reach this build — no slot to carve
                 }
                 if (!fullRouteHollow && !params.showResearchStatus) {
                     // Muted (same hue, lower saturation) rather than the vivid explored blue —
                     // reinforces "inferred" alongside the dashing instead of only the dashing.
-                    tunnelDashed(basePts.slice(0, start + 1), COL_QANAT_INFERRED);   // inferred west (dashed)
-                    tunnelDashed(basePts.slice(end - 1), COL_QANAT_INFERRED);       // inferred east (dashed)
+                    tunnelDashed(basePts.slice(0, start + 1), COL_QANAT_INFERRED, true);   // inferred west (dashed)
+                    tunnelDashed(basePts.slice(end - 1), COL_QANAT_INFERRED, true);       // inferred east (dashed)
                 }
 
                 // Auxiliary dry channel (P-7A → P-5A): a separate, higher, DRY conduit with
@@ -2877,7 +2987,7 @@
                 // (its own thick grey tube through the shallower aux shafts, never joined to
                 // the main tube) with a two-line on-model caveat. Optional (params.showAux).
                 if (params.showAux && auxPts.length >= 2) {
-                    tunnelFatTube(auxPts, COL.auxChannel, sceneRadius(GALLERY_RADIUS_M * 1.1, 0.34));
+                    tunnelFatTube(auxPts, COL.auxChannel, sceneRadius(GALLERY_RADIUS_M * 1.1));
                     const mid = auxPts[Math.floor(auxPts.length / 2)];
                     const s = createTextSprite('Auxiliary dry channel\n(no relationship to main · fig 5-14)', '#5d7387', 16);
                     s.scale.set(9, 1.9, 1);
@@ -2922,6 +3032,7 @@
                         new THREE.CylinderGeometry(0.07, 0.07, 0.9, 8),
                         new THREE.MeshBasicMaterial({ color: COL.shaft, depthTest: false }));
                     tick.position.set(bp.x, bp.y + 0.45, bp.z); tick.renderOrder = 5;
+                    tick.userData.vecMode = 'silhouette'; tick.userData.vecLayer = 'marker';
                     subsurfaceGroup.add(tick);
                     const s = createTextSprite(txt, COL.shaft, 20);
                     s.scale.set(3.0, 0.8, 1);
@@ -2960,7 +3071,8 @@
                     const m = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 10),
                         new THREE.MeshBasicMaterial({ color: 0x14b8c4, depthTest: false, transparent: true, opacity: 0.95 }));
                     m.position.set(p.x, p.y + 0.16, p.z); m.renderOrder = 15;   // sits on the gallery tube
-                    m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac, w: s.w, h: s.h };
+                    m.userData = { kind: 'xsec', img: s.img, label: s.label, frac: s.frac, w: s.w, h: s.h,
+                                    vecMode: 'silhouette', vecLayer: 'marker' };
                     // Added to subsurfaceGroup (not modelGroup directly) so "Underground x-ray"
                     // actually reaches these markers: applyXrayMode() only traverses
                     // subsurfaceGroup, flipping renderOrder so x-ray-off content draws behind the
@@ -2999,7 +3111,7 @@
                     const mid = new THREE.Vector3((start.x + end.x) / 2,
                         (start.y + end.y) / 2, (start.z + end.z) / 2);
                     const cv = new THREE.CatmullRomCurve3([start, mid, end]);
-                    const g = new THREE.TubeGeometry(cv, 56, sceneRadius((oc.diameterCm / 100) / 2, 0.16), 8, false);
+                    const g = new THREE.TubeGeometry(cv, 56, sceneRadius((oc.diameterCm / 100) / 2), 8, false);
                     const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: COL.overflow, depthTest: false }));
                     mm.renderOrder = 5; subsurfaceGroup.add(mm);
                     // Weir tap marker + label at the branch point.
@@ -3088,6 +3200,68 @@
                     apron.position.set(cx, 0, 0); apron.renderOrder = -1;    // behind the main terrain
                     modelGroup.add(apron);
                 }
+            }
+
+            // --- Hi-res LiDAR inset: a small, denser patch (see scripts/sample-lidar.mjs /
+            // bake-lidar.mjs --out/--var) covering just the immediate qanat-shaft area, laid
+            // on top of the coarser main terrain grid. Heights are mapped into the MAIN
+            // geodata's min/max span (not the inset's own, narrower one) so it sits at the
+            // exact same vertical scale as the surrounding terrain — only the horizontal
+            // sampling density differs. A tiny constant lift avoids z-fighting with the
+            // coarse fill mesh underneath, since the two grids rarely agree to the millimetre.
+            if (params.showHiresInset && isGeo && geodataInset.ready) {
+                // Render tessellation is deliberately CAPPED below the fetched data's own
+                // density by default (see the dev-only "Native inset render res" toggle):
+                // buildParametricModel() reruns this per-vertex loop on almost every UI
+                // change, so matching a much finer future fetch 1:1 would turn every
+                // checkbox toggle into a multi-hundred-ms stall. 88 is already ~native for
+                // today's 90x90 bake; the cap only bites once a denser grid is fetched.
+                const insetSeg = params.hiresInsetNativeRes
+                    ? Math.max(1, Math.min(geodataInset.cols, geodataInset.rows) - 1)
+                    : 88;
+                const insetGeo = new THREE.PlaneGeometry(1, 1, insetSeg, insetSeg);
+                insetGeo.rotateX(-Math.PI / 2);
+                const ipos = insetGeo.attributes.position;
+                const span = (geodata.maxM - geodata.minM) || 1;
+                const gvm = geoVMul();
+                for (let k = 0; k < ipos.count; k++) {
+                    // ipos.getX/getZ range over [-0.5, 0.5] before rotation-preserved scale of 1x1
+                    const fx = ipos.getX(k) + 0.5;   // 0 (west) -> 1 (east), local to the inset bbox
+                    const fz = ipos.getZ(k) + 0.5;   // 0 (north) -> 1 (south), local to the inset bbox
+                    const lon = geodataInset.west + fx * (geodataInset.east - geodataInset.west);
+                    const lat = geodataInset.north - fz * (geodataInset.north - geodataInset.south);
+                    const masl = sampleGeoInsetMasl(lon, lat);
+                    const s = geoToScene(lat, lon);
+                    ipos.setX(k, s.x);
+                    ipos.setY(k, (masl - geodata.minM) / span * gvm + 0.3);
+                    ipos.setZ(k, s.z);
+                }
+                insetGeo.computeVertexNormals();
+                // Untinted: a LOW-opacity wash (not the terrain's own opaque colour) so the
+                // active map layer/contour lines underneath still show through — the point of
+                // this patch is sharper elevation, not blanking out whatever base layer is
+                // showing. Tinted: high enough to read clearly as "a different colour", per the
+                // second UI option, while still letting contour lines ghost through beneath it.
+                const insetColor = params.hiresInsetTint ? 0xf2b134 : (prefersDark() ? 0x33363f : 0xf0e8d6);
+                const insetBaseOpacity = params.hiresInsetTint ? 0.6 : 0.28;
+                // NEGATIVE polygon offset (pulls the fragment CLOSER, scaling with the local
+                // depth slope) plus a bigger constant Y lift than the 0.02 the contour lines use
+                // — the inset's independently-interpolated fine grid rarely lands exactly
+                // coplanar with the coarse fillMat/contour lines, and on steep slopes (where the
+                // qanat's own P-1/P0 stretch sits) that tiny world-space mismatch was enough to
+                // z-fight into flickering white slivers. This makes "always wins" robust to slope.
+                const insetMat = new THREE.MeshBasicMaterial({
+                    color: insetColor,
+                    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+                    side: THREE.DoubleSide, transparent: true,
+                    opacity: insetBaseOpacity * params.terrainOpacity, depthWrite: false
+                });
+                insetMat.userData.baseOpacity = insetBaseOpacity;
+                terrainFadeMats.push(insetMat);
+                xsecClipMats.push(insetMat);
+                const insetMesh = new THREE.Mesh(insetGeo, insetMat);
+                insetMesh.renderOrder = 1;   // draw after the main fill mesh
+                modelGroup.add(insetMesh);
             }
 
             // --- 6a. Inferred recipient villa at the valley (west) end (SSOT: site.villa).
@@ -3200,9 +3374,13 @@
             const mpx = metersPerXUnit();
             const barLenUnits = 100 / mpx;        // a 100 m bar
             const y = params.baseY + 0.4, z = halfD + 0.6, x0 = -halfW + 1.5;
-            const mk = (a, b) => modelGroup.add(new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([a, b]),
-                new THREE.LineBasicMaterial({ color: 0x333333, depthTest: false })));
+            const mk = (a, b) => {
+                const ln = new THREE.Line(
+                    new THREE.BufferGeometry().setFromPoints([a, b]),
+                    new THREE.LineBasicMaterial({ color: 0x333333, depthTest: false }));
+                ln.userData.vecMode = 'line'; ln.userData.vecLayer = 'dimension';
+                modelGroup.add(ln);
+            };
             const yb = y;
             mk(new THREE.Vector3(x0, yb, z), new THREE.Vector3(x0 + barLenUnits, yb, z));
             mk(new THREE.Vector3(x0, yb - 0.35, z), new THREE.Vector3(x0, yb + 0.35, z));
@@ -3335,7 +3513,7 @@
                 const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial(
                     { color: STRATA[BAND_CODE[band]], transparent: true, opacity: 0.5, side: THREE.FrontSide, depthWrite: false }));
                 mesh.renderOrder = 2;
-                mesh.userData = { kind: 'strata', code: BAND_CODE[band] };
+                mesh.userData = { kind: 'strata', code: BAND_CODE[band], vecMode: 'silhouette', vecLayer: 'strata' };
                 modelGroup.add(mesh);
                 xsecClipMats.push(mesh.material);   // qanat cross-section cutaway also slices this sheet
                 strataMeshes.push(mesh);
@@ -3740,6 +3918,8 @@
                 document.getElementById('row-xsec-fullroute').style.display = (params.devMode && params.xsecCutaway) ? '' : 'none';
                 // "Qanat centreline" only matters while Symmetric clip-off is on.
                 document.getElementById('row-clip-centerline').style.display = params.frontMarginSymmetric ? '' : 'none';
+                // Research-status legend entries only make sense while that overlay is on.
+                document.getElementById('legend-research-status').style.display = params.showResearchStatus ? '' : 'none';
             };
 
             // Developer mode (Super/⌘ + D): red screen frame + exposes the dev-only toggles
@@ -3754,7 +3934,9 @@
                 document.getElementById('row-see-inside').style.display = params.devMode ? '' : 'none';     // see-inside cutaway is dev-only
                 document.getElementById('row-xsec-cutaway').style.display = params.devMode ? '' : 'none';   // qanat lengthwise cutaway is dev-only
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
+                document.getElementById('row-hires-inset-native').style.display = params.devMode ? '' : 'none'; // native inset render res is dev-only (perf risk)
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
+                document.getElementById('btn-export-svg').style.display = params.devMode ? '' : 'none';  // vector export is dev-only
                 document.getElementById('panel-presets').style.display = params.devMode ? 'none' : '';   // Quick views hide while poking at dev options
                 document.getElementById('row-presets-compact').style.display = params.devMode ? '' : 'none';   // its own toggle is dev-only, but the effect persists once dev mode exits
                 document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
@@ -3768,6 +3950,7 @@
                     if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
                     // qanatFront is a default-on rendering choice (strata read behind the qanat) — persist it, don't reset on dev exit.
                     if (params.detailedGallery) { params.detailedGallery = false; document.getElementById('param-detailed-gallery').checked = false; rebuild = true; }
+                    if (params.hiresInsetNativeRes) { params.hiresInsetNativeRes = false; document.getElementById('param-hires-inset-native').checked = false; rebuild = true; }
                     if (params.shaftCutaway || params.seeInside) {
                         params.shaftCutaway = false; params.seeInside = false;
                         document.getElementById('param-shaft-cutaway').checked = false;
@@ -3920,6 +4103,7 @@
 
             document.getElementById('param-research-status').addEventListener('change', e => {
                 params.showResearchStatus = e.target.checked;
+                document.getElementById('legend-research-status').style.display = e.target.checked ? '' : 'none';
                 buildParametricModel();
             });
 
@@ -3984,7 +4168,7 @@
             });
             document.getElementById('param-realistic-diameters').addEventListener('input', e => {
                 params.diameterRealism = parseFloat(e.target.value);
-                document.getElementById('lbl-realism-val').textContent = Math.round(params.diameterRealism * 100) + '%';
+                document.getElementById('lbl-realism-val').textContent = params.diameterRealism + 'x';
                 buildParametricModel();
             });
             // See inside (follow view): clip the view-facing half through the current view
@@ -4044,6 +4228,20 @@
             // Valley context ghost apron (toward the inferred villa)
             document.getElementById('param-ghost-apron').addEventListener('change', e => {
                 params.showGhostApron = e.target.checked;
+                buildParametricModel();
+            });
+
+            // Hi-res LiDAR inset over the immediate qanat-shaft area (+ optional tint)
+            document.getElementById('param-hires-inset').addEventListener('change', e => {
+                params.showHiresInset = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-hires-inset-tint').addEventListener('change', e => {
+                params.hiresInsetTint = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-hires-inset-native').addEventListener('change', e => {
+                params.hiresInsetNativeRes = e.target.checked;
                 buildParametricModel();
             });
 
@@ -4126,12 +4324,13 @@
             // visible multi-second stall. One rebuild at the end instead.
             const PRESET_BASELINE = {
                 'param-baselayer': 'contours', 'param-geology': true, 'param-dip': false,
-                'param-underground': true, 'param-realistic-diameters': 0.5,
+                'param-underground': true, 'param-realistic-diameters': 1.25,
                 'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
                 'param-aux': false, 'param-sounding': false, 'param-overflow': false,
                 'param-steps': false, 'param-research-status': false, 'param-perched': false, 'param-paths': false,
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
+                'param-hires-inset': false, 'param-hires-inset-tint': false,
                 'param-terrain-opacity': 1.0, 'param-surround': 1.0,
                 'param-front-margin': 1, 'param-front-margin-symmetric': false,
                 'param-clip-centerline': 'p3p9', 'param-detailed-gallery': false
@@ -4159,6 +4358,8 @@
                 'ov-break': v => { params.overlay.break = v; },
                 'param-sides': v => { params.showSides = v; },
                 'param-ghost-apron': v => { params.showGhostApron = v; },
+                'param-hires-inset': v => { params.showHiresInset = v; },
+                'param-hires-inset-tint': v => { params.hiresInsetTint = v; },
                 'param-terrain-cullback': v => { params.terrainCullBack = v; },
                 'param-terrain-opacity': v => applyTerrainOpacity(v),
                 'param-surround': v => { params.surround = v; },
@@ -4168,7 +4369,7 @@
             };
             // Labels these controls carry, formatted exactly like their own live listeners do.
             const PRESET_LABELS = {
-                'param-realistic-diameters': v => ['lbl-realism-val', Math.round(v * 100) + '%'],
+                'param-realistic-diameters': v => ['lbl-realism-val', v + 'x'],
                 'param-underground-opacity': v => ['lbl-underground-opacity', v.toFixed(2)],
                 'param-terrain-opacity': v => ['lbl-terrain-opacity', v.toFixed(2)],
                 'param-surround': v => ['lbl-surround', v.toFixed(1) + '×'],
@@ -4694,6 +4895,13 @@
                 raycaster.setFromCamera(ndc, camera);
                 return raycaster.intersectObjects(strataMeshes, false).find(h => !clipHidesHit(h));
             }
+            function pickQanat(ev) {
+                const r = dom.getBoundingClientRect();
+                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                return raycaster.intersectObjects(qanatMeshes, false).find(h => !clipHidesHit(h));
+            }
             function showTooltip(hit, ev) {
                 const d = hit.object.userData;
                 let html = '<span class="t-name">' + d.name + '</span><br>' +
@@ -4738,7 +4946,7 @@
                     }
                 } else {
                     // No shaft under the cursor: show a pointer over clickable spots / hotspots / strata too.
-                    dom.style.cursor = (pickSpot(ev) || pickXsec(ev) || pickStrata(ev)) ? 'pointer' : 'default';
+                    dom.style.cursor = (pickSpot(ev) || pickXsec(ev) || pickStrata(ev) || pickQanat(ev)) ? 'pointer' : 'default';
                     if (hoverActive) { tip.style.display = 'none'; hoverActive = false; clearDwell(); }
                 }
             });
@@ -4790,6 +4998,8 @@
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
                 if (shit) { selectAt(shit.point); renderSpotPanel(shit.object.userData); return; }
+                const qhit = pickQanat(ev);   // qanat gallery tube → inspector
+                if (qhit) { selectAt(qhit.point); renderQanatPanel(qhit.point); return; }
                 const sthit = pickStrata(ev);   // geology strata band (weathered/sandstone/marl/keuper)
                 if (sthit) { selectAt(sthit.point); renderStrataPanel(sthit.object.userData.code); return; }
                 clearSelectionMarker();   // tapped empty terrain/space: drop the previous selection
@@ -4963,6 +5173,38 @@
             body.innerHTML = h;
             showInspector();
         }
+        // Clicking the qanat tube itself (anywhere along its length, not just an xsec
+        // hotspot) → the same documented gallery facts, without the fig 5-15 drawing.
+        function renderQanatPanel(point) {
+            const body = document.getElementById('info-body');
+            const g = (SSOT.gallery && SSOT.gallery.gallery) || {};
+            const gp = g._prov || {};
+            let pos = '';
+            if (point && lastBasePts.length >= 2) {
+                const sorted = lastBasePts.slice().sort((a, b) => a.x - b.x);
+                const minX = sorted[0].x, maxX = sorted[sorted.length - 1].x;
+                if (maxX > minX) {
+                    let frac = (point.x - minX) / (maxX - minX);
+                    if (params.flipWE) frac = 1 - frac;
+                    frac = Math.min(1, Math.max(0, frac));
+                    pos = ' · ≈' + Math.round(frac * 100) + '% from the west (P‑5→P9)';
+                }
+            }
+            let h = `<h3>Qanat gallery</h3><div class="ip-sub">Main gallery / channel${pos}</div>`;
+            const row = (k, v, pvKey) => v == null ? '' :
+                `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
+                citeDetail({ status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null });
+            const rng = a => Array.isArray(a) ? a.join('–') : a;
+            h += row('Gradient', g.gradientPct != null ? g.gradientPct + ' %' : null, 'gradientPct');
+            h += row('Channel height', g.channelHeightCm != null ? g.channelHeightCm + ' cm' : null, 'channelHeightCm');
+            h += row('Channel width', g.channelWidthRangeCm ? rng(g.channelWidthRangeCm) + ' cm' : null, 'channelWidthRangeCm');
+            h += row('Water depth', g.waterFlowHeightRangeCm ? rng(g.waterFlowHeightRangeCm) + ' cm' : null, 'waterFlowHeightRangeCm');
+            h += row('Cover slabs', g.coverSlabThicknessRangeCm ? rng(g.coverSlabThicknessRangeCm) + ' cm' : null, 'coverSlabThicknessRangeCm');
+            h += row('Construction', g.construction, null);
+            h += row('Floor follows', g.floorFollows, 'floorFollows');
+            body.innerHTML = h;
+            showInspector();
+        }
         function renderVillaPanel(v) {
             const body = document.getElementById('info-body');
             let h = `<h3>${v.name || 'Roman villa'}</h3><div class="ip-sub">Inferred recipient` +
@@ -5123,6 +5365,7 @@
         function closeLegendModal() { setModalOpen('legend-modal-backdrop', false); }
         function initSourcesModal() {
             document.getElementById('btn-sources').addEventListener('click', openSourcesModal);
+            document.getElementById('btn-export-svg').addEventListener('click', exportVectorSVG);
             document.getElementById('sources-close').addEventListener('click', closeSourcesModal);
             document.getElementById('sources-modal-backdrop').addEventListener('click', ev => {
                 if (ev.target.id === 'sources-modal-backdrop') closeSourcesModal();
@@ -5314,6 +5557,122 @@
                 num.renderOrder = 21;
                 annotationGroup.add(num);
             });
+        }
+        // --- Vector (SVG) export --------------------------------------------------------
+        // Exports exactly what the current camera view shows, but ONLY the elements whose
+        // true shape is known geometry (not shading/texture/imagery): shafts, tunnel/gallery
+        // tubes, geology strata bands, dimension/scale-bar lines, cross-section & step
+        // markers, procedural contour lines, and the terrain block's boundary curve.
+        // Deliberately excluded: satellite/OSM/official-contour raster drapes, any shaded
+        // fill, and ALL floating text/caption sprites (labels are UI/legend, not geometry).
+        // Objects opt in by carrying userData.vecLayer (grouping) + userData.vecMode:
+        //   'silhouette' — a filled Mesh; outlined via true boundary/silhouette-edge
+        //                  extraction (correct for solids like cylinders/tubes/box markers
+        //                  and for thin near-planar sheets like the strata bands).
+        //   'line'       — a Line/LineSegments already vector-native; projected directly.
+        // The terrain's undulating fill surface has no clean silhouette in an arbitrary
+        // oblique view (a heightfield has no back-facing triangles to test against — that
+        // needs real hidden-surface removal), so instead of a fake skyline we export its
+        // true 3D footprint boundary (the four edges of the current width×depth window).
+        function meshSilhouetteSegments(mesh, camPos) {
+            const geo = mesh.geometry, posAttr = geo.attributes.position, idx = geo.index;
+            mesh.updateMatrixWorld();
+            const mat = mesh.matrixWorld;
+            const triCount = idx ? idx.count / 3 : posAttr.count / 3;
+            const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+            const e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), normal = new THREE.Vector3();
+            const centroid = new THREE.Vector3(), toCam = new THREE.Vector3();
+            const getVert = (i, out) => out.set(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i)).applyMatrix4(mat);
+            const round = v => v.x.toFixed(4) + ',' + v.y.toFixed(4) + ',' + v.z.toFixed(4);
+            const keyFor = (p1, p2) => { const k1 = round(p1), k2 = round(p2); return k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1; };
+            const edgeMap = new Map();
+            for (let t = 0; t < triCount; t++) {
+                const i0 = idx ? idx.getX(t * 3) : t * 3, i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1, i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+                getVert(i0, vA); getVert(i1, vB); getVert(i2, vC);
+                e1.subVectors(vB, vA); e2.subVectors(vC, vA);
+                normal.crossVectors(e1, e2).normalize();
+                centroid.set((vA.x + vB.x + vC.x) / 3, (vA.y + vB.y + vC.y) / 3, (vA.z + vB.z + vC.z) / 3);
+                toCam.subVectors(camPos, centroid);
+                const facing = normal.dot(toCam) > 0 ? 1 : -1;
+                [[vA, vB], [vB, vC], [vC, vA]].forEach(([p1, p2]) => {
+                    const key = keyFor(p1, p2);
+                    const rec = edgeMap.get(key);
+                    if (!rec) edgeMap.set(key, { a: p1.clone(), b: p2.clone(), facings: [facing] });
+                    else rec.facings.push(facing);
+                });
+            }
+            const segments = [];
+            edgeMap.forEach(rec => {
+                if (rec.facings.length === 1 || rec.facings.some(f => f !== rec.facings[0])) segments.push([rec.a, rec.b]);
+            });
+            return segments;
+        }
+        function exportVectorSVG() {
+            if (!modelGroup || !camera || !renderer) return;
+            const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
+            const camPos = camera.position.clone();
+            const groups = {};
+            const push = (layer, segs, color) => { if (segs.length) (groups[layer] = groups[layer] || []).push({ segs, color }); };
+            // Respect any active cutaway (Look inside / See inside / Qanat cutaway): those set
+            // material.clippingPlanes on the affected meshes, GPU-clipping half of them away on
+            // screen. Without this, the export would include geometry the camera can't see.
+            const clipOk = (mat, p) => !mat || !mat.clippingPlanes || !mat.clippingPlanes.length ||
+                mat.clippingPlanes.every(pl => pl.distanceToPoint(p) >= 0);
+            modelGroup.traverse(obj => {
+                const layer = obj.userData && obj.userData.vecLayer;
+                if (!layer || obj.visible === false) return;
+                const mat = obj.material;
+                if (mat && mat.visible === false) return;
+                if (mat && mat.transparent && mat.opacity < 0.02) return;
+                const color = (mat && mat.color) ? '#' + mat.color.getHexString() : '#333333';
+                if (obj.userData.vecMode === 'line') {
+                    obj.updateMatrixWorld();
+                    const posAttr = obj.geometry.attributes.position;
+                    const pts = [];
+                    for (let i = 0; i < posAttr.count; i++)
+                        pts.push(new THREE.Vector3(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i)).applyMatrix4(obj.matrixWorld));
+                    const segs = [];
+                    const step = obj.isLineSegments ? 2 : 1;
+                    for (let i = 0; i + 1 < pts.length; i += step) segs.push([pts[i], pts[i + 1]]);
+                    push(layer, segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color);
+                } else if (obj.userData.vecMode === 'silhouette') {
+                    const segs = meshSilhouetteSegments(obj, camPos);
+                    push(layer, segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color);
+                }
+            });
+            // Terrain footprint boundary — the current width×depth window's four edges,
+            // height-sampled (not a full self-occlusion skyline; see note above).
+            const halfW = params.width / 2, halfD = params.depth / 2, N = 120, boundary = [];
+            const addEdge = (x1, z1, x2, z2) => { for (let i = 0; i <= N; i++) { const t = i / N, x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t; boundary.push(new THREE.Vector3(x, getTerrainHeight(x, z), z)); } };
+            addEdge(-halfW, -halfD, halfW, -halfD); addEdge(halfW, -halfD, halfW, halfD);
+            addEdge(halfW, halfD, -halfW, halfD); addEdge(-halfW, halfD, -halfW, -halfD);
+            const terrainSegs = [];
+            for (let i = 0; i + 1 < boundary.length; i++) terrainSegs.push([boundary[i], boundary[i + 1]]);
+            push('terrain', terrainSegs, '#555555');
+
+            const project = v3 => { const p = v3.clone().project(camera); return { x: (p.x + 1) / 2 * w, y: (1 - p.y) / 2 * h, behind: !isFinite(p.z) || Math.abs(p.z) > 1 }; };
+            const pathFor = segs => segs.map(([a, b]) => {
+                const pa = project(a), pb = project(b);
+                if (pa.behind || pb.behind) return '';
+                return `M${pa.x.toFixed(2)} ${pa.y.toFixed(2)} L${pb.x.toFixed(2)} ${pb.y.toFixed(2)}`;
+            }).filter(Boolean).join(' ');
+            const LAYER_ORDER = ['terrain', 'strata', 'contour', 'shaft', 'tunnel', 'marker', 'dimension'];
+            let body = '';
+            LAYER_ORDER.forEach(layer => {
+                const arr = groups[layer]; if (!arr || !arr.length) return;
+                body += `<g id="${layer}">`;
+                arr.forEach(({ segs, color }) => {
+                    const d = pathFor(segs);
+                    if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
+                });
+                body += `</g>`;
+            });
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const el = document.createElement('a');
+            el.href = url; el.download = 'raschpetzer-vector-export.svg'; el.click();
+            URL.revokeObjectURL(url);
         }
         function exportAnnotations() {
             const data = { site: 'Raschpëtzer Qanat', terrainSource: params.terrainSource,
