@@ -16,7 +16,8 @@
         "status": "reconstructed",
         "source": "osm-qanat-shafts",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-osm-georef",
+          "pd-werner-1997-remeasurement"
         ]
       },
       "geo": {
@@ -44,7 +45,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "derived from P-5 (OSM) + documented ~25 m NW offset (p.22); NOT an OSM node. LOW confidence — see pd-osm-georef. fig.3-1 P-7A->P-5A = 24.1 m is consistent with the documented P-5->P-7A ~25 m, but P-7A is a derived auxiliary-branch position, not directly georeferenced. The OSM node 'Quanat -6' lies ~10.7 m from this derived point and has mapsTo=null (unassigned)."
+          "note": "derived from P-5 (OSM) + documented ~25 m NW offset (p.22); NOT an OSM node. LOW confidence — see pd-osm-georef. fig.3-1 P-7A->P-5A = 24.1 m is consistent with the documented P-5->P-7A ~25 m, but P-7A is a derived auxiliary-branch position, not directly georeferenced. The OSM node 'Quanat -6' lies ~10.7 m from this derived point and has mapsTo=null (unassigned). CANDIDATE (not adopted): Henri Werner's separate 1997-plan re-measurement shifts this point ~28.5 m — see pd-werner-1997-remeasurement."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -81,7 +82,8 @@
         "status": "reconstructed",
         "source": "osm-qanat-shafts",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-osm-georef",
+          "pd-werner-1997-remeasurement"
         ]
       },
       "geo": {
@@ -108,7 +110,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "derived from P-5 (OSM) + ~12 m NW (aux channel, vicinity of P-5). LOW confidence — see pd-osm-georef. Auxiliary northern-branch shaft (~30 m N of the main line, fig.5-14 p.22), not directly georeferenced; the OSM node 'Quanat -5' lies ~12 m away and is itself unlabelled (mapsTo=null)."
+          "note": "derived from P-5 (OSM) + ~12 m NW (aux channel, vicinity of P-5). LOW confidence — see pd-osm-georef. Auxiliary northern-branch shaft (~30 m N of the main line, fig.5-14 p.22), not directly georeferenced; the OSM node 'Quanat -5' lies ~12 m away and is itself unlabelled (mapsTo=null). CANDIDATE (not adopted): Henri Werner's separate 1997-plan re-measurement shifts this point ~8.2 m — see pd-werner-1997-remeasurement."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",
@@ -206,7 +208,8 @@
         "status": "reconstructed",
         "source": "osm-qanat-shafts",
         "paradataRef": [
-          "pd-osm-georef"
+          "pd-osm-georef",
+          "pd-werner-1997-remeasurement"
         ]
       },
       "geo": {
@@ -238,7 +241,7 @@
         },
         "geo": {
           "source": "osm-qanat-shafts",
-          "note": "OSM node; MEDIUM confidence mapping to P-4 — see pd-osm-georef. Largest similarity-fit residual (+12.7 m): this is the west-end route bend / plateau-edge transition where the oblique fig.3-1 foreshortening is worst, so the digitised spacing (P-5->P-4 = 12.3 m vs OSM 17.9 m) is unreliable here. LiDAR 366.9 m and the documented main-channel floor 355.4 m corroborate the label; kept medium, not high."
+          "note": "OSM node; MEDIUM confidence mapping to P-4 — see pd-osm-georef. Largest similarity-fit residual (+12.7 m): this is the west-end route bend / plateau-edge transition where the oblique fig.3-1 foreshortening is worst, so the digitised spacing (P-5->P-4 = 12.3 m vs OSM 17.9 m) is unreliable here. LiDAR 366.9 m and the documented main-channel floor 355.4 m corroborate the label; kept medium, not high. CANDIDATE (not adopted): Henri Werner's separate 1997-plan re-measurement shifts this point ~2.4 m — see pd-werner-1997-remeasurement."
         },
         "surfaceElevM": {
           "source": "act-lidar-2019",

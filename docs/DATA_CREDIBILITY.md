@@ -125,3 +125,25 @@ to apply the same pass to the **main** terrain grid (`assets/geodata-walferdange
 densest full-extent manifest run), inspect whichever cells the chosen threshold flags against
 the source imagery/contours before trusting the clamp, then `bun run validate` and re-check the
 `lidar≈floor+depth` invariants above before committing.
+
+## A second Werner re-measurement for P-4/P-5A/P-7A — considered, not adopted (2026-07-23)
+
+Henri Werner separately sent a simpler 7-point coordinate table (P-7A, P-5A, P-4, P-1, P0, P1,
+P2), re-measured from a 1997 plan, the day after the richer werner-sit-survey table that resolved
+P2/P-1/P0 above. For the four overlapping points it agrees with werner-sit-survey within 0.3 m —
+a useful cross-check, no new information. For P-4, P-5A, and P-7A, which werner-sit-survey does
+not cover at all, it's the only non-OSM candidate data available: converted to WGS84, it shifts
+these three points by ~2.4 m, ~8.2 m, and ~28.5 m respectively from their current OSM-derived
+positions.
+
+**Not adopted.** werner-sit-survey earned its place in the credibility ranking (effectively rank
+1, alongside the brochure/LiDAR, for the 11 shafts it covers) on the strength of being a real
+survey table with multiple overlapping points and a distance-invariant validation against the
+brochure (the corrected P2–P3 spacing matching the documented 28 m almost exactly). This second
+table is a single hand-measured reading transcribed from a scanned plan by one person, with
+nothing to cross-check it against beyond the four points already independently confirmed — a
+materially weaker evidentiary basis. P-4/P-5A/P-7A keep their existing `osm-qanat-shafts`
+position and `geoConfidence` (medium/low/low); the candidate shift is recorded in each shaft's
+`_prov.geo` note and in `pd-werner-1997-remeasurement` as something worth checking against a
+proper survey, not a value to plot. If a certified survey ever does cover these three shafts,
+treat it the way werner-sit-survey was treated for the other 11 — not this candidate reading.
