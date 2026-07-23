@@ -852,6 +852,7 @@
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
                 <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
                 <label class="check-row"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
+                <label class="check-row dev-opt" id="row-hires-inset-native"><input type="checkbox" id="param-hires-inset-native"> Native&nbsp;inset&nbsp;render&nbsp;res&nbsp;(match&nbsp;fetched&nbsp;grid&nbsp;&mdash;&nbsp;may&nbsp;be&nbsp;slow)</label>
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
@@ -1146,6 +1147,7 @@
             showGhostApron: true,         // faded low-res terrain apron west toward the inferred villa
             showHiresInset: false,        // higher-resolution LiDAR patch over the immediate qanat-shaft area
             hiresInsetTint: false,        // tint that patch a distinct colour instead of matching the terrain
+            hiresInsetNativeRes: false,   // dev-only: tessellate to match the fetched grid instead of a fixed cap (perf risk)
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
@@ -3208,7 +3210,15 @@
             // sampling density differs. A tiny constant lift avoids z-fighting with the
             // coarse fill mesh underneath, since the two grids rarely agree to the millimetre.
             if (params.showHiresInset && isGeo && geodataInset.ready) {
-                const insetSeg = 88;   // dense tessellation; independent of the main grid's segX/segZ
+                // Render tessellation is deliberately CAPPED below the fetched data's own
+                // density by default (see the dev-only "Native inset render res" toggle):
+                // buildParametricModel() reruns this per-vertex loop on almost every UI
+                // change, so matching a much finer future fetch 1:1 would turn every
+                // checkbox toggle into a multi-hundred-ms stall. 88 is already ~native for
+                // today's 90x90 bake; the cap only bites once a denser grid is fetched.
+                const insetSeg = params.hiresInsetNativeRes
+                    ? Math.max(1, Math.min(geodataInset.cols, geodataInset.rows) - 1)
+                    : 88;
                 const insetGeo = new THREE.PlaneGeometry(1, 1, insetSeg, insetSeg);
                 insetGeo.rotateX(-Math.PI / 2);
                 const ipos = insetGeo.attributes.position;
@@ -3924,6 +3934,7 @@
                 document.getElementById('row-see-inside').style.display = params.devMode ? '' : 'none';     // see-inside cutaway is dev-only
                 document.getElementById('row-xsec-cutaway').style.display = params.devMode ? '' : 'none';   // qanat lengthwise cutaway is dev-only
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
+                document.getElementById('row-hires-inset-native').style.display = params.devMode ? '' : 'none'; // native inset render res is dev-only (perf risk)
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
                 document.getElementById('btn-export-svg').style.display = params.devMode ? '' : 'none';  // vector export is dev-only
                 document.getElementById('panel-presets').style.display = params.devMode ? 'none' : '';   // Quick views hide while poking at dev options
@@ -3939,6 +3950,7 @@
                     if (params.strataDetailed) { params.strataDetailed = false; document.getElementById('param-strata-detail').checked = false; rebuild = true; }
                     // qanatFront is a default-on rendering choice (strata read behind the qanat) — persist it, don't reset on dev exit.
                     if (params.detailedGallery) { params.detailedGallery = false; document.getElementById('param-detailed-gallery').checked = false; rebuild = true; }
+                    if (params.hiresInsetNativeRes) { params.hiresInsetNativeRes = false; document.getElementById('param-hires-inset-native').checked = false; rebuild = true; }
                     if (params.shaftCutaway || params.seeInside) {
                         params.shaftCutaway = false; params.seeInside = false;
                         document.getElementById('param-shaft-cutaway').checked = false;
@@ -4226,6 +4238,10 @@
             });
             document.getElementById('param-hires-inset-tint').addEventListener('change', e => {
                 params.hiresInsetTint = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-hires-inset-native').addEventListener('change', e => {
+                params.hiresInsetNativeRes = e.target.checked;
                 buildParametricModel();
             });
 
