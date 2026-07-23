@@ -758,6 +758,10 @@
                 <option value="hillshade">LiDAR relief (2019)</option>
                 <option value="none">Plain</option>
             </select>
+            <div id="grp-contours">
+                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
+                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
+            </div>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
         </div>
 
@@ -805,10 +809,6 @@
 
         <div id="tab-panes">
         <div class="tab-pane active" data-pane="map">
-            <div class="control-group" id="grp-contours">
-                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
-                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
-            </div>
             <div class="control-group">
                 <label>Overlays (geoportail)</label>
                 <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
@@ -851,8 +851,9 @@
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
                 <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
-                <label class="check-row"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
-                <label class="check-row dev-opt" id="row-hires-inset-native"><input type="checkbox" id="param-hires-inset-native"> Native&nbsp;inset&nbsp;render&nbsp;res&nbsp;(match&nbsp;fetched&nbsp;grid&nbsp;&mdash;&nbsp;may&nbsp;be&nbsp;slow)</label>
+                <div id="hires-inset-note" style="display:none;font-size:0.72rem;color:#9ca3af;margin:2px 0 8px 22px;line-height:1.35;">Denser LiDAR patch (~3.6&nbsp;m cells vs. the main terrain's ~7.5&nbsp;m) over just the shaft area. Subtle at normal zoom &mdash; mainly useful up close, or as a base for future higher-res sampling.</div>
+                <label class="check-row" id="row-hires-inset-tint" style="display:none;margin-left:22px"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
+                <label class="check-row dev-opt" id="row-hires-inset-native" style="display:none;margin-left:22px"><input type="checkbox" id="param-hires-inset-native"> Native&nbsp;inset&nbsp;render&nbsp;res&nbsp;(match&nbsp;fetched&nbsp;grid&nbsp;&mdash;&nbsp;may&nbsp;be&nbsp;slow)</label>
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
@@ -3920,6 +3921,10 @@
                 document.getElementById('row-clip-centerline').style.display = params.frontMarginSymmetric ? '' : 'none';
                 // Research-status legend entries only make sense while that overlay is on.
                 document.getElementById('legend-research-status').style.display = params.showResearchStatus ? '' : 'none';
+                // The inset's tint/native-res options only mean anything while the inset itself is on.
+                document.getElementById('hires-inset-note').style.display = params.showHiresInset ? '' : 'none';
+                document.getElementById('row-hires-inset-tint').style.display = params.showHiresInset ? '' : 'none';
+                document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none';
             };
 
             // Developer mode (Super/⌘ + D): red screen frame + exposes the dev-only toggles
@@ -3934,7 +3939,7 @@
                 document.getElementById('row-see-inside').style.display = params.devMode ? '' : 'none';     // see-inside cutaway is dev-only
                 document.getElementById('row-xsec-cutaway').style.display = params.devMode ? '' : 'none';   // qanat lengthwise cutaway is dev-only
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
-                document.getElementById('row-hires-inset-native').style.display = params.devMode ? '' : 'none'; // native inset render res is dev-only (perf risk)
+                document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none'; // native inset render res is dev-only (perf risk) AND nested under the inset toggle
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
                 document.getElementById('btn-export-svg').style.display = params.devMode ? '' : 'none';  // vector export is dev-only
                 document.getElementById('panel-presets').style.display = params.devMode ? 'none' : '';   // Quick views hide while poking at dev options
@@ -4231,9 +4236,14 @@
                 buildParametricModel();
             });
 
-            // Hi-res LiDAR inset over the immediate qanat-shaft area (+ optional tint)
+            // Hi-res LiDAR inset over the immediate qanat-shaft area (+ optional tint) —
+            // its two sub-options only mean anything while the inset itself is on, so they're
+            // nested under it (see syncConditionalOptions for the devMode-gated native-res row).
             document.getElementById('param-hires-inset').addEventListener('change', e => {
                 params.showHiresInset = e.target.checked;
+                document.getElementById('hires-inset-note').style.display = params.showHiresInset ? '' : 'none';
+                document.getElementById('row-hires-inset-tint').style.display = params.showHiresInset ? '' : 'none';
+                document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none';
                 buildParametricModel();
             });
             document.getElementById('param-hires-inset-tint').addEventListener('change', e => {
