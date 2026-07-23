@@ -3223,17 +3223,30 @@
                     const masl = sampleGeoInsetMasl(lon, lat);
                     const s = geoToScene(lat, lon);
                     ipos.setX(k, s.x);
-                    ipos.setY(k, (masl - geodata.minM) / span * gvm + 0.05);
+                    ipos.setY(k, (masl - geodata.minM) / span * gvm + 0.3);
                     ipos.setZ(k, s.z);
                 }
                 insetGeo.computeVertexNormals();
+                // Untinted: a LOW-opacity wash (not the terrain's own opaque colour) so the
+                // active map layer/contour lines underneath still show through — the point of
+                // this patch is sharper elevation, not blanking out whatever base layer is
+                // showing. Tinted: high enough to read clearly as "a different colour", per the
+                // second UI option, while still letting contour lines ghost through beneath it.
                 const insetColor = params.hiresInsetTint ? 0xf2b134 : (prefersDark() ? 0x33363f : 0xf0e8d6);
+                const insetBaseOpacity = params.hiresInsetTint ? 0.6 : 0.28;
+                // NEGATIVE polygon offset (pulls the fragment CLOSER, scaling with the local
+                // depth slope) plus a bigger constant Y lift than the 0.02 the contour lines use
+                // — the inset's independently-interpolated fine grid rarely lands exactly
+                // coplanar with the coarse fillMat/contour lines, and on steep slopes (where the
+                // qanat's own P-1/P0 stretch sits) that tiny world-space mismatch was enough to
+                // z-fight into flickering white slivers. This makes "always wins" robust to slope.
                 const insetMat = new THREE.MeshBasicMaterial({
                     color: insetColor,
-                    polygonOffset: true, polygonOffsetFactor: 0.5, polygonOffsetUnits: 0.5,
-                    side: THREE.DoubleSide, transparent: true, opacity: params.terrainOpacity, depthWrite: false
+                    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+                    side: THREE.DoubleSide, transparent: true,
+                    opacity: insetBaseOpacity * params.terrainOpacity, depthWrite: false
                 });
-                insetMat.userData.baseOpacity = 1.0;
+                insetMat.userData.baseOpacity = insetBaseOpacity;
                 terrainFadeMats.push(insetMat);
                 xsecClipMats.push(insetMat);
                 const insetMesh = new THREE.Mesh(insetGeo, insetMat);

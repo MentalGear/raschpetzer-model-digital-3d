@@ -154,6 +154,32 @@ function main() {
     }
   }
 
+  // Despike: raw point-cloud DTMs occasionally carry single-cell sensor/interpolation
+  // noise (a stray return, an edge-of-lattice interpolation wobble) that reads as a
+  // sharp spike/pit against every neighbour. Clamp only cells that deviate >3 m from
+  // their local 3x3 median to that median — denoising the BAKED grid, not the raw
+  // samples.ndjson cache, which stays exactly as fetched. Real terrain features (a
+  // shaft collar, a slope break) span multiple cells and are far below this threshold
+  // at this grid density, so this only catches true single-cell outliers.
+  const DESPIKE_M = 3.0;
+  const at2 = (i, j) => meters[j * cols + i];
+  let despiked = 0;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const nbrs = [];
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        if (di === 0 && dj === 0) continue;
+        const ni = i + di, nj = j + dj;
+        if (ni >= 0 && ni < cols && nj >= 0 && nj < rows) nbrs.push(at2(ni, nj));
+      }
+      nbrs.sort((a, b) => a - b);
+      const median = nbrs[Math.floor(nbrs.length / 2)];
+      const v = at2(i, j);
+      if (Math.abs(v - median) > DESPIKE_M) { meters[j * cols + i] = median; despiked++; }
+    }
+  }
+  if (despiked) console.log(`Despiked ${despiked} cell(s) (>${DESPIKE_M} m from local 3x3 median)`);
+
   const minM = Math.round(Math.min(...meters) * 10) / 10;
   const maxM = Math.round(Math.max(...meters) * 10) / 10;
 
