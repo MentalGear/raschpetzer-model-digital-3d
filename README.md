@@ -95,6 +95,43 @@ the geometry. `model-config.json` holds **visualization-only** settings (camera,
 colours, scene-scale slider defaults). The parametric sliders are a *display
 lens*: real-metre read-outs (info panel, measurements) are invariant to them.
 
+### Terrain data (LiDAR sampling)
+
+Real terrain comes from the **ACT LiDAR 2019 (0.5 m) DTM** (data.public.lu),
+queried point-by-point from `map.geoportail.lu/raster` and baked into a
+regular grid: `scripts/sample-lidar.mjs` fetches into a `data/lidar/samples.ndjson`
+cache (append-only, never re-fetches a cached point), then `scripts/bake-lidar.mjs`
+interpolates that cache onto a chosen grid and writes `assets/geodata-*.js`.
+
+The query endpoint returns one elevation per request, so resolution is a
+direct points-vs-fetch-time tradeoff (~150 ms/request, sequential):
+
+| square side | spacing | grid | points | ≈ fetch time |
+|---|---|---|---|---|
+| 320 m | 3.6 m (current hi-res inset) | 90×90 | 8,100 | ~20 min |
+| 320 m | 2 m | 161×161 | ~25,900 | ~1 hr |
+| 320 m | 1 m | 321×321 | ~103,000 | ~4.3 hr |
+| 320 m | 0.5 m (native) | 641×641 | ~411,000 | ~17 hr |
+
+0.5 m is the DTM's native resolution — nothing finer exists in the source data,
+so that row is the practical ceiling regardless of fetch time.
+
+Two grids are baked this way at different extents/densities:
+- `assets/geodata-walferdange.js` — the main terrain, 240×132 over the full
+  ~1724×1002 m corridor.
+- `assets/geodata-inset-raschpetzer.js` — an optional denser patch over just
+  the immediate qanat-shaft area (see the "Hi‑res LiDAR inset" toggle).
+
+`bake-lidar.mjs` despikes the baked grid (clamps single-cell outliers >3 m
+from their local 3×3-cell median to that median), denoising interpolation/
+sensor noise without touching the raw sample cache — currently applied only
+to the hi-res inset grid, not the main terrain grid; see
+`docs/DATA_CREDIBILITY.md` for why. On the render side, the inset mesh's
+tessellation is capped independently of the fetched grid's own density
+(dev-only "Native inset render res" toggle lifts the cap) — matching render
+resolution 1:1 to a much denser future fetch would slow down every UI
+rebuild, since the whole scene rebuilds on most setting changes.
+
 ## Scripts
 
 | Command | Does |
