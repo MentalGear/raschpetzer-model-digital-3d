@@ -638,6 +638,7 @@
         .ip-detail { margin: 1px 0 8px; font-size: 0.72rem; color: #9ca3af; padding-left: 2px; }
         .ip-detail[hidden] { display: none; }
         .ip-detail-status { text-transform: uppercase; letter-spacing: 0.4px; margin-right: 7px; color: #cbd5e1; font-weight: 600; }
+        .ip-detail-note { display: block; margin-top: 4px; line-height: 1.45; color: #9ca3af; }
         .ip-cite { display: inline; margin-top: 4px; }
         .ip-cite a { color: var(--accent-orange); font-size: 0.74rem; text-decoration: none; }
         .ip-cite a:hover { text-decoration: underline; }
@@ -1420,8 +1421,8 @@
         // --- Shareable camera link: encode camera.position + controls.target into the URL
         // too (?cam=x,y,z,tx,ty,tz), the same way and for the same reason as setSelectionURL
         // above — so copying the address bar reproduces the exact view, not just the selected
-        // item. Written from a throttle in animate() (see _camURLDirty), not on every
-        // OrbitControls 'change' event, which fires many times a second during a drag.
+        // item. Written from a 3s-rest debounce in animate() (see _camURLPending), not on
+        // every OrbitControls 'change' event, which fires many times a second during a drag.
         function setCameraURL() {
             const url = new URL(location.href);
             const r = (n) => Math.round(n * 100) / 100;
@@ -4925,10 +4926,12 @@
 
         // --- Camera readout (azimuth / elevation / distance) + "Level horizon" button ---
         let _readoutDirty = true, _readoutLastPaint = 0;
-        // Shareable camera URL: same dirty/throttle idiom as the readout above, but painted
-        // less often (URL rewrites are pure overhead compared to a text readout) — see
-        // setCameraURL/parseCameraFromURL and the throttle in animate().
-        let _camURLDirty = false, _camURLLastPaint = 0;
+        // Shareable camera URL: debounced rather than throttled like the readout above — the
+        // URL is only rewritten once the camera has been at rest for 3s (see the check in
+        // animate()), not continuously while navigating, since a URL rewrite is pure overhead
+        // mid-drag and the shared link only matters once the user has settled on a view. See
+        // setCameraURL/parseCameraFromURL.
+        let _camURLPending = false, _camURLLastChange = 0;
         function updateCameraReadout() {
             const el = document.getElementById('camera-readout');
             if (!el) return;
@@ -4944,7 +4947,9 @@
             updateCameraReadout();
             updateCompassNeedle();
             controls.addEventListener('change', () => {
-                _readoutDirty = true; _camURLDirty = true; updateCompassNeedle(); updateCompass();
+                _readoutDirty = true;
+                _camURLPending = true; _camURLLastChange = performance.now();
+                updateCompassNeedle(); updateCompass();
             });
             // Re-assert the Normal-mode tilt clamp when the user starts navigating again (the
             // Top preset relaxes it for the top-down framing). No-op in Power mode.
@@ -5161,10 +5166,17 @@
         // Compact single-letter knowledge-status badge (green D = documented, etc.). It's a
         // button: clicking it reveals the row's detail line (full status word + citation).
         const STATUS_LETTER = { documented: 'D', inferred: 'I', reconstructed: 'R', hypothetical: 'H', schematic: 'S' };
-        function statusBadge(status) {
+        // Class-wide disclosure state: which detail rows are open, keyed by row label (e.g.
+        // "Position", "Depth") rather than by DOM node or by which shaft/feature is selected —
+        // renderInfoPanel rebuilds info-body's HTML from scratch on every selection, so without
+        // this a badge you'd opened would silently re-close the moment you picked a different
+        // item. Persisting by label means "Position expanded" carries across items.
+        const openDetailRows = new Set();
+        function statusBadge(status, key) {
             if (!status) return '';
             const letter = STATUS_LETTER[status] || status[0].toUpperCase();
-            return `<button type="button" class="ip-badge s-${status}" aria-label="${status}"` +
+            const open = key && openDetailRows.has(key);
+            return `<button type="button" class="ip-badge s-${status}${open ? ' open' : ''}" aria-label="${status}"` +
                 ` title="${status} — click for source">${letter}</button>`;
         }
         function citeChip(pv) {
@@ -5178,11 +5190,18 @@
                 ? `<a href="${s.url}" target="_blank" rel="noopener"${title}>${text}</a>`
                 : `<a${title}>${text}</a>`}</span>`;
         }
-        // The hidden detail line revealed by clicking a row's status badge: full status word + citation.
-        function citeDetail(pv) {
+        // The detail line revealed by clicking a row's status badge: full status word + citation
+        // + (if the SSOT recorded one) the underlying provenance note — e.g. the reasoning
+        // behind an OSM-derived position, or a corrected/superseded-survey callout. Previously
+        // this note text was captured in data/*.json but never actually shown anywhere in the
+        // UI; it's real, citable content, so it belongs here rather than dev-mode-only.
+        function citeDetail(pv, key) {
             if (!pv || !pv.status) return '';
             const cite = citeChip(pv);
-            return `<div class="ip-detail" hidden><span class="ip-detail-status">${pv.status}</span>${cite}</div>`;
+            const note = pv.note ? `<div class="ip-detail-note">${pv.note}</div>` : '';
+            const open = key && openDetailRows.has(key);
+            return `<div class="ip-detail"${open ? '' : ' hidden'} data-key="${key || ''}">` +
+                `<span class="ip-detail-status">${pv.status}</span>${cite}${note}</div>`;
         }
         // Caveat shown under every "GPS (WGS84)" map link: the link's own pin sits at OUR
         // coordinate (accurate), but OpenStreetMap's page also shows ITS OWN pre-existing,
@@ -5199,8 +5218,8 @@
             const pv = provOf(rec, field);
             const value = Array.isArray(raw) ? raw.join('–') : raw;
             return `<div class="ip-row"><span class="ip-k">${label}</span>` +
-                `<span class="ip-v">${value}${unit ? ' ' + unit : ''}${statusBadge(pv.status)}</span></div>` +
-                citeDetail(pv);
+                `<span class="ip-v">${value}${unit ? ' ' + unit : ''}${statusBadge(pv.status, label)}</span></div>` +
+                citeDetail(pv, label);
         }
         function renderInfoPanel(rec) {
             if (!rec) return;
@@ -5219,7 +5238,7 @@
                 const gp = provOf(rec, 'geo');
                 h += `<div class="ip-row"><span class="ip-k" title="LUREF/LTM, EPSG:2169">LUREF/LTM</span>` +
                      `<span class="ip-v" style="white-space:nowrap">${rec.geo.luref[0].toFixed(1)} E · ${rec.geo.luref[1].toFixed(1)} N` +
-                     `${statusBadge(rec.geo.status || gp.status)}</span></div>` + citeDetail(gp);
+                     `${statusBadge(rec.geo.status || gp.status, 'LUREF/LTM')}</span></div>` + citeDetail(gp, 'LUREF/LTM');
             }
             // GPS coordinates (WGS84 lat/lon) — clickable to open a map. Caveat note only when
             // we hold an independent, more-precise LUREF measurement for this shaft (above) —
@@ -5239,10 +5258,17 @@
             if (rec.geo && rec.geo.measuredAt)
                 h += `<div class="ip-row"><span class="ip-k">Survey point</span>` +
                      `<span class="ip-v">${rec.geo.measuredAt}</span></div>`;
-            if (rec.position && rec.position.status)
+            if (rec.position && rec.position.status) {
+                // Use the shaft's own `geo` provenance (source + the full reasoning note — OSM
+                // derivation caveats, survey corrections, candidate re-measurements, etc.) for
+                // the detail, but the more specific `position.status` for the badge colour —
+                // `_prov.geo` rarely carries its own status, so it would otherwise silently
+                // fall back to the shaft's overall "documented" status and mis-colour this row.
+                const posPv = Object.assign({}, provOf(rec, 'geo'), { status: rec.position.status });
                 h += `<div class="ip-row"><span class="ip-k">Position</span>` +
-                     `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(rec.position.status)}</span></div>` +
-                     citeDetail(provOf(rec.position, 'crs'));
+                     `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(posPv.status, 'Position')}</span></div>` +
+                     citeDetail(posPv, 'Position');
+            }
             // Per-shaft positional confidence (from OSM georeferencing) — the honesty note
             // promises this here, and it varies (some OSM nodes are well-placed, some are off).
             if (rec.geoConfidence) {
@@ -5285,8 +5311,8 @@
             h += factRow('Elevation', rec, 'elevationRangeMasl', 'm a.s.l.');
             if (code === 'li2' || code === 'li1') {
                 h += `<div class="ip-row"><span class="ip-k">Bedding dip</span>` +
-                    `<span class="ip-v">${geo.strataDipPct}% ${geo.dipDirection}${statusBadge('documented')}</span></div>` +
-                    citeDetail(provOf(geo, 'strataDipPct'));
+                    `<span class="ip-v">${geo.strataDipPct}% ${geo.dipDirection}${statusBadge('documented', 'Bedding dip')}</span></div>` +
+                    citeDetail(provOf(geo, 'strataDipPct'), 'Bedding dip');
             }
             if (code === 'li2' && geo.groundwater) {
                 h += `<div class="ip-note">This is the aquifer: groundwater accumulates at the ` +
@@ -5309,8 +5335,8 @@
             h += `<div class="ip-figure"><img class="lb-img" src="${x.img}"${dims} alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
             if (x.label) h += `<div class="ip-note">${x.label}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
-                `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
-                citeDetail({ status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null });
+                `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented', k)}</span></div>` +
+                citeDetail({ status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null }, k);
             const rng = a => Array.isArray(a) ? a.join('–') : a;
             h += `<div class="ip-note" style="margin-top:6px"><b>Documented gallery (holds along its length):</b></div>`;
             h += row('Gradient', g.gradientPct != null ? g.gradientPct + ' %' : null, 'gradientPct');
@@ -5343,8 +5369,8 @@
             }
             let h = `<h3>Qanat gallery</h3><div class="ip-sub">Main gallery / channel${pos}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
-                `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented')}</span></div>` +
-                citeDetail({ status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null });
+                `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented', k)}</span></div>` +
+                citeDetail({ status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null }, k);
             const rng = a => Array.isArray(a) ? a.join('–') : a;
             h += row('Gradient', g.gradientPct != null ? g.gradientPct + ' %' : null, 'gradientPct');
             h += row('Channel height', g.channelHeightCm != null ? g.channelHeightCm + ' cm' : null, 'channelHeightCm');
@@ -5430,7 +5456,10 @@
                 clearSelectionMarker();
                 setPanelMode('inspector');
             });
-            // Clicking a status badge (e.g. green "D") reveals that row's source detail.
+            // Clicking a status badge (e.g. green "D") reveals that row's source detail, and
+            // records the row's open/closed state in openDetailRows (keyed by row label) so it
+            // survives the next renderInfoPanel/renderStrataPanel/etc. rebuild for a different
+            // item — see openDetailRows' own comment above statusBadge().
             const infoBody = document.getElementById('info-body');
             if (infoBody) infoBody.addEventListener('click', ev => {
                 const badge = ev.target.closest('.ip-badge');
@@ -5440,6 +5469,8 @@
                 if (detail && detail.classList.contains('ip-detail')) {
                     detail.hidden = !detail.hidden;
                     badge.classList.toggle('open', !detail.hidden);
+                    const key = detail.dataset.key;
+                    if (key) { if (detail.hidden) openDetailRows.delete(key); else openDetailRows.add(key); }
                 }
             });
         }
@@ -6105,7 +6136,7 @@
                 controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
                 if (k >= 1) camAnim = null;
                 _readoutDirty = true;
-                _camURLDirty = true;
+                _camURLPending = true; _camURLLastChange = now;
             }
             updateFlow(now);
             // Scroll the shared water ripple normal so the PBR gallery reads as flowing.
@@ -6123,13 +6154,12 @@
                 _readoutDirty = false;
                 _readoutLastPaint = now;
             }
-            // Shareable camera URL: coarser throttle (~2 Hz) than the readout above — a URL
-            // rewrite is pure overhead during a drag, and staying comfortably under a couple of
-            // replaceState calls a second avoids any browser history-spam rate limit.
-            if (_camURLDirty && now - _camURLLastPaint > 500) {
+            // Shareable camera URL: debounced, not throttled — only written once the camera
+            // has sat still for 3s since its last 'change'/fly-to-animation update, so a URL
+            // rewrite never happens mid-drag and only fires once per settled view.
+            if (_camURLPending && now - _camURLLastChange > 3000) {
                 setCameraURL();
-                _camURLDirty = false;
-                _camURLLastPaint = now;
+                _camURLPending = false;
             }
         }
 
