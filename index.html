@@ -185,6 +185,12 @@
         h2 { font-size: 0.78rem; color: #9ca3af; margin-bottom: 18px; font-weight: 400; }
 
         .control-group { margin-bottom: 16px; }
+        /* Visually bundles a feature's own sub-options (e.g. the hi-res LiDAR inset's tint /
+           native-res toggles) into one boxed group, distinct from the plain checkbox list
+           around it — same subtle boxed treatment as #panel-mode above. */
+        .opt-group { background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 9px; padding: 10px 12px 8px; margin: 6px 0 14px; }
+        .opt-group .check-row:first-child { margin-top: 0; }
         /* Every label in a control-group — checkbox row or plain slider/value label alike —
            gets the SAME margin-top, so the gap above it is consistent no matter what kind of
            control precedes it. Without this, only .check-row set its own margin-top (9px);
@@ -758,6 +764,10 @@
                 <option value="hillshade">LiDAR relief (2019)</option>
                 <option value="none">Plain</option>
             </select>
+            <div id="grp-contours">
+                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
+                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
+            </div>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
         </div>
 
@@ -805,10 +815,6 @@
 
         <div id="tab-panes">
         <div class="tab-pane active" data-pane="map">
-            <div class="control-group" id="grp-contours">
-                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
-                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
-            </div>
             <div class="control-group">
                 <label>Overlays (geoportail)</label>
                 <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
@@ -850,9 +856,12 @@
                 <div id="geo-status" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
-                <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
-                <label class="check-row"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
-                <label class="check-row dev-opt" id="row-hires-inset-native"><input type="checkbox" id="param-hires-inset-native"> Native&nbsp;inset&nbsp;render&nbsp;res&nbsp;(match&nbsp;fetched&nbsp;grid&nbsp;&mdash;&nbsp;may&nbsp;be&nbsp;slow)</label>
+                <div class="opt-group" id="grp-hires-inset">
+                    <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
+                    <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 8px;line-height:1.35;">Denser LiDAR patch (~3.6&nbsp;m cells vs. the main terrain's ~7.5&nbsp;m) over just the shaft area. Subtle at normal zoom &mdash; mainly useful up close, or as a base for future higher-res sampling.</div>
+                    <label class="check-row" id="row-hires-inset-tint" style="display:none"><input type="checkbox" id="param-hires-inset-tint"> Tint&nbsp;hi&#8209;res&nbsp;inset&nbsp;area</label>
+                    <label class="check-row dev-opt" id="row-hires-inset-native" style="display:none"><input type="checkbox" id="param-hires-inset-native"> Native&nbsp;inset&nbsp;render&nbsp;res&nbsp;(match&nbsp;fetched&nbsp;grid&nbsp;&mdash;&nbsp;may&nbsp;be&nbsp;slow)</label>
+                </div>
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
@@ -1381,6 +1390,74 @@
         }
         function clearSelectionMarker() {
             if (selectionMarker) selectionMarker.visible = false;
+            clearSelectionURL();
+        }
+
+        // --- Shareable selection link: encode the current inspector selection into the URL
+        // (?sel=type:id) via replaceState (no new history entries), so copying the address bar
+        // reopens the app with the same item selected. URLSearchParams handles the percent-
+        // encoding itself; ids here (shaft names, strata codes, a gallery-position fraction)
+        // are already URL-safe, but this keeps it correct if that ever changes.
+        function setSelectionURL(type, id) {
+            const url = new URL(location.href);
+            url.searchParams.set('sel', type + ':' + id);
+            history.replaceState(null, '', url);
+        }
+        function clearSelectionURL() {
+            const url = new URL(location.href);
+            if (!url.searchParams.has('sel')) return;
+            url.searchParams.delete('sel');
+            history.replaceState(null, '', url);
+        }
+        function parseSelectionFromURL() {
+            const raw = new URLSearchParams(location.search).get('sel');
+            if (!raw) return null;
+            const i = raw.indexOf(':');
+            if (i < 0) return null;
+            return { type: raw.slice(0, i), id: raw.slice(i + 1) };
+        }
+        let pendingSelection = parseSelectionFromURL();   // consumed once, after the first model build
+        // Re-open whatever was selected when this URL was shared/copied. Mirrors the pointerup
+        // dispatcher's own lookups exactly (see setupShaftInteraction) so a restored selection
+        // looks identical to one made by clicking — no camera fly, same as a live click.
+        function restoreSelectionFromURL() {
+            if (!pendingSelection) return;
+            const { type, id } = pendingSelection;
+            pendingSelection = null;   // one-shot
+            if (type === 'shaft') {
+                const m = shaftMeshes.find(mm => mm.userData.name === id);
+                const rec = shaftById[id];
+                if (m && rec) { selectAt(m.position); renderInfoPanel(rec); }
+            } else if (type === 'xsec') {
+                const m = xsecMeshes[parseInt(id, 10)];
+                if (m) { selectAt(m.position); renderXsecPanel(m.userData); }
+            } else if (type === 'spot') {
+                const m = spotMeshes.find(mm => mm.userData.kind === id);
+                if (m) { selectAt(m.position); renderSpotPanel(m.userData); }
+            } else if (type === 'strata') {
+                const m = strataMeshes.find(mm => mm.userData.code === id);
+                if (m) {
+                    m.geometry.computeBoundingBox();
+                    const c = new THREE.Vector3();
+                    m.geometry.boundingBox.getCenter(c);
+                    selectAt(c); renderStrataPanel(id);
+                }
+            } else if (type === 'qanat') {
+                const frac = parseFloat(id);
+                if (lastBasePts.length >= 2 && !Number.isNaN(frac)) {
+                    const sorted = lastBasePts.slice().sort((a, b) => a.x - b.x);
+                    const minX = sorted[0].x, maxX = sorted[sorted.length - 1].x;
+                    const f = params.flipWE ? 1 - frac : frac;
+                    const tx = minX + f * (maxX - minX);
+                    let a = sorted[0], b = sorted[sorted.length - 1];
+                    for (let i = 0; i < sorted.length - 1; i++) {
+                        if (tx >= sorted[i].x && tx <= sorted[i + 1].x) { a = sorted[i]; b = sorted[i + 1]; break; }
+                    }
+                    const t = b.x === a.x ? 0 : (tx - a.x) / (b.x - a.x);
+                    const point = new THREE.Vector3(tx, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+                    selectAt(point); renderQanatPanel(point);
+                }
+            }
         }
         let contourMaterial, crossSectionMaterial;
         let lastTerrainSeg = { x: 0, z: 0 };   // last terrain tessellation (dev density readout)
@@ -2317,7 +2394,7 @@
             openLegendModal();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadInsetGeoData();   // optional hi-res inset patch, if the asset shipped
-            loadGeoData(() => buildParametricModel());
+            loadGeoData(() => { buildParametricModel(); restoreSelectionFromURL(); });
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
             loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
             setupUI();
@@ -3920,6 +3997,9 @@
                 document.getElementById('row-clip-centerline').style.display = params.frontMarginSymmetric ? '' : 'none';
                 // Research-status legend entries only make sense while that overlay is on.
                 document.getElementById('legend-research-status').style.display = params.showResearchStatus ? '' : 'none';
+                // The inset's tint/native-res options only mean anything while the inset itself is on.
+                document.getElementById('row-hires-inset-tint').style.display = params.showHiresInset ? '' : 'none';
+                document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none';
             };
 
             // Developer mode (Super/⌘ + D): red screen frame + exposes the dev-only toggles
@@ -3934,7 +4014,7 @@
                 document.getElementById('row-see-inside').style.display = params.devMode ? '' : 'none';     // see-inside cutaway is dev-only
                 document.getElementById('row-xsec-cutaway').style.display = params.devMode ? '' : 'none';   // qanat lengthwise cutaway is dev-only
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
-                document.getElementById('row-hires-inset-native').style.display = params.devMode ? '' : 'none'; // native inset render res is dev-only (perf risk)
+                document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none'; // native inset render res is dev-only (perf risk) AND nested under the inset toggle
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
                 document.getElementById('btn-export-svg').style.display = params.devMode ? '' : 'none';  // vector export is dev-only
                 document.getElementById('panel-presets').style.display = params.devMode ? 'none' : '';   // Quick views hide while poking at dev options
@@ -4231,9 +4311,13 @@
                 buildParametricModel();
             });
 
-            // Hi-res LiDAR inset over the immediate qanat-shaft area (+ optional tint)
+            // Hi-res LiDAR inset over the immediate qanat-shaft area (+ optional tint) —
+            // its two sub-options only mean anything while the inset itself is on, so they're
+            // nested under it (see syncConditionalOptions for the devMode-gated native-res row).
             document.getElementById('param-hires-inset').addEventListener('change', e => {
                 params.showHiresInset = e.target.checked;
+                document.getElementById('row-hires-inset-tint').style.display = params.showHiresInset ? '' : 'none';
+                document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none';
                 buildParametricModel();
             });
             document.getElementById('param-hires-inset-tint').addEventListener('change', e => {
@@ -4988,20 +5072,46 @@
                     return;
                 }
                 const xhit = pickXsec(ev);   // gallery cross-section hotspot → inspector
-                if (xhit) { selectAt(xhit.point); renderXsecPanel(xhit.object.userData); return; }
+                if (xhit) {
+                    selectAt(xhit.point); renderXsecPanel(xhit.object.userData);
+                    setSelectionURL('xsec', xsecMeshes.indexOf(xhit.object));
+                    return;
+                }
                 const hit = pick(ev);
                 if (hit) {
                     // Tapping a shaft opens the info overlay (no camera fly).
                     selectAt(hit.point);
                     renderInfoPanel(shaftById[hit.object.userData.name]);
+                    setSelectionURL('shaft', hit.object.userData.name);
                     return;
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
-                if (shit) { selectAt(shit.point); renderSpotPanel(shit.object.userData); return; }
+                if (shit) {
+                    selectAt(shit.point); renderSpotPanel(shit.object.userData);
+                    setSelectionURL('spot', shit.object.userData.kind);
+                    return;
+                }
                 const qhit = pickQanat(ev);   // qanat gallery tube → inspector
-                if (qhit) { selectAt(qhit.point); renderQanatPanel(qhit.point); return; }
+                if (qhit) {
+                    selectAt(qhit.point); renderQanatPanel(qhit.point);
+                    // Same west→east fraction renderQanatPanel itself displays — see restoreSelectionFromURL.
+                    if (lastBasePts.length >= 2) {
+                        const sorted = lastBasePts.slice().sort((a, b) => a.x - b.x);
+                        const minX = sorted[0].x, maxX = sorted[sorted.length - 1].x;
+                        if (maxX > minX) {
+                            let frac = (qhit.point.x - minX) / (maxX - minX);
+                            if (params.flipWE) frac = 1 - frac;
+                            setSelectionURL('qanat', Math.min(1, Math.max(0, frac)).toFixed(4));
+                        }
+                    }
+                    return;
+                }
                 const sthit = pickStrata(ev);   // geology strata band (weathered/sandstone/marl/keuper)
-                if (sthit) { selectAt(sthit.point); renderStrataPanel(sthit.object.userData.code); return; }
+                if (sthit) {
+                    selectAt(sthit.point); renderStrataPanel(sthit.object.userData.code);
+                    setSelectionURL('strata', sthit.object.userData.code);
+                    return;
+                }
                 clearSelectionMarker();   // tapped empty terrain/space: drop the previous selection
             });
         }
