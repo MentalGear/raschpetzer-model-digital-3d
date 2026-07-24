@@ -1390,6 +1390,74 @@
         }
         function clearSelectionMarker() {
             if (selectionMarker) selectionMarker.visible = false;
+            clearSelectionURL();
+        }
+
+        // --- Shareable selection link: encode the current inspector selection into the URL
+        // (?sel=type:id) via replaceState (no new history entries), so copying the address bar
+        // reopens the app with the same item selected. URLSearchParams handles the percent-
+        // encoding itself; ids here (shaft names, strata codes, a gallery-position fraction)
+        // are already URL-safe, but this keeps it correct if that ever changes.
+        function setSelectionURL(type, id) {
+            const url = new URL(location.href);
+            url.searchParams.set('sel', type + ':' + id);
+            history.replaceState(null, '', url);
+        }
+        function clearSelectionURL() {
+            const url = new URL(location.href);
+            if (!url.searchParams.has('sel')) return;
+            url.searchParams.delete('sel');
+            history.replaceState(null, '', url);
+        }
+        function parseSelectionFromURL() {
+            const raw = new URLSearchParams(location.search).get('sel');
+            if (!raw) return null;
+            const i = raw.indexOf(':');
+            if (i < 0) return null;
+            return { type: raw.slice(0, i), id: raw.slice(i + 1) };
+        }
+        let pendingSelection = parseSelectionFromURL();   // consumed once, after the first model build
+        // Re-open whatever was selected when this URL was shared/copied. Mirrors the pointerup
+        // dispatcher's own lookups exactly (see setupShaftInteraction) so a restored selection
+        // looks identical to one made by clicking — no camera fly, same as a live click.
+        function restoreSelectionFromURL() {
+            if (!pendingSelection) return;
+            const { type, id } = pendingSelection;
+            pendingSelection = null;   // one-shot
+            if (type === 'shaft') {
+                const m = shaftMeshes.find(mm => mm.userData.name === id);
+                const rec = shaftById[id];
+                if (m && rec) { selectAt(m.position); renderInfoPanel(rec); }
+            } else if (type === 'xsec') {
+                const m = xsecMeshes[parseInt(id, 10)];
+                if (m) { selectAt(m.position); renderXsecPanel(m.userData); }
+            } else if (type === 'spot') {
+                const m = spotMeshes.find(mm => mm.userData.kind === id);
+                if (m) { selectAt(m.position); renderSpotPanel(m.userData); }
+            } else if (type === 'strata') {
+                const m = strataMeshes.find(mm => mm.userData.code === id);
+                if (m) {
+                    m.geometry.computeBoundingBox();
+                    const c = new THREE.Vector3();
+                    m.geometry.boundingBox.getCenter(c);
+                    selectAt(c); renderStrataPanel(id);
+                }
+            } else if (type === 'qanat') {
+                const frac = parseFloat(id);
+                if (lastBasePts.length >= 2 && !Number.isNaN(frac)) {
+                    const sorted = lastBasePts.slice().sort((a, b) => a.x - b.x);
+                    const minX = sorted[0].x, maxX = sorted[sorted.length - 1].x;
+                    const f = params.flipWE ? 1 - frac : frac;
+                    const tx = minX + f * (maxX - minX);
+                    let a = sorted[0], b = sorted[sorted.length - 1];
+                    for (let i = 0; i < sorted.length - 1; i++) {
+                        if (tx >= sorted[i].x && tx <= sorted[i + 1].x) { a = sorted[i]; b = sorted[i + 1]; break; }
+                    }
+                    const t = b.x === a.x ? 0 : (tx - a.x) / (b.x - a.x);
+                    const point = new THREE.Vector3(tx, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+                    selectAt(point); renderQanatPanel(point);
+                }
+            }
         }
         let contourMaterial, crossSectionMaterial;
         let lastTerrainSeg = { x: 0, z: 0 };   // last terrain tessellation (dev density readout)
@@ -2326,7 +2394,7 @@
             openLegendModal();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadInsetGeoData();   // optional hi-res inset patch, if the asset shipped
-            loadGeoData(() => buildParametricModel());
+            loadGeoData(() => { buildParametricModel(); restoreSelectionFromURL(); });
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
             loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
             setupUI();
@@ -5004,20 +5072,46 @@
                     return;
                 }
                 const xhit = pickXsec(ev);   // gallery cross-section hotspot → inspector
-                if (xhit) { selectAt(xhit.point); renderXsecPanel(xhit.object.userData); return; }
+                if (xhit) {
+                    selectAt(xhit.point); renderXsecPanel(xhit.object.userData);
+                    setSelectionURL('xsec', xsecMeshes.indexOf(xhit.object));
+                    return;
+                }
                 const hit = pick(ev);
                 if (hit) {
                     // Tapping a shaft opens the info overlay (no camera fly).
                     selectAt(hit.point);
                     renderInfoPanel(shaftById[hit.object.userData.name]);
+                    setSelectionURL('shaft', hit.object.userData.name);
                     return;
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
-                if (shit) { selectAt(shit.point); renderSpotPanel(shit.object.userData); return; }
+                if (shit) {
+                    selectAt(shit.point); renderSpotPanel(shit.object.userData);
+                    setSelectionURL('spot', shit.object.userData.kind);
+                    return;
+                }
                 const qhit = pickQanat(ev);   // qanat gallery tube → inspector
-                if (qhit) { selectAt(qhit.point); renderQanatPanel(qhit.point); return; }
+                if (qhit) {
+                    selectAt(qhit.point); renderQanatPanel(qhit.point);
+                    // Same west→east fraction renderQanatPanel itself displays — see restoreSelectionFromURL.
+                    if (lastBasePts.length >= 2) {
+                        const sorted = lastBasePts.slice().sort((a, b) => a.x - b.x);
+                        const minX = sorted[0].x, maxX = sorted[sorted.length - 1].x;
+                        if (maxX > minX) {
+                            let frac = (qhit.point.x - minX) / (maxX - minX);
+                            if (params.flipWE) frac = 1 - frac;
+                            setSelectionURL('qanat', Math.min(1, Math.max(0, frac)).toFixed(4));
+                        }
+                    }
+                    return;
+                }
                 const sthit = pickStrata(ev);   // geology strata band (weathered/sandstone/marl/keuper)
-                if (sthit) { selectAt(sthit.point); renderStrataPanel(sthit.object.userData.code); return; }
+                if (sthit) {
+                    selectAt(sthit.point); renderStrataPanel(sthit.object.userData.code);
+                    setSelectionURL('strata', sthit.object.userData.code);
+                    return;
+                }
                 clearSelectionMarker();   // tapped empty terrain/space: drop the previous selection
             });
         }
