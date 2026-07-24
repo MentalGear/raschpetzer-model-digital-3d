@@ -1416,6 +1416,27 @@
             if (i < 0) return null;
             return { type: raw.slice(0, i), id: raw.slice(i + 1) };
         }
+
+        // --- Shareable camera link: encode camera.position + controls.target into the URL
+        // too (?cam=x,y,z,tx,ty,tz), the same way and for the same reason as setSelectionURL
+        // above — so copying the address bar reproduces the exact view, not just the selected
+        // item. Written from a throttle in animate() (see _camURLDirty), not on every
+        // OrbitControls 'change' event, which fires many times a second during a drag.
+        function setCameraURL() {
+            const url = new URL(location.href);
+            const r = (n) => Math.round(n * 100) / 100;
+            const p = camera.position, t = controls.target;
+            url.searchParams.set('cam', [r(p.x), r(p.y), r(p.z), r(t.x), r(t.y), r(t.z)].join(','));
+            history.replaceState(null, '', url);
+        }
+        function parseCameraFromURL() {
+            const raw = new URLSearchParams(location.search).get('cam');
+            if (!raw) return null;
+            const n = raw.split(',').map(Number);
+            if (n.length !== 6 || n.some(Number.isNaN)) return null;
+            return { position: n.slice(0, 3), target: n.slice(3, 6) };
+        }
+        const urlCam = parseCameraFromURL();   // read once at load, applied in init()
         let pendingSelection = parseSelectionFromURL();   // consumed once, after the first model build
         // Re-open whatever was selected when this URL was shared/copied. Mirrors the pointerup
         // dispatcher's own lookups exactly (see setupShaftInteraction) so a restored selection
@@ -2270,8 +2291,12 @@
             document.documentElement.dataset.theme = (themeOverride === 'auto') ? '' : themeOverride;
 
             camera = new THREE.PerspectiveCamera(CAM.fov, container.clientWidth / container.clientHeight, CAM.near, CAM.far);
-            // Low, wide oblique angle matching the reference panorama (from model-config.json).
-            camera.position.set(CAM.position[0], CAM.position[1], CAM.position[2]);
+            // Low, wide oblique angle matching the reference panorama (from model-config.json) —
+            // unless the URL carries a shared camera position (?cam=..., see setCameraURL/
+            // parseCameraFromURL above), which takes precedence so a shared link reproduces the
+            // exact view it was copied from.
+            const camPos = urlCam ? urlCam.position : CAM.position;
+            camera.position.set(camPos[0], camPos[1], camPos[2]);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
@@ -2286,7 +2311,8 @@
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
             controls.screenSpacePanning = true;     // pan in the screen plane (map-like)
-            controls.target.set(CAM.target[0], CAM.target[1], CAM.target[2]);
+            const camTarget = urlCam ? urlCam.target : CAM.target;
+            controls.target.set(camTarget[0], camTarget[1], camTarget[2]);
             // Zoom-distance clamps: don't let the user dolly through the terrain or drift so
             // far out the model becomes a speck. Scaled by `surround` (item 2 makes the block
             // physically larger at surround=2, so the far clamp grows with it).
@@ -3231,9 +3257,14 @@
                 DEFAULT_CAM.target.copy(c);
                 DEFAULT_CAM.pos.set(c.x + horiz * Math.sin(az), c.y + dist * Math.sin(el), c.z + horiz * Math.cos(az));
                 if (!initialViewSet && camera && controls) {
-                    camera.position.copy(DEFAULT_CAM.pos);
-                    controls.target.copy(DEFAULT_CAM.target);
-                    controls.update();
+                    // Skip the snap when the URL carried a shared camera position (urlCam) —
+                    // init() already applied it, and it should win over this computed default,
+                    // the same way it needs to survive this first buildParametricModel() call.
+                    if (!urlCam) {
+                        camera.position.copy(DEFAULT_CAM.pos);
+                        controls.target.copy(DEFAULT_CAM.target);
+                        controls.update();
+                    }
                     initialViewSet = true;
                 }
             }
@@ -3817,11 +3848,15 @@
             tex.minFilter = THREE.LinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.generateMipmaps = false;
-            // Labels are always-on-top overlays: depthTest + depthWrite off and a high
-            // renderOrder so they draw last, above the (transparent) terrain fill. Without
-            // this they sorted against the fill and flickered once terrain opacity < 1.
+            // depthWrite stays off (a label must never occlude anything behind it) and the
+            // high renderOrder still draws labels after the terrain fill in the same pass, so
+            // two labels — or a label and the fill — never flicker sorting against each other
+            // the way disabling depthTest entirely once papered over. depthTest itself stays
+            // ON: the terrain fill writes real depth (fillMat.depthWrite = true, "always
+            // occludes the subsurface"), so with it a label on the far/underside of a hill from
+            // the camera is correctly hidden instead of drawing through the terrain.
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: tex, transparent: true, depthTest: false, depthWrite: false }));
+                map: tex, transparent: true, depthTest: true, depthWrite: false }));
             sprite.renderOrder = 30;
             sprite.raycast = () => {};   // labels are never pickable (no zoom-target / rotation-centre)
             sprite.scale.set(6, 1.35 * lines.length, 1);
@@ -4890,6 +4925,10 @@
 
         // --- Camera readout (azimuth / elevation / distance) + "Level horizon" button ---
         let _readoutDirty = true, _readoutLastPaint = 0;
+        // Shareable camera URL: same dirty/throttle idiom as the readout above, but painted
+        // less often (URL rewrites are pure overhead compared to a text readout) — see
+        // setCameraURL/parseCameraFromURL and the throttle in animate().
+        let _camURLDirty = false, _camURLLastPaint = 0;
         function updateCameraReadout() {
             const el = document.getElementById('camera-readout');
             if (!el) return;
@@ -4904,7 +4943,9 @@
         function setupCameraReadout() {
             updateCameraReadout();
             updateCompassNeedle();
-            controls.addEventListener('change', () => { _readoutDirty = true; updateCompassNeedle(); updateCompass(); });
+            controls.addEventListener('change', () => {
+                _readoutDirty = true; _camURLDirty = true; updateCompassNeedle(); updateCompass();
+            });
             // Re-assert the Normal-mode tilt clamp when the user starts navigating again (the
             // Top preset relaxes it for the top-down framing). No-op in Power mode.
             controls.addEventListener('start', () => {
@@ -6064,6 +6105,7 @@
                 controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
                 if (k >= 1) camAnim = null;
                 _readoutDirty = true;
+                _camURLDirty = true;
             }
             updateFlow(now);
             // Scroll the shared water ripple normal so the PBR gallery reads as flowing.
@@ -6080,6 +6122,14 @@
                 updateCameraReadout();
                 _readoutDirty = false;
                 _readoutLastPaint = now;
+            }
+            // Shareable camera URL: coarser throttle (~2 Hz) than the readout above — a URL
+            // rewrite is pure overhead during a drag, and staying comfortably under a couple of
+            // replaceState calls a second avoids any browser history-spam rate limit.
+            if (_camURLDirty && now - _camURLLastPaint > 500) {
+                setCameraURL();
+                _camURLDirty = false;
+                _camURLLastPaint = now;
             }
         }
 
