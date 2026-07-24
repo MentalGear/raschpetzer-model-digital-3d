@@ -1185,6 +1185,87 @@
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
         };
 
+        // --- Shareable UI-options URL: encode `params` too (?ui=<JSON diff vs defaults>), the
+        // same replaceState-only approach as setSelectionURL/setCameraURL elsewhere in this
+        // file — only keys that differ from the as-declared defaults are written (keeps the
+        // URL short and stable when nothing's been touched), and only once a change has
+        // settled (see scheduleParamsURLWrite): never on every keystroke or slider-drag tick,
+        // so this never pollutes browser history or spams the History API.
+        const DEFAULT_PARAMS = JSON.parse(JSON.stringify(params));   // clone before any mutation
+        // Keys that never round-trip through the URL:
+        // - devMode is a dev/debug toggle (⌘/Ctrl+D), not a view worth sharing, and restoring
+        //   it wouldn't run setDevMode()'s own UI side effects anyway (see
+        //   hydrateControlsFromParams's comment).
+        // - width/depth aren't UI options at all — buildParametricModel() recomputes them
+        //   from the real geodata extent on every build (see the `params.width = ...` /
+        //   `params.depth = ...` lines), so they'd differ from their hardcoded defaults on
+        //   every single load regardless of anything the user touched, polluting every ?ui=
+        //   with noise. plateauHeight/baseY/terrainSource are never reassigned at all (kept
+        //   here only as documentation of the same "not a real option" category).
+        const PARAMS_URL_EXCLUDE = new Set(['devMode', 'plateauHeight', 'width', 'depth', 'baseY', 'terrainSource']);
+        function paramsDiff() {
+            const diff = {};
+            for (const k in DEFAULT_PARAMS) {
+                if (PARAMS_URL_EXCLUDE.has(k)) continue;
+                const dv = DEFAULT_PARAMS[k], v = params[k];
+                if (dv && typeof dv === 'object') {
+                    const sub = {};
+                    let changed = false;
+                    for (const sk in dv) if (v[sk] !== dv[sk]) { sub[sk] = v[sk]; changed = true; }
+                    if (changed) diff[k] = sub;
+                } else if (v !== dv) {
+                    diff[k] = v;
+                }
+            }
+            return diff;
+        }
+        function setParamsURL() {
+            const url = new URL(location.href);
+            const diff = paramsDiff();
+            if (Object.keys(diff).length) url.searchParams.set('ui', JSON.stringify(diff));
+            else url.searchParams.delete('ui');
+            history.replaceState(null, '', url);
+        }
+        function parseParamsFromURL() {
+            const raw = new URLSearchParams(location.search).get('ui');
+            if (!raw) return null;
+            try {
+                const obj = JSON.parse(raw);
+                return (obj && typeof obj === 'object') ? obj : null;
+            } catch { return null; }
+        }
+        // Applied once, immediately — before setupUI() reads `params` to set each control's
+        // initial displayed value, and before init()/buildParametricModel() use `params` to
+        // build the first frame.
+        (function applyParamsFromURL() {
+            const urlParams = parseParamsFromURL();
+            if (!urlParams) return;
+            for (const k in urlParams) {
+                if (!(k in DEFAULT_PARAMS) || PARAMS_URL_EXCLUDE.has(k)) continue;   // ignore unknown/stale/excluded keys
+                if (DEFAULT_PARAMS[k] && typeof DEFAULT_PARAMS[k] === 'object') Object.assign(params[k], urlParams[k]);
+                else params[k] = urlParams[k];
+            }
+        })();
+        // Debounced write: coalesces a burst of slider-drag 'input' events into one
+        // replaceState call ~0.6s after the last change (no inertia/damping to wait out here,
+        // unlike the camera, so a much shorter settle window is still safely history-friendly).
+        let _paramsURLTimer = null;
+        function scheduleParamsURLWrite() {
+            clearTimeout(_paramsURLTimer);
+            _paramsURLTimer = setTimeout(setParamsURL, 600);
+        }
+        // Delegated (not one listener per control): every settings input/checkbox/select in
+        // this app is already named id="param-*" (see setupUI()), so one pair of listeners
+        // here covers all ~40 of them — and any added later — without touching their existing
+        // per-control change handlers. navMode and the "Quick views" presets are the two
+        // exceptions (button clicks / programmatic el.value assignment, neither of which fires
+        // input/change) — those call scheduleParamsURLWrite() explicitly at their call sites.
+        function onParamControlEvent(ev) {
+            if (ev.target && ev.target.id && ev.target.id.startsWith('param-')) scheduleParamsURLWrite();
+        }
+        document.addEventListener('input', onParamControlEvent);
+        document.addEventListener('change', onParamControlEvent);
+
         // Real Raschpëtzer figures (faithful, georeferenced layout / depth read-outs)
         const QANAT = { maxDepthM: 36, deepestShaft: 'P5', exploredFrac: 0.62 };
 
@@ -4400,6 +4481,7 @@
                     ? 'Drag pans · right-drag / two-finger rotates · scroll zooms. Use the on-screen arrows to rotate/tilt.'
                     : 'Drag rotates · right-drag pans · scroll zooms (free orbit).';
                 applyNavMode();
+                scheduleParamsURLWrite();   // button-driven, not an input/change event — see onParamControlEvent
             };
             // Flash the hint below the toggle so the (changed) navigation guidance draws the eye.
             const flashNavHint = () => {
@@ -4495,6 +4577,78 @@
                 'param-surround': v => ['lbl-surround', v.toFixed(1) + '×'],
                 'param-front-margin': v => ['lbl-front-margin', v + ' m']
             };
+            // Mirrors PRESET_SETTERS' targets (plus the controls no preset ever touches) but
+            // reads the CURRENT value instead of setting one. Used once at startup to reflect
+            // any ?ui=-restored params state into the actual controls — otherwise a restored
+            // params.showGeology=false would still show its checkbox checked (the HTML's
+            // hardcoded default), even though the model built from the correct, overridden
+            // value. devMode is deliberately excluded: it's a dev/debug toggle, not something
+            // worth round-tripping through a shared link.
+            const PARAM_GETTERS = {
+                'param-baselayer': () => params.baseLayer,
+                'param-clip-centerline': () => params.clipCenterline,
+                'param-geology': () => params.showGeology,
+                'param-dip': () => params.showDip,
+                'param-underground': () => params.xrayUnderground,
+                'param-realistic-diameters': () => params.diameterRealism,
+                'param-underground-opacity': () => params.undergroundOpacity,
+                'param-villa': () => params.showVilla,
+                'param-xsec': () => params.showXsec,
+                'param-aux': () => params.showAux,
+                'param-sounding': () => params.showSounding,
+                'param-overflow': () => params.showOverflow,
+                'param-steps': () => params.showSteps,
+                'param-research-status': () => params.showResearchStatus,
+                'param-perched': () => params.showPerched,
+                'param-paths': () => params.showPaths,
+                'ov-aquifer': () => params.overlay.aquifer,
+                'ov-contours': () => params.overlay.contours,
+                'ov-spot': () => params.overlay.spot,
+                'ov-break': () => params.overlay.break,
+                'param-sides': () => params.showSides,
+                'param-ghost-apron': () => params.showGhostApron,
+                'param-hires-inset': () => params.showHiresInset,
+                'param-hires-inset-tint': () => params.hiresInsetTint,
+                'param-terrain-cullback': () => params.terrainCullBack,
+                'param-terrain-opacity': () => params.terrainOpacity,
+                'param-surround': () => params.surround,
+                'param-front-margin': () => params.frontMarginM,
+                'param-front-margin-symmetric': () => params.frontMarginSymmetric,
+                'param-detailed-gallery': () => params.detailedGallery,
+                'param-vexag': () => params.vExag,
+                'param-flip': () => params.flipWE,
+                'param-density': () => params.terrainDensity,
+                'param-pbr': () => params.pbr,
+                'param-strata-detail': () => params.strataDetailed,
+                'param-see-inside': () => params.seeInside,
+                'param-shaft-cutaway': () => params.shaftCutaway,
+                'param-xsec-cutaway': () => params.xsecCutaway,
+                'param-xsec-fullroute': () => params.xsecCutawayFullRoute,
+                'param-side-cullback': () => params.sideCullBack,
+                'param-hires-inset-native': () => params.hiresInsetNativeRes,
+                'param-presets-compact': () => params.presetsCompact,
+                'param-contours': () => params.contourSpacing
+            };
+            function hydrateControlsFromParams() {
+                Object.entries(PARAM_GETTERS).forEach(([id, get]) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const v = get();
+                    if (el.type === 'checkbox') el.checked = v; else el.value = v;
+                    const lbl = PRESET_LABELS[id];
+                    if (lbl) { const [lid, txt] = lbl(v); const le = document.getElementById(lid); if (le) le.textContent = txt; }
+                });
+                // Timeline slider position is derived (tlT), not a direct params.year mirror —
+                // reuse the same path applyPreset() uses so the slider thumb agrees too.
+                if (params.year !== DEFAULT_PARAMS.year) {
+                    tlT = yearToSlider(params.year);
+                    const yearSl = document.getElementById('param-year');
+                    if (yearSl) yearSl.value = Math.round(tlT * 1000);
+                    updateTimelineReadout();
+                }
+                syncBaseLayerUI();
+                syncConditionalOptions();
+            }
             const PRESETS = {
                 overview: { year: 2025, controls: {},
                     cam: () => presetView('iso') },
@@ -4532,11 +4686,13 @@
                 buildParametricModel();
                 updateZoomClamp();
                 preset.cam();
+                scheduleParamsURLWrite();   // el.value/el.checked set programmatically above, no input/change event fires
             }
             document.querySelectorAll('.preset-card').forEach(card => {
                 card.addEventListener('click', () => applyPreset(card.dataset.preset));
             });
 
+            hydrateControlsFromParams();   // reflect any ?ui=-restored params into the controls
             setupShaftInteraction();
             updateControlVisibility();
         }
