@@ -40,6 +40,7 @@ const copyDir = (rel) => {
 };
 
 copyFile('index.html');
+copyFile('manifest.json');
 copyDir('vendor');   // three.min.js, OrbitControls.js
 copyDir('assets');   // data.bundle.js (generated), geodata-walferdange.js, reference-fig2.jpg
 copyDir('docs');     // human-readable knowledge base (optional)

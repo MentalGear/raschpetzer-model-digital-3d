@@ -6,6 +6,20 @@
     <title>3d geological raschpëtzer visualization</title>
     <!-- Inline SVG favicon: keeps the site self-contained and avoids a /favicon.ico 404. -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232a3b4d'/%3E%3Crect y='10' width='16' height='6' fill='%237a5c3e'/%3E%3Crect x='7' y='3' width='2' height='11' fill='%2358a6ff'/%3E%3C/svg%3E">
+    <!-- theme-color: tints the mobile browser chrome (status bar / task-switcher card) to
+         match the app instead of defaulting to white; updated live by applyTheme() below.
+         Two tags (light/dark media-matched) so the OS picks the right one before any JS
+         runs; JS then keeps it in sync with an explicit Light/Dark override. -->
+    <meta name="theme-color" content="#f5f0ea" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#20242c" media="(prefers-color-scheme: dark)">
+    <!-- PWA: "Add to Home Screen" launches in its own window with the OS status bar hidden
+         where the platform allows it (display:fullscreen in manifest.json for Android/Chrome;
+         the apple-mobile-web-app-* tags are iOS Safari's separate, older mechanism for the
+         same "hide the browser chrome" intent). -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Raschpëtzer">
     <style>
         :root {
             --bg-color: #f5f0ea;
@@ -182,6 +196,11 @@
             box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35);
             z-index: 40;
             overflow-y: auto;
+            overflow-x: hidden;   /* never a horizontal scrollbar/overflow, however narrow --panel-w gets */
+            /* Normal touch scroll (pan-y) still works; pinch-zoom is a browser-level page-zoom
+               gesture here (not the app's own zoom), so it's blocked while a finger is on the
+               panel — pinching over the 3D canvas still works via OrbitControls as usual. */
+            touch-action: pan-y;
         }
 
         h1 { font-size: 1.14rem; font-weight: 700; margin-bottom: 3px; letter-spacing: 0.2px; color: #fff; }
@@ -631,7 +650,8 @@
                which is visible whenever the sidebar is hidden/closed — both on mobile always,
                and on desktop when the panel is manually hidden. */
             width: min(380px, calc(100vw - 32px - 70px)); max-height: calc(100vh - var(--wip-h) - 32px);
-            overflow-y: auto; background: var(--panel-bg); backdrop-filter: blur(10px);
+            overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
+            background: var(--panel-bg); backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 18px 20px;
             box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; }
         body.mode-inspector #inspector-pane { display: block; }
@@ -743,6 +763,15 @@
         :root[data-theme="light"] #profile-panel .pp-toggle { color: #4a3f2f; }
         :root[data-theme="light"] #profile-panel .pp-toggle select { background: #fff; color: #3a3226; border-color: rgba(0,0,0,0.15); }
         :root[data-theme="light"] #legend-modal .legend-sep { background: rgba(0,0,0,0.1); }
+
+        /* The page background (--bg-color) follows the same theme signal as the modals above —
+           mostly invisible behind the always-full canvas+panel, but it shows through iOS
+           Safari's overscroll bounce and any safe-area inset, so it should match dark mode
+           there too instead of flashing the fixed light cream. Same colour as the 3D scene's
+           own dark background (sceneBackgroundColor()) so there's no visible seam. */
+        @media (prefers-color-scheme: dark) { :root { --bg-color: #20242c; } }
+        :root[data-theme="dark"] { --bg-color: #20242c; }
+        :root[data-theme="light"] { --bg-color: #f5f0ea; }
     </style>
     <script src="vendor/three.min.js"></script>
     <script src="vendor/OrbitControls.js"></script>
@@ -780,12 +809,10 @@
             </div>
         </div>
 
-        <!-- Camera reframe buttons stay reachable in every mode (Views/Inspector/Settings) —
-             the most-used view controls, so a selection can be reframed without leaving the
-             Inspector, matching the app's original "stay visible" rationale for this row. Only
-             the buttons themselves; the live Azimuth/Elevation/Distance readout now lives in
-             Settings (see #cfg-camera) since it's a readout, not something you press. -->
-        <div id="panel-camera-buttons" class="control-group">
+        <!-- Camera reframe buttons live in the Views pane, before Tools. The live
+             Azimuth/Elevation/Distance readout stays in Settings (see #grp-camera)
+             since it's a readout, not something you press. -->
+        <div id="panel-camera-buttons" class="control-group pane-views">
             <div class="segmented">
                 <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
                 <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
@@ -2392,6 +2419,15 @@
             if (typeof buildParametricModel === 'function' && modelGroup) buildParametricModel();
             document.querySelectorAll('#theme-toggle .segmented button').forEach(b =>
                 b.classList.toggle('active', b.dataset.theme === mode));
+            // The two <meta name="theme-color" media="..."> tags only cover the "auto" (OS-
+            // matched) case; an explicit Light/Dark override needs its OWN unconditional tag
+            // (no media attribute) to actually win over the OS preference in the browser chrome.
+            let metaEl = document.querySelector('meta[name="theme-color"]:not([media])');
+            if (mode === 'auto') { if (metaEl) metaEl.remove(); }
+            else {
+                if (!metaEl) { metaEl = document.createElement('meta'); metaEl.name = 'theme-color'; document.head.appendChild(metaEl); }
+                metaEl.content = sceneBackgroundColor();
+            }
         }
         // Darkens the configured (light, paper-toned) scene background to match the OS/browser
         // dark-mode preference, since the sidebar chrome is always-dark but the 3D view background
@@ -2477,6 +2513,7 @@
             controls.update();
             setupZoomToCursor();
             setupCameraReadout();
+            setupTouchGestureExclusivity();
 
             // Lighting — bright, daylight feel to match the reference
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -3018,9 +3055,10 @@
                 } else {
                     addSeg(len, sy - len / 2, 'body');
                 }
-                const lbl = createTextSprite(p.id, '#1a1a1a', 24);
+                const lbl = createTextSprite(p.id, '#1a1a1a', 24, { name: p.id });
                 lbl.position.set(p.x, sy + CAP + 0.5, p.z);
                 modelGroup.add(lbl);
+                shaftMeshes.push(lbl);   // the label text is as clickable as the shaft itself
             });
             maxShaftLenUnits = localMaxLen || 5;          // calibrates metres for non-geo modes
             // The current build's route polyline + its characteristic Z, for the qanat cutaway
@@ -3783,8 +3821,13 @@
 
             // Bright groundwater band along the sandstone base. (The static eastward
             // groundwater flow-direction arrows were removed at the user's request.)
-            modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwPts),
-                new THREE.LineBasicMaterial({ color: COL.groundwater, depthTest: false })));
+            // Nudged +0.03 toward the camera (not into gwPts itself, which anchors the flow
+            // animation/drawdown/perched-table calcs below) so it depth-tests normally against
+            // the coplanar strata sheet instead of z-fighting — depthTest:false previously made
+            // it show through the terrain from any angle instead of correctly occluding.
+            const gwLinePts = gwPts.map(p => new THREE.Vector3(p.x, p.y, p.z + 0.03));
+            modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwLinePts),
+                new THREE.LineBasicMaterial({ color: COL.groundwater })));
             lastGwPts = gwPts;   // path for animated groundwater flow
 
             // Bedding-dip overlay (optional, "Bedding dip" toggle). The beds actually dip ~2% SE
@@ -3797,7 +3840,7 @@
                 // Drawn as thin TUBES, not THREE.Line — WebGL ignores CSS-style linewidth on
                 // hairline Line segments, so at 1px they read as barely-there hairlines; a
                 // tube gives real, controllable thickness (same fix as the forest-path lines).
-                const mat = new THREE.MeshBasicMaterial({ color: 0x3f3222, transparent: true, opacity: 0.9, depthTest: false });
+                const mat = new THREE.MeshBasicMaterial({ color: 0x3f3222, transparent: true, opacity: 0.9 });
                 for (let k = 1; k <= 6; k++) {
                     const pts = gwPts.map(p => {
                         const frac = (p.x + halfW) / W;
@@ -3824,7 +3867,7 @@
                 const iY = x => maslToY(interfaceMasl(x));              // sandstone/marl interface (scene Y)
                 const marlBotY = x => Math.max(iY(x) - metersToYDepth(MARL_M), base + 0.6);
                 // 1) Bedding lines across the marl & limestone band ("Kalkbänke"), dipping with it
-                const beddingMat = new THREE.LineBasicMaterial({ color: 0x63728d, transparent: true, opacity: 0.5, depthTest: false });
+                const beddingMat = new THREE.LineBasicMaterial({ color: 0x63728d, transparent: true, opacity: 0.5 });
                 for (const f of [0.18, 0.36, 0.54, 0.72, 0.9]) {
                     const pts = [];
                     for (let i = 0; i <= N; i++) { const x = xs[i]; pts.push(new THREE.Vector3(x, iY(x) - (iY(x) - marlBotY(x)) * f, dz)); }
@@ -3833,7 +3876,7 @@
                 }
                 // 2) Mounded groundwater table: dashed recharge domes between adjacent main shafts
                 const mainXs = [...new Set(pillarDefs.filter(p => !AUX_SHAFTS[p.id]).map(p => p.x))].sort((a, b) => a - b);
-                const domeMat = new THREE.LineDashedMaterial({ color: COL.groundwater, dashSize: 1.2, gapSize: 0.8, transparent: true, opacity: 0.9, depthTest: false });
+                const domeMat = new THREE.LineDashedMaterial({ color: COL.groundwater, dashSize: 1.2, gapSize: 0.8, transparent: true, opacity: 0.9 });
                 const moundH = metersToYDepth(4);                       // illustrative recharge-dome height
                 for (let k = 0; k < mainXs.length - 1; k++) {
                     const x1 = mainXs[k], x2 = mainXs[k + 1]; if (x2 - x1 < 0.3) continue;
@@ -3883,10 +3926,13 @@
                     color: COL.groundwater, transparent: true, opacity: 0.20,
                     side: THREE.DoubleSide, depthWrite: false }));
                 fm.renderOrder = 3; modelGroup.add(fm);
-                // Perched table line (dashed, above the drained line).
-                const pl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(perchedPts),
+                // Perched table line (dashed, above the drained line). Nudged +0.03 toward the
+                // camera (not into perchedPts itself, which anchors the drawdown fill/labels
+                // above) so it depth-tests normally instead of showing through the terrain.
+                const perchedLinePts = perchedPts.map(p => new THREE.Vector3(p.x, p.y, p.z + 0.03));
+                const pl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(perchedLinePts),
                     new THREE.LineDashedMaterial({ color: COL.groundwater,
-                        dashSize: 1.6, gapSize: 1.0, depthTest: false }));
+                        dashSize: 1.6, gapSize: 1.0 }));
                 pl.computeLineDistances(); pl.renderOrder = 4; modelGroup.add(pl);
                 // Labels: the perched table + a drawdown callout.
                 const mid = perchedPts[Math.floor(perchedPts.length / 2)];
@@ -3911,8 +3957,10 @@
             const P = window.RASCH_PATHS;
             if (!params.showPaths || !P || !(params.terrainSource === 'geodata' && geodata.ready)) return;
             // Draped as tubes (not hairline THREE.Line, which ignores linewidth in WebGL) so
-            // the paths read clearly; a bright tan over any base layer, always-on-top.
-            const mat = new THREE.MeshBasicMaterial({ color: 0xc07a2e, transparent: true, opacity: 0.92, depthTest: false });
+            // the paths read clearly; a bright tan over any base layer. Normal depth-testing
+            // (the 0.15 lift above the terrain surface is enough to avoid z-fighting) so a
+            // path correctly disappears behind a ridge/hill instead of bleeding through it.
+            const mat = new THREE.MeshBasicMaterial({ color: 0xc07a2e, transparent: true, opacity: 0.92 });
             const inWin = sc => Math.abs(sc.x) <= halfW && Math.abs(sc.z) <= halfD;
             (P.paths || []).forEach(way => {
                 let seg = [];
@@ -3967,7 +4015,11 @@
         }
 
 
-        function createTextSprite(text, colorStr = '#111', size = 24) {
+        // pickTarget: optional userData object. When given, the label stays raycastable and
+        // tagged with it (e.g. a shaft's { name }) so the label text is as clickable as the
+        // shaft itself; every other label keeps the default no-op raycast (decorative-only —
+        // no natural inspector target, and it's not a zoom-target/rotation-centre candidate).
+        function createTextSprite(text, colorStr = '#111', size = 24, pickTarget = null) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const lines = String(text).split('\n');   // supports multi-line labels
@@ -4012,7 +4064,8 @@
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
                 map: tex, transparent: true, depthTest: true, depthWrite: false }));
             sprite.renderOrder = 30;
-            sprite.raycast = () => {};   // labels are never pickable (no zoom-target / rotation-centre)
+            if (pickTarget) sprite.userData = pickTarget;
+            else sprite.raycast = () => {};   // no natural click target: not pickable (no zoom-target / rotation-centre either)
             sprite.scale.set(6, 1.35 * lines.length, 1);
             return sprite;
         }
@@ -5070,6 +5123,51 @@
                 ? 'Drag to pan · right-drag (or two-finger) to rotate · scroll to zoom · click a shaft for info'
                 : 'Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · scroll to zoom · click a shaft for info';
         }
+        // Two-finger touch gesture exclusivity (Normal nav mode only, where two fingers is
+        // TOUCH.DOLLY_ROTATE): the vendored OrbitControls blends pinch-dolly and rotate from
+        // the SAME two-finger move unconditionally, which reads as jittery — a slightly-off
+        // pinch also rotates the view. Freeze both axes for a small ~6px deadzone while the
+        // gesture's direction is unclear, classify it from whichever moved more (finger-to-
+        // finger distance = pinch, midpoint = rotate), then lock enableZoom/enableRotate to
+        // that ONE axis for the rest of the gesture — "whichever gesture starts first wins".
+        // The touchmove listener runs in the CAPTURE phase so the gating takes effect before
+        // OrbitControls' own (bubble-phase) touchmove handler processes the same event.
+        function setupTouchGestureExclusivity() {
+            const dom = renderer.domElement;
+            const CLASSIFY_PX = 6;
+            let active = false, classified = false, dist0 = 0, mid0 = null;
+            const twoTouchState = touches => {
+                const dx = touches[0].pageX - touches[1].pageX, dy = touches[0].pageY - touches[1].pageY;
+                return { dist: Math.hypot(dx, dy),
+                    mid: { x: (touches[0].pageX + touches[1].pageX) / 2, y: (touches[0].pageY + touches[1].pageY) / 2 } };
+            };
+            const end = () => {
+                if (!active) return;
+                active = false;
+                controls.enableZoom = true; controls.enableRotate = true;   // restore for the next gesture / mouse wheel
+            };
+            dom.addEventListener('touchstart', ev => {
+                if (ev.touches.length !== 2 || controls.touches.TWO !== THREE.TOUCH.DOLLY_ROTATE) return;
+                active = true; classified = false;
+                const s = twoTouchState(ev.touches);
+                dist0 = s.dist; mid0 = s.mid;
+            }, { passive: true });
+            dom.addEventListener('touchmove', ev => {
+                if (!active || classified || ev.touches.length !== 2) return;
+                const s = twoTouchState(ev.touches);
+                const distDelta = Math.abs(s.dist - dist0);
+                const midDelta = Math.hypot(s.mid.x - mid0.x, s.mid.y - mid0.y);
+                if (distDelta < CLASSIFY_PX && midDelta < CLASSIFY_PX) {
+                    controls.enableZoom = false; controls.enableRotate = false;   // direction unclear yet: freeze
+                    return;
+                }
+                classified = true;
+                controls.enableZoom = distDelta >= midDelta;
+                controls.enableRotate = !controls.enableZoom;
+            }, { capture: true, passive: true });
+            dom.addEventListener('touchend', end);
+            dom.addEventListener('touchcancel', end);
+        }
         // On-canvas nav pad: rotate/tilt the camera around the orbit target by a fixed step.
         // Immediate orbit step (per-frame) around the target — used by the hold-to-move nav pad.
         function orbitBy(dTheta, dPhi) {
@@ -5253,45 +5351,43 @@
         const ndc = new THREE.Vector2();
         let hoverActive = false;
         const HOVER_DWELL_MS = 600;
+        // Widen TAPS (not hover) to a ~44px box: try the exact point first, then a ring of
+        // offset points covering a 44px-square around it, closest-first, so a shaft/hotspot/
+        // qanat tube that only projects to a few screen pixels at typical zoom is still
+        // reliably tappable (Apple HIG minimum touch target — applies on desktop clicks too).
+        const TAP_SAMPLE_OFFSETS = [[0, 0], [18, 0], [-18, 0], [0, 18], [0, -18],
+            [18, 18], [18, -18], [-18, 18], [-18, -18]];
+        function pickInMeshes(dom, ev, meshes, filter) {
+            const r = dom.getBoundingClientRect();
+            for (const [dx, dy] of TAP_SAMPLE_OFFSETS) {
+                ndc.x = ((ev.clientX + dx - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY + dy - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                const hits = raycaster.intersectObjects(meshes, false);
+                const hit = filter ? hits.find(filter) : hits[0];
+                if (hit) return hit;
+            }
+            return undefined;
+        }
         function setupShaftInteraction() {
             const dom = renderer.domElement;
             const tip = document.getElementById('shaft-tooltip');
             const HOVER_TOOLTIP = false;   // hover overlays disabled — click a shaft for its info panel
             let dwellTimer = null, dwellShaft = null, lastEv = null;
             function pick(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(shaftMeshes, false).find(h => !clipHidesHit(h));
+                return pickInMeshes(dom, ev, shaftMeshes, h => !clipHidesHit(h));
             }
             function pickSpot(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(spotMeshes, false)[0];
+                return pickInMeshes(dom, ev, spotMeshes);
             }
             function pickXsec(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(xsecMeshes, false)[0];
+                return pickInMeshes(dom, ev, xsecMeshes);
             }
             function pickStrata(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(strataMeshes, false).find(h => !clipHidesHit(h));
+                return pickInMeshes(dom, ev, strataMeshes, h => !clipHidesHit(h));
             }
             function pickQanat(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(qanatMeshes, false).find(h => !clipHidesHit(h));
+                return pickInMeshes(dom, ev, qanatMeshes, h => !clipHidesHit(h));
             }
             function showTooltip(hit, ev) {
                 const d = hit.object.userData;
