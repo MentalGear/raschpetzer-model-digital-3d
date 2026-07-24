@@ -430,6 +430,11 @@
         /* Keep the East corner label clear of the floating reopen button when the panel is hidden. */
         body.panel-hidden #label-east { right: 70px; }
         #drawer-scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 39; }
+        #toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(8px);
+            background: var(--panel-bg); color: #fff; padding: 10px 18px; border-radius: 10px;
+            font-size: 0.84rem; box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 60;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         /* Desktop: draggable resize handle on the panel's inner edge + hidden state */
         #panel-resize { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 6; }
         #panel-resize:hover, body.panel-resizing #panel-resize { background: rgba(255,255,255,0.18); }
@@ -564,15 +569,19 @@
         .annot-io button:hover { background: #4b5563; }
 
         /* Feature info panel (click a shaft) */
-        /* Shared side panel: Settings ⇄ Inspector segmented toggle at the top. */
+        /* Shared side panel: Views ⇄ Inspector ⇄ Settings segmented toggle at the top. */
         #panel-mode { display: flex; gap: 4px; margin: 2px 0 14px; padding: 3px;
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; }
         #panel-mode .pm-btn { flex: 1; padding: 7px 6px; border: none; border-radius: 6px; background: none;
             color: #9ca3af; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s;
-            display: inline-flex; align-items: center; justify-content: center; gap: 5px; line-height: 1; }
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px; line-height: 1;
+            min-height: 44px; }   /* 44px minimum touch target, even though the row itself is compact */
         #panel-mode .pm-btn .pm-ico { font-size: 0.95rem; line-height: 1; display: inline-block; }
         #panel-mode .pm-btn:hover { color: #d7dbe2; }
         #panel-mode .pm-btn.active { background: rgba(255,255,255,0.13); color: #fff; }
+        /* The Settings button is icon-only — narrower than the two labelled tabs beside it. */
+        #panel-mode .pm-btn.pm-icon-only { flex: 0 0 44px; }
+        #panel-mode .pm-btn.pm-icon-only .pm-ico { font-size: 1.1rem; }
 
         /* #grp-baselayer (Map layer, the first control in the panel) carries the extra top
            margin instead — it's the first thing below the sticky header now, and needs its
@@ -601,20 +610,28 @@
         body.presets-compact .preset-card .pc-ico { font-size: 1rem; }
         body.presets-compact .preset-card .pc-label { font-size: 0.72rem; }
         body.presets-compact .preset-card .pc-desc { display: none; }   /* icon + label only */
-        #inspector-pane { display: none; }
+        /* Three mutually exclusive panes (Views / Inspector / Settings), selected by a body
+           class the panel-mode tablist toggles. #panel-camera-buttons (the Level/Side/Top/Iso +
+           N/E/S/W reframe row) carries none of these classes — it stays visible in every mode,
+           since reframing the camera is useful mid-inspection too. */
+        .pane-views, .pane-config { display: none; }
+        body.mode-views .pane-views { display: block; }
+        body.mode-config .pane-config { display: block; }
         #inspector-empty { color: #9ca3af; font-size: 0.84rem; line-height: 1.55; padding: 10px 2px; }
         #inspector-pane.has-selection #inspector-empty { display: none; }
+        /* Floating overlay card over the 3D view (not the sidebar) — same on desktop and
+           mobile. position:fixed here relies on NO ancestor having a `transform` (the mobile
+           drawer's translateX lives on #ui-panel, a sibling, not an ancestor of this element). */
+        #inspector-pane { display: none; position: fixed; top: calc(var(--wip-h) + 16px); left: 16px;
+            /* -70px clears the floating drawer-reopen hamburger (top-right, 46px + margins),
+               which is visible whenever the sidebar is hidden/closed — both on mobile always,
+               and on desktop when the panel is manually hidden. */
+            width: min(380px, calc(100vw - 32px - 70px)); max-height: calc(100vh - var(--wip-h) - 32px);
+            overflow-y: auto; background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 18px 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; }
         body.mode-inspector #inspector-pane { display: block; }
-        body.mode-inspector .tab-section,
-        body.mode-inspector #grp-baselayer,
-        body.mode-inspector #panel-presets,
-        body.mode-inspector #panel-nav,
-        body.mode-inspector #panel-actions { display: none; }
-        /* Inspector mode shows ONLY inspectable-element detail — Camera/Navigation/Map layer
-           (#grp-baselayer now sits outside #panel-nav structurally, but is still hidden here
-           alongside it) used to stay visible here so a selection could be reframed without a
-           round-trip to Settings, but that mixed "control panel" chrome into what's meant to
-           read as a focused detail view. */
+        #inspector-close { position: absolute; top: 8px; right: 10px; }
         #info-body h3 { font-size: 1.3rem; color: #fff; margin-top: 14px; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -724,7 +741,7 @@
     <script src="assets/vectors-walferdange.js"></script>
     <script src="assets/paths-walferdange.js"></script>
 </head>
-<body>
+<body class="mode-views">
 
     <div id="wip-banner">🚧 Private Beta — Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a>
         <button id="wip-banner-close" type="button" aria-label="Dismiss">×</button>
@@ -732,6 +749,7 @@
 
     <button id="drawer-toggle" type="button" aria-label="Open controls">☰</button>
     <div id="drawer-scrim"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
 
     <div id="app-row">
     <div id="ui-panel">
@@ -740,24 +758,42 @@
             <div id="panel-head">
                 <div>
                     <h1>Raschpëtzer Roman Qanat</h1>
-                    <h2>3D geological visualization · Walferdange, Luxembourg</h2>
+                    <h2>3-D visualization from underlying single source of truth database · Walferdange, Luxembourg</h2>
                 </div>
                 <button id="drawer-close" type="button" aria-label="Close controls">×</button>
             </div>
             <div id="panel-mode" role="tablist" aria-label="Panel view">
-                <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">⚙</span><span>Settings</span></button>
+                <button id="mode-views" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">🗺️</span><span>Views</span></button>
                 <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
+                <button id="mode-config" class="pm-btn pm-icon-only" type="button" role="tab" aria-selected="false" title="Settings" aria-label="Settings"><span class="pm-ico" aria-hidden="true">⚙</span></button>
             </div>
         </div>
 
-        <!-- Map layer first: the base imagery choice grounds everything else, including what
-             the Quick View thumbnails below actually mean. Hidden in Inspector mode along with
-             the rest of #panel-nav (see the body.mode-inspector rule) even though it now sits
-             outside that wrapper structurally. -->
-        <div class="control-group" id="grp-baselayer">
+        <!-- Camera reframe buttons stay reachable in every mode (Views/Inspector/Settings) —
+             the most-used view controls, so a selection can be reframed without leaving the
+             Inspector, matching the app's original "stay visible" rationale for this row. Only
+             the buttons themselves; the live Azimuth/Elevation/Distance readout now lives in
+             Settings (see #cfg-camera) since it's a readout, not something you press. -->
+        <div id="panel-camera-buttons" class="control-group">
+            <div class="segmented">
+                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
+                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
+                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
+                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
+            </div>
+            <div class="segmented" id="preset-cardinals">
+                <button id="btn-view-n" type="button" title="Face north">N</button>
+                <button id="btn-view-e" type="button" title="Face east">E</button>
+                <button id="btn-view-s" type="button" title="Face south">S</button>
+                <button id="btn-view-w" type="button" title="Face west">W</button>
+            </div>
+        </div>
+
+        <!-- Views pane: Map layer choice, Quick Views, Tools — the front-door controls for
+             changing what you're looking at. Hidden in Inspector/Settings mode (.pane-views). -->
+        <div class="control-group pane-views" id="grp-baselayer">
             <label for="param-baselayer">Map layer</label>
             <select id="param-baselayer">
-                <option value="contours">Contour lines</option>
                 <option value="topo">Topographic map</option>
                 <option value="satellite">Satellite (ACT 2019)</option>
                 <option value="winter">Satellite — winter (leaf-off)</option>
@@ -765,17 +801,13 @@
                 <option value="hillshade">LiDAR relief (2019)</option>
                 <option value="none">Plain</option>
             </select>
-            <div id="grp-contours">
-                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
-                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
-            </div>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
         </div>
 
         <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
              don't want to hand-tune the controls below. Presets SET the manual controls (they
              don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
-        <div id="panel-presets" class="control-group">
+        <div id="panel-presets" class="control-group pane-views">
             <label>Quick views</label>
             <div id="preset-grid">
                 <button class="preset-card" data-preset="underground" type="button">
@@ -806,8 +838,10 @@
             </div>
         </div>
 
-        <details class="tab-section" id="display-options">
-        <summary>Advanced configuration</summary>
+        <!-- Settings pane (⚙): everything from the old collapsible "Advanced configuration",
+             plus the camera readout, navigation mode, theme, and developer mode — moved here
+             out of the always-visible sidebar. Hidden outside mode-config (.pane-config). -->
+        <div class="tab-section pane-config" id="display-options">
         <div id="tab-bar" role="tablist">
             <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
             <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
@@ -816,6 +850,13 @@
 
         <div id="tab-panes">
         <div class="tab-pane active" data-pane="map">
+            <div class="control-group">
+                <label class="check-row"><input type="checkbox" id="param-contour-lines" checked> Contour&nbsp;lines</label>
+                <div id="grp-contours" style="margin-left:22px">
+                    <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
+                    <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
+                </div>
+            </div>
             <div class="control-group">
                 <label>Overlays (geoportail)</label>
                 <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
@@ -829,7 +870,14 @@
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
                 <label class="check-row"><input type="checkbox" id="param-dip"> Bedding&nbsp;dip&nbsp;(≈2%&nbsp;SE,&nbsp;exaggerated)</label>
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
-                <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
+                <div class="opt-group" id="grp-xray">
+                    <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
+                    <div id="row-xray-opacity">
+                        <label>X‑ray opacity <span class="val" id="lbl-xray-opacity">0.50</span></label>
+                        <input type="range" id="param-xray-opacity" min="0.1" max="1.0" step="0.05" value="0.5" aria-label="X-ray opacity: subsurface structure opacity while Underground x-ray is on">
+                        <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 8px;line-height:1.35;">Separate from "Underground opacity" below — only applies while x‑ray is on, so the x‑ray-through view can default lower/less cluttered than the occluded view.</div>
+                    </div>
+                </div>
                 <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
                 <label id="lbl-realistic-diameters">Shaft/gallery diameter realism <span class="val" id="lbl-realism-val">1.25x</span></label>
                 <input type="range" id="param-realistic-diameters" min="1" max="10" step="0.25" value="1.25" aria-label="Shaft and gallery diameter realism, as a multiple of true 1:1 scale: 1x is real size (~1 m shafts, ~15-45 cm gallery); higher values exaggerate for visibility against the 700 m terrain">
@@ -902,26 +950,9 @@
             </div>
         </div>
         </div>
-        </details>
-
-        <!-- Camera / navigation controls: the most-used view controls sit near the top, and
-             stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
-        <div id="panel-nav">
         <div class="control-group" id="grp-camera">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
-            <div class="segmented">
-                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
-                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
-                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
-                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
-            </div>
-            <div class="segmented" id="preset-cardinals">
-                <button id="btn-view-n" type="button" title="Face north">N</button>
-                <button id="btn-view-e" type="button" title="Face east">E</button>
-                <button id="btn-view-s" type="button" title="Face south">S</button>
-                <button id="btn-view-w" type="button" title="Face west">W</button>
-            </div>
         </div>
         <div class="control-group">
             <label>Navigation</label>
@@ -930,30 +961,6 @@
                 <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
             </div>
             <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
-        </div>
-        </div>
-
-        <div id="inspector-pane">
-            <div id="info-body"></div>
-            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
-        </div>
-
-        <div id="panel-actions">
-        <div class="control-group">
-            <label>Tools</label>
-            <div class="btn-tools">
-                <button id="btn-timeline" type="button">⏳ Timeline</button>
-                <button id="btn-legend" type="button">▤ Legend</button>
-                <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
-                <button id="btn-profile" type="button">📈 Qanat Profile</button>
-                <button id="btn-sources" type="button">ⓘ Data sources</button>
-                <button id="btn-export-svg" type="button" class="dev-opt" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
-            </div>
-            <div class="btn-row" style="display:none">
-                <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
-                <button id="btn-annotate" type="button">✎ Annotate mode</button>
-                <button id="btn-tour" type="button">▶ Guided tour</button>
-            </div>
         </div>
         <div class="control-group" id="theme-toggle">
             <label>Theme</label>
@@ -969,6 +976,36 @@
         </div>
         </div>
 
+        <div id="panel-actions" class="pane-views">
+        <div class="control-group">
+            <label>Tools</label>
+            <div class="btn-tools">
+                <button id="btn-share" type="button">🔗 Share</button>
+                <button id="btn-timeline" type="button">⏳ Timeline</button>
+                <button id="btn-legend" type="button">▤ Legend</button>
+                <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
+                <button id="btn-profile" type="button">📈 Qanat Profile</button>
+                <button id="btn-sources" type="button">ⓘ Data sources</button>
+                <button id="btn-export-svg" type="button" class="dev-opt" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
+            </div>
+            <div class="btn-row" style="display:none">
+                <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
+                <button id="btn-annotate" type="button">✎ Annotate mode</button>
+                <button id="btn-tour" type="button">▶ Guided tour</button>
+            </div>
+        </div>
+        </div>
+
+    </div>
+
+    <!-- Inspector: a floating overlay over the 3D view, NOT inside #ui-panel — so it's
+         unaffected by the mobile drawer's transform (position:fixed needs an untransformed
+         ancestor chain) and reads consistently as "a card floating over the model" on both
+         desktop and mobile, rather than replacing the sidebar's own content area. -->
+    <div id="inspector-pane" class="pane-inspector">
+        <button id="inspector-close" type="button" class="modal-close" aria-label="Close inspector">×</button>
+        <div id="info-body"></div>
+        <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
     </div>
 
     <!-- Legend: a modal, same shared shell as Data sources / Qanat Profile. Opened by the
@@ -1136,6 +1173,7 @@
         const params = {
             plateauHeight: 5.0,           // vertical unit reference (non-GeoData fallback datum)
             contourSpacing: 0.20,
+            showContourLines: true,       // independent overlay, like Forest paths (not a base-layer choice)
             width: 70,
             depth: 40,
             baseY: -2,
@@ -1144,7 +1182,7 @@
             surround: 1.0,                // how much surrounding DEM to show — default to max (full window)
             navMode: 'normal',            // camera navigation: 'normal' (map-like, default) | 'power' (free orbit)
             flipWE: false,                // mirror the terrain West<->East
-            baseLayer: 'contours',        // terrain surface graphic: 'contours' | 'satellite' | 'none'
+            baseLayer: 'none',            // terrain surface graphic: 'satellite' | 'topo' | ... | 'none' (plain)
             overlay: { aquifer: false, contours: false, spot: false, break: false },  // draped thematic overlays
             showGeology: true,            // real strata + groundwater/qanat flows
             strataDetailed: false,        // overlay detailed geology (bedding lines, mounded water table, unit labels)
@@ -1167,7 +1205,8 @@
             showResearchStatus: false,    // explored/unexplored + construction-work status (fig 6-4) — off by default
             showPerched: false,           // perched pre-construction water table + drawdown band
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
-            undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
+            undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group (x-ray OFF)
+            xrayOpacity: 0.5,             // opacity multiplier over the whole subsurface group (x-ray ON) — separate, defaults lower
             shaftCutaway: false,          // dev "Look inside": clip the camera-facing half through the subsurface centre
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
@@ -1469,6 +1508,15 @@
             selectionMarker.position.copy(point);
             selectionMarker.quaternion.copy(camera.quaternion);   // billboards toward the camera
             selectionMarker.visible = true;
+        }
+        let toastTimer = null;
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            if (!el) return;
+            el.textContent = msg;
+            el.classList.add('show');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
         }
         function clearSelectionMarker() {
             if (selectionMarker) selectionMarker.visible = false;
@@ -1861,10 +1909,15 @@
             xsecStrataMesh = mesh;
         }
 
-        // Underground opacity: a global multiplier over the subsurface group's own opacities.
-        function applyUndergroundOpacity(v) {
-            params.undergroundOpacity = v;
+        // Underground/X-ray opacity: a global multiplier over the subsurface group's own
+        // opacities. TWO independent values (params.undergroundOpacity, params.xrayOpacity) —
+        // whichever is currently "live" depends on the x-ray toggle: while x-ray is on, the
+        // structures float on top of everything and can read as cluttered at full opacity, so
+        // that view gets its own (lower-default) slider, separate from the opacity you'd want
+        // for the occluded (x-ray off) view.
+        function applyEffectiveSubsurfaceOpacity() {
             if (!subsurfaceGroup) return;
+            const v = params.xrayUnderground ? params.xrayOpacity : params.undergroundOpacity;
             subsurfaceGroup.traverse(o => {
                 if (!o.material) return;
                 const mats = Array.isArray(o.material) ? o.material : [o.material];
@@ -1875,6 +1928,14 @@
                     m.needsUpdate = true;
                 });
             });
+        }
+        function applyUndergroundOpacity(v) {
+            params.undergroundOpacity = v;
+            applyEffectiveSubsurfaceOpacity();
+        }
+        function applyXrayOpacity(v) {
+            params.xrayOpacity = v;
+            applyEffectiveSubsurfaceOpacity();
         }
 
         // --- GeoData source: real DEM elevations around the Raschpëtzer qanat
@@ -2672,10 +2733,10 @@
                     }
                 }
             }
-            // Contour lines belong to the 'contours' base layer only (hidden under the
-            // satellite drape or the plain base, which would otherwise clash with the lines).
+            // Contour lines: an independent overlay (params.showContourLines), like Forest
+            // paths/aquifer — works over any base layer, not tied to picking a specific one.
             const tOp = params.terrainOpacity;
-            if (params.baseLayer === 'contours') {
+            if (params.showContourLines) {
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
             const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
@@ -3531,7 +3592,7 @@
             applyXrayMode();             // set subsurface depthTest/renderOrder for the current x-ray mode
             applyCutaway();              // (re)attach the look-inside clip plane if enabled
             applyXsecCutaway();          // (re)attach the qanat cross-section cutaway plane if enabled
-            applyUndergroundOpacity(params.undergroundOpacity);   // subsurface opacity multiplier
+            applyEffectiveSubsurfaceOpacity();   // subsurface opacity multiplier (whichever of the two sliders is live)
             updateCompass();
             updateExagReadout();
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
@@ -4090,15 +4151,21 @@
                 const credit = ATTRIB[params.baseLayer];
                 attribEl.textContent = credit || '';
                 attribEl.style.display = credit ? 'block' : 'none';
-                // The contour-spacing slider only affects the Contour-lines base layer.
-                grpContours.style.display = (params.baseLayer === 'contours') ? '' : 'none';
             };
             document.getElementById('param-baselayer').addEventListener('change', e => {
                 params.baseLayer = e.target.value;
                 syncBaseLayerUI();
                 buildParametricModel();
             });
-            syncBaseLayerUI();   // initial state (contours by default → slider shown)
+            syncBaseLayerUI();   // initial state
+            // Contour lines: an independent overlay (like Forest paths), working over any base
+            // layer, no longer tied to picking a dedicated "Contour lines" base layer.
+            grpContours.style.display = params.showContourLines ? '' : 'none';
+            document.getElementById('param-contour-lines').addEventListener('change', e => {
+                params.showContourLines = e.target.checked;
+                grpContours.style.display = params.showContourLines ? '' : 'none';
+                buildParametricModel();
+            });
 
             // Only expose options that do something in the current state: the geology
             // overlays (perched table / horst faults) need "Show geology". The subsurface
@@ -4349,7 +4416,16 @@
             // Underground x-ray: applies to the whole subsurface group at once — live, no rebuild.
             document.getElementById('param-underground').addEventListener('change', e => {
                 params.xrayUnderground = e.target.checked;
+                document.getElementById('row-xray-opacity').style.display = params.xrayUnderground ? '' : 'none';
                 applyXrayMode();
+                applyEffectiveSubsurfaceOpacity();   // switch to whichever opacity slider is now "live"
+            });
+            document.getElementById('row-xray-opacity').style.display = params.xrayUnderground ? '' : 'none';
+            const xraySl = document.getElementById('param-xray-opacity'), xrayLb = document.getElementById('lbl-xray-opacity');
+            if (xraySl) xraySl.addEventListener('input', e => {
+                const v = parseFloat(e.target.value);
+                applyXrayOpacity(v);
+                xrayLb.innerText = v.toFixed(2);
             });
 
             // Show the "solid slice, not hollow interior" caption whenever a cutaway is active.
@@ -4461,6 +4537,24 @@
             setupTimeline();
 
             // Action buttons
+            // Share: the current URL already encodes camera position, the active selection,
+            // and UI options (see setSelectionURL / the camera- and options-URL sync added
+            // earlier). navigator.share() opens the OS share sheet on mobile; desktop browsers
+            // that lack it get a copy-to-clipboard + toast instead.
+            document.getElementById('btn-share').addEventListener('click', async () => {
+                const url = location.href;
+                if (navigator.share) {
+                    try { await navigator.share({ title: document.title, url }); }
+                    catch (e) { /* user cancelled the share sheet — not an error */ }
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(url);
+                    showToast('Link copied to clipboard');
+                } catch (e) {
+                    showToast('Could not copy link');
+                }
+            });
             document.getElementById('btn-profile').addEventListener('click', toggleProfile);
             // Timeline: hidden by default; the tool button shows/hides it.
             document.getElementById('btn-timeline').addEventListener('click', () => {
@@ -4525,7 +4619,7 @@
             // individual listeners, each doing its own buildParametricModel() rebuild — a
             // visible multi-second stall. One rebuild at the end instead.
             const PRESET_BASELINE = {
-                'param-baselayer': 'contours', 'param-geology': true, 'param-dip': false,
+                'param-baselayer': 'none', 'param-geology': true, 'param-dip': false,
                 'param-underground': true, 'param-realistic-diameters': 1.25,
                 'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
                 'param-aux': false, 'param-sounding': false, 'param-overflow': false,
@@ -5578,30 +5672,32 @@
             body.innerHTML = h;
             showInspector();
         }
-        // Shared side panel: switch between the Settings controls and the Inspector.
+        // Shared side panel: switch between Views, the floating Inspector overlay, and Settings.
         function setPanelMode(mode) {
-            const insp = mode === 'inspector';
-            document.body.classList.toggle('mode-inspector', insp);
-            const bi = document.getElementById('mode-inspector'), bs = document.getElementById('mode-settings');
-            if (bi) { bi.classList.toggle('active', insp); bi.setAttribute('aria-selected', insp); }
-            if (bs) { bs.classList.toggle('active', !insp); bs.setAttribute('aria-selected', !insp); }
+            const body = document.body;
+            body.classList.remove('mode-views', 'mode-inspector', 'mode-config');
+            body.classList.add('mode-' + mode);
+            const btns = { views: 'mode-views', inspector: 'mode-inspector', config: 'mode-config' };
+            Object.entries(btns).forEach(([m, id]) => {
+                const b = document.getElementById(id);
+                if (!b) return;
+                b.classList.toggle('active', m === mode);
+                b.setAttribute('aria-selected', m === mode);
+            });
         }
-        // A selection was made: mark the inspector as populated, reveal it, and make
-        // sure the panel is on-screen (slide the mobile drawer in / un-hide desktop).
+        // A selection was made: mark the inspector as populated and reveal its floating
+        // overlay. It floats over the 3D view independently of the sidebar/mobile drawer —
+        // no drawer-open/panel-hidden juggling needed, it's visible either way.
         function showInspector() {
             const pane = document.getElementById('inspector-pane');
             if (pane) pane.classList.add('has-selection');
             setPanelMode('inspector');
-            if (window.matchMedia('(max-width: 760px)').matches) {
-                document.body.classList.add('drawer-open');
-            } else if (document.body.classList.contains('panel-hidden')) {
-                document.body.classList.remove('panel-hidden');
-                window.dispatchEvent(new Event('resize'));
-            }
         }
         function initInfoPanel() {
-            const bs = document.getElementById('mode-settings'), bi = document.getElementById('mode-inspector');
-            if (bs) bs.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('settings'); });
+            const bv = document.getElementById('mode-views'), bi = document.getElementById('mode-inspector'),
+                  bc = document.getElementById('mode-config');
+            if (bv) bv.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('views'); });
+            if (bc) bc.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('config'); });
             // Manually switching to Inspector shows the initial prompt again (clearing any stale
             // selection); clicking a shaft/spring/villa repopulates it via showInspector().
             if (bi) bi.addEventListener('click', () => {
@@ -5612,6 +5708,8 @@
                 clearSelectionMarker();
                 setPanelMode('inspector');
             });
+            const closeBtn = document.getElementById('inspector-close');
+            if (closeBtn) closeBtn.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('views'); });
             // Clicking a status badge (e.g. green "D") reveals that row's source detail, and
             // records the row's open/closed state in openDetailRows (keyed by row label) so it
             // survives the next renderInfoPanel/renderStrataPanel/etc. rebuild for a different
