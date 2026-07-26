@@ -70,13 +70,21 @@
             border-radius: 11px;
             pointer-events: none;
             letter-spacing: 0.3px;
-            z-index: 5;
+            /* Above #inspector-pane (z-index 45, top-left, same corner) so the label stays
+               readable/on-top instead of getting buried under the Inspector card when it opens. */
+            z-index: 46;
         }
         #label-west { left: 18px; }
-        #label-east { right: 18px; }
+        /* Desktop: #ui-panel is a right-docked overlay the same width as --panel-w, so a plain
+           right:18px would sit permanently underneath it (it's always open by default). Track
+           the panel's actual width so the label clears its left edge; the mobile media query
+           below resets this back to a plain offset, since there the panel is off-screen
+           (translateX) rather than occupying that space. */
+        #label-east { right: calc(var(--panel-w, 340px) + 18px); }
         /* Compass widget: a rotating north arrow; click to face north. */
         #compass {
-            position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 6;
+            /* Also above #inspector-pane, for the same reason as .compass-label. */
+            position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 46;
             border-radius: 50%; background: rgba(15,20,30,0.55);
             border: 1px solid rgba(255,255,255,0.20); cursor: pointer;
         }
@@ -118,6 +126,14 @@
             background: none; padding: 0; display: none; align-items: stretch; justify-content: flex-start; }
         #legend-modal-backdrop.open { display: block; }
         #legend-modal { width: auto; max-width: min(380px, calc(100vw - 32px)); border-top: none; }
+        /* Qanat Profile gets the same non-blocking docked treatment as Legend, for the same
+           reason (its SVG chart shouldn't need to dim/block the 3D view to read). It shares
+           Legend's bottom-left corner rather than the right edge — the #ui-panel sidebar
+           already owns the right edge — and the two never actually overlap since
+           closeOtherModals() keeps only one of Legend/Profile/Sources open at a time. */
+        #profile-modal-backdrop { position: fixed; inset: auto; left: 16px; bottom: 16px; z-index: 8;
+            background: none; padding: 0; display: none; align-items: stretch; justify-content: flex-start; }
+        #profile-modal-backdrop.open { display: block; }
         .modal-card .modal-title { font-size: 1.05rem; color: #2a2318; margin-bottom: 10px;
             padding-right: 26px; font-weight: 600; }
         .modal-card p { font-size: 0.82rem; line-height: 1.45; margin-bottom: 10px; }
@@ -126,12 +142,18 @@
         .modal-close { position: absolute; top: 10px; right: 14px; background: none; border: none;
             color: #8a7a63; font-size: 1.4rem; line-height: 1; cursor: pointer; }
         .modal-close:hover { color: #2a2318; }
-        #profile-panel { max-width: min(560px, 94vw); font-size: 0.7rem; color: #4a3f2f; }
+        #profile-panel { width: auto; max-width: min(560px, 94vw); max-height: calc(100vh - 32px);
+            overflow-y: auto; border-top: none; font-size: 0.7rem; color: #4a3f2f; }
         #profile-panel .pp-title { margin-bottom: 2px; color: #333; }
         #profile-panel .pp-sub { color: #6f6250; margin-bottom: 4px; }
         #profile-panel .pp-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
             margin: 2px 0 6px; color: #4a3f2f; user-select: none; }
         #profile-panel .pp-toggle input { accent-color: var(--accent-blue); cursor: pointer; }
+        /* Highlights whichever shaft's tick is currently selected (see currentSelectedShaftId) —
+           a CSS rule beats the <line>/<text> elements' own presentation attributes, so no need
+           to special-case the colours inline in buildProfileSVG(). */
+        #profile-panel .pp-shaft-hot.selected line { stroke: #e0554a; stroke-width: 3; }
+        #profile-panel .pp-shaft-hot.selected text { fill: #e0554a; font-weight: 700; }
         #profile-panel .pp-toggle select { font-size: 0.68rem; padding: 1px 3px; border-radius: 4px;
             border: 1px solid rgba(0,0,0,0.2); background: #fff; color: #4a3f2f; }
         #profile-panel .pp-geoimg img { width: 100%; height: auto; display: block; border-radius: 4px;
@@ -484,6 +506,10 @@
                visible. Position/top/right/height/z-index now come from the base rule above. */
             #ui-panel { width: min(360px, 88vw); transform: translateX(100%); transition: transform 0.25s ease; }
             body.drawer-open #ui-panel { transform: translateX(0); }
+            /* Off-screen (translateX) here, not display:none — the panel-width offset the
+               desktop rule above needs doesn't apply, since the drawer never shares layout
+               space with the canvas the way the desktop overlay does. */
+            #label-east { right: 18px; }
             #drawer-toggle { display: flex; }
             body.drawer-open #drawer-toggle { display: none; }
             body.drawer-open #drawer-scrim { display: block; }
@@ -640,8 +666,8 @@
         body.presets-compact .preset-card .pc-desc { display: none; }   /* icon + label only */
         /* Three mutually exclusive panes (Views / Inspector / Settings), selected by a body
            class the panel-mode tablist toggles. #panel-camera-buttons (the Level/Side/Top/Iso +
-           N/E/S/W reframe row) carries none of these classes — it stays visible in every mode,
-           since reframing the camera is useful mid-inspection too. */
+           N/E/S/W reframe row) carries .pane-views — it lives in the Views pane specifically,
+           before Tools, not visible in every mode (see its own HTML comment). */
         .pane-views, .pane-config { display: none; }
         body.mode-views .pane-views { display: block; }
         body.mode-config .pane-config { display: block; }
@@ -5519,6 +5545,9 @@
                     selectAt(hit.point);
                     renderInfoPanel(shaftById[hit.object.userData.name]);
                     setSelectionURL('shaft', hit.object.userData.name);
+                    // Keep the Qanat Profile chart's highlighted tick in sync, in case it's open.
+                    currentSelectedShaftId = hit.object.userData.name;
+                    rebuildProfilePanel();
                     return;
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
@@ -6380,9 +6409,43 @@
         // separate JS boolean to keep in sync with it.
         let profileImgOn = false;   // show the Brochure geological cross-section (fig 4-2) in the modal
         let profileXMode = 'geo';   // 'geo' = georeferenced (LiDAR/OSM) | 'schematic' = Brochure fig 3-1 layout
+        // Which shaft's tick is highlighted in the profile chart — kept in sync with the 3D
+        // canvas's own shaft selection (see setupShaftInteraction's pointerup handler) as well
+        // as clicks inside the chart itself, so either path highlights the same shaft.
+        let currentSelectedShaftId = null;
         function rebuildProfilePanel() {
             const el = document.getElementById('profile-panel');
             if (el && isModalOpen('profile-modal-backdrop')) el.innerHTML = buildProfileSVG();
+        }
+        // A world point counts as "on screen" if its NDC projection falls inside [-1,1] on both
+        // axes and isn't behind the near plane — same convention projectToScreen() uses (v.z > 1
+        // means behind the camera).
+        function isPointOnScreen(p) {
+            const v = p.clone().project(camera);
+            return v.z <= 1 && v.x >= -1 && v.x <= 1 && v.y >= -1 && v.y <= 1;
+        }
+        // Clicking a shaft's tick/label in the profile chart does exactly what clicking that
+        // same shaft on the 3D canvas does (see setupShaftInteraction's pointerup handler) —
+        // plus, since the chart can be read with the shaft currently off-screen, flies the
+        // camera to it first if it isn't already visible (translating the whole camera rig by
+        // the target's displacement, so distance/azimuth/elevation are preserved rather than
+        // reset to a preset angle).
+        function selectShaftFromProfile(shaftId) {
+            const rec = shaftById[shaftId];
+            if (!rec) return;
+            const mesh = shaftMeshes.find(m => m.userData.name === shaftId);
+            const pos = mesh ? mesh.getWorldPosition(new THREE.Vector3()) : null;
+            if (pos) {
+                selectAt(pos);
+                if (!isPointOnScreen(pos)) {
+                    const delta = pos.clone().sub(controls.target);
+                    flyTo(camera.position.clone().add(delta), pos, 700);
+                }
+            }
+            renderInfoPanel(rec);
+            setSelectionURL('shaft', shaftId);
+            currentSelectedShaftId = shaftId;
+            rebuildProfilePanel();
         }
         // The geological-section image toggle is SHARED between the profile modal and the
         // side-nav "Geological section" checkbox; keep the single state (profileImgOn) and both
@@ -6445,10 +6508,16 @@
                 svg += `<line x1="${mL}" y1="${Y(e)}" x2="${W - mR}" y2="${Y(e)}" stroke="#e3ddd2"/>` +
                        `<text x="4" y="${Y(e) + 3}" fill="#8a7a63" font-size="9">${e}</text>`;
             }
-            // shaft ticks + depth (surf->floor) + labels
+            // shaft ticks + depth (surf->floor) + labels — each wrapped in a clickable <g> that
+            // mirrors the 3D canvas's own shaft click (see selectShaftFromProfile); the
+            // transparent <rect> pads the hit area well beyond the thin line/small text.
             for (const p of pts) {
-                svg += `<line x1="${X(p.dist)}" y1="${Y(p.surf)}" x2="${X(p.dist)}" y2="${Y(p.floor)}" stroke="#e0a23b" stroke-width="2"/>`;
-                svg += `<text x="${X(p.dist)}" y="${Y(p.surf) - 3}" fill="#5a4a33" font-size="8" text-anchor="middle">${p.id}</text>`;
+                const sel = p.id === currentSelectedShaftId ? ' selected' : '';
+                svg += `<g class="pp-shaft-hot${sel}" data-shaft="${p.id}" style="cursor:pointer" onclick="selectShaftFromProfile('${p.id}')">` +
+                    `<line x1="${X(p.dist)}" y1="${Y(p.surf)}" x2="${X(p.dist)}" y2="${Y(p.floor)}" stroke="#e0a23b" stroke-width="2"/>` +
+                    `<text x="${X(p.dist)}" y="${Y(p.surf) - 3}" fill="#5a4a33" font-size="8" text-anchor="middle">${p.id}</text>` +
+                    `<rect x="${X(p.dist) - 9}" y="${Y(p.surf) - 9}" width="18" height="${Y(p.floor) - Y(p.surf) + 18}" fill="transparent"/>` +
+                `</g>`;
             }
             svg += `<path d="${line('surf')}" fill="none" stroke="#9c8567" stroke-width="1.8"/>`;
             svg += `<path d="${line('floor')}" fill="none" stroke="#1d6fd6" stroke-width="2.2"/>`;
