@@ -965,6 +965,7 @@
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
+                <label class="check-row dev-opt" id="row-show-hitboxes"><input type="checkbox" id="param-show-hitboxes"> Show&nbsp;click&nbsp;hitboxes&nbsp;(purple)</label>
                 <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             </div>
             <div class="control-group" id="grp-frontedge">
@@ -1273,6 +1274,7 @@
             clipCenterline: 'p3p9',       // which line the Symmetric clip-off measures its margin from: 'p3p9' | 'fit'
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
             presetsCompact: false,        // dev-set persistent preference: smaller "Quick views" preset cards
+            showHitboxes: false,          // dev: draw the actual pickInMeshes() tap-tolerance box over each pickable marker
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
         };
 
@@ -1293,7 +1295,7 @@
         //   every single load regardless of anything the user touched, polluting every ?ui=
         //   with noise. plateauHeight/baseY/terrainSource are never reassigned at all (kept
         //   here only as documentation of the same "not a real option" category).
-        const PARAMS_URL_EXCLUDE = new Set(['devMode', 'plateauHeight', 'width', 'depth', 'baseY', 'terrainSource']);
+        const PARAMS_URL_EXCLUDE = new Set(['devMode', 'showHitboxes', 'plateauHeight', 'width', 'depth', 'baseY', 'terrainSource']);
         function paramsDiff() {
             const diff = {};
             for (const k in DEFAULT_PARAMS) {
@@ -4209,6 +4211,12 @@
                 buildParametricModel();
             });
 
+            // Dev: purple overlay boxes showing the actual pickInMeshes() tap-tolerance area.
+            document.getElementById('param-show-hitboxes').addEventListener('change', e => {
+                params.showHitboxes = e.target.checked;
+                document.body.classList.toggle('show-hitboxes', e.target.checked);
+            });
+
             // Flip West <-> East (GeoData)
             document.getElementById('param-flip').addEventListener('change', e => {
                 params.flipWE = e.target.checked;
@@ -4270,6 +4278,7 @@
             const syncDevUI = () => {
                 document.body.classList.toggle('dev-mode', params.devMode);
                 document.getElementById('row-pbr').style.display = params.devMode ? '' : 'none';
+                document.getElementById('row-show-hitboxes').style.display = params.devMode ? '' : 'none';
                 document.getElementById('grp-vexag').style.display = params.devMode ? '' : 'none';   // vertical exaggeration is dev-only
                 document.getElementById('grp-density').style.display = params.devMode ? '' : 'none'; // terrain density is dev-only
                 document.getElementById('row-shaft-cutaway').style.display = params.devMode ? '' : 'none';   // look-inside cutaway is dev-only
@@ -4293,6 +4302,7 @@
                     // qanatFront is a default-on rendering choice (strata read behind the qanat) — persist it, don't reset on dev exit.
                     if (params.detailedGallery) { params.detailedGallery = false; document.getElementById('param-detailed-gallery').checked = false; rebuild = true; }
                     if (params.hiresInsetNativeRes) { params.hiresInsetNativeRes = false; document.getElementById('param-hires-inset-native').checked = false; rebuild = true; }
+                    if (params.showHitboxes) { params.showHitboxes = false; document.getElementById('param-show-hitboxes').checked = false; document.body.classList.remove('show-hitboxes'); }
                     if (params.shaftCutaway || params.seeInside) {
                         params.shaftCutaway = false; params.seeInside = false;
                         document.getElementById('param-shaft-cutaway').checked = false;
@@ -4799,6 +4809,7 @@
                 'param-side-cullback': () => params.sideCullBack,
                 'param-hires-inset-native': () => params.hiresInsetNativeRes,
                 'param-presets-compact': () => params.presetsCompact,
+                'param-show-hitboxes': () => params.showHitboxes,
                 'param-contours': () => params.contourSpacing
             };
             function hydrateControlsFromParams() {
@@ -4818,6 +4829,7 @@
                     if (yearSl) yearSl.value = Math.round(tlT * 1000);
                     updateTimelineReadout();
                 }
+                document.body.classList.toggle('show-hitboxes', params.showHitboxes);
                 syncBaseLayerUI();
                 syncConditionalOptions();
             }
@@ -6303,6 +6315,39 @@
             }
             svg.innerHTML = s;
         }
+        // Dev overlay: draw the actual pickInMeshes() tap-tolerance box over each pickable
+        // marker, so the effective clickable area can be judged visually instead of by feel.
+        // qanatMeshes/strataMeshes are large continuous surfaces, not point-like markers, so a
+        // box centred on one of their meshes wouldn't represent the hit area meaningfully —
+        // they're deliberately skipped here.
+        function updateHitboxOverlay() {
+            const svg = document.getElementById('hitbox-svg');
+            if (!svg) return;
+            if (!params.showHitboxes) { svg.innerHTML = ''; return; }
+            const half = TAP_SAMPLE_RADIUS_PX;
+            const side = half * 2;
+            let s = '';
+            const box = p => {
+                const sp = projectToScreen(p);
+                if (!sp) return;
+                s += `<rect x="${(sp.x - half).toFixed(1)}" y="${(sp.y - half).toFixed(1)}" width="${side}" height="${side}" fill="none" stroke="#a855f7" stroke-width="1.5"/>`;
+            };
+            // shaftMeshes has multiple mesh pieces per shaft (cap/body/cage/label sprite)
+            // sharing the same userData.name — dedupe by name so each shaft gets one box, not
+            // several overlapping ones. getWorldPosition, not .position, which is parent-local.
+            const seen = new Set();
+            const wp = new THREE.Vector3();
+            for (const m of shaftMeshes) {
+                const name = m.userData && m.userData.name;
+                if (!name || seen.has(name)) continue;
+                seen.add(name);
+                m.getWorldPosition(wp);
+                box(wp);
+            }
+            for (const m of xsecMeshes) { m.getWorldPosition(wp); box(wp); }
+            for (const m of spotMeshes) { m.getWorldPosition(wp); box(wp); }
+            svg.innerHTML = s;
+        }
         function addMeasurePoint(p) {
             if (measurePts.length === 2) measurePts = [];
             measurePts.push(p.clone());
@@ -6517,6 +6562,7 @@
             // Scroll the shared water ripple normal so the PBR gallery reads as flowing.
             if (waterMats.length && TEX.water) TEX.water.offset.y = -(now * 0.00012) % 1;
             if (measureMode) updateMeasureOverlay();
+            updateHitboxOverlay();
             updateCutawayPlane();   // keep the look-inside cut facing the camera
             updateXsecCutawayPlane();   // keep the qanat cross-section cut on the correct side (and following, if enabled)
             if (selectionMarker && selectionMarker.visible) selectionMarker.quaternion.copy(camera.quaternion);
