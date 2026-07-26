@@ -27,10 +27,6 @@
             --text-color: #f3f4f6;
             --accent-orange: #f97316;
             --accent-blue: #3b82f6;
-            /* #inspector-pane's own width formula, hoisted here so the top-left compass/West
-               label can reflow clear of it (see body.mode-inspector rules below) instead of
-               just stacking on top via z-index. */
-            --inspector-w: min(380px, calc(100vw - 32px - 70px));
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0;
@@ -90,13 +86,6 @@
             border-radius: 50%; background: rgba(15,20,30,0.55);
             border: 1px solid rgba(255,255,255,0.20); cursor: pointer;
             transition: left 0.2s ease;
-        }
-        /* #compass and #label-west share the Inspector overlay's top-left corner — rather than
-           stacking on top of it (z-index), reflow clear of it: shift right by its own left
-           offset (16px) + width (--inspector-w) + a gap, the same "track the covering panel's
-           size" approach #label-east already uses for --panel-w. */
-        body.mode-inspector #compass, body.mode-inspector #label-west {
-            left: calc(var(--inspector-w) + 32px);
         }
         /* On-canvas nav pad — shown only in Normal navigation mode. #ui-panel is an always-open
            (by default) right-docked overlay the same width as --panel-w; without this, the pad
@@ -586,15 +575,19 @@
         @media (pointer: coarse) {
             .check-row input[type="checkbox"] { width: 26px; height: 26px; }
         }
-        /* Collapsible control sections */
-        #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 12px; }
-        #ui-panel details > summary { list-style: none; cursor: pointer; padding: 16px 0 14px;
+        /* Collapsible control sections. :not(.ip-row-d) excludes the Inspector's own fact-row
+           <details> (see .ip-row-d below) — since Inspector moved back inside #ui-panel as a
+           normal tab, its rows are now descendants of #ui-panel too and would otherwise pick up
+           this generic collapsible-section styling (uppercase text, a second "▸", vertical
+           padding) on top of their own, unrelated rule. */
+        #ui-panel details:not(.ip-row-d) { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 12px; }
+        #ui-panel details:not(.ip-row-d) > summary { list-style: none; cursor: pointer; padding: 16px 0 14px;
             font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
             color: #9ca3af; font-weight: 700; user-select: none; display: flex; align-items: center; gap: 6px; }
-        #ui-panel details > summary::-webkit-details-marker { display: none; }
-        #ui-panel details > summary::before { content: '▸'; font-size: 0.65rem; transition: transform 0.12s; }
-        #ui-panel details[open] > summary::before { transform: rotate(90deg); }
-        #ui-panel details > .control-group:first-of-type { margin-top: 2px; }
+        #ui-panel details:not(.ip-row-d) > summary::-webkit-details-marker { display: none; }
+        #ui-panel details:not(.ip-row-d) > summary::before { content: '▸'; font-size: 0.65rem; transition: transform 0.12s; }
+        #ui-panel details:not(.ip-row-d)[open] > summary::before { transform: rotate(90deg); }
+        #ui-panel details:not(.ip-row-d) > .control-group:first-of-type { margin-top: 2px; }
 
         #shaft-tooltip {
             position: absolute; z-index: 8; pointer-events: none; display: none;
@@ -686,25 +679,12 @@
            class the panel-mode tablist toggles. #panel-camera-buttons (the Level/Side/Top/Iso +
            N/E/S/W reframe row) carries .pane-views — it lives in the Views pane specifically,
            before Tools, not visible in every mode (see its own HTML comment). */
-        .pane-views, .pane-config { display: none; }
+        .pane-views, .pane-config, .pane-inspector { display: none; }
         body.mode-views .pane-views { display: block; }
         body.mode-config .pane-config { display: block; }
+        body.mode-inspector .pane-inspector { display: block; }
         #inspector-empty { color: #9ca3af; font-size: 0.84rem; line-height: 1.55; padding: 10px 2px; }
         #inspector-pane.has-selection #inspector-empty { display: none; }
-        /* Floating overlay card over the 3D view (not the sidebar) — same on desktop and
-           mobile. position:fixed here relies on NO ancestor having a `transform` (the mobile
-           drawer's translateX lives on #ui-panel, a sibling, not an ancestor of this element). */
-        #inspector-pane { display: none; position: fixed; top: calc(var(--wip-h) + 16px); left: 16px;
-            /* --inspector-w's own -70px clears the floating drawer-reopen hamburger (top-right,
-               46px + margins), which is visible whenever the sidebar is hidden/closed — both on
-               mobile always, and on desktop when the panel is manually hidden. */
-            width: var(--inspector-w); max-height: calc(100vh - var(--wip-h) - 32px);
-            overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
-            background: var(--panel-bg); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 18px 20px;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 45; }   /* above #ui-panel (z-index 40) */
-        body.mode-inspector #inspector-pane { display: block; }
-        #inspector-close { position: absolute; top: 8px; right: 10px; }
         #info-body { -webkit-user-select: text; user-select: text; }   /* the one place copying a value/citation is useful */
         #info-body h3 { font-size: 1.3rem; color: #fff; margin-top: 14px; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
@@ -864,6 +844,11 @@
                 <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
                 <button id="mode-config" class="pm-btn pm-icon-only" type="button" role="tab" aria-selected="false" title="Settings" aria-label="Settings"><span class="pm-ico" aria-hidden="true">⚙</span></button>
             </div>
+        </div>
+
+        <div id="inspector-pane" class="pane-inspector">
+            <div id="info-body"></div>
+            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
         </div>
 
         <!-- Camera reframe buttons live in the Views pane, before Tools. The live
@@ -1092,16 +1077,6 @@
         </div>
         </div>
 
-    </div>
-
-    <!-- Inspector: a floating overlay over the 3D view, NOT inside #ui-panel — so it's
-         unaffected by the mobile drawer's transform (position:fixed needs an untransformed
-         ancestor chain) and reads consistently as "a card floating over the model" on both
-         desktop and mobile, rather than replacing the sidebar's own content area. -->
-    <div id="inspector-pane" class="pane-inspector">
-        <button id="inspector-close" type="button" class="modal-close" aria-label="Close inspector">×</button>
-        <div id="info-body"></div>
-        <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
     </div>
 
     <!-- Legend: a modal, same shared shell as Data sources / Qanat Profile. Opened by the
