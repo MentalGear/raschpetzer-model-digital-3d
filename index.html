@@ -27,6 +27,10 @@
             --text-color: #f3f4f6;
             --accent-orange: #f97316;
             --accent-blue: #3b82f6;
+            /* #inspector-pane's own width formula, hoisted here so the top-left compass/West
+               label can reflow clear of it (see body.mode-inspector rules below) instead of
+               just stacking on top via z-index. */
+            --inspector-w: min(380px, calc(100vw - 32px - 70px));
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0;
@@ -70,9 +74,8 @@
             border-radius: 11px;
             pointer-events: none;
             letter-spacing: 0.3px;
-            /* Above #inspector-pane (z-index 45, top-left, same corner) so the label stays
-               readable/on-top instead of getting buried under the Inspector card when it opens. */
-            z-index: 46;
+            z-index: 5;
+            transition: left 0.2s ease, right 0.2s ease;   /* smooth reflow when a panel opens/closes */
         }
         #label-west { left: 18px; }
         /* Desktop: #ui-panel is a right-docked overlay the same width as --panel-w, so a plain
@@ -83,10 +86,17 @@
         #label-east { right: calc(var(--panel-w, 340px) + 18px); }
         /* Compass widget: a rotating north arrow; click to face north. */
         #compass {
-            /* Also above #inspector-pane, for the same reason as .compass-label. */
-            position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 46;
+            position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 6;
             border-radius: 50%; background: rgba(15,20,30,0.55);
             border: 1px solid rgba(255,255,255,0.20); cursor: pointer;
+            transition: left 0.2s ease;
+        }
+        /* #compass and #label-west share the Inspector overlay's top-left corner — rather than
+           stacking on top of it (z-index), reflow clear of it: shift right by its own left
+           offset (16px) + width (--inspector-w) + a gap, the same "track the covering panel's
+           size" approach #label-east already uses for --panel-w. */
+        body.mode-inspector #compass, body.mode-inspector #label-west {
+            left: calc(var(--inspector-w) + 32px);
         }
         /* On-canvas nav pad — shown only in Normal navigation mode. */
         #nav-pad { position: absolute; right: 16px; bottom: 16px; z-index: 6; display: none;
@@ -677,10 +687,10 @@
            mobile. position:fixed here relies on NO ancestor having a `transform` (the mobile
            drawer's translateX lives on #ui-panel, a sibling, not an ancestor of this element). */
         #inspector-pane { display: none; position: fixed; top: calc(var(--wip-h) + 16px); left: 16px;
-            /* -70px clears the floating drawer-reopen hamburger (top-right, 46px + margins),
-               which is visible whenever the sidebar is hidden/closed — both on mobile always,
-               and on desktop when the panel is manually hidden. */
-            width: min(380px, calc(100vw - 32px - 70px)); max-height: calc(100vh - var(--wip-h) - 32px);
+            /* --inspector-w's own -70px clears the floating drawer-reopen hamburger (top-right,
+               46px + margins), which is visible whenever the sidebar is hidden/closed — both on
+               mobile always, and on desktop when the panel is manually hidden. */
+            width: var(--inspector-w); max-height: calc(100vh - var(--wip-h) - 32px);
             overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
             background: var(--panel-bg); backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 18px 20px;
