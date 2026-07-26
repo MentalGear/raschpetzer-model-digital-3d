@@ -37,6 +37,10 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
+            /* No text-select anywhere by default (this is an app, not a document) — re-enabled
+               specifically for #info-body below, where copying a value/citation is useful. */
+            -webkit-user-select: none;
+            user-select: none;
             overflow: hidden;
             display: flex;
             flex-direction: column;   /* #wip-banner on top, #app-row (canvas + panel) below */
@@ -656,6 +660,7 @@
             box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; }
         body.mode-inspector #inspector-pane { display: block; }
         #inspector-close { position: absolute; top: 8px; right: 10px; }
+        #info-body { -webkit-user-select: text; user-select: text; }   /* the one place copying a value/citation is useful */
         #info-body h3 { font-size: 1.3rem; color: #fff; margin-top: 14px; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -679,7 +684,8 @@
            widget (keyboard/screen-reader support for free) with an arrow in front of the
            label, same "▸ rotates to ▾" treatment as the old Advanced-configuration section. */
         .ip-row-d { margin: 0; }
-        .ip-row-d > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center; }
+        .ip-row-d > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center;
+            -webkit-user-select: none; user-select: none; }   /* a disclosure control, not selectable text */
         .ip-row-d > summary::-webkit-details-marker { display: none; }
         .ip-row-d > summary .ip-k::before { content: '▸'; display: inline-block; font-size: 0.6rem;
             color: #6b7280; margin-right: 6px; transition: transform 0.12s; }
