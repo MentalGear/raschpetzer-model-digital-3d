@@ -195,6 +195,7 @@
             top: var(--wip-h); right: 0; height: calc(100% - var(--wip-h));
             width: var(--panel-w, 340px);
             background: var(--panel-bg);
+            backdrop-filter: blur(10px);   /* same treatment as the Inspector overlay's background */
             border-left: 1px solid rgba(255, 255, 255, 0.08);
             padding: 0 22px 22px;   /* no top padding: #panel-sticky supplies its own (see below) */
             box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35);
@@ -657,7 +658,7 @@
             overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
             background: var(--panel-bg); backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 18px 20px;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; }
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 45; }   /* above #ui-panel (z-index 40) */
         body.mode-inspector #inspector-pane { display: block; }
         #inspector-close { position: absolute; top: 8px; right: 10px; }
         #info-body { -webkit-user-select: text; user-select: text; }   /* the one place copying a value/citation is useful */
@@ -708,6 +709,12 @@
         #measure-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8;
             pointer-events: none; display: none; }
         body.measure-mode #measure-svg { display: block; }
+        /* Dev-only: visualizes the actual screen-space tap tolerance (see TAP_SAMPLE_OFFSETS/
+           pickInMeshes) as a purple box over each pickable shaft/hotspot/spot marker — lets you
+           SEE the effective hit area instead of guessing from feel. */
+        #hitbox-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8;
+            pointer-events: none; display: none; }
+        body.show-hitboxes #hitbox-svg { display: block; }
         #measure-readout {
             position: absolute; bottom: 182px; left: 50%; transform: translateX(-50%);
             z-index: 9; display: none; background: rgba(20,20,28,0.9); color: #fff;
@@ -833,21 +840,8 @@
             </div>
         </div>
 
-        <!-- Views pane: Map layer choice, Quick Views, Tools — the front-door controls for
+        <!-- Views pane: Quick Views, Map layer choice, Tools — the front-door controls for
              changing what you're looking at. Hidden in Inspector/Settings mode (.pane-views). -->
-        <div class="control-group pane-views" id="grp-baselayer">
-            <label for="param-baselayer">Map layer</label>
-            <select id="param-baselayer">
-                <option value="topo">Topographic map</option>
-                <option value="satellite">Satellite (ACT 2019)</option>
-                <option value="winter">Satellite — winter (leaf-off)</option>
-                <option value="ortho1967">Satellite — historical (1967)</option>
-                <option value="hillshade">LiDAR relief (2019)</option>
-                <option value="none">Plain</option>
-            </select>
-            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
-        </div>
-
         <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
              don't want to hand-tune the controls below. Presets SET the manual controls (they
              don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
@@ -880,6 +874,19 @@
                     <span class="pc-desc">The full site, today</span>
                 </button>
             </div>
+        </div>
+
+        <div class="control-group pane-views" id="grp-baselayer">
+            <label for="param-baselayer">Map layer</label>
+            <select id="param-baselayer">
+                <option value="topo">Topographic map</option>
+                <option value="satellite">Satellite (ACT 2019)</option>
+                <option value="winter">Satellite — winter (leaf-off)</option>
+                <option value="ortho1967">Satellite — historical (1967)</option>
+                <option value="hillshade">LiDAR relief (2019)</option>
+                <option value="none">Plain</option>
+            </select>
+            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
         </div>
 
         <!-- Settings pane (⚙): everything from the old collapsible "Advanced configuration",
@@ -1132,6 +1139,7 @@
 
     <div id="canvas-container">
         <svg id="measure-svg" aria-hidden="true"></svg>
+        <svg id="hitbox-svg" aria-hidden="true"></svg>
         <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
@@ -5296,7 +5304,10 @@
         // animate()), not continuously while navigating, since a URL rewrite is pure overhead
         // mid-drag and the shared link only matters once the user has settled on a view. See
         // setCameraURL/parseCameraFromURL.
-        let _camURLPending = false, _camURLLastChange = 0;
+        // _camURLPendingSince is the rising-edge timestamp (first 'change' of this pending
+        // burst), separate from _camURLLastChange (the most recent one) — see the write
+        // condition in animate() for why both are needed.
+        let _camURLPending = false, _camURLLastChange = 0, _camURLPendingSince = 0;
         function updateCameraReadout() {
             const el = document.getElementById('camera-readout');
             if (!el) return;
@@ -5313,6 +5324,7 @@
             updateCompassNeedle();
             controls.addEventListener('change', () => {
                 _readoutDirty = true;
+                if (!_camURLPending) _camURLPendingSince = performance.now();
                 _camURLPending = true; _camURLLastChange = performance.now();
                 updateCompassNeedle(); updateCompass();
             });
@@ -5361,8 +5373,11 @@
         // offset points covering a 44px-square around it, closest-first, so a shaft/hotspot/
         // qanat tube that only projects to a few screen pixels at typical zoom is still
         // reliably tappable (Apple HIG minimum touch target — applies on desktop clicks too).
-        const TAP_SAMPLE_OFFSETS = [[0, 0], [18, 0], [-18, 0], [0, 18], [0, -18],
-            [18, 18], [18, -18], [-18, 18], [-18, -18]];
+        const TAP_SAMPLE_RADIUS_PX = 18;   // half-width of the sampled box; also drives the hitbox overlay (see updateHitboxOverlay)
+        const TAP_SAMPLE_OFFSETS = [[0, 0], [TAP_SAMPLE_RADIUS_PX, 0], [-TAP_SAMPLE_RADIUS_PX, 0],
+            [0, TAP_SAMPLE_RADIUS_PX], [0, -TAP_SAMPLE_RADIUS_PX],
+            [TAP_SAMPLE_RADIUS_PX, TAP_SAMPLE_RADIUS_PX], [TAP_SAMPLE_RADIUS_PX, -TAP_SAMPLE_RADIUS_PX],
+            [-TAP_SAMPLE_RADIUS_PX, TAP_SAMPLE_RADIUS_PX], [-TAP_SAMPLE_RADIUS_PX, -TAP_SAMPLE_RADIUS_PX]];
         function pickInMeshes(dom, ev, meshes, filter) {
             const r = dom.getBoundingClientRect();
             for (const [dx, dy] of TAP_SAMPLE_OFFSETS) {
@@ -6495,6 +6510,7 @@
                 controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
                 if (k >= 1) camAnim = null;
                 _readoutDirty = true;
+                if (!_camURLPending) _camURLPendingSince = now;
                 _camURLPending = true; _camURLLastChange = now;
             }
             updateFlow(now);
@@ -6513,10 +6529,15 @@
                 _readoutDirty = false;
                 _readoutLastPaint = now;
             }
-            // Shareable camera URL: debounced, not throttled — only written once the camera
-            // has sat still for 3s since its last 'change'/fly-to-animation update, so a URL
-            // rewrite never happens mid-drag and only fires once per settled view.
-            if (_camURLPending && now - _camURLLastChange > 3000) {
+            // Shareable camera URL: debounced, not throttled — written once the camera has sat
+            // still for 3s since its last 'change' ... OR after 5s of this pending burst
+            // regardless, whichever comes first. The second clause is the actual fix for a real
+            // bug: OrbitControls' damping decay is FRAME-count-based, not wall-clock-based, so
+            // after a fast/large drag (or on a slower/lower-fps device) it can keep dispatching
+            // negligible 'change' events for many seconds — each one re-arming the first-clause
+            // 3s timer, so on its own that clause could starve forever and never write. The hard
+            // 5s cap guarantees a write happens soon after the interaction, even mid-coast.
+            if (_camURLPending && (now - _camURLLastChange > 3000 || now - _camURLPendingSince > 5000)) {
                 setCameraURL();
                 _camURLPending = false;
             }
