@@ -98,9 +98,12 @@
         body.mode-inspector #compass, body.mode-inspector #label-west {
             left: calc(var(--inspector-w) + 32px);
         }
-        /* On-canvas nav pad — shown only in Normal navigation mode. */
-        #nav-pad { position: absolute; right: 16px; bottom: 16px; z-index: 6; display: none;
-            flex-direction: column; align-items: center; gap: 6px; }
+        /* On-canvas nav pad — shown only in Normal navigation mode. #ui-panel is an always-open
+           (by default) right-docked overlay the same width as --panel-w; without this, the pad
+           renders entirely underneath it — clear it the same way #label-east does. */
+        #nav-pad { position: absolute; right: calc(var(--panel-w, 340px) + 16px); bottom: 16px; z-index: 6; display: none;
+            flex-direction: column; align-items: center; gap: 6px; transition: right 0.2s ease; }
+        body.panel-hidden #nav-pad { right: 16px; }
         body.nav-normal #nav-pad { display: flex; }
         #nav-pad .nav-pad-row { display: flex; gap: 6px; }
         #nav-pad button { width: 78px; height: 78px; border-radius: 14px; cursor: pointer;
@@ -330,13 +333,17 @@
         #timeline-bar { display: none; }
         body.timeline-on #timeline-bar { display: block; }
         #timeline-bar {
-            position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+            /* Centered on the CLEAR area left of #ui-panel (always open by default), not the
+               full viewport — left:50% alone lets a wide bar's right edge peek under the panel. */
+            position: absolute; left: calc(50% - var(--panel-w, 340px) / 2); bottom: 16px; transform: translateX(-50%);
             width: min(640px, calc(100% - 40px)); z-index: 7;
             background: rgba(18,20,28,0.95); border: 1px solid rgba(255,255,255,0.14);
             backdrop-filter: blur(6px);
             border-radius: 12px; padding: 9px 16px 11px; color: #d1d5db;
             box-shadow: 0 8px 28px rgba(0,0,0,0.42);
+            transition: left 0.2s ease;
         }
+        body.panel-hidden #timeline-bar { left: 50%; }
         #timeline-bar .tl-head { display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 2px; gap: 10px; }
         /* Era pill — the "which era" answer, colour-coded to the current period. */
@@ -517,14 +524,15 @@
             #ui-panel { width: min(360px, 88vw); transform: translateX(100%); transition: transform 0.25s ease; }
             body.drawer-open #ui-panel { transform: translateX(0); }
             /* Off-screen (translateX) here, not display:none — the panel-width offset the
-               desktop rule above needs doesn't apply, since the drawer never shares layout
+               desktop rules above need doesn't apply, since the drawer never shares layout
                space with the canvas the way the desktop overlay does. */
             #label-east { right: 18px; }
+            #nav-pad { right: 16px; }
             #drawer-toggle { display: flex; }
             body.drawer-open #drawer-toggle { display: none; }
             body.drawer-open #drawer-scrim { display: block; }
             #drawer-close { display: block; }
-            #timeline-bar { width: calc(100% - 20px); padding: 7px 11px 9px;
+            #timeline-bar { left: 50%; width: calc(100% - 20px); padding: 7px 11px 9px;
                 /* keep clear of the iOS home indicator / safe area so it isn't cut off */
                 bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
             .instructions { display: none; }
