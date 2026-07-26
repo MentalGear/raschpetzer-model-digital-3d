@@ -6,6 +6,20 @@
     <title>3d geological raschpëtzer visualization</title>
     <!-- Inline SVG favicon: keeps the site self-contained and avoids a /favicon.ico 404. -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232a3b4d'/%3E%3Crect y='10' width='16' height='6' fill='%237a5c3e'/%3E%3Crect x='7' y='3' width='2' height='11' fill='%2358a6ff'/%3E%3C/svg%3E">
+    <!-- theme-color: tints the mobile browser chrome (status bar / task-switcher card) to
+         match the app instead of defaulting to white; updated live by applyTheme() below.
+         Two tags (light/dark media-matched) so the OS picks the right one before any JS
+         runs; JS then keeps it in sync with an explicit Light/Dark override. -->
+    <meta name="theme-color" content="#f5f0ea" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#20242c" media="(prefers-color-scheme: dark)">
+    <!-- PWA: "Add to Home Screen" launches in its own window with the OS status bar hidden
+         where the platform allows it (display:fullscreen in manifest.json for Android/Chrome;
+         the apple-mobile-web-app-* tags are iOS Safari's separate, older mechanism for the
+         same "hide the browser chrome" intent). -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Raschpëtzer">
     <style>
         :root {
             --bg-color: #f5f0ea;
@@ -167,18 +181,26 @@
         #scale-bar .bar-fill { width: 90px; height: 2px; background: #fff; }
         #scale-bar .bar-text { font-size: 0.78rem; color: #fff; margin-top: 2px; }
 
+        /* The whole sidebar is an overlay — floats over the 3D canvas (which fills the full
+           viewport width) rather than sharing layout space with it. Same fixed-position
+           mechanism the mobile drawer always used, now the default at every viewport size;
+           the mobile media query below only narrows its width and makes it hidden-by-default
+           (screen space is scarcer there, so it opens via the drawer-toggle hamburger). */
         #ui-panel {
-            order: 2;
-            flex: 0 0 var(--panel-w, 340px);
+            position: fixed;
+            top: var(--wip-h); right: 0; height: calc(100% - var(--wip-h));
             width: var(--panel-w, 340px);
-            height: 100%;   /* of #app-row, not the viewport — shrinks to make room for #wip-banner */
-            position: relative;
             background: var(--panel-bg);
             border-left: 1px solid rgba(255, 255, 255, 0.08);
             padding: 0 22px 22px;   /* no top padding: #panel-sticky supplies its own (see below) */
             box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35);
-            z-index: 10;
+            z-index: 40;
             overflow-y: auto;
+            overflow-x: hidden;   /* never a horizontal scrollbar/overflow, however narrow --panel-w gets */
+            /* Normal touch scroll (pan-y) still works; pinch-zoom is a browser-level page-zoom
+               gesture here (not the app's own zoom), so it's blocked while a finger is on the
+               panel — pinching over the 3D canvas still works via OrbitControls as usual. */
+            touch-action: pan-y;
         }
 
         h1 { font-size: 1.14rem; font-weight: 700; margin-bottom: 3px; letter-spacing: 0.2px; color: #fff; }
@@ -430,6 +452,11 @@
         /* Keep the East corner label clear of the floating reopen button when the panel is hidden. */
         body.panel-hidden #label-east { right: 70px; }
         #drawer-scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 39; }
+        #toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(8px);
+            background: var(--panel-bg); color: #fff; padding: 10px 18px; border-radius: 10px;
+            font-size: 0.84rem; box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 60;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         /* Desktop: draggable resize handle on the panel's inner edge + hidden state */
         #panel-resize { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 6; }
         #panel-resize:hover, body.panel-resizing #panel-resize { background: rgba(255,255,255,0.18); }
@@ -447,9 +474,10 @@
                "dynamic viewport minus #wip-banner"; 100% of that (not another hardcoded 100vh)
                is what avoids clipping the bottom behind the iOS Safari address bar. */
             #canvas-container { position: relative; width: 100%; height: 100%; }
-            #ui-panel { position: fixed; top: var(--wip-h); right: 0; height: calc(100% - var(--wip-h));
-                width: min(360px, 88vw);
-                transform: translateX(100%); transition: transform 0.25s ease; z-index: 40; }
+            /* Narrower, and hidden-by-default (needs the drawer-toggle hamburger) — screen
+               space is scarcer on mobile than on desktop, where the overlay panel just stays
+               visible. Position/top/right/height/z-index now come from the base rule above. */
+            #ui-panel { width: min(360px, 88vw); transform: translateX(100%); transition: transform 0.25s ease; }
             body.drawer-open #ui-panel { transform: translateX(0); }
             #drawer-toggle { display: flex; }
             body.drawer-open #drawer-toggle { display: none; }
@@ -564,15 +592,19 @@
         .annot-io button:hover { background: #4b5563; }
 
         /* Feature info panel (click a shaft) */
-        /* Shared side panel: Settings ⇄ Inspector segmented toggle at the top. */
+        /* Shared side panel: Views ⇄ Inspector ⇄ Settings segmented toggle at the top. */
         #panel-mode { display: flex; gap: 4px; margin: 2px 0 14px; padding: 3px;
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; }
         #panel-mode .pm-btn { flex: 1; padding: 7px 6px; border: none; border-radius: 6px; background: none;
             color: #9ca3af; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s;
-            display: inline-flex; align-items: center; justify-content: center; gap: 5px; line-height: 1; }
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px; line-height: 1;
+            min-height: 44px; }   /* 44px minimum touch target, even though the row itself is compact */
         #panel-mode .pm-btn .pm-ico { font-size: 0.95rem; line-height: 1; display: inline-block; }
         #panel-mode .pm-btn:hover { color: #d7dbe2; }
         #panel-mode .pm-btn.active { background: rgba(255,255,255,0.13); color: #fff; }
+        /* The Settings button is icon-only — narrower than the two labelled tabs beside it. */
+        #panel-mode .pm-btn.pm-icon-only { flex: 0 0 44px; }
+        #panel-mode .pm-btn.pm-icon-only .pm-ico { font-size: 1.1rem; }
 
         /* #grp-baselayer (Map layer, the first control in the panel) carries the extra top
            margin instead — it's the first thing below the sticky header now, and needs its
@@ -601,20 +633,29 @@
         body.presets-compact .preset-card .pc-ico { font-size: 1rem; }
         body.presets-compact .preset-card .pc-label { font-size: 0.72rem; }
         body.presets-compact .preset-card .pc-desc { display: none; }   /* icon + label only */
-        #inspector-pane { display: none; }
+        /* Three mutually exclusive panes (Views / Inspector / Settings), selected by a body
+           class the panel-mode tablist toggles. #panel-camera-buttons (the Level/Side/Top/Iso +
+           N/E/S/W reframe row) carries none of these classes — it stays visible in every mode,
+           since reframing the camera is useful mid-inspection too. */
+        .pane-views, .pane-config { display: none; }
+        body.mode-views .pane-views { display: block; }
+        body.mode-config .pane-config { display: block; }
         #inspector-empty { color: #9ca3af; font-size: 0.84rem; line-height: 1.55; padding: 10px 2px; }
         #inspector-pane.has-selection #inspector-empty { display: none; }
+        /* Floating overlay card over the 3D view (not the sidebar) — same on desktop and
+           mobile. position:fixed here relies on NO ancestor having a `transform` (the mobile
+           drawer's translateX lives on #ui-panel, a sibling, not an ancestor of this element). */
+        #inspector-pane { display: none; position: fixed; top: calc(var(--wip-h) + 16px); left: 16px;
+            /* -70px clears the floating drawer-reopen hamburger (top-right, 46px + margins),
+               which is visible whenever the sidebar is hidden/closed — both on mobile always,
+               and on desktop when the panel is manually hidden. */
+            width: min(380px, calc(100vw - 32px - 70px)); max-height: calc(100vh - var(--wip-h) - 32px);
+            overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
+            background: var(--panel-bg); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 18px 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; }
         body.mode-inspector #inspector-pane { display: block; }
-        body.mode-inspector .tab-section,
-        body.mode-inspector #grp-baselayer,
-        body.mode-inspector #panel-presets,
-        body.mode-inspector #panel-nav,
-        body.mode-inspector #panel-actions { display: none; }
-        /* Inspector mode shows ONLY inspectable-element detail — Camera/Navigation/Map layer
-           (#grp-baselayer now sits outside #panel-nav structurally, but is still hidden here
-           alongside it) used to stay visible here so a selection could be reframed without a
-           round-trip to Settings, but that mixed "control panel" chrome into what's meant to
-           read as a focused detail view. */
+        #inspector-close { position: absolute; top: 8px; right: 10px; }
         #info-body h3 { font-size: 1.3rem; color: #fff; margin-top: 14px; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -624,19 +665,26 @@
         .ip-note { font-size: 0.78rem; color: #cbd5e1; margin: 10px 0; line-height: 1.45; }
         .ip-figure { margin: 4px 0 8px; background: #f7f4ec; border-radius: 8px; padding: 6px; }
         .ip-figure img { width: 100%; height: auto; display: block; border-radius: 5px; cursor: zoom-in; }
-        /* Compact single-letter knowledge-status badge; click to reveal the source detail. */
+        /* Compact single-letter knowledge-status badge — decorative only; the row (via its
+           native <details>/<summary>, see .ip-row-d below) is what's actually clickable now. */
         .ip-badge { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px;
-            border-radius: 50%; font-size: 0.62rem; font-weight: 700; color: #fff; border: none; cursor: help;
-            margin-left: 7px; padding: 0; vertical-align: middle; line-height: 1; }
-        .ip-badge:hover { filter: brightness(1.15); }
-        .ip-badge.open { box-shadow: 0 0 0 2px rgba(255,255,255,0.5); }
+            border-radius: 50%; font-size: 0.62rem; font-weight: 700; color: #fff;
+            margin-left: 7px; padding: 0; vertical-align: middle; line-height: 1; cursor: help; }
         .ip-badge.s-documented { background: #16a34a; }
         .ip-badge.s-inferred { background: #d97706; }
         .ip-badge.s-reconstructed { background: #2563eb; }
         .ip-badge.s-hypothetical { background: #9333ea; }
         .ip-badge.s-schematic { background: #64748b; }
-        .ip-detail { margin: 1px 0 8px; font-size: 0.72rem; color: #9ca3af; padding-left: 2px; }
-        .ip-detail[hidden] { display: none; }
+        /* Fact rows with a source to disclose are a native <details> — a real disclosure
+           widget (keyboard/screen-reader support for free) with an arrow in front of the
+           label, same "▸ rotates to ▾" treatment as the old Advanced-configuration section. */
+        .ip-row-d { margin: 0; }
+        .ip-row-d > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center; }
+        .ip-row-d > summary::-webkit-details-marker { display: none; }
+        .ip-row-d > summary .ip-k::before { content: '▸'; display: inline-block; font-size: 0.6rem;
+            color: #6b7280; margin-right: 6px; transition: transform 0.12s; }
+        .ip-row-d[open] > summary .ip-k::before { transform: rotate(90deg); }
+        .ip-detail { margin: 1px 0 8px; font-size: 0.72rem; color: #9ca3af; padding-left: 15px; }
         .ip-detail-status { text-transform: uppercase; letter-spacing: 0.4px; margin-right: 7px; color: #cbd5e1; font-weight: 600; }
         .ip-detail-note { display: block; margin-top: 4px; line-height: 1.45; color: #9ca3af; }
         .ip-cite { display: inline; margin-top: 4px; }
@@ -715,6 +763,15 @@
         :root[data-theme="light"] #profile-panel .pp-toggle { color: #4a3f2f; }
         :root[data-theme="light"] #profile-panel .pp-toggle select { background: #fff; color: #3a3226; border-color: rgba(0,0,0,0.15); }
         :root[data-theme="light"] #legend-modal .legend-sep { background: rgba(0,0,0,0.1); }
+
+        /* The page background (--bg-color) follows the same theme signal as the modals above —
+           mostly invisible behind the always-full canvas+panel, but it shows through iOS
+           Safari's overscroll bounce and any safe-area inset, so it should match dark mode
+           there too instead of flashing the fixed light cream. Same colour as the 3D scene's
+           own dark background (sceneBackgroundColor()) so there's no visible seam. */
+        @media (prefers-color-scheme: dark) { :root { --bg-color: #20242c; } }
+        :root[data-theme="dark"] { --bg-color: #20242c; }
+        :root[data-theme="light"] { --bg-color: #f5f0ea; }
     </style>
     <script src="vendor/three.min.js"></script>
     <script src="vendor/OrbitControls.js"></script>
@@ -724,7 +781,7 @@
     <script src="assets/vectors-walferdange.js"></script>
     <script src="assets/paths-walferdange.js"></script>
 </head>
-<body>
+<body class="mode-views">
 
     <div id="wip-banner">🚧 Private Beta — Work in progress — <a href="mailto:raschpetzer@tomfaber.id?subject=Raschp%C3%ABtzer%20qanat%20visualization%20feedback">Feedback welcome!</a>
         <button id="wip-banner-close" type="button" aria-label="Dismiss">×</button>
@@ -732,6 +789,7 @@
 
     <button id="drawer-toggle" type="button" aria-label="Open controls">☰</button>
     <div id="drawer-scrim"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
 
     <div id="app-row">
     <div id="ui-panel">
@@ -740,24 +798,40 @@
             <div id="panel-head">
                 <div>
                     <h1>Raschpëtzer Roman Qanat</h1>
-                    <h2>3D geological visualization · Walferdange, Luxembourg</h2>
+                    <h2>3-D visualization from underlying single source of truth database · Walferdange, Luxembourg</h2>
                 </div>
                 <button id="drawer-close" type="button" aria-label="Close controls">×</button>
             </div>
             <div id="panel-mode" role="tablist" aria-label="Panel view">
-                <button id="mode-settings" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">⚙</span><span>Settings</span></button>
+                <button id="mode-views" class="pm-btn active" type="button" role="tab" aria-selected="true"><span class="pm-ico" aria-hidden="true">🗺️</span><span>Views</span></button>
                 <button id="mode-inspector" class="pm-btn" type="button" role="tab" aria-selected="false"><span class="pm-ico" aria-hidden="true">🔍</span><span>Inspector</span></button>
+                <button id="mode-config" class="pm-btn pm-icon-only" type="button" role="tab" aria-selected="false" title="Settings" aria-label="Settings"><span class="pm-ico" aria-hidden="true">⚙</span></button>
             </div>
         </div>
 
-        <!-- Map layer first: the base imagery choice grounds everything else, including what
-             the Quick View thumbnails below actually mean. Hidden in Inspector mode along with
-             the rest of #panel-nav (see the body.mode-inspector rule) even though it now sits
-             outside that wrapper structurally. -->
-        <div class="control-group" id="grp-baselayer">
+        <!-- Camera reframe buttons live in the Views pane, before Tools. The live
+             Azimuth/Elevation/Distance readout stays in Settings (see #grp-camera)
+             since it's a readout, not something you press. -->
+        <div id="panel-camera-buttons" class="control-group pane-views">
+            <div class="segmented">
+                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
+                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
+                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
+                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
+            </div>
+            <div class="segmented" id="preset-cardinals">
+                <button id="btn-view-n" type="button" title="Face north">N</button>
+                <button id="btn-view-e" type="button" title="Face east">E</button>
+                <button id="btn-view-s" type="button" title="Face south">S</button>
+                <button id="btn-view-w" type="button" title="Face west">W</button>
+            </div>
+        </div>
+
+        <!-- Views pane: Map layer choice, Quick Views, Tools — the front-door controls for
+             changing what you're looking at. Hidden in Inspector/Settings mode (.pane-views). -->
+        <div class="control-group pane-views" id="grp-baselayer">
             <label for="param-baselayer">Map layer</label>
             <select id="param-baselayer">
-                <option value="contours">Contour lines</option>
                 <option value="topo">Topographic map</option>
                 <option value="satellite">Satellite (ACT 2019)</option>
                 <option value="winter">Satellite — winter (leaf-off)</option>
@@ -765,17 +839,13 @@
                 <option value="hillshade">LiDAR relief (2019)</option>
                 <option value="none">Plain</option>
             </select>
-            <div id="grp-contours">
-                <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
-                <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
-            </div>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
         </div>
 
         <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
              don't want to hand-tune the controls below. Presets SET the manual controls (they
              don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
-        <div id="panel-presets" class="control-group">
+        <div id="panel-presets" class="control-group pane-views">
             <label>Quick views</label>
             <div id="preset-grid">
                 <button class="preset-card" data-preset="underground" type="button">
@@ -806,8 +876,10 @@
             </div>
         </div>
 
-        <details class="tab-section" id="display-options">
-        <summary>Advanced configuration</summary>
+        <!-- Settings pane (⚙): everything from the old collapsible "Advanced configuration",
+             plus the camera readout, navigation mode, theme, and developer mode — moved here
+             out of the always-visible sidebar. Hidden outside mode-config (.pane-config). -->
+        <div class="tab-section pane-config" id="display-options">
         <div id="tab-bar" role="tablist">
             <button class="tab active" data-tab="map" type="button" role="tab" aria-selected="true"><span class="ti" aria-hidden="true">🗺️</span><span class="tl">Map</span></button>
             <button class="tab" data-tab="qanat" type="button" role="tab" aria-selected="false"><span class="ti" aria-hidden="true">💧</span><span class="tl">Qanat</span></button>
@@ -816,6 +888,13 @@
 
         <div id="tab-panes">
         <div class="tab-pane active" data-pane="map">
+            <div class="control-group">
+                <label class="check-row"><input type="checkbox" id="param-contour-lines" checked> Contour&nbsp;lines</label>
+                <div id="grp-contours" style="margin-left:22px">
+                    <label>Contour Line Spacing <span class="val" id="lbl-contours">0.20</span></label>
+                    <input type="range" id="param-contours" min="0.10" max="1.0" step="0.05" value="0.20" aria-label="Contour line spacing">
+                </div>
+            </div>
             <div class="control-group">
                 <label>Overlays (geoportail)</label>
                 <label class="check-row"><input type="checkbox" id="ov-aquifer"> Aquifer&nbsp;extent&nbsp;(sandstone)</label>
@@ -829,7 +908,14 @@
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
                 <label class="check-row"><input type="checkbox" id="param-dip"> Bedding&nbsp;dip&nbsp;(≈2%&nbsp;SE,&nbsp;exaggerated)</label>
                 <label class="check-row dev-opt" id="row-strata-detail"><input type="checkbox" id="param-strata-detail"> Detailed&nbsp;strata&nbsp;(bedding&nbsp;+&nbsp;water&nbsp;table)&nbsp;·&nbsp;buggy</label>
-                <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
+                <div class="opt-group" id="grp-xray">
+                    <label class="check-row"><input type="checkbox" id="param-underground" checked> Underground&nbsp;x‑ray&nbsp;(always&nbsp;on&nbsp;top)</label>
+                    <div id="row-xray-opacity">
+                        <label>X‑ray opacity <span class="val" id="lbl-xray-opacity">0.50</span></label>
+                        <input type="range" id="param-xray-opacity" min="0.1" max="1.0" step="0.05" value="0.5" aria-label="X-ray opacity: subsurface structure opacity while Underground x-ray is on">
+                        <div style="font-size:0.72rem;color:#9ca3af;margin:2px 0 8px;line-height:1.35;">Separate from "Underground opacity" below — only applies while x‑ray is on, so the x‑ray-through view can default lower/less cluttered than the occluded view.</div>
+                    </div>
+                </div>
                 <label class="check-row dev-opt" id="row-detailed-gallery"><input type="checkbox" id="param-detailed-gallery"> Detailed&nbsp;gallery&nbsp;(reconstructed&nbsp;hollow&nbsp;profile)</label>
                 <label id="lbl-realistic-diameters">Shaft/gallery diameter realism <span class="val" id="lbl-realism-val">1.25x</span></label>
                 <input type="range" id="param-realistic-diameters" min="1" max="10" step="0.25" value="1.25" aria-label="Shaft and gallery diameter realism, as a multiple of true 1:1 scale: 1x is real size (~1 m shafts, ~15-45 cm gallery); higher values exaggerate for visibility against the 700 m terrain">
@@ -902,26 +988,9 @@
             </div>
         </div>
         </div>
-        </details>
-
-        <!-- Camera / navigation controls: the most-used view controls sit near the top, and
-             stay visible in Inspector mode (above the selected feature) so it can be reframed. -->
-        <div id="panel-nav">
         <div class="control-group" id="grp-camera">
             <label>Camera</label>
             <div id="camera-readout" style="font-size:0.72rem;color:#9ca3af;margin-top:2px;min-height:1em;">—</div>
-            <div class="segmented">
-                <button id="btn-level-horizon" type="button" title="Set elevation to 0° (level horizon)">⊞ Level</button>
-                <button id="btn-reset" type="button" title="Side elevation — the default cross-section view">◧ Side</button>
-                <button id="btn-top-view" type="button" title="Top-down view">⬇ Top</button>
-                <button id="btn-iso" type="button" title="Isometric view">◳ Iso</button>
-            </div>
-            <div class="segmented" id="preset-cardinals">
-                <button id="btn-view-n" type="button" title="Face north">N</button>
-                <button id="btn-view-e" type="button" title="Face east">E</button>
-                <button id="btn-view-s" type="button" title="Face south">S</button>
-                <button id="btn-view-w" type="button" title="Face west">W</button>
-            </div>
         </div>
         <div class="control-group">
             <label>Navigation</label>
@@ -930,30 +999,6 @@
                 <button id="btn-nav-power" type="button" title="Free orbit: drag rotates (power user)">Power</button>
             </div>
             <div id="nav-mode-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:5px;min-height:1em;">Drag pans · right-drag / two-finger rotates · scroll zooms.</div>
-        </div>
-        </div>
-
-        <div id="inspector-pane">
-            <div id="info-body"></div>
-            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
-        </div>
-
-        <div id="panel-actions">
-        <div class="control-group">
-            <label>Tools</label>
-            <div class="btn-tools">
-                <button id="btn-timeline" type="button">⏳ Timeline</button>
-                <button id="btn-legend" type="button">▤ Legend</button>
-                <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
-                <button id="btn-profile" type="button">📈 Qanat Profile</button>
-                <button id="btn-sources" type="button">ⓘ Data sources</button>
-                <button id="btn-export-svg" type="button" class="dev-opt" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
-            </div>
-            <div class="btn-row" style="display:none">
-                <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
-                <button id="btn-annotate" type="button">✎ Annotate mode</button>
-                <button id="btn-tour" type="button">▶ Guided tour</button>
-            </div>
         </div>
         <div class="control-group" id="theme-toggle">
             <label>Theme</label>
@@ -969,6 +1014,36 @@
         </div>
         </div>
 
+        <div id="panel-actions" class="pane-views">
+        <div class="control-group">
+            <label>Tools</label>
+            <div class="btn-tools">
+                <button id="btn-share" type="button">🔗 Share</button>
+                <button id="btn-timeline" type="button">⏳ Timeline</button>
+                <button id="btn-legend" type="button">▤ Legend</button>
+                <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
+                <button id="btn-profile" type="button">📈 Qanat Profile</button>
+                <button id="btn-sources" type="button">ⓘ Data sources</button>
+                <button id="btn-export-svg" type="button" class="dev-opt" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
+            </div>
+            <div class="btn-row" style="display:none">
+                <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
+                <button id="btn-annotate" type="button">✎ Annotate mode</button>
+                <button id="btn-tour" type="button">▶ Guided tour</button>
+            </div>
+        </div>
+        </div>
+
+    </div>
+
+    <!-- Inspector: a floating overlay over the 3D view, NOT inside #ui-panel — so it's
+         unaffected by the mobile drawer's transform (position:fixed needs an untransformed
+         ancestor chain) and reads consistently as "a card floating over the model" on both
+         desktop and mobile, rather than replacing the sidebar's own content area. -->
+    <div id="inspector-pane" class="pane-inspector">
+        <button id="inspector-close" type="button" class="modal-close" aria-label="Close inspector">×</button>
+        <div id="info-body"></div>
+        <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
     </div>
 
     <!-- Legend: a modal, same shared shell as Data sources / Qanat Profile. Opened by the
@@ -1136,6 +1211,7 @@
         const params = {
             plateauHeight: 5.0,           // vertical unit reference (non-GeoData fallback datum)
             contourSpacing: 0.20,
+            showContourLines: true,       // independent overlay, like Forest paths (not a base-layer choice)
             width: 70,
             depth: 40,
             baseY: -2,
@@ -1144,7 +1220,7 @@
             surround: 1.0,                // how much surrounding DEM to show — default to max (full window)
             navMode: 'normal',            // camera navigation: 'normal' (map-like, default) | 'power' (free orbit)
             flipWE: false,                // mirror the terrain West<->East
-            baseLayer: 'contours',        // terrain surface graphic: 'contours' | 'satellite' | 'none'
+            baseLayer: 'none',            // terrain surface graphic: 'satellite' | 'topo' | ... | 'none' (plain)
             overlay: { aquifer: false, contours: false, spot: false, break: false },  // draped thematic overlays
             showGeology: true,            // real strata + groundwater/qanat flows
             strataDetailed: false,        // overlay detailed geology (bedding lines, mounded water table, unit labels)
@@ -1167,7 +1243,8 @@
             showResearchStatus: false,    // explored/unexplored + construction-work status (fig 6-4) — off by default
             showPerched: false,           // perched pre-construction water table + drawdown band
             pbr: false,                   // realistic PBR stone materials (textured shafts/walls) — DEV only
-            undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group
+            undergroundOpacity: 1.0,      // opacity multiplier over the whole subsurface group (x-ray OFF)
+            xrayOpacity: 0.5,             // opacity multiplier over the whole subsurface group (x-ray ON) — separate, defaults lower
             shaftCutaway: false,          // dev "Look inside": clip the camera-facing half through the subsurface centre
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
@@ -1469,6 +1546,15 @@
             selectionMarker.position.copy(point);
             selectionMarker.quaternion.copy(camera.quaternion);   // billboards toward the camera
             selectionMarker.visible = true;
+        }
+        let toastTimer = null;
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            if (!el) return;
+            el.textContent = msg;
+            el.classList.add('show');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
         }
         function clearSelectionMarker() {
             if (selectionMarker) selectionMarker.visible = false;
@@ -1861,10 +1947,15 @@
             xsecStrataMesh = mesh;
         }
 
-        // Underground opacity: a global multiplier over the subsurface group's own opacities.
-        function applyUndergroundOpacity(v) {
-            params.undergroundOpacity = v;
+        // Underground/X-ray opacity: a global multiplier over the subsurface group's own
+        // opacities. TWO independent values (params.undergroundOpacity, params.xrayOpacity) —
+        // whichever is currently "live" depends on the x-ray toggle: while x-ray is on, the
+        // structures float on top of everything and can read as cluttered at full opacity, so
+        // that view gets its own (lower-default) slider, separate from the opacity you'd want
+        // for the occluded (x-ray off) view.
+        function applyEffectiveSubsurfaceOpacity() {
             if (!subsurfaceGroup) return;
+            const v = params.xrayUnderground ? params.xrayOpacity : params.undergroundOpacity;
             subsurfaceGroup.traverse(o => {
                 if (!o.material) return;
                 const mats = Array.isArray(o.material) ? o.material : [o.material];
@@ -1875,6 +1966,14 @@
                     m.needsUpdate = true;
                 });
             });
+        }
+        function applyUndergroundOpacity(v) {
+            params.undergroundOpacity = v;
+            applyEffectiveSubsurfaceOpacity();
+        }
+        function applyXrayOpacity(v) {
+            params.xrayOpacity = v;
+            applyEffectiveSubsurfaceOpacity();
         }
 
         // --- GeoData source: real DEM elevations around the Raschpëtzer qanat
@@ -2320,6 +2419,15 @@
             if (typeof buildParametricModel === 'function' && modelGroup) buildParametricModel();
             document.querySelectorAll('#theme-toggle .segmented button').forEach(b =>
                 b.classList.toggle('active', b.dataset.theme === mode));
+            // The two <meta name="theme-color" media="..."> tags only cover the "auto" (OS-
+            // matched) case; an explicit Light/Dark override needs its OWN unconditional tag
+            // (no media attribute) to actually win over the OS preference in the browser chrome.
+            let metaEl = document.querySelector('meta[name="theme-color"]:not([media])');
+            if (mode === 'auto') { if (metaEl) metaEl.remove(); }
+            else {
+                if (!metaEl) { metaEl = document.createElement('meta'); metaEl.name = 'theme-color'; document.head.appendChild(metaEl); }
+                metaEl.content = sceneBackgroundColor();
+            }
         }
         // Darkens the configured (light, paper-toned) scene background to match the OS/browser
         // dark-mode preference, since the sidebar chrome is always-dark but the 3D view background
@@ -2405,6 +2513,7 @@
             controls.update();
             setupZoomToCursor();
             setupCameraReadout();
+            setupTouchGestureExclusivity();
 
             // Lighting — bright, daylight feel to match the reference
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -2672,10 +2781,10 @@
                     }
                 }
             }
-            // Contour lines belong to the 'contours' base layer only (hidden under the
-            // satellite drape or the plain base, which would otherwise clash with the lines).
+            // Contour lines: an independent overlay (params.showContourLines), like Forest
+            // paths/aquifer — works over any base layer, not tied to picking a specific one.
             const tOp = params.terrainOpacity;
-            if (params.baseLayer === 'contours') {
+            if (params.showContourLines) {
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
             const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
@@ -2946,9 +3055,10 @@
                 } else {
                     addSeg(len, sy - len / 2, 'body');
                 }
-                const lbl = createTextSprite(p.id, '#1a1a1a', 24);
+                const lbl = createTextSprite(p.id, '#1a1a1a', 24, { name: p.id });
                 lbl.position.set(p.x, sy + CAP + 0.5, p.z);
                 modelGroup.add(lbl);
+                shaftMeshes.push(lbl);   // the label text is as clickable as the shaft itself
             });
             maxShaftLenUnits = localMaxLen || 5;          // calibrates metres for non-geo modes
             // The current build's route polyline + its characteristic Z, for the qanat cutaway
@@ -3531,7 +3641,7 @@
             applyXrayMode();             // set subsurface depthTest/renderOrder for the current x-ray mode
             applyCutaway();              // (re)attach the look-inside clip plane if enabled
             applyXsecCutaway();          // (re)attach the qanat cross-section cutaway plane if enabled
-            applyUndergroundOpacity(params.undergroundOpacity);   // subsurface opacity multiplier
+            applyEffectiveSubsurfaceOpacity();   // subsurface opacity multiplier (whichever of the two sliders is live)
             updateCompass();
             updateExagReadout();
             renderAnnotationMarkers();   // keep note markers on the (possibly new) surface
@@ -3711,8 +3821,13 @@
 
             // Bright groundwater band along the sandstone base. (The static eastward
             // groundwater flow-direction arrows were removed at the user's request.)
-            modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwPts),
-                new THREE.LineBasicMaterial({ color: COL.groundwater, depthTest: false })));
+            // Nudged +0.03 toward the camera (not into gwPts itself, which anchors the flow
+            // animation/drawdown/perched-table calcs below) so it depth-tests normally against
+            // the coplanar strata sheet instead of z-fighting — depthTest:false previously made
+            // it show through the terrain from any angle instead of correctly occluding.
+            const gwLinePts = gwPts.map(p => new THREE.Vector3(p.x, p.y, p.z + 0.03));
+            modelGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(gwLinePts),
+                new THREE.LineBasicMaterial({ color: COL.groundwater })));
             lastGwPts = gwPts;   // path for animated groundwater flow
 
             // Bedding-dip overlay (optional, "Bedding dip" toggle). The beds actually dip ~2% SE
@@ -3725,7 +3840,7 @@
                 // Drawn as thin TUBES, not THREE.Line — WebGL ignores CSS-style linewidth on
                 // hairline Line segments, so at 1px they read as barely-there hairlines; a
                 // tube gives real, controllable thickness (same fix as the forest-path lines).
-                const mat = new THREE.MeshBasicMaterial({ color: 0x3f3222, transparent: true, opacity: 0.9, depthTest: false });
+                const mat = new THREE.MeshBasicMaterial({ color: 0x3f3222, transparent: true, opacity: 0.9 });
                 for (let k = 1; k <= 6; k++) {
                     const pts = gwPts.map(p => {
                         const frac = (p.x + halfW) / W;
@@ -3752,7 +3867,7 @@
                 const iY = x => maslToY(interfaceMasl(x));              // sandstone/marl interface (scene Y)
                 const marlBotY = x => Math.max(iY(x) - metersToYDepth(MARL_M), base + 0.6);
                 // 1) Bedding lines across the marl & limestone band ("Kalkbänke"), dipping with it
-                const beddingMat = new THREE.LineBasicMaterial({ color: 0x63728d, transparent: true, opacity: 0.5, depthTest: false });
+                const beddingMat = new THREE.LineBasicMaterial({ color: 0x63728d, transparent: true, opacity: 0.5 });
                 for (const f of [0.18, 0.36, 0.54, 0.72, 0.9]) {
                     const pts = [];
                     for (let i = 0; i <= N; i++) { const x = xs[i]; pts.push(new THREE.Vector3(x, iY(x) - (iY(x) - marlBotY(x)) * f, dz)); }
@@ -3761,7 +3876,7 @@
                 }
                 // 2) Mounded groundwater table: dashed recharge domes between adjacent main shafts
                 const mainXs = [...new Set(pillarDefs.filter(p => !AUX_SHAFTS[p.id]).map(p => p.x))].sort((a, b) => a - b);
-                const domeMat = new THREE.LineDashedMaterial({ color: COL.groundwater, dashSize: 1.2, gapSize: 0.8, transparent: true, opacity: 0.9, depthTest: false });
+                const domeMat = new THREE.LineDashedMaterial({ color: COL.groundwater, dashSize: 1.2, gapSize: 0.8, transparent: true, opacity: 0.9 });
                 const moundH = metersToYDepth(4);                       // illustrative recharge-dome height
                 for (let k = 0; k < mainXs.length - 1; k++) {
                     const x1 = mainXs[k], x2 = mainXs[k + 1]; if (x2 - x1 < 0.3) continue;
@@ -3811,10 +3926,13 @@
                     color: COL.groundwater, transparent: true, opacity: 0.20,
                     side: THREE.DoubleSide, depthWrite: false }));
                 fm.renderOrder = 3; modelGroup.add(fm);
-                // Perched table line (dashed, above the drained line).
-                const pl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(perchedPts),
+                // Perched table line (dashed, above the drained line). Nudged +0.03 toward the
+                // camera (not into perchedPts itself, which anchors the drawdown fill/labels
+                // above) so it depth-tests normally instead of showing through the terrain.
+                const perchedLinePts = perchedPts.map(p => new THREE.Vector3(p.x, p.y, p.z + 0.03));
+                const pl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(perchedLinePts),
                     new THREE.LineDashedMaterial({ color: COL.groundwater,
-                        dashSize: 1.6, gapSize: 1.0, depthTest: false }));
+                        dashSize: 1.6, gapSize: 1.0 }));
                 pl.computeLineDistances(); pl.renderOrder = 4; modelGroup.add(pl);
                 // Labels: the perched table + a drawdown callout.
                 const mid = perchedPts[Math.floor(perchedPts.length / 2)];
@@ -3839,8 +3957,10 @@
             const P = window.RASCH_PATHS;
             if (!params.showPaths || !P || !(params.terrainSource === 'geodata' && geodata.ready)) return;
             // Draped as tubes (not hairline THREE.Line, which ignores linewidth in WebGL) so
-            // the paths read clearly; a bright tan over any base layer, always-on-top.
-            const mat = new THREE.MeshBasicMaterial({ color: 0xc07a2e, transparent: true, opacity: 0.92, depthTest: false });
+            // the paths read clearly; a bright tan over any base layer. Normal depth-testing
+            // (the 0.15 lift above the terrain surface is enough to avoid z-fighting) so a
+            // path correctly disappears behind a ridge/hill instead of bleeding through it.
+            const mat = new THREE.MeshBasicMaterial({ color: 0xc07a2e, transparent: true, opacity: 0.92 });
             const inWin = sc => Math.abs(sc.x) <= halfW && Math.abs(sc.z) <= halfD;
             (P.paths || []).forEach(way => {
                 let seg = [];
@@ -3895,7 +4015,11 @@
         }
 
 
-        function createTextSprite(text, colorStr = '#111', size = 24) {
+        // pickTarget: optional userData object. When given, the label stays raycastable and
+        // tagged with it (e.g. a shaft's { name }) so the label text is as clickable as the
+        // shaft itself; every other label keeps the default no-op raycast (decorative-only —
+        // no natural inspector target, and it's not a zoom-target/rotation-centre candidate).
+        function createTextSprite(text, colorStr = '#111', size = 24, pickTarget = null) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const lines = String(text).split('\n');   // supports multi-line labels
@@ -3940,7 +4064,8 @@
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
                 map: tex, transparent: true, depthTest: true, depthWrite: false }));
             sprite.renderOrder = 30;
-            sprite.raycast = () => {};   // labels are never pickable (no zoom-target / rotation-centre)
+            if (pickTarget) sprite.userData = pickTarget;
+            else sprite.raycast = () => {};   // no natural click target: not pickable (no zoom-target / rotation-centre either)
             sprite.scale.set(6, 1.35 * lines.length, 1);
             return sprite;
         }
@@ -4090,15 +4215,21 @@
                 const credit = ATTRIB[params.baseLayer];
                 attribEl.textContent = credit || '';
                 attribEl.style.display = credit ? 'block' : 'none';
-                // The contour-spacing slider only affects the Contour-lines base layer.
-                grpContours.style.display = (params.baseLayer === 'contours') ? '' : 'none';
             };
             document.getElementById('param-baselayer').addEventListener('change', e => {
                 params.baseLayer = e.target.value;
                 syncBaseLayerUI();
                 buildParametricModel();
             });
-            syncBaseLayerUI();   // initial state (contours by default → slider shown)
+            syncBaseLayerUI();   // initial state
+            // Contour lines: an independent overlay (like Forest paths), working over any base
+            // layer, no longer tied to picking a dedicated "Contour lines" base layer.
+            grpContours.style.display = params.showContourLines ? '' : 'none';
+            document.getElementById('param-contour-lines').addEventListener('change', e => {
+                params.showContourLines = e.target.checked;
+                grpContours.style.display = params.showContourLines ? '' : 'none';
+                buildParametricModel();
+            });
 
             // Only expose options that do something in the current state: the geology
             // overlays (perched table / horst faults) need "Show geology". The subsurface
@@ -4349,7 +4480,16 @@
             // Underground x-ray: applies to the whole subsurface group at once — live, no rebuild.
             document.getElementById('param-underground').addEventListener('change', e => {
                 params.xrayUnderground = e.target.checked;
+                document.getElementById('row-xray-opacity').style.display = params.xrayUnderground ? '' : 'none';
                 applyXrayMode();
+                applyEffectiveSubsurfaceOpacity();   // switch to whichever opacity slider is now "live"
+            });
+            document.getElementById('row-xray-opacity').style.display = params.xrayUnderground ? '' : 'none';
+            const xraySl = document.getElementById('param-xray-opacity'), xrayLb = document.getElementById('lbl-xray-opacity');
+            if (xraySl) xraySl.addEventListener('input', e => {
+                const v = parseFloat(e.target.value);
+                applyXrayOpacity(v);
+                xrayLb.innerText = v.toFixed(2);
             });
 
             // Show the "solid slice, not hollow interior" caption whenever a cutaway is active.
@@ -4461,6 +4601,24 @@
             setupTimeline();
 
             // Action buttons
+            // Share: the current URL already encodes camera position, the active selection,
+            // and UI options (see setSelectionURL / the camera- and options-URL sync added
+            // earlier). navigator.share() opens the OS share sheet on mobile; desktop browsers
+            // that lack it get a copy-to-clipboard + toast instead.
+            document.getElementById('btn-share').addEventListener('click', async () => {
+                const url = location.href;
+                if (navigator.share) {
+                    try { await navigator.share({ title: document.title, url }); }
+                    catch (e) { /* user cancelled the share sheet — not an error */ }
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(url);
+                    showToast('Link copied to clipboard');
+                } catch (e) {
+                    showToast('Could not copy link');
+                }
+            });
             document.getElementById('btn-profile').addEventListener('click', toggleProfile);
             // Timeline: hidden by default; the tool button shows/hides it.
             document.getElementById('btn-timeline').addEventListener('click', () => {
@@ -4525,7 +4683,7 @@
             // individual listeners, each doing its own buildParametricModel() rebuild — a
             // visible multi-second stall. One rebuild at the end instead.
             const PRESET_BASELINE = {
-                'param-baselayer': 'contours', 'param-geology': true, 'param-dip': false,
+                'param-baselayer': 'none', 'param-geology': true, 'param-dip': false,
                 'param-underground': true, 'param-realistic-diameters': 1.25,
                 'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
                 'param-aux': false, 'param-sounding': false, 'param-overflow': false,
@@ -4965,6 +5123,51 @@
                 ? 'Drag to pan · right-drag (or two-finger) to rotate · scroll to zoom · click a shaft for info'
                 : 'Drag to rotate · ⌘/Ctrl+drag or right-drag to pan · scroll to zoom · click a shaft for info';
         }
+        // Two-finger touch gesture exclusivity (Normal nav mode only, where two fingers is
+        // TOUCH.DOLLY_ROTATE): the vendored OrbitControls blends pinch-dolly and rotate from
+        // the SAME two-finger move unconditionally, which reads as jittery — a slightly-off
+        // pinch also rotates the view. Freeze both axes for a small ~6px deadzone while the
+        // gesture's direction is unclear, classify it from whichever moved more (finger-to-
+        // finger distance = pinch, midpoint = rotate), then lock enableZoom/enableRotate to
+        // that ONE axis for the rest of the gesture — "whichever gesture starts first wins".
+        // The touchmove listener runs in the CAPTURE phase so the gating takes effect before
+        // OrbitControls' own (bubble-phase) touchmove handler processes the same event.
+        function setupTouchGestureExclusivity() {
+            const dom = renderer.domElement;
+            const CLASSIFY_PX = 6;
+            let active = false, classified = false, dist0 = 0, mid0 = null;
+            const twoTouchState = touches => {
+                const dx = touches[0].pageX - touches[1].pageX, dy = touches[0].pageY - touches[1].pageY;
+                return { dist: Math.hypot(dx, dy),
+                    mid: { x: (touches[0].pageX + touches[1].pageX) / 2, y: (touches[0].pageY + touches[1].pageY) / 2 } };
+            };
+            const end = () => {
+                if (!active) return;
+                active = false;
+                controls.enableZoom = true; controls.enableRotate = true;   // restore for the next gesture / mouse wheel
+            };
+            dom.addEventListener('touchstart', ev => {
+                if (ev.touches.length !== 2 || controls.touches.TWO !== THREE.TOUCH.DOLLY_ROTATE) return;
+                active = true; classified = false;
+                const s = twoTouchState(ev.touches);
+                dist0 = s.dist; mid0 = s.mid;
+            }, { passive: true });
+            dom.addEventListener('touchmove', ev => {
+                if (!active || classified || ev.touches.length !== 2) return;
+                const s = twoTouchState(ev.touches);
+                const distDelta = Math.abs(s.dist - dist0);
+                const midDelta = Math.hypot(s.mid.x - mid0.x, s.mid.y - mid0.y);
+                if (distDelta < CLASSIFY_PX && midDelta < CLASSIFY_PX) {
+                    controls.enableZoom = false; controls.enableRotate = false;   // direction unclear yet: freeze
+                    return;
+                }
+                classified = true;
+                controls.enableZoom = distDelta >= midDelta;
+                controls.enableRotate = !controls.enableZoom;
+            }, { capture: true, passive: true });
+            dom.addEventListener('touchend', end);
+            dom.addEventListener('touchcancel', end);
+        }
         // On-canvas nav pad: rotate/tilt the camera around the orbit target by a fixed step.
         // Immediate orbit step (per-frame) around the target — used by the hold-to-move nav pad.
         function orbitBy(dTheta, dPhi) {
@@ -5148,45 +5351,43 @@
         const ndc = new THREE.Vector2();
         let hoverActive = false;
         const HOVER_DWELL_MS = 600;
+        // Widen TAPS (not hover) to a ~44px box: try the exact point first, then a ring of
+        // offset points covering a 44px-square around it, closest-first, so a shaft/hotspot/
+        // qanat tube that only projects to a few screen pixels at typical zoom is still
+        // reliably tappable (Apple HIG minimum touch target — applies on desktop clicks too).
+        const TAP_SAMPLE_OFFSETS = [[0, 0], [18, 0], [-18, 0], [0, 18], [0, -18],
+            [18, 18], [18, -18], [-18, 18], [-18, -18]];
+        function pickInMeshes(dom, ev, meshes, filter) {
+            const r = dom.getBoundingClientRect();
+            for (const [dx, dy] of TAP_SAMPLE_OFFSETS) {
+                ndc.x = ((ev.clientX + dx - r.left) / r.width) * 2 - 1;
+                ndc.y = -((ev.clientY + dy - r.top) / r.height) * 2 + 1;
+                raycaster.setFromCamera(ndc, camera);
+                const hits = raycaster.intersectObjects(meshes, false);
+                const hit = filter ? hits.find(filter) : hits[0];
+                if (hit) return hit;
+            }
+            return undefined;
+        }
         function setupShaftInteraction() {
             const dom = renderer.domElement;
             const tip = document.getElementById('shaft-tooltip');
             const HOVER_TOOLTIP = false;   // hover overlays disabled — click a shaft for its info panel
             let dwellTimer = null, dwellShaft = null, lastEv = null;
             function pick(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(shaftMeshes, false).find(h => !clipHidesHit(h));
+                return pickInMeshes(dom, ev, shaftMeshes, h => !clipHidesHit(h));
             }
             function pickSpot(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(spotMeshes, false)[0];
+                return pickInMeshes(dom, ev, spotMeshes);
             }
             function pickXsec(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(xsecMeshes, false)[0];
+                return pickInMeshes(dom, ev, xsecMeshes);
             }
             function pickStrata(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(strataMeshes, false).find(h => !clipHidesHit(h));
+                return pickInMeshes(dom, ev, strataMeshes, h => !clipHidesHit(h));
             }
             function pickQanat(ev) {
-                const r = dom.getBoundingClientRect();
-                ndc.x = ((ev.clientX - r.left) / r.width) * 2 - 1;
-                ndc.y = -((ev.clientY - r.top) / r.height) * 2 + 1;
-                raycaster.setFromCamera(ndc, camera);
-                return raycaster.intersectObjects(qanatMeshes, false).find(h => !clipHidesHit(h));
+                return pickInMeshes(dom, ev, qanatMeshes, h => !clipHidesHit(h));
             }
             function showTooltip(hit, ev) {
                 const d = hit.object.userData;
@@ -5319,21 +5520,19 @@
         }
 
         // --- Feature info panel (SSOT-driven, with citations) ---
-        // Compact single-letter knowledge-status badge (green D = documented, etc.). It's a
-        // button: clicking it reveals the row's detail line (full status word + citation).
+        // Compact single-letter knowledge-status badge (green D = documented, etc.) — decorative
+        // only; the row itself (a native <details>, see detailRow) is what discloses the source.
         const STATUS_LETTER = { documented: 'D', inferred: 'I', reconstructed: 'R', hypothetical: 'H', schematic: 'S' };
         // Class-wide disclosure state: which detail rows are open, keyed by row label (e.g.
         // "Position", "Depth") rather than by DOM node or by which shaft/feature is selected —
         // renderInfoPanel rebuilds info-body's HTML from scratch on every selection, so without
-        // this a badge you'd opened would silently re-close the moment you picked a different
+        // this a row you'd opened would silently re-close the moment you picked a different
         // item. Persisting by label means "Position expanded" carries across items.
         const openDetailRows = new Set();
-        function statusBadge(status, key) {
+        function statusBadge(status) {
             if (!status) return '';
             const letter = STATUS_LETTER[status] || status[0].toUpperCase();
-            const open = key && openDetailRows.has(key);
-            return `<button type="button" class="ip-badge s-${status}${open ? ' open' : ''}" aria-label="${status}"` +
-                ` title="${status} — click for source">${letter}</button>`;
+            return `<span class="ip-badge s-${status}" title="${status}">${letter}</span>`;
         }
         function citeChip(pv) {
             if (!pv || !pv.source) return '';
@@ -5346,18 +5545,24 @@
                 ? `<a href="${s.url}" target="_blank" rel="noopener"${title}>${text}</a>`
                 : `<a${title}>${text}</a>`}</span>`;
         }
-        // The detail line revealed by clicking a row's status badge: full status word + citation
-        // + (if the SSOT recorded one) the underlying provenance note — e.g. the reasoning
-        // behind an OSM-derived position, or a corrected/superseded-survey callout. Previously
-        // this note text was captured in data/*.json but never actually shown anywhere in the
-        // UI; it's real, citable content, so it belongs here rather than dev-mode-only.
-        function citeDetail(pv, key) {
+        // The content revealed inside an open <details> row: full status word + citation +
+        // (if the SSOT recorded one) the underlying provenance note — e.g. the reasoning behind
+        // an OSM-derived position, or a corrected/superseded-survey callout.
+        function citeDetail(pv) {
             if (!pv || !pv.status) return '';
             const cite = citeChip(pv);
             const note = pv.note ? `<div class="ip-detail-note">${pv.note}</div>` : '';
-            const open = key && openDetailRows.has(key);
-            return `<div class="ip-detail"${open ? '' : ' hidden'} data-key="${key || ''}">` +
-                `<span class="ip-detail-status">${pv.status}</span>${cite}${note}</div>`;
+            return `<div class="ip-detail"><span class="ip-detail-status">${pv.status}</span>${cite}${note}</div>`;
+        }
+        // A fact row that discloses its source via a native <details>/<summary> (arrow in
+        // front of the label, keyboard/screen-reader support for free) — falls back to a plain,
+        // non-interactive row when there's nothing to disclose (no recorded status/citation).
+        function detailRow(labelHtml, valueHtml, pv, key) {
+            const inner = `<span class="ip-k">${labelHtml}</span><span class="ip-v">${valueHtml}${statusBadge(pv && pv.status)}</span>`;
+            const detail = citeDetail(pv);
+            if (!detail) return `<div class="ip-row">${inner}</div>`;
+            const open = key && openDetailRows.has(key) ? ' open' : '';
+            return `<details class="ip-row-d" data-key="${key || ''}"${open}><summary class="ip-row">${inner}</summary>${detail}</details>`;
         }
         // Caveat shown under every "GPS (WGS84)" map link: the link's own pin sits at OUR
         // coordinate (accurate), but OpenStreetMap's page also shows ITS OWN pre-existing,
@@ -5373,14 +5578,12 @@
             const raw = rec[field]; if (raw == null) return '';
             const pv = provOf(rec, field);
             const value = Array.isArray(raw) ? raw.join('–') : raw;
-            return `<div class="ip-row"><span class="ip-k">${label}</span>` +
-                `<span class="ip-v">${value}${unit ? ' ' + unit : ''}${statusBadge(pv.status, label)}</span></div>` +
-                citeDetail(pv, label);
+            return detailRow(label, value + (unit ? ' ' + unit : ''), pv, label);
         }
         function renderInfoPanel(rec) {
             if (!rec) return;
             const body = document.getElementById('info-body');
-            let h = `<h3>${rec.id}</h3><div class="ip-sub">${rec.role || ''}` +
+            let h = `<h3>Shaft ${rec.id}</h3><div class="ip-sub">${rec.role || ''}` +
                 `${rec.existence ? ' · existence ' + rec.existence : ''}` +
                 `${rec.confidence ? ' · confidence ' + rec.confidence : ''}</div>`;
             h += factRow('Surface elevation', rec, 'surfaceElevM', 'm a.s.l.');
@@ -5391,10 +5594,10 @@
             // that's the CRS the source measurement was actually taken in; GPS/WGS84 below is
             // a conversion for the map link, not the primary record.
             if (rec.geo && Array.isArray(rec.geo.luref)) {
-                const gp = provOf(rec, 'geo');
-                h += `<div class="ip-row"><span class="ip-k" title="LUREF/LTM, EPSG:2169">LUREF/LTM</span>` +
-                     `<span class="ip-v" style="white-space:nowrap">${rec.geo.luref[0].toFixed(1)} E · ${rec.geo.luref[1].toFixed(1)} N` +
-                     `${statusBadge(rec.geo.status || gp.status, 'LUREF/LTM')}</span></div>` + citeDetail(gp, 'LUREF/LTM');
+                const gp = Object.assign({}, provOf(rec, 'geo'), { status: rec.geo.status || provOf(rec, 'geo').status });
+                h += detailRow('<span title="LUREF/LTM, EPSG:2169">LUREF/LTM</span>',
+                    `<span style="white-space:nowrap">${rec.geo.luref[0].toFixed(1)} E · ${rec.geo.luref[1].toFixed(1)} N</span>`,
+                    gp, 'LUREF/LTM');
             }
             // GPS coordinates (WGS84 lat/lon) — clickable to open a map. Caveat note only when
             // we hold an independent, more-precise LUREF measurement for this shaft (above) —
@@ -5421,9 +5624,7 @@
                 // `_prov.geo` rarely carries its own status, so it would otherwise silently
                 // fall back to the shaft's overall "documented" status and mis-colour this row.
                 const posPv = Object.assign({}, provOf(rec, 'geo'), { status: rec.position.status });
-                h += `<div class="ip-row"><span class="ip-k">Position</span>` +
-                     `<span class="ip-v">${rec.position.crs || '—'}${statusBadge(posPv.status, 'Position')}</span></div>` +
-                     citeDetail(posPv, 'Position');
+                h += detailRow('Position', rec.position.crs || '—', posPv, 'Position');
             }
             // Per-shaft positional confidence (from OSM georeferencing) — the honesty note
             // promises this here, and it varies (some OSM nodes are well-placed, some are off).
@@ -5466,9 +5667,7 @@
             h += factRow('Liassic package (li2 + li1 combined)', rec, 'liassicPackageM', 'm');
             h += factRow('Elevation', rec, 'elevationRangeMasl', 'm a.s.l.');
             if (code === 'li2' || code === 'li1') {
-                h += `<div class="ip-row"><span class="ip-k">Bedding dip</span>` +
-                    `<span class="ip-v">${geo.strataDipPct}% ${geo.dipDirection}${statusBadge('documented', 'Bedding dip')}</span></div>` +
-                    citeDetail(provOf(geo, 'strataDipPct'), 'Bedding dip');
+                h += detailRow('Bedding dip', `${geo.strataDipPct}% ${geo.dipDirection}`, provOf(geo, 'strataDipPct'), 'Bedding dip');
             }
             if (code === 'li2' && geo.groundwater) {
                 h += `<div class="ip-note">This is the aquifer: groundwater accumulates at the ` +
@@ -5491,8 +5690,7 @@
             h += `<div class="ip-figure"><img class="lb-img" src="${x.img}"${dims} alt="${x.label || 'Qanat cross-section'}" title="Click to enlarge"></div>`;
             if (x.label) h += `<div class="ip-note">${x.label}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
-                `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented', k)}</span></div>` +
-                citeDetail({ status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null }, k);
+                detailRow(k, v, { status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null }, k);
             const rng = a => Array.isArray(a) ? a.join('–') : a;
             h += `<div class="ip-note" style="margin-top:6px"><b>Documented gallery (holds along its length):</b></div>`;
             h += row('Gradient', g.gradientPct != null ? g.gradientPct + ' %' : null, 'gradientPct');
@@ -5525,8 +5723,7 @@
             }
             let h = `<h3>Qanat gallery</h3><div class="ip-sub">Main gallery / channel${pos}</div>`;
             const row = (k, v, pvKey) => v == null ? '' :
-                `<div class="ip-row"><span class="ip-k">${k}</span><span class="ip-v">${v}${statusBadge('documented', k)}</span></div>` +
-                citeDetail({ status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null }, k);
+                detailRow(k, v, { status: 'documented', source: g.source, loc: pvKey && gp[pvKey] ? gp[pvKey].loc : null }, k);
             const rng = a => Array.isArray(a) ? a.join('–') : a;
             h += row('Gradient', g.gradientPct != null ? g.gradientPct + ' %' : null, 'gradientPct');
             h += row('Channel height', g.channelHeightCm != null ? g.channelHeightCm + ' cm' : null, 'channelHeightCm');
@@ -5578,30 +5775,32 @@
             body.innerHTML = h;
             showInspector();
         }
-        // Shared side panel: switch between the Settings controls and the Inspector.
+        // Shared side panel: switch between Views, the floating Inspector overlay, and Settings.
         function setPanelMode(mode) {
-            const insp = mode === 'inspector';
-            document.body.classList.toggle('mode-inspector', insp);
-            const bi = document.getElementById('mode-inspector'), bs = document.getElementById('mode-settings');
-            if (bi) { bi.classList.toggle('active', insp); bi.setAttribute('aria-selected', insp); }
-            if (bs) { bs.classList.toggle('active', !insp); bs.setAttribute('aria-selected', !insp); }
+            const body = document.body;
+            body.classList.remove('mode-views', 'mode-inspector', 'mode-config');
+            body.classList.add('mode-' + mode);
+            const btns = { views: 'mode-views', inspector: 'mode-inspector', config: 'mode-config' };
+            Object.entries(btns).forEach(([m, id]) => {
+                const b = document.getElementById(id);
+                if (!b) return;
+                b.classList.toggle('active', m === mode);
+                b.setAttribute('aria-selected', m === mode);
+            });
         }
-        // A selection was made: mark the inspector as populated, reveal it, and make
-        // sure the panel is on-screen (slide the mobile drawer in / un-hide desktop).
+        // A selection was made: mark the inspector as populated and reveal its floating
+        // overlay. It floats over the 3D view independently of the sidebar/mobile drawer —
+        // no drawer-open/panel-hidden juggling needed, it's visible either way.
         function showInspector() {
             const pane = document.getElementById('inspector-pane');
             if (pane) pane.classList.add('has-selection');
             setPanelMode('inspector');
-            if (window.matchMedia('(max-width: 760px)').matches) {
-                document.body.classList.add('drawer-open');
-            } else if (document.body.classList.contains('panel-hidden')) {
-                document.body.classList.remove('panel-hidden');
-                window.dispatchEvent(new Event('resize'));
-            }
         }
         function initInfoPanel() {
-            const bs = document.getElementById('mode-settings'), bi = document.getElementById('mode-inspector');
-            if (bs) bs.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('settings'); });
+            const bv = document.getElementById('mode-views'), bi = document.getElementById('mode-inspector'),
+                  bc = document.getElementById('mode-config');
+            if (bv) bv.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('views'); });
+            if (bc) bc.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('config'); });
             // Manually switching to Inspector shows the initial prompt again (clearing any stale
             // selection); clicking a shaft/spring/villa repopulates it via showInspector().
             if (bi) bi.addEventListener('click', () => {
@@ -5612,23 +5811,21 @@
                 clearSelectionMarker();
                 setPanelMode('inspector');
             });
-            // Clicking a status badge (e.g. green "D") reveals that row's source detail, and
-            // records the row's open/closed state in openDetailRows (keyed by row label) so it
-            // survives the next renderInfoPanel/renderStrataPanel/etc. rebuild for a different
-            // item — see openDetailRows' own comment above statusBadge().
+            const closeBtn = document.getElementById('inspector-close');
+            if (closeBtn) closeBtn.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('views'); });
+            // Opening/closing a fact row's <details> (native toggle event) records its
+            // open/closed state in openDetailRows (keyed by row label) so it survives the next
+            // renderInfoPanel/renderStrataPanel/etc. rebuild for a different item — see
+            // openDetailRows' own comment above statusBadge(). Delegated + capture:true because
+            // 'toggle' doesn't bubble.
             const infoBody = document.getElementById('info-body');
-            if (infoBody) infoBody.addEventListener('click', ev => {
-                const badge = ev.target.closest('.ip-badge');
-                if (!badge) return;
-                const row = badge.closest('.ip-row');
-                const detail = row && row.nextElementSibling;
-                if (detail && detail.classList.contains('ip-detail')) {
-                    detail.hidden = !detail.hidden;
-                    badge.classList.toggle('open', !detail.hidden);
-                    const key = detail.dataset.key;
-                    if (key) { if (detail.hidden) openDetailRows.delete(key); else openDetailRows.add(key); }
-                }
-            });
+            if (infoBody) infoBody.addEventListener('toggle', ev => {
+                const details = ev.target;
+                if (!details.classList || !details.classList.contains('ip-row-d')) return;
+                const key = details.dataset.key;
+                if (!key) return;
+                if (details.open) openDetailRows.add(key); else openDetailRows.delete(key);
+            }, true);
         }
 
         // Full-screen image lightbox (scale in/out). Any img.lb-img — or a 3D hotspot — opens it.
