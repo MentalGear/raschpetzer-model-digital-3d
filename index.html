@@ -6154,12 +6154,21 @@
         // tubes, geology strata bands, dimension/scale-bar lines, cross-section & step
         // markers, procedural contour lines, and the terrain block's boundary curve.
         // Deliberately excluded: satellite/OSM/official-contour raster drapes, any shaded
-        // fill, and ALL floating text/caption sprites (labels are UI/legend, not geometry).
+        // fill lifted from lighting/texture, and ALL floating text/caption sprites (labels
+        // are UI/legend, not geometry).
         // Objects opt in by carrying userData.vecLayer (grouping) + userData.vecMode:
-        //   'silhouette' — a filled Mesh; outlined via true boundary/silhouette-edge
-        //                  extraction (correct for solids like cylinders/tubes/box markers
-        //                  and for thin near-planar sheets like the strata bands).
-        //   'line'       — a Line/LineSegments already vector-native; projected directly.
+        //   'silhouette' — a filled Mesh; its boundary/silhouette edges are extracted (true
+        //                  for solids like cylinders/tubes/box markers and for thin
+        //                  near-planar sheets like the strata bands), then chained into closed
+        //                  loops (see chainSegmentsToLoops) and emitted as a filled <path> using
+        //                  the mesh's own material colour/opacity — matching the flat/translucent
+        //                  fill those objects actually have in the live 3D view. Chaining a
+        //                  curved solid's silhouette (a cylinder's rim + side seam) can produce
+        //                  a topologically ambiguous loop where a flat sheet's cannot, so layers
+        //                  where that risk isn't worth it fall back to a stroke-only outline
+        //                  (see FILL_LAYERS below).
+        //   'line'       — a Line/LineSegments already vector-native; projected directly and
+        //                  always stroke-only (it has no fill in 3D either).
         // The terrain's undulating fill surface has no clean silhouette in an arbitrary
         // oblique view (a heightfield has no back-facing triangles to test against — that
         // needs real hidden-surface removal), so instead of a fake skyline we export its
@@ -6197,12 +6206,63 @@
             });
             return segments;
         }
-        function exportVectorSVG() {
-            if (!modelGroup || !camera || !renderer) return;
+        // Chains a flat, disconnected segment list (as meshSilhouetteSegments returns) into
+        // ordered closed loops by walking shared endpoints — e.g. a strata band's boundary
+        // edges (after internal shared edges between adjacent quads cancel out) form exactly
+        // one loop tracing the band's outer perimeter. Endpoint matching reuses the same
+        // 4-decimal rounding as meshSilhouetteSegments so points that are the same vertex
+        // (shared by construction) key-match despite any float noise from the matrix transform.
+        // Geometry-agnostic: it only looks at shared points, so it works equally on a flat
+        // quad strip or a cylinder's silhouette — any subset of segments that closes back on
+        // itself becomes a loop; any that dead-ends (an open chain) is dropped rather than
+        // guessed-closed, since a half loop rendered as a filled shape would be worse than none.
+        function chainSegmentsToLoops(segments) {
+            const round = v => v.x.toFixed(4) + ',' + v.y.toFixed(4) + ',' + v.z.toFixed(4);
+            const pointOf = new Map();
+            const adj = new Map();
+            const keyOf = p => { const k = round(p); if (!pointOf.has(k)) pointOf.set(k, p); return k; };
+            const addAdj = (k, entry) => { if (!adj.has(k)) adj.set(k, []); adj.get(k).push(entry); };
+            segments.forEach((seg, i) => {
+                const ka = keyOf(seg[0]), kb = keyOf(seg[1]);
+                addAdj(ka, { to: kb, idx: i });
+                addAdj(kb, { to: ka, idx: i });
+            });
+            const used = new Array(segments.length).fill(false);
+            const loops = [];
+            for (let i = 0; i < segments.length; i++) {
+                if (used[i]) continue;
+                used[i] = true;
+                const startKey = keyOf(segments[i][0]);
+                const loop = [pointOf.get(startKey)];
+                let curKey = keyOf(segments[i][1]);
+                let guard = segments.length * 2 + 4;
+                while (curKey !== startKey && guard-- > 0) {
+                    loop.push(pointOf.get(curKey));
+                    const opts = (adj.get(curKey) || []).filter(o => !used[o.idx]);
+                    if (!opts.length) { curKey = null; break; }
+                    used[opts[0].idx] = true;
+                    curKey = opts[0].to;
+                }
+                if (curKey === startKey && loop.length >= 3) loops.push(loop);
+            }
+            return loops;
+        }
+        // Layers whose silhouette gets chained (chainSegmentsToLoops) into closed loops and
+        // filled with the material's own colour/opacity, instead of a bare stroke outline.
+        // Strata bands are flat quad strips — their silhouette is provably a single clean
+        // perimeter loop (or a few, where a near-zero-thickness gap splits the strip), so
+        // chaining is reliable. Shafts (cylinders) and the tunnel (a tube) were tried too, but
+        // their silhouette mixes a rim ellipse with a side seam at the visible/hidden boundary,
+        // which the generic (purely endpoint-matching) chainer can walk into a self-intersecting
+        // loop — a wrong fill is worse than the old stroke-only outline, so they stay off this
+        // list until a topology-aware chainer replaces the generic one.
+        const FILL_LAYERS = new Set(['strata']);
+        function buildVectorSVGString() {
+            if (!modelGroup || !camera || !renderer) return '';
             const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
             const camPos = camera.position.clone();
             const groups = {};
-            const push = (layer, segs, color) => { if (segs.length) (groups[layer] = groups[layer] || []).push({ segs, color }); };
+            const push = (layer, entry) => { if (entry.segs.length) (groups[layer] = groups[layer] || []).push(entry); };
             // Respect any active cutaway (Look inside / See inside / Qanat cutaway): those set
             // material.clippingPlanes on the affected meshes, GPU-clipping half of them away on
             // screen. Without this, the export would include geometry the camera can't see.
@@ -6224,10 +6284,12 @@
                     const segs = [];
                     const step = obj.isLineSegments ? 2 : 1;
                     for (let i = 0; i + 1 < pts.length; i += step) segs.push([pts[i], pts[i + 1]]);
-                    push(layer, segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color);
+                    push(layer, { segs: segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color, fill: false });
                 } else if (obj.userData.vecMode === 'silhouette') {
-                    const segs = meshSilhouetteSegments(obj, camPos);
-                    push(layer, segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color);
+                    const segs = meshSilhouetteSegments(obj, camPos).filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b));
+                    const loops = FILL_LAYERS.has(layer) ? chainSegmentsToLoops(segs) : [];
+                    const opacity = (mat && mat.transparent) ? mat.opacity : 1;
+                    push(layer, { segs, color, fill: loops.length > 0, loops, opacity });
                 }
             });
             // Terrain footprint boundary — the current width×depth window's four edges,
@@ -6238,7 +6300,7 @@
             addEdge(halfW, halfD, -halfW, halfD); addEdge(-halfW, halfD, -halfW, -halfD);
             const terrainSegs = [];
             for (let i = 0; i + 1 < boundary.length; i++) terrainSegs.push([boundary[i], boundary[i + 1]]);
-            push('terrain', terrainSegs, '#555555');
+            push('terrain', { segs: terrainSegs, color: '#555555', fill: false });
 
             const project = v3 => { const p = v3.clone().project(camera); return { x: (p.x + 1) / 2 * w, y: (1 - p.y) / 2 * h, behind: !isFinite(p.z) || Math.abs(p.z) > 1 }; };
             const pathFor = segs => segs.map(([a, b]) => {
@@ -6246,18 +6308,34 @@
                 if (pa.behind || pb.behind) return '';
                 return `M${pa.x.toFixed(2)} ${pa.y.toFixed(2)} L${pb.x.toFixed(2)} ${pb.y.toFixed(2)}`;
             }).filter(Boolean).join(' ');
+            const loopPathFor = loop => {
+                const pts = loop.map(project);
+                if (pts.some(p => p.behind)) return '';
+                return 'M' + pts.map(p => p.x.toFixed(2) + ' ' + p.y.toFixed(2)).join(' L') + ' Z';
+            };
             const LAYER_ORDER = ['terrain', 'strata', 'contour', 'shaft', 'tunnel', 'marker', 'dimension'];
             let body = '';
             LAYER_ORDER.forEach(layer => {
                 const arr = groups[layer]; if (!arr || !arr.length) return;
                 body += `<g id="${layer}">`;
-                arr.forEach(({ segs, color }) => {
-                    const d = pathFor(segs);
-                    if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
+                arr.forEach(({ segs, color, fill, loops, opacity }) => {
+                    if (fill) {
+                        loops.forEach(loop => {
+                            const d = loopPathFor(loop);
+                            if (d) body += `<path d="${d}" fill="${color}" fill-opacity="${opacity}" stroke="none"/>`;
+                        });
+                    } else {
+                        const d = pathFor(segs);
+                        if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
+                    }
                 });
                 body += `</g>`;
             });
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
+        }
+        function exportVectorSVG() {
+            const svg = buildVectorSVGString();
+            if (!svg) return;
             const blob = new Blob([svg], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
             const el = document.createElement('a');
