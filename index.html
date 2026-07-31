@@ -712,10 +712,11 @@
         .ip-row-d > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center;
             -webkit-user-select: none; user-select: none; }   /* a disclosure control, not selectable text */
         .ip-row-d > summary::-webkit-details-marker { display: none; }
-        .ip-row-d > summary .ip-k::before { content: '▸'; display: inline-block; font-size: 0.6rem;
-            color: #6b7280; margin-right: 6px; transition: transform 0.12s; }
+        .ip-row-d > summary .ip-k::before { content: '▸'; display: inline-block; font-size: 0.85rem;
+            line-height: 1; vertical-align: middle; margin-top: -2px;
+            color: #6b7280; margin-right: 7px; transition: transform 0.12s; }
         .ip-row-d[open] > summary .ip-k::before { transform: rotate(90deg); }
-        .ip-detail { margin: 1px 0 8px; font-size: 0.72rem; color: #9ca3af; padding-left: 15px; }
+        .ip-detail { margin: 1px 0 8px; font-size: 0.72rem; color: #9ca3af; padding: 8px 15px 2px; }
         .ip-detail-status { text-transform: uppercase; letter-spacing: 0.4px; margin-right: 7px; color: #cbd5e1; font-weight: 600; }
         .ip-detail-note { display: block; margin-top: 4px; line-height: 1.45; color: #9ca3af; }
         .ip-cite { display: inline; margin-top: 4px; }
@@ -1052,6 +1053,10 @@
             </div>
         </div>
         <div class="control-group">
+            <label>Export</label>
+            <button id="btn-export-svg" type="button" class="dev-toggle" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
+        </div>
+        <div class="control-group">
             <label class="check-row dev-opt" id="row-presets-compact"><input type="checkbox" id="param-presets-compact"> Compact&nbsp;quick-view&nbsp;cards</label>
             <button id="btn-dev-mode" type="button" class="dev-toggle">🛠 Developer mode</button>
         </div>
@@ -1067,7 +1072,6 @@
                 <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
                 <button id="btn-profile" type="button">📈 Qanat Profile</button>
                 <button id="btn-sources" type="button">ⓘ Data sources</button>
-                <button id="btn-export-svg" type="button" class="dev-opt" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
             </div>
             <div class="btn-row" style="display:none">
                 <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
@@ -4306,7 +4310,6 @@
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
                 document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none'; // native inset render res is dev-only (perf risk) AND nested under the inset toggle
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
-                document.getElementById('btn-export-svg').style.display = params.devMode ? '' : 'none';  // vector export is dev-only
                 document.getElementById('panel-presets').style.display = params.devMode ? 'none' : '';   // Quick views hide while poking at dev options
                 document.getElementById('row-presets-compact').style.display = params.devMode ? '' : 'none';   // its own toggle is dev-only, but the effect persists once dev mode exits
                 document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
