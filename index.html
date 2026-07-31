@@ -2839,6 +2839,7 @@
             regMat.userData.baseOpacity = 1.0;
             idxMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(regMat, idxMat);
+            xsecClipMats.push(regMat, idxMat);   // qanat cross-section cutaway must clip these too, or they float over the exposed strata
 
             // Elevation labels on index contours (real metres, GeoData only)
             if (isGeo) {
@@ -2852,6 +2853,7 @@
                     s.material.userData.baseOpacity = 1.0;
                     s.material.opacity = params.terrainOpacity;
                     terrainFadeMats.push(s.material);
+                    xsecClipMats.push(s.material);   // qanat cross-section cutaway must clip these labels too
                     modelGroup.add(s);
                 });
             }
@@ -2914,6 +2916,7 @@
                     transparent: true, opacity: params.terrainOpacity });
                 em.userData.baseOpacity = 1.0;
                 terrainFadeMats.push(em);
+                xsecClipMats.push(em);   // qanat cross-section cutaway must clip the wall's edge line too, or it floats over the exposed strata
                 modelGroup.add(new THREE.Line(eg, em));
             }
 
@@ -3805,6 +3808,7 @@
             // from data/geology.json), the same way shafts/springs/xsec hotspots already do.
             const bandPos = { weath: [], sand: [], marl: [], ko: [], km: [] };
             const gwPts = [];
+            const depthPos = [];   // full-height (surface→base) opaque depth-only backdrop, see below
             const push = (band, x1, x2, t1, b1, t2, b2) => {
                 if (t1 - b1 < 0.01 && t2 - b2 < 0.01) return;
                 bandPos[band].push(x1, t1, zF, x1, b1, zF, x2, t2, zF,  x2, t2, zF, x1, b1, zF, x2, b2, zF);
@@ -3836,6 +3840,7 @@
                 push('marl', xa, xb, gA, mA, gB, mB);    // marl & limestone
                 push('ko', xa, xb, mA, kA, mB, kB);      // red mudstone
                 push('km', xa, xb, kA, base, kB, base);  // dolomitic marl
+                depthPos.push(xa, sA, zF, xa, base, zF, xb, sB, zF,  xb, sB, zF, xa, base, zF, xb, base, zF);
                 gwPts.push(new THREE.Vector3(xa, gA, zF));
                 if (i === N - 1) gwPts.push(new THREE.Vector3(xb, gB, zF));
             }
@@ -3857,6 +3862,26 @@
                 xsecClipMats.push(mesh.material);   // qanat cross-section cutaway also slices this sheet
                 strataMeshes.push(mesh);
             });
+
+            // Opaque depth-only backdrop, spanning the full surface→base height at the front
+            // cut face. The strata bands above are deliberately depthWrite:false (so shafts and
+            // gallery read in front of them) — but that also means nothing stops a background
+            // contour line or wall-edge line, further up the slope behind this cut face, from
+            // depth-testing as if nothing were in front of it and rendering right on top of the
+            // exposed strata. This invisible twin (colorWrite:false, opaque so it draws — and
+            // writes depth — in the normal pass, before contour lines' transparent pass) blocks
+            // that sightline while staying invisible itself. Set fractionally behind the visible
+            // strata bands (zF - 0.01) so it never wins a depth-test against them.
+            if (depthPos.length) {
+                const dGeo = new THREE.BufferGeometry();
+                dGeo.setAttribute('position', new THREE.Float32BufferAttribute(depthPos, 3));
+                const dMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true, side: THREE.FrontSide });
+                const dMesh = new THREE.Mesh(dGeo, dMat);
+                dMesh.position.z = -0.01;
+                dMesh.renderOrder = 1;   // before the transparent strata/contour passes
+                modelGroup.add(dMesh);
+                xsecClipMats.push(dMat);   // qanat cross-section cutaway must remove this backdrop too
+            }
 
             // Bright groundwater band along the sandstone base. (The static eastward
             // groundwater flow-direction arrows were removed at the user's request.)
