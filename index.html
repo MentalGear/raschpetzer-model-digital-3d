@@ -37,6 +37,10 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
+            /* No text-select anywhere by default (this is an app, not a document) — re-enabled
+               specifically for #info-body below, where copying a value/citation is useful. */
+            -webkit-user-select: none;
+            user-select: none;
             overflow: hidden;
             display: flex;
             flex-direction: column;   /* #wip-banner on top, #app-row (canvas + panel) below */
@@ -67,18 +71,28 @@
             pointer-events: none;
             letter-spacing: 0.3px;
             z-index: 5;
+            transition: left 0.2s ease, right 0.2s ease;   /* smooth reflow when a panel opens/closes */
         }
         #label-west { left: 18px; }
-        #label-east { right: 18px; }
+        /* Desktop: #ui-panel is a right-docked overlay the same width as --panel-w, so a plain
+           right:18px would sit permanently underneath it (it's always open by default). Track
+           the panel's actual width so the label clears its left edge; the mobile media query
+           below resets this back to a plain offset, since there the panel is off-screen
+           (translateX) rather than occupying that space. */
+        #label-east { right: calc(var(--panel-w, 340px) + 18px); }
         /* Compass widget: a rotating north arrow; click to face north. */
         #compass {
             position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 6;
             border-radius: 50%; background: rgba(15,20,30,0.55);
             border: 1px solid rgba(255,255,255,0.20); cursor: pointer;
+            transition: left 0.2s ease;
         }
-        /* On-canvas nav pad — shown only in Normal navigation mode. */
-        #nav-pad { position: absolute; right: 16px; bottom: 16px; z-index: 6; display: none;
-            flex-direction: column; align-items: center; gap: 6px; }
+        /* On-canvas nav pad — shown only in Normal navigation mode. #ui-panel is an always-open
+           (by default) right-docked overlay the same width as --panel-w; without this, the pad
+           renders entirely underneath it — clear it the same way #label-east does. */
+        #nav-pad { position: absolute; right: calc(var(--panel-w, 340px) + 16px); bottom: 16px; z-index: 6; display: none;
+            flex-direction: column; align-items: center; gap: 6px; transition: right 0.2s ease; }
+        body.panel-hidden #nav-pad { right: 16px; }
         body.nav-normal #nav-pad { display: flex; }
         #nav-pad .nav-pad-row { display: flex; gap: 6px; }
         #nav-pad button { width: 78px; height: 78px; border-radius: 14px; cursor: pointer;
@@ -114,6 +128,14 @@
             background: none; padding: 0; display: none; align-items: stretch; justify-content: flex-start; }
         #legend-modal-backdrop.open { display: block; }
         #legend-modal { width: auto; max-width: min(380px, calc(100vw - 32px)); border-top: none; }
+        /* Qanat Profile gets the same non-blocking docked treatment as Legend, for the same
+           reason (its SVG chart shouldn't need to dim/block the 3D view to read). It shares
+           Legend's bottom-left corner rather than the right edge — the #ui-panel sidebar
+           already owns the right edge — and the two never actually overlap since
+           closeOtherModals() keeps only one of Legend/Profile/Sources open at a time. */
+        #profile-modal-backdrop { position: fixed; inset: auto; left: 16px; bottom: 16px; z-index: 8;
+            background: none; padding: 0; display: none; align-items: stretch; justify-content: flex-start; }
+        #profile-modal-backdrop.open { display: block; }
         .modal-card .modal-title { font-size: 1.05rem; color: #2a2318; margin-bottom: 10px;
             padding-right: 26px; font-weight: 600; }
         .modal-card p { font-size: 0.82rem; line-height: 1.45; margin-bottom: 10px; }
@@ -122,12 +144,18 @@
         .modal-close { position: absolute; top: 10px; right: 14px; background: none; border: none;
             color: #8a7a63; font-size: 1.4rem; line-height: 1; cursor: pointer; }
         .modal-close:hover { color: #2a2318; }
-        #profile-panel { max-width: min(560px, 94vw); font-size: 0.7rem; color: #4a3f2f; }
+        #profile-panel { width: auto; max-width: min(560px, 94vw); max-height: calc(100vh - 32px);
+            overflow-y: auto; border-top: none; font-size: 0.7rem; color: #4a3f2f; }
         #profile-panel .pp-title { margin-bottom: 2px; color: #333; }
         #profile-panel .pp-sub { color: #6f6250; margin-bottom: 4px; }
         #profile-panel .pp-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer;
             margin: 2px 0 6px; color: #4a3f2f; user-select: none; }
         #profile-panel .pp-toggle input { accent-color: var(--accent-blue); cursor: pointer; }
+        /* Highlights whichever shaft's tick is currently selected (see currentSelectedShaftId) —
+           a CSS rule beats the <line>/<text> elements' own presentation attributes, so no need
+           to special-case the colours inline in buildProfileSVG(). */
+        #profile-panel .pp-shaft-hot.selected line { stroke: #e0554a; stroke-width: 3; }
+        #profile-panel .pp-shaft-hot.selected text { fill: #e0554a; font-weight: 700; }
         #profile-panel .pp-toggle select { font-size: 0.68rem; padding: 1px 3px; border-radius: 4px;
             border: 1px solid rgba(0,0,0,0.2); background: #fff; color: #4a3f2f; }
         #profile-panel .pp-geoimg img { width: 100%; height: auto; display: block; border-radius: 4px;
@@ -191,6 +219,7 @@
             top: var(--wip-h); right: 0; height: calc(100% - var(--wip-h));
             width: var(--panel-w, 340px);
             background: var(--panel-bg);
+            backdrop-filter: blur(10px);   /* same treatment as the Inspector overlay's background */
             border-left: 1px solid rgba(255, 255, 255, 0.08);
             padding: 0 22px 22px;   /* no top padding: #panel-sticky supplies its own (see below) */
             box-shadow: -6px 0 24px rgba(0, 0, 0, 0.35);
@@ -293,13 +322,17 @@
         #timeline-bar { display: none; }
         body.timeline-on #timeline-bar { display: block; }
         #timeline-bar {
-            position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+            /* Centered on the CLEAR area left of #ui-panel (always open by default), not the
+               full viewport — left:50% alone lets a wide bar's right edge peek under the panel. */
+            position: absolute; left: calc(50% - var(--panel-w, 340px) / 2); bottom: 16px; transform: translateX(-50%);
             width: min(640px, calc(100% - 40px)); z-index: 7;
             background: rgba(18,20,28,0.95); border: 1px solid rgba(255,255,255,0.14);
             backdrop-filter: blur(6px);
             border-radius: 12px; padding: 9px 16px 11px; color: #d1d5db;
             box-shadow: 0 8px 28px rgba(0,0,0,0.42);
+            transition: left 0.2s ease;
         }
+        body.panel-hidden #timeline-bar { left: 50%; }
         #timeline-bar .tl-head { display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 2px; gap: 10px; }
         /* Era pill — the "which era" answer, colour-coded to the current period. */
@@ -479,11 +512,16 @@
                visible. Position/top/right/height/z-index now come from the base rule above. */
             #ui-panel { width: min(360px, 88vw); transform: translateX(100%); transition: transform 0.25s ease; }
             body.drawer-open #ui-panel { transform: translateX(0); }
+            /* Off-screen (translateX) here, not display:none — the panel-width offset the
+               desktop rules above need doesn't apply, since the drawer never shares layout
+               space with the canvas the way the desktop overlay does. */
+            #label-east { right: 18px; }
+            #nav-pad { right: 16px; }
             #drawer-toggle { display: flex; }
             body.drawer-open #drawer-toggle { display: none; }
             body.drawer-open #drawer-scrim { display: block; }
             #drawer-close { display: block; }
-            #timeline-bar { width: calc(100% - 20px); padding: 7px 11px 9px;
+            #timeline-bar { left: 50%; width: calc(100% - 20px); padding: 7px 11px 9px;
                 /* keep clear of the iOS home indicator / safe area so it isn't cut off */
                 bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
             .instructions { display: none; }
@@ -537,15 +575,19 @@
         @media (pointer: coarse) {
             .check-row input[type="checkbox"] { width: 26px; height: 26px; }
         }
-        /* Collapsible control sections */
-        #ui-panel details { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 12px; }
-        #ui-panel details > summary { list-style: none; cursor: pointer; padding: 16px 0 14px;
+        /* Collapsible control sections. :not(.ip-row-d) excludes the Inspector's own fact-row
+           <details> (see .ip-row-d below) — since Inspector moved back inside #ui-panel as a
+           normal tab, its rows are now descendants of #ui-panel too and would otherwise pick up
+           this generic collapsible-section styling (uppercase text, a second "▸", vertical
+           padding) on top of their own, unrelated rule. */
+        #ui-panel details:not(.ip-row-d) { border-top: 1px solid rgba(255,255,255,0.08); margin-top: 12px; }
+        #ui-panel details:not(.ip-row-d) > summary { list-style: none; cursor: pointer; padding: 16px 0 14px;
             font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.6px;
             color: #9ca3af; font-weight: 700; user-select: none; display: flex; align-items: center; gap: 6px; }
-        #ui-panel details > summary::-webkit-details-marker { display: none; }
-        #ui-panel details > summary::before { content: '▸'; font-size: 0.65rem; transition: transform 0.12s; }
-        #ui-panel details[open] > summary::before { transform: rotate(90deg); }
-        #ui-panel details > .control-group:first-of-type { margin-top: 2px; }
+        #ui-panel details:not(.ip-row-d) > summary::-webkit-details-marker { display: none; }
+        #ui-panel details:not(.ip-row-d) > summary::before { content: '▸'; font-size: 0.65rem; transition: transform 0.12s; }
+        #ui-panel details:not(.ip-row-d)[open] > summary::before { transform: rotate(90deg); }
+        #ui-panel details:not(.ip-row-d) > .control-group:first-of-type { margin-top: 2px; }
 
         #shaft-tooltip {
             position: absolute; z-index: 8; pointer-events: none; display: none;
@@ -635,27 +677,15 @@
         body.presets-compact .preset-card .pc-desc { display: none; }   /* icon + label only */
         /* Three mutually exclusive panes (Views / Inspector / Settings), selected by a body
            class the panel-mode tablist toggles. #panel-camera-buttons (the Level/Side/Top/Iso +
-           N/E/S/W reframe row) carries none of these classes — it stays visible in every mode,
-           since reframing the camera is useful mid-inspection too. */
-        .pane-views, .pane-config { display: none; }
+           N/E/S/W reframe row) carries .pane-views — it lives in the Views pane specifically,
+           before Tools, not visible in every mode (see its own HTML comment). */
+        .pane-views, .pane-config, .pane-inspector { display: none; }
         body.mode-views .pane-views { display: block; }
         body.mode-config .pane-config { display: block; }
+        body.mode-inspector .pane-inspector { display: block; }
         #inspector-empty { color: #9ca3af; font-size: 0.84rem; line-height: 1.55; padding: 10px 2px; }
         #inspector-pane.has-selection #inspector-empty { display: none; }
-        /* Floating overlay card over the 3D view (not the sidebar) — same on desktop and
-           mobile. position:fixed here relies on NO ancestor having a `transform` (the mobile
-           drawer's translateX lives on #ui-panel, a sibling, not an ancestor of this element). */
-        #inspector-pane { display: none; position: fixed; top: calc(var(--wip-h) + 16px); left: 16px;
-            /* -70px clears the floating drawer-reopen hamburger (top-right, 46px + margins),
-               which is visible whenever the sidebar is hidden/closed — both on mobile always,
-               and on desktop when the panel is manually hidden. */
-            width: min(380px, calc(100vw - 32px - 70px)); max-height: calc(100vh - var(--wip-h) - 32px);
-            overflow-y: auto; overflow-x: hidden; touch-action: pan-y;
-            background: var(--panel-bg); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.14); border-radius: 14px; padding: 18px 20px;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 25; }
-        body.mode-inspector #inspector-pane { display: block; }
-        #inspector-close { position: absolute; top: 8px; right: 10px; }
+        #info-body { -webkit-user-select: text; user-select: text; }   /* the one place copying a value/citation is useful */
         #info-body h3 { font-size: 1.3rem; color: #fff; margin-top: 14px; margin-bottom: 2px; }
         #info-body .ip-sub { font-size: 0.76rem; color: #9ca3af; margin-bottom: 12px; }
         .ip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
@@ -679,12 +709,14 @@
            widget (keyboard/screen-reader support for free) with an arrow in front of the
            label, same "▸ rotates to ▾" treatment as the old Advanced-configuration section. */
         .ip-row-d { margin: 0; }
-        .ip-row-d > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center; }
+        .ip-row-d > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center;
+            -webkit-user-select: none; user-select: none; }   /* a disclosure control, not selectable text */
         .ip-row-d > summary::-webkit-details-marker { display: none; }
-        .ip-row-d > summary .ip-k::before { content: '▸'; display: inline-block; font-size: 0.6rem;
-            color: #6b7280; margin-right: 6px; transition: transform 0.12s; }
+        .ip-row-d > summary .ip-k::before { content: '▸'; display: inline-block; font-size: 0.85rem;
+            line-height: 1; vertical-align: middle; margin-top: -2px;
+            color: #6b7280; margin-right: 7px; transition: transform 0.12s; }
         .ip-row-d[open] > summary .ip-k::before { transform: rotate(90deg); }
-        .ip-detail { margin: 1px 0 8px; font-size: 0.72rem; color: #9ca3af; padding-left: 15px; }
+        .ip-detail { margin: 1px 0 8px; font-size: 0.72rem; color: #9ca3af; padding: 8px 15px 2px; }
         .ip-detail-status { text-transform: uppercase; letter-spacing: 0.4px; margin-right: 7px; color: #cbd5e1; font-weight: 600; }
         .ip-detail-note { display: block; margin-top: 4px; line-height: 1.45; color: #9ca3af; }
         .ip-cite { display: inline; margin-top: 4px; }
@@ -702,6 +734,12 @@
         #measure-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8;
             pointer-events: none; display: none; }
         body.measure-mode #measure-svg { display: block; }
+        /* Dev-only: visualizes the actual screen-space tap tolerance (see TAP_SAMPLE_OFFSETS/
+           pickInMeshes) as a purple box over each pickable shaft/hotspot/spot marker — lets you
+           SEE the effective hit area instead of guessing from feel. */
+        #hitbox-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 8;
+            pointer-events: none; display: none; }
+        body.show-hitboxes #hitbox-svg { display: block; }
         #measure-readout {
             position: absolute; bottom: 182px; left: 50%; transform: translateX(-50%);
             z-index: 9; display: none; background: rgba(20,20,28,0.9); color: #fff;
@@ -809,6 +847,11 @@
             </div>
         </div>
 
+        <div id="inspector-pane" class="pane-inspector">
+            <div id="info-body"></div>
+            <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
+        </div>
+
         <!-- Camera reframe buttons live in the Views pane, before Tools. The live
              Azimuth/Elevation/Distance readout stays in Settings (see #grp-camera)
              since it's a readout, not something you press. -->
@@ -827,21 +870,8 @@
             </div>
         </div>
 
-        <!-- Views pane: Map layer choice, Quick Views, Tools — the front-door controls for
+        <!-- Views pane: Quick Views, Map layer choice, Tools — the front-door controls for
              changing what you're looking at. Hidden in Inspector/Settings mode (.pane-views). -->
-        <div class="control-group pane-views" id="grp-baselayer">
-            <label for="param-baselayer">Map layer</label>
-            <select id="param-baselayer">
-                <option value="topo">Topographic map</option>
-                <option value="satellite">Satellite (ACT 2019)</option>
-                <option value="winter">Satellite — winter (leaf-off)</option>
-                <option value="ortho1967">Satellite — historical (1967)</option>
-                <option value="hillshade">LiDAR relief (2019)</option>
-                <option value="none">Plain</option>
-            </select>
-            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
-        </div>
-
         <!-- Quick views: one-tap curated states (camera + a handful of params) for people who
              don't want to hand-tune the controls below. Presets SET the manual controls (they
              don't hide them) — clicking one still leaves every checkbox/slider re-syncable. -->
@@ -874,6 +904,19 @@
                     <span class="pc-desc">The full site, today</span>
                 </button>
             </div>
+        </div>
+
+        <div class="control-group pane-views" id="grp-baselayer">
+            <label for="param-baselayer">Map layer</label>
+            <select id="param-baselayer">
+                <option value="topo">Topographic map</option>
+                <option value="satellite">Satellite (ACT 2019)</option>
+                <option value="winter">Satellite — winter (leaf-off)</option>
+                <option value="ortho1967">Satellite — historical (1967)</option>
+                <option value="hillshade">LiDAR relief (2019)</option>
+                <option value="none">Plain</option>
+            </select>
+            <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
         </div>
 
         <!-- Settings pane (⚙): everything from the old collapsible "Advanced configuration",
@@ -952,6 +995,7 @@
                 <label class="check-row"><input type="checkbox" id="param-terrain-cullback" checked> Cull&nbsp;terrain&nbsp;underside&nbsp;(hide&nbsp;from&nbsp;below)</label>
                 <label class="check-row dev-opt" id="row-side-cullback"><input type="checkbox" id="param-side-cullback" checked> Cull&nbsp;terrain&nbsp;side&nbsp;walls&nbsp;(hide&nbsp;from&nbsp;the&nbsp;far&nbsp;side)</label>
                 <label class="check-row dev-opt" id="row-pbr"><input type="checkbox" id="param-pbr"> Realistic&nbsp;stone&nbsp;(PBR)</label>
+                <label class="check-row dev-opt" id="row-show-hitboxes"><input type="checkbox" id="param-show-hitboxes"> Show&nbsp;click&nbsp;hitboxes&nbsp;(purple)</label>
                 <label class="check-row" id="row-flip" style="display:none"><input type="checkbox" id="param-flip"> Flip&nbsp;West&nbsp;↔&nbsp;East</label>
             </div>
             <div class="control-group" id="grp-frontedge">
@@ -1009,6 +1053,10 @@
             </div>
         </div>
         <div class="control-group">
+            <label>Export</label>
+            <button id="btn-export-svg" type="button" class="dev-toggle" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
+        </div>
+        <div class="control-group">
             <label class="check-row dev-opt" id="row-presets-compact"><input type="checkbox" id="param-presets-compact"> Compact&nbsp;quick-view&nbsp;cards</label>
             <button id="btn-dev-mode" type="button" class="dev-toggle">🛠 Developer mode</button>
         </div>
@@ -1024,7 +1072,6 @@
                 <button id="btn-measure" type="button" class="dev-opt">📏 Measure</button>
                 <button id="btn-profile" type="button">📈 Qanat Profile</button>
                 <button id="btn-sources" type="button">ⓘ Data sources</button>
-                <button id="btn-export-svg" type="button" class="dev-opt" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
             </div>
             <div class="btn-row" style="display:none">
                 <!-- Annotation mode + guided tour hidden for now (need rework — see BACKLOG). -->
@@ -1034,16 +1081,6 @@
         </div>
         </div>
 
-    </div>
-
-    <!-- Inspector: a floating overlay over the 3D view, NOT inside #ui-panel — so it's
-         unaffected by the mobile drawer's transform (position:fixed needs an untransformed
-         ancestor chain) and reads consistently as "a card floating over the model" on both
-         desktop and mobile, rather than replacing the sidebar's own content area. -->
-    <div id="inspector-pane" class="pane-inspector">
-        <button id="inspector-close" type="button" class="modal-close" aria-label="Close inspector">×</button>
-        <div id="info-body"></div>
-        <div id="inspector-empty">Select a shaft, spring or borehole on the model to inspect its documented values, provenance and reasoning here.</div>
     </div>
 
     <!-- Legend: a modal, same shared shell as Data sources / Qanat Profile. Opened by the
@@ -1126,6 +1163,7 @@
 
     <div id="canvas-container">
         <svg id="measure-svg" aria-hidden="true"></svg>
+        <svg id="hitbox-svg" aria-hidden="true"></svg>
         <div id="shaft-tooltip"></div>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
@@ -1259,6 +1297,7 @@
             clipCenterline: 'p3p9',       // which line the Symmetric clip-off measures its margin from: 'p3p9' | 'fit'
             terrainDensity: 1.0,          // debug: mesh/contour tessellation multiplier (1 = auto = ~1.5× LiDAR grid)
             presetsCompact: false,        // dev-set persistent preference: smaller "Quick views" preset cards
+            showHitboxes: false,          // dev: draw the actual pickInMeshes() tap-tolerance box over each pickable marker
             devMode: false                // developer mode: red border + exposes dev-only toggles (Super/⌘+D)
         };
 
@@ -1279,7 +1318,7 @@
         //   every single load regardless of anything the user touched, polluting every ?ui=
         //   with noise. plateauHeight/baseY/terrainSource are never reassigned at all (kept
         //   here only as documentation of the same "not a real option" category).
-        const PARAMS_URL_EXCLUDE = new Set(['devMode', 'plateauHeight', 'width', 'depth', 'baseY', 'terrainSource']);
+        const PARAMS_URL_EXCLUDE = new Set(['devMode', 'showHitboxes', 'plateauHeight', 'width', 'depth', 'baseY', 'terrainSource']);
         function paramsDiff() {
             const diff = {};
             for (const k in DEFAULT_PARAMS) {
@@ -4195,6 +4234,12 @@
                 buildParametricModel();
             });
 
+            // Dev: purple overlay boxes showing the actual pickInMeshes() tap-tolerance area.
+            document.getElementById('param-show-hitboxes').addEventListener('change', e => {
+                params.showHitboxes = e.target.checked;
+                document.body.classList.toggle('show-hitboxes', e.target.checked);
+            });
+
             // Flip West <-> East (GeoData)
             document.getElementById('param-flip').addEventListener('change', e => {
                 params.flipWE = e.target.checked;
@@ -4256,6 +4301,7 @@
             const syncDevUI = () => {
                 document.body.classList.toggle('dev-mode', params.devMode);
                 document.getElementById('row-pbr').style.display = params.devMode ? '' : 'none';
+                document.getElementById('row-show-hitboxes').style.display = params.devMode ? '' : 'none';
                 document.getElementById('grp-vexag').style.display = params.devMode ? '' : 'none';   // vertical exaggeration is dev-only
                 document.getElementById('grp-density').style.display = params.devMode ? '' : 'none'; // terrain density is dev-only
                 document.getElementById('row-shaft-cutaway').style.display = params.devMode ? '' : 'none';   // look-inside cutaway is dev-only
@@ -4264,7 +4310,6 @@
                 document.getElementById('row-detailed-gallery').style.display = params.devMode ? '' : 'none'; // detailed gallery is dev-only
                 document.getElementById('row-hires-inset-native').style.display = (params.devMode && params.showHiresInset) ? '' : 'none'; // native inset render res is dev-only (perf risk) AND nested under the inset toggle
                 document.getElementById('btn-measure').style.display = params.devMode ? '' : 'none';  // measure is dev-only (buggy)
-                document.getElementById('btn-export-svg').style.display = params.devMode ? '' : 'none';  // vector export is dev-only
                 document.getElementById('panel-presets').style.display = params.devMode ? 'none' : '';   // Quick views hide while poking at dev options
                 document.getElementById('row-presets-compact').style.display = params.devMode ? '' : 'none';   // its own toggle is dev-only, but the effect persists once dev mode exits
                 document.getElementById('btn-dev-mode').classList.toggle('active', params.devMode);
@@ -4279,6 +4324,7 @@
                     // qanatFront is a default-on rendering choice (strata read behind the qanat) — persist it, don't reset on dev exit.
                     if (params.detailedGallery) { params.detailedGallery = false; document.getElementById('param-detailed-gallery').checked = false; rebuild = true; }
                     if (params.hiresInsetNativeRes) { params.hiresInsetNativeRes = false; document.getElementById('param-hires-inset-native').checked = false; rebuild = true; }
+                    if (params.showHitboxes) { params.showHitboxes = false; document.getElementById('param-show-hitboxes').checked = false; document.body.classList.remove('show-hitboxes'); }
                     if (params.shaftCutaway || params.seeInside) {
                         params.shaftCutaway = false; params.seeInside = false;
                         document.getElementById('param-shaft-cutaway').checked = false;
@@ -4785,6 +4831,7 @@
                 'param-side-cullback': () => params.sideCullBack,
                 'param-hires-inset-native': () => params.hiresInsetNativeRes,
                 'param-presets-compact': () => params.presetsCompact,
+                'param-show-hitboxes': () => params.showHitboxes,
                 'param-contours': () => params.contourSpacing
             };
             function hydrateControlsFromParams() {
@@ -4804,6 +4851,7 @@
                     if (yearSl) yearSl.value = Math.round(tlT * 1000);
                     updateTimelineReadout();
                 }
+                document.body.classList.toggle('show-hitboxes', params.showHitboxes);
                 syncBaseLayerUI();
                 syncConditionalOptions();
             }
@@ -5290,7 +5338,10 @@
         // animate()), not continuously while navigating, since a URL rewrite is pure overhead
         // mid-drag and the shared link only matters once the user has settled on a view. See
         // setCameraURL/parseCameraFromURL.
-        let _camURLPending = false, _camURLLastChange = 0;
+        // _camURLPendingSince is the rising-edge timestamp (first 'change' of this pending
+        // burst), separate from _camURLLastChange (the most recent one) — see the write
+        // condition in animate() for why both are needed.
+        let _camURLPending = false, _camURLLastChange = 0, _camURLPendingSince = 0;
         function updateCameraReadout() {
             const el = document.getElementById('camera-readout');
             if (!el) return;
@@ -5307,6 +5358,7 @@
             updateCompassNeedle();
             controls.addEventListener('change', () => {
                 _readoutDirty = true;
+                if (!_camURLPending) _camURLPendingSince = performance.now();
                 _camURLPending = true; _camURLLastChange = performance.now();
                 updateCompassNeedle(); updateCompass();
             });
@@ -5355,8 +5407,11 @@
         // offset points covering a 44px-square around it, closest-first, so a shaft/hotspot/
         // qanat tube that only projects to a few screen pixels at typical zoom is still
         // reliably tappable (Apple HIG minimum touch target — applies on desktop clicks too).
-        const TAP_SAMPLE_OFFSETS = [[0, 0], [18, 0], [-18, 0], [0, 18], [0, -18],
-            [18, 18], [18, -18], [-18, 18], [-18, -18]];
+        const TAP_SAMPLE_RADIUS_PX = 18;   // half-width of the sampled box; also drives the hitbox overlay (see updateHitboxOverlay)
+        const TAP_SAMPLE_OFFSETS = [[0, 0], [TAP_SAMPLE_RADIUS_PX, 0], [-TAP_SAMPLE_RADIUS_PX, 0],
+            [0, TAP_SAMPLE_RADIUS_PX], [0, -TAP_SAMPLE_RADIUS_PX],
+            [TAP_SAMPLE_RADIUS_PX, TAP_SAMPLE_RADIUS_PX], [TAP_SAMPLE_RADIUS_PX, -TAP_SAMPLE_RADIUS_PX],
+            [-TAP_SAMPLE_RADIUS_PX, TAP_SAMPLE_RADIUS_PX], [-TAP_SAMPLE_RADIUS_PX, -TAP_SAMPLE_RADIUS_PX]];
         function pickInMeshes(dom, ev, meshes, filter) {
             const r = dom.getBoundingClientRect();
             for (const [dx, dy] of TAP_SAMPLE_OFFSETS) {
@@ -5486,6 +5541,9 @@
                     selectAt(hit.point);
                     renderInfoPanel(shaftById[hit.object.userData.name]);
                     setSelectionURL('shaft', hit.object.userData.name);
+                    // Keep the Qanat Profile chart's highlighted tick in sync, in case it's open.
+                    currentSelectedShaftId = hit.object.userData.name;
+                    rebuildProfilePanel();
                     return;
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
@@ -6099,12 +6157,21 @@
         // tubes, geology strata bands, dimension/scale-bar lines, cross-section & step
         // markers, procedural contour lines, and the terrain block's boundary curve.
         // Deliberately excluded: satellite/OSM/official-contour raster drapes, any shaded
-        // fill, and ALL floating text/caption sprites (labels are UI/legend, not geometry).
+        // fill lifted from lighting/texture, and ALL floating text/caption sprites (labels
+        // are UI/legend, not geometry).
         // Objects opt in by carrying userData.vecLayer (grouping) + userData.vecMode:
-        //   'silhouette' — a filled Mesh; outlined via true boundary/silhouette-edge
-        //                  extraction (correct for solids like cylinders/tubes/box markers
-        //                  and for thin near-planar sheets like the strata bands).
-        //   'line'       — a Line/LineSegments already vector-native; projected directly.
+        //   'silhouette' — a filled Mesh; its boundary/silhouette edges are extracted (true
+        //                  for solids like cylinders/tubes/box markers and for thin
+        //                  near-planar sheets like the strata bands), then chained into closed
+        //                  loops (see chainSegmentsToLoops) and emitted as a filled <path> using
+        //                  the mesh's own material colour/opacity — matching the flat/translucent
+        //                  fill those objects actually have in the live 3D view. Chaining a
+        //                  curved solid's silhouette (a cylinder's rim + side seam) can produce
+        //                  a topologically ambiguous loop where a flat sheet's cannot, so layers
+        //                  where that risk isn't worth it fall back to a stroke-only outline
+        //                  (see FILL_LAYERS below).
+        //   'line'       — a Line/LineSegments already vector-native; projected directly and
+        //                  always stroke-only (it has no fill in 3D either).
         // The terrain's undulating fill surface has no clean silhouette in an arbitrary
         // oblique view (a heightfield has no back-facing triangles to test against — that
         // needs real hidden-surface removal), so instead of a fake skyline we export its
@@ -6142,12 +6209,63 @@
             });
             return segments;
         }
-        function exportVectorSVG() {
-            if (!modelGroup || !camera || !renderer) return;
+        // Chains a flat, disconnected segment list (as meshSilhouetteSegments returns) into
+        // ordered closed loops by walking shared endpoints — e.g. a strata band's boundary
+        // edges (after internal shared edges between adjacent quads cancel out) form exactly
+        // one loop tracing the band's outer perimeter. Endpoint matching reuses the same
+        // 4-decimal rounding as meshSilhouetteSegments so points that are the same vertex
+        // (shared by construction) key-match despite any float noise from the matrix transform.
+        // Geometry-agnostic: it only looks at shared points, so it works equally on a flat
+        // quad strip or a cylinder's silhouette — any subset of segments that closes back on
+        // itself becomes a loop; any that dead-ends (an open chain) is dropped rather than
+        // guessed-closed, since a half loop rendered as a filled shape would be worse than none.
+        function chainSegmentsToLoops(segments) {
+            const round = v => v.x.toFixed(4) + ',' + v.y.toFixed(4) + ',' + v.z.toFixed(4);
+            const pointOf = new Map();
+            const adj = new Map();
+            const keyOf = p => { const k = round(p); if (!pointOf.has(k)) pointOf.set(k, p); return k; };
+            const addAdj = (k, entry) => { if (!adj.has(k)) adj.set(k, []); adj.get(k).push(entry); };
+            segments.forEach((seg, i) => {
+                const ka = keyOf(seg[0]), kb = keyOf(seg[1]);
+                addAdj(ka, { to: kb, idx: i });
+                addAdj(kb, { to: ka, idx: i });
+            });
+            const used = new Array(segments.length).fill(false);
+            const loops = [];
+            for (let i = 0; i < segments.length; i++) {
+                if (used[i]) continue;
+                used[i] = true;
+                const startKey = keyOf(segments[i][0]);
+                const loop = [pointOf.get(startKey)];
+                let curKey = keyOf(segments[i][1]);
+                let guard = segments.length * 2 + 4;
+                while (curKey !== startKey && guard-- > 0) {
+                    loop.push(pointOf.get(curKey));
+                    const opts = (adj.get(curKey) || []).filter(o => !used[o.idx]);
+                    if (!opts.length) { curKey = null; break; }
+                    used[opts[0].idx] = true;
+                    curKey = opts[0].to;
+                }
+                if (curKey === startKey && loop.length >= 3) loops.push(loop);
+            }
+            return loops;
+        }
+        // Layers whose silhouette gets chained (chainSegmentsToLoops) into closed loops and
+        // filled with the material's own colour/opacity, instead of a bare stroke outline.
+        // Strata bands are flat quad strips — their silhouette is provably a single clean
+        // perimeter loop (or a few, where a near-zero-thickness gap splits the strip), so
+        // chaining is reliable. Shafts (cylinders) and the tunnel (a tube) were tried too, but
+        // their silhouette mixes a rim ellipse with a side seam at the visible/hidden boundary,
+        // which the generic (purely endpoint-matching) chainer can walk into a self-intersecting
+        // loop — a wrong fill is worse than the old stroke-only outline, so they stay off this
+        // list until a topology-aware chainer replaces the generic one.
+        const FILL_LAYERS = new Set(['strata']);
+        function buildVectorSVGString() {
+            if (!modelGroup || !camera || !renderer) return '';
             const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
             const camPos = camera.position.clone();
             const groups = {};
-            const push = (layer, segs, color) => { if (segs.length) (groups[layer] = groups[layer] || []).push({ segs, color }); };
+            const push = (layer, entry) => { if (entry.segs.length) (groups[layer] = groups[layer] || []).push(entry); };
             // Respect any active cutaway (Look inside / See inside / Qanat cutaway): those set
             // material.clippingPlanes on the affected meshes, GPU-clipping half of them away on
             // screen. Without this, the export would include geometry the camera can't see.
@@ -6169,10 +6287,12 @@
                     const segs = [];
                     const step = obj.isLineSegments ? 2 : 1;
                     for (let i = 0; i + 1 < pts.length; i += step) segs.push([pts[i], pts[i + 1]]);
-                    push(layer, segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color);
+                    push(layer, { segs: segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color, fill: false });
                 } else if (obj.userData.vecMode === 'silhouette') {
-                    const segs = meshSilhouetteSegments(obj, camPos);
-                    push(layer, segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color);
+                    const segs = meshSilhouetteSegments(obj, camPos).filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b));
+                    const loops = FILL_LAYERS.has(layer) ? chainSegmentsToLoops(segs) : [];
+                    const opacity = (mat && mat.transparent) ? mat.opacity : 1;
+                    push(layer, { segs, color, fill: loops.length > 0, loops, opacity });
                 }
             });
             // Terrain footprint boundary — the current width×depth window's four edges,
@@ -6183,7 +6303,7 @@
             addEdge(halfW, halfD, -halfW, halfD); addEdge(-halfW, halfD, -halfW, -halfD);
             const terrainSegs = [];
             for (let i = 0; i + 1 < boundary.length; i++) terrainSegs.push([boundary[i], boundary[i + 1]]);
-            push('terrain', terrainSegs, '#555555');
+            push('terrain', { segs: terrainSegs, color: '#555555', fill: false });
 
             const project = v3 => { const p = v3.clone().project(camera); return { x: (p.x + 1) / 2 * w, y: (1 - p.y) / 2 * h, behind: !isFinite(p.z) || Math.abs(p.z) > 1 }; };
             const pathFor = segs => segs.map(([a, b]) => {
@@ -6191,18 +6311,34 @@
                 if (pa.behind || pb.behind) return '';
                 return `M${pa.x.toFixed(2)} ${pa.y.toFixed(2)} L${pb.x.toFixed(2)} ${pb.y.toFixed(2)}`;
             }).filter(Boolean).join(' ');
+            const loopPathFor = loop => {
+                const pts = loop.map(project);
+                if (pts.some(p => p.behind)) return '';
+                return 'M' + pts.map(p => p.x.toFixed(2) + ' ' + p.y.toFixed(2)).join(' L') + ' Z';
+            };
             const LAYER_ORDER = ['terrain', 'strata', 'contour', 'shaft', 'tunnel', 'marker', 'dimension'];
             let body = '';
             LAYER_ORDER.forEach(layer => {
                 const arr = groups[layer]; if (!arr || !arr.length) return;
                 body += `<g id="${layer}">`;
-                arr.forEach(({ segs, color }) => {
-                    const d = pathFor(segs);
-                    if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
+                arr.forEach(({ segs, color, fill, loops, opacity }) => {
+                    if (fill) {
+                        loops.forEach(loop => {
+                            const d = loopPathFor(loop);
+                            if (d) body += `<path d="${d}" fill="${color}" fill-opacity="${opacity}" stroke="none"/>`;
+                        });
+                    } else {
+                        const d = pathFor(segs);
+                        if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
+                    }
                 });
                 body += `</g>`;
             });
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
+        }
+        function exportVectorSVG() {
+            const svg = buildVectorSVGString();
+            if (!svg) return;
             const blob = new Blob([svg], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
             const el = document.createElement('a');
@@ -6282,6 +6418,39 @@
             }
             svg.innerHTML = s;
         }
+        // Dev overlay: draw the actual pickInMeshes() tap-tolerance box over each pickable
+        // marker, so the effective clickable area can be judged visually instead of by feel.
+        // qanatMeshes/strataMeshes are large continuous surfaces, not point-like markers, so a
+        // box centred on one of their meshes wouldn't represent the hit area meaningfully —
+        // they're deliberately skipped here.
+        function updateHitboxOverlay() {
+            const svg = document.getElementById('hitbox-svg');
+            if (!svg) return;
+            if (!params.showHitboxes) { svg.innerHTML = ''; return; }
+            const half = TAP_SAMPLE_RADIUS_PX;
+            const side = half * 2;
+            let s = '';
+            const box = p => {
+                const sp = projectToScreen(p);
+                if (!sp) return;
+                s += `<rect x="${(sp.x - half).toFixed(1)}" y="${(sp.y - half).toFixed(1)}" width="${side}" height="${side}" fill="none" stroke="#a855f7" stroke-width="1.5"/>`;
+            };
+            // shaftMeshes has multiple mesh pieces per shaft (cap/body/cage/label sprite)
+            // sharing the same userData.name — dedupe by name so each shaft gets one box, not
+            // several overlapping ones. getWorldPosition, not .position, which is parent-local.
+            const seen = new Set();
+            const wp = new THREE.Vector3();
+            for (const m of shaftMeshes) {
+                const name = m.userData && m.userData.name;
+                if (!name || seen.has(name)) continue;
+                seen.add(name);
+                m.getWorldPosition(wp);
+                box(wp);
+            }
+            for (const m of xsecMeshes) { m.getWorldPosition(wp); box(wp); }
+            for (const m of spotMeshes) { m.getWorldPosition(wp); box(wp); }
+            svg.innerHTML = s;
+        }
         function addMeasurePoint(p) {
             if (measurePts.length === 2) measurePts = [];
             measurePts.push(p.clone());
@@ -6314,9 +6483,43 @@
         // separate JS boolean to keep in sync with it.
         let profileImgOn = false;   // show the Brochure geological cross-section (fig 4-2) in the modal
         let profileXMode = 'geo';   // 'geo' = georeferenced (LiDAR/OSM) | 'schematic' = Brochure fig 3-1 layout
+        // Which shaft's tick is highlighted in the profile chart — kept in sync with the 3D
+        // canvas's own shaft selection (see setupShaftInteraction's pointerup handler) as well
+        // as clicks inside the chart itself, so either path highlights the same shaft.
+        let currentSelectedShaftId = null;
         function rebuildProfilePanel() {
             const el = document.getElementById('profile-panel');
             if (el && isModalOpen('profile-modal-backdrop')) el.innerHTML = buildProfileSVG();
+        }
+        // A world point counts as "on screen" if its NDC projection falls inside [-1,1] on both
+        // axes and isn't behind the near plane — same convention projectToScreen() uses (v.z > 1
+        // means behind the camera).
+        function isPointOnScreen(p) {
+            const v = p.clone().project(camera);
+            return v.z <= 1 && v.x >= -1 && v.x <= 1 && v.y >= -1 && v.y <= 1;
+        }
+        // Clicking a shaft's tick/label in the profile chart does exactly what clicking that
+        // same shaft on the 3D canvas does (see setupShaftInteraction's pointerup handler) —
+        // plus, since the chart can be read with the shaft currently off-screen, flies the
+        // camera to it first if it isn't already visible (translating the whole camera rig by
+        // the target's displacement, so distance/azimuth/elevation are preserved rather than
+        // reset to a preset angle).
+        function selectShaftFromProfile(shaftId) {
+            const rec = shaftById[shaftId];
+            if (!rec) return;
+            const mesh = shaftMeshes.find(m => m.userData.name === shaftId);
+            const pos = mesh ? mesh.getWorldPosition(new THREE.Vector3()) : null;
+            if (pos) {
+                selectAt(pos);
+                if (!isPointOnScreen(pos)) {
+                    const delta = pos.clone().sub(controls.target);
+                    flyTo(camera.position.clone().add(delta), pos, 700);
+                }
+            }
+            renderInfoPanel(rec);
+            setSelectionURL('shaft', shaftId);
+            currentSelectedShaftId = shaftId;
+            rebuildProfilePanel();
         }
         // The geological-section image toggle is SHARED between the profile modal and the
         // side-nav "Geological section" checkbox; keep the single state (profileImgOn) and both
@@ -6379,10 +6582,16 @@
                 svg += `<line x1="${mL}" y1="${Y(e)}" x2="${W - mR}" y2="${Y(e)}" stroke="#e3ddd2"/>` +
                        `<text x="4" y="${Y(e) + 3}" fill="#8a7a63" font-size="9">${e}</text>`;
             }
-            // shaft ticks + depth (surf->floor) + labels
+            // shaft ticks + depth (surf->floor) + labels — each wrapped in a clickable <g> that
+            // mirrors the 3D canvas's own shaft click (see selectShaftFromProfile); the
+            // transparent <rect> pads the hit area well beyond the thin line/small text.
             for (const p of pts) {
-                svg += `<line x1="${X(p.dist)}" y1="${Y(p.surf)}" x2="${X(p.dist)}" y2="${Y(p.floor)}" stroke="#e0a23b" stroke-width="2"/>`;
-                svg += `<text x="${X(p.dist)}" y="${Y(p.surf) - 3}" fill="#5a4a33" font-size="8" text-anchor="middle">${p.id}</text>`;
+                const sel = p.id === currentSelectedShaftId ? ' selected' : '';
+                svg += `<g class="pp-shaft-hot${sel}" data-shaft="${p.id}" style="cursor:pointer" onclick="selectShaftFromProfile('${p.id}')">` +
+                    `<line x1="${X(p.dist)}" y1="${Y(p.surf)}" x2="${X(p.dist)}" y2="${Y(p.floor)}" stroke="#e0a23b" stroke-width="2"/>` +
+                    `<text x="${X(p.dist)}" y="${Y(p.surf) - 3}" fill="#5a4a33" font-size="8" text-anchor="middle">${p.id}</text>` +
+                    `<rect x="${X(p.dist) - 9}" y="${Y(p.surf) - 9}" width="18" height="${Y(p.floor) - Y(p.surf) + 18}" fill="transparent"/>` +
+                `</g>`;
             }
             svg += `<path d="${line('surf')}" fill="none" stroke="#9c8567" stroke-width="1.8"/>`;
             svg += `<path d="${line('floor')}" fill="none" stroke="#1d6fd6" stroke-width="2.2"/>`;
@@ -6489,12 +6698,14 @@
                 controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
                 if (k >= 1) camAnim = null;
                 _readoutDirty = true;
+                if (!_camURLPending) _camURLPendingSince = now;
                 _camURLPending = true; _camURLLastChange = now;
             }
             updateFlow(now);
             // Scroll the shared water ripple normal so the PBR gallery reads as flowing.
             if (waterMats.length && TEX.water) TEX.water.offset.y = -(now * 0.00012) % 1;
             if (measureMode) updateMeasureOverlay();
+            updateHitboxOverlay();
             updateCutawayPlane();   // keep the look-inside cut facing the camera
             updateXsecCutawayPlane();   // keep the qanat cross-section cut on the correct side (and following, if enabled)
             if (selectionMarker && selectionMarker.visible) selectionMarker.quaternion.copy(camera.quaternion);
@@ -6507,10 +6718,15 @@
                 _readoutDirty = false;
                 _readoutLastPaint = now;
             }
-            // Shareable camera URL: debounced, not throttled — only written once the camera
-            // has sat still for 3s since its last 'change'/fly-to-animation update, so a URL
-            // rewrite never happens mid-drag and only fires once per settled view.
-            if (_camURLPending && now - _camURLLastChange > 3000) {
+            // Shareable camera URL: debounced, not throttled — written once the camera has sat
+            // still for 3s since its last 'change' ... OR after 5s of this pending burst
+            // regardless, whichever comes first. The second clause is the actual fix for a real
+            // bug: OrbitControls' damping decay is FRAME-count-based, not wall-clock-based, so
+            // after a fast/large drag (or on a slower/lower-fps device) it can keep dispatching
+            // negligible 'change' events for many seconds — each one re-arming the first-clause
+            // 3s timer, so on its own that clause could starve forever and never write. The hard
+            // 5s cap guarantees a write happens soon after the interaction, even mid-coast.
+            if (_camURLPending && (now - _camURLLastChange > 3000 || now - _camURLPendingSince > 5000)) {
                 setCameraURL();
                 _camURLPending = false;
             }
