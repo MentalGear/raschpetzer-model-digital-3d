@@ -1054,6 +1054,7 @@
         </div>
         <div class="control-group">
             <label>Export</label>
+            <label class="check-row" id="row-export-map-raster"><input type="checkbox" id="export-map-raster" checked> Include&nbsp;map&nbsp;imagery&nbsp;(raster)</label>
             <button id="btn-export-svg" type="button" class="dev-toggle" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
         </div>
         <div class="control-group">
@@ -2743,6 +2744,7 @@
                 fillMat.needsUpdate = true;
             }
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
+            surfMesh.userData.isMapLayer = true;   // vector export's raster-map capture isolates this
             modelGroup.add(surfMesh);
             // Cull-back-face is a VISUAL choice (hide the coloured/textured underside), not a
             // depth one: with fillMat.side = FrontSide, viewing from below makes the fill mesh
@@ -3605,6 +3607,7 @@
                 xsecClipMats.push(insetMat);
                 const insetMesh = new THREE.Mesh(insetGeo, insetMat);
                 insetMesh.renderOrder = 1;   // draw after the main fill mesh
+                insetMesh.userData.isMapLayer = true;   // vector export's raster-map capture isolates this too
                 modelGroup.add(insetMesh);
             }
 
@@ -6311,8 +6314,32 @@
         // loop — a wrong fill is worse than the old stroke-only outline, so they stay off this
         // list until a topology-aware chainer replaces the generic one.
         const FILL_LAYERS = new Set(['strata']);
-        function buildVectorSVGString() {
+        // For the vector export's optional "include map imagery" toggle: isolates just the
+        // map-layer-textured terrain surface (the fill mesh + hi-res inset patch, tagged
+        // userData.isMapLayer at creation) by hiding every other scene object for one frame,
+        // capturing that frame as a raster image, then restoring everything exactly as it was
+        // and re-rendering — the live 3D view is never left in the hidden state. This is the
+        // ONLY raster content the export ever includes, and only when explicitly opted into;
+        // every other layer (strata, contours, shafts, dimensions, …) stays pure vector.
+        function captureMapLayerRaster() {
+            if (!modelGroup || !scene || !camera || !renderer) return null;
+            const hidden = [];
+            const hideUnlessMapLayer = obj => {
+                if (obj.userData && obj.userData.isMapLayer) return;
+                if (obj.visible) { hidden.push(obj); obj.visible = false; }
+            };
+            modelGroup.children.forEach(hideUnlessMapLayer);
+            [selectionMarker, annotationGroup, flowGroup].forEach(o => { if (o) hideUnlessMapLayer(o); });
+            renderer.render(scene, camera);
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            hidden.forEach(o => { o.visible = true; });
+            renderer.render(scene, camera);   // restore the live view immediately
+            return dataURL;
+        }
+        function buildVectorSVGString(opts) {
             if (!modelGroup || !camera || !renderer) return '';
+            const includeMapRaster = !!(opts && opts.includeMapRaster);
+            const mapRasterDataURL = includeMapRaster ? captureMapLayerRaster() : null;
             const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
             const camPos = camera.position.clone();
             const groups = {};
@@ -6366,8 +6393,10 @@
             // A satellite/LiDAR-relief drape is real imagery, not geometry, so per the
             // "geometry only" export rule above it's never rasterised into the fill; the flat
             // scheme colour stands in for it instead, so the terrain silhouette in the export
-            // isn't left hollow.
-            const terrainFillColor = (terrainFillMatRef && !terrainFillMatRef.map)
+            // isn't left hollow. Skipped when the raster map image IS being embedded (below) —
+            // that draws afterward in the SVG's painter order, so this flat fill would otherwise
+            // paint right over it, opaque, hiding the photo entirely.
+            const terrainFillColor = mapRasterDataURL ? null : (terrainFillMatRef && !terrainFillMatRef.map)
                 ? '#' + terrainFillMatRef.color.getHexString()
                 : (prefersDark() ? '#33363f' : '#f0e8d6');
             (groups['terrain'] = groups['terrain'] || []).push({ color: '#555555', fillColor: terrainFillColor, smoothLoop: boundary });
@@ -6422,8 +6451,21 @@
                 if (pts.some(p => p.behind)) return '';
                 return catmullRomPath(pts, true);
             };
-            const LAYER_ORDER = ['terrain', 'strata', 'contour', 'shaft', 'tunnel', 'marker', 'dimension'];
+            // The optional map-imagery raster, clipped to the terrain footprint and placed
+            // beneath absolutely everything else (including the flat vector terrain fill,
+            // which stays as a fallback backdrop in case the clip doesn't reach every edge
+            // pixel). Bails like any other filled shape if the boundary loop isn't fully
+            // on-screen — a raster clipped to a broken/partial outline would look worse than
+            // just omitting it.
             let body = '';
+            if (mapRasterDataURL) {
+                const clipD = smoothFillPath(boundary);
+                if (clipD) {
+                    body += `<defs><clipPath id="map-raster-clip"><path d="${clipD}"/></clipPath></defs>`;
+                    body += `<image href="${mapRasterDataURL}" xlink:href="${mapRasterDataURL}" x="0" y="0" width="${w}" height="${h}" clip-path="url(#map-raster-clip)"/>`;
+                }
+            }
+            const LAYER_ORDER = ['terrain', 'strata', 'contour', 'shaft', 'tunnel', 'marker', 'dimension'];
             LAYER_ORDER.forEach(layer => {
                 const arr = groups[layer]; if (!arr || !arr.length) return;
                 body += `<g id="${layer}">`;
@@ -6461,10 +6503,11 @@
                 });
                 body += `</g>`;
             });
-            return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
+            return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
         }
         function exportVectorSVG() {
-            const svg = buildVectorSVGString();
+            const rasterToggle = document.getElementById('export-map-raster');
+            const svg = buildVectorSVGString({ includeMapRaster: !!(rasterToggle && rasterToggle.checked) });
             if (!svg) return;
             const blob = new Blob([svg], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
