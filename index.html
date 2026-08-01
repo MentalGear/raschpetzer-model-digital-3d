@@ -2828,13 +2828,13 @@
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
             const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
             const regLS = new THREE.LineSegments(regGeo, regMat);
-            regLS.userData.vecMode = 'line'; regLS.userData.vecLayer = 'contour';
+            regLS.userData.vecMode = 'line'; regLS.userData.vecLayer = 'contour'; regLS.userData.vecChain = true;
             modelGroup.add(regLS);
             const idxGeo = new THREE.BufferGeometry();
             idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
             const idxMat = new THREE.LineBasicMaterial({ color: COL.contourIndex, transparent: true, opacity: tOp });
             const idxLS = new THREE.LineSegments(idxGeo, idxMat);
-            idxLS.userData.vecMode = 'line'; idxLS.userData.vecLayer = 'contour';
+            idxLS.userData.vecMode = 'line'; idxLS.userData.vecLayer = 'contour'; idxLS.userData.vecChain = true;
             modelGroup.add(idxLS);
             regMat.userData.baseOpacity = 1.0;
             idxMat.userData.baseOpacity = 1.0;
@@ -6188,15 +6188,19 @@
         //   'silhouette' — a filled Mesh; its boundary/silhouette edges are extracted (true
         //                  for solids like cylinders/tubes/box markers and for thin
         //                  near-planar sheets like the strata bands), then chained into closed
-        //                  loops (see chainSegmentsToLoops) and emitted as a filled <path> using
-        //                  the mesh's own material colour/opacity — matching the flat/translucent
-        //                  fill those objects actually have in the live 3D view. Chaining a
-        //                  curved solid's silhouette (a cylinder's rim + side seam) can produce
-        //                  a topologically ambiguous loop where a flat sheet's cannot, so layers
-        //                  where that risk isn't worth it fall back to a stroke-only outline
-        //                  (see FILL_LAYERS below).
+        //                  loops (see chainSegments) and emitted as a filled, smoothly-curved
+        //                  <path> using the mesh's own material colour/opacity — matching the
+        //                  flat/translucent fill those objects actually have in the live 3D
+        //                  view. Chaining a curved solid's silhouette (a cylinder's rim + side
+        //                  seam) can produce a topologically ambiguous loop where a flat
+        //                  sheet's cannot, so layers where that risk isn't worth it fall back
+        //                  to a stroke-only outline (see FILL_LAYERS below).
         //   'line'       — a Line/LineSegments already vector-native; projected directly and
-        //                  always stroke-only (it has no fill in 3D either).
+        //                  always stroke-only (it has no fill in 3D either). Layers that opt
+        //                  into userData.vecChain (currently just contour lines) are first
+        //                  walked into ordered polylines/loops (chainSegments) and drawn as
+        //                  smooth curves through the real sampled points; everything else
+        //                  keeps the old straight per-segment stroke.
         // The terrain's undulating fill surface has no clean silhouette in an arbitrary
         // oblique view (a heightfield has no back-facing triangles to test against — that
         // needs real hidden-surface removal), so instead of a fake skyline we export its
@@ -6234,17 +6238,17 @@
             });
             return segments;
         }
-        // Chains a flat, disconnected segment list (as meshSilhouetteSegments returns) into
-        // ordered closed loops by walking shared endpoints — e.g. a strata band's boundary
-        // edges (after internal shared edges between adjacent quads cancel out) form exactly
-        // one loop tracing the band's outer perimeter. Endpoint matching reuses the same
-        // 4-decimal rounding as meshSilhouetteSegments so points that are the same vertex
-        // (shared by construction) key-match despite any float noise from the matrix transform.
-        // Geometry-agnostic: it only looks at shared points, so it works equally on a flat
-        // quad strip or a cylinder's silhouette — any subset of segments that closes back on
-        // itself becomes a loop; any that dead-ends (an open chain) is dropped rather than
-        // guessed-closed, since a half loop rendered as a filled shape would be worse than none.
-        function chainSegmentsToLoops(segments) {
+        // Chains a flat, disconnected segment list (as meshSilhouetteSegments — or the
+        // marching-squares contour builder — returns) into ordered point sequences by walking
+        // shared endpoints. Returns BOTH kinds it can find: closed loops (e.g. a strata band's
+        // boundary edges, after internal shared edges between adjacent quads cancel out, or a
+        // contour ring entirely inside the grid) and open chains (a contour line that runs off
+        // the terrain's boundary edge, so it dead-ends instead of closing). Endpoint matching
+        // reuses the same 4-decimal rounding as meshSilhouetteSegments so points that are the
+        // same vertex (shared by construction) key-match despite any float noise from the
+        // matrix transform. Geometry-agnostic: it only looks at shared points, so it works
+        // equally on a flat quad strip, a contour grid, or a cylinder's silhouette.
+        function chainSegments(segments) {
             const round = v => v.x.toFixed(4) + ',' + v.y.toFixed(4) + ',' + v.z.toFixed(4);
             const pointOf = new Map();
             const adj = new Map();
@@ -6256,7 +6260,26 @@
                 addAdj(kb, { to: ka, idx: i });
             });
             const used = new Array(segments.length).fill(false);
-            const loops = [];
+            const loops = [], chains = [];
+            const walkFrom = startKey => {
+                const chain = [pointOf.get(startKey)];
+                let curKey = startKey;
+                for (;;) {
+                    const opts = (adj.get(curKey) || []).filter(o => !used[o.idx]);
+                    if (!opts.length) break;
+                    used[opts[0].idx] = true;
+                    curKey = opts[0].to;
+                    chain.push(pointOf.get(curKey));
+                }
+                return chain;
+            };
+            // Dead-ends (degree-1 nodes) first, so every open chain is walked end-to-end from
+            // one of its two tips rather than getting split by whichever loop-scan reaches it.
+            [...adj.entries()].filter(([, list]) => list.length === 1).forEach(([k]) => {
+                const opts = (adj.get(k) || []).filter(o => !used[o.idx]);
+                if (opts.length) chains.push(walkFrom(k));
+            });
+            // Whatever's left (no dead ends among its nodes) can only be closed loops.
             for (let i = 0; i < segments.length; i++) {
                 if (used[i]) continue;
                 used[i] = true;
@@ -6272,10 +6295,11 @@
                     curKey = opts[0].to;
                 }
                 if (curKey === startKey && loop.length >= 3) loops.push(loop);
+                else if (loop.length >= 2) chains.push(loop);   // dead-ended after all — keep as an open chain
             }
-            return loops;
+            return { loops, chains };
         }
-        // Layers whose silhouette gets chained (chainSegmentsToLoops) into closed loops and
+        // Layers whose silhouette gets chained (chainSegments) into closed loops and
         // filled with the material's own colour/opacity, instead of a bare stroke outline.
         // Strata bands are flat quad strips — their silhouette is provably a single clean
         // perimeter loop (or a few, where a near-zero-thickness gap splits the strip), so
@@ -6312,23 +6336,30 @@
                     const segs = [];
                     const step = obj.isLineSegments ? 2 : 1;
                     for (let i = 0; i + 1 < pts.length; i += step) segs.push([pts[i], pts[i + 1]]);
-                    push(layer, { segs: segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b)), color, fill: false });
+                    const clipped = segs.filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b));
+                    // Contour lines opt in (vecChain) to being walked into ordered polylines/loops
+                    // first (see chainSegments) so they can be drawn as smooth curves through the
+                    // real sampled points, instead of one disconnected straight segment per grid
+                    // cell. Everything else here ('line'-mode dimension/scale lines) is already
+                    // meant to read as straight, so it keeps the old per-segment stroke.
+                    const smoothChain = obj.userData.vecChain ? chainSegments(clipped) : null;
+                    push(layer, { segs: clipped, color, fill: false, smoothChain });
                 } else if (obj.userData.vecMode === 'silhouette') {
                     const segs = meshSilhouetteSegments(obj, camPos).filter(([a, b]) => clipOk(mat, a) && clipOk(mat, b));
-                    const loops = FILL_LAYERS.has(layer) ? chainSegmentsToLoops(segs) : [];
+                    const loops = FILL_LAYERS.has(layer) ? chainSegments(segs).loops : [];
                     const opacity = (mat && mat.transparent) ? mat.opacity : 1;
                     push(layer, { segs, color, fill: loops.length > 0, loops, opacity });
                 }
             });
             // Terrain footprint boundary — the current width×depth window's four edges,
-            // height-sampled (not a full self-occlusion skyline; see note above).
+            // height-sampled (not a full self-occlusion skyline; see note above). The four
+            // edges are built end-to-end back to the start, so it's already one ordered closed
+            // loop — smoothed the same way as any other closed outline, no chaining needed.
             const halfW = params.width / 2, halfD = params.depth / 2, N = 120, boundary = [];
             const addEdge = (x1, z1, x2, z2) => { for (let i = 0; i <= N; i++) { const t = i / N, x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t; boundary.push(new THREE.Vector3(x, getTerrainHeight(x, z), z)); } };
             addEdge(-halfW, -halfD, halfW, -halfD); addEdge(halfW, -halfD, halfW, halfD);
             addEdge(halfW, halfD, -halfW, halfD); addEdge(-halfW, halfD, -halfW, -halfD);
-            const terrainSegs = [];
-            for (let i = 0; i + 1 < boundary.length; i++) terrainSegs.push([boundary[i], boundary[i + 1]]);
-            push('terrain', { segs: terrainSegs, color: '#555555', fill: false });
+            (groups['terrain'] = groups['terrain'] || []).push({ color: '#555555', fill: false, smoothLoop: boundary });
 
             const project = v3 => { const p = v3.clone().project(camera); return { x: (p.x + 1) / 2 * w, y: (1 - p.y) / 2 * h, behind: !isFinite(p.z) || Math.abs(p.z) > 1 }; };
             const pathFor = segs => segs.map(([a, b]) => {
@@ -6336,21 +6367,72 @@
                 if (pa.behind || pb.behind) return '';
                 return `M${pa.x.toFixed(2)} ${pa.y.toFixed(2)} L${pb.x.toFixed(2)} ${pb.y.toFixed(2)}`;
             }).filter(Boolean).join(' ');
-            const loopPathFor = loop => {
+            // Catmull-Rom, converted to cubic Beziers (uniform, tension 1/6): the curve passes
+            // exactly through every point given — it only smooths the facets left by the
+            // underlying mesh/grid resolution, never invents or shifts real geometry. `closed`
+            // wraps neighbour look-ups around the ends; an open chain clamps them (the end
+            // point stands in for its own missing outer neighbour).
+            const catmullRomPath = (pts, closed) => {
+                const n = pts.length;
+                if (n < 2) return '';
+                if (n === 2) return `M${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)} L${pts[1].x.toFixed(2)} ${pts[1].y.toFixed(2)}`;
+                const at = i => closed ? pts[((i % n) + n) % n] : pts[Math.max(0, Math.min(n - 1, i))];
+                let d = `M${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+                const segCount = closed ? n : n - 1;
+                for (let i = 0; i < segCount; i++) {
+                    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+                    const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
+                    const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+                    d += ` C${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(2)} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+                }
+                if (closed) d += ' Z';
+                return d;
+            };
+            // Splits an ordered 3-D point chain into screen-space runs of consecutive on-screen
+            // points — matches the old pathFor's habit of silently dropping anything that
+            // crosses behind the camera, but keeps each surviving run joined into one curve
+            // instead of breaking every single link between points.
+            const projectRuns = pts3d => {
+                const proj = pts3d.map(project);
+                const wholeValid = proj.every(p => !p.behind);
+                const runs = []; let cur = [];
+                proj.forEach(p => { if (p.behind) { if (cur.length > 1) runs.push(cur); cur = []; } else cur.push(p); });
+                if (cur.length > 1) runs.push(cur);
+                return { runs, wholeValid };
+            };
+            const smoothStrokePath = (pts3d, closedIfWhole) => {
+                const { runs, wholeValid } = projectRuns(pts3d);
+                return runs.map(run => catmullRomPath(run, closedIfWhole && wholeValid)).filter(Boolean).join(' ');
+            };
+            // Filled loops bail entirely if any point is off-screen (like the old loopPathFor) —
+            // an open outline rendered as a fill would look broken, not just incomplete.
+            const smoothFillPath = loop => {
                 const pts = loop.map(project);
                 if (pts.some(p => p.behind)) return '';
-                return 'M' + pts.map(p => p.x.toFixed(2) + ' ' + p.y.toFixed(2)).join(' L') + ' Z';
+                return catmullRomPath(pts, true);
             };
             const LAYER_ORDER = ['terrain', 'strata', 'contour', 'shaft', 'tunnel', 'marker', 'dimension'];
             let body = '';
             LAYER_ORDER.forEach(layer => {
                 const arr = groups[layer]; if (!arr || !arr.length) return;
                 body += `<g id="${layer}">`;
-                arr.forEach(({ segs, color, fill, loops, opacity }) => {
-                    if (fill) {
+                arr.forEach(({ segs, color, fill, loops, opacity, smoothLoop, smoothChain }) => {
+                    if (smoothLoop) {
+                        const d = smoothStrokePath(smoothLoop, true);
+                        if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
+                    } else if (fill) {
                         loops.forEach(loop => {
-                            const d = loopPathFor(loop);
+                            const d = smoothFillPath(loop);
                             if (d) body += `<path d="${d}" fill="${color}" fill-opacity="${opacity}" stroke="none"/>`;
+                        });
+                    } else if (smoothChain) {
+                        smoothChain.loops.forEach(loop => {
+                            const d = smoothStrokePath(loop, true);
+                            if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
+                        });
+                        smoothChain.chains.forEach(chain => {
+                            const d = smoothStrokePath(chain, false);
+                            if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
                         });
                     } else {
                         const d = pathFor(segs);
