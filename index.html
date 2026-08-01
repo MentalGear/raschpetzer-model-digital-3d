@@ -444,6 +444,15 @@
             100% { background: rgba(96,165,250,0); } }
         #nav-mode-hint.flash { animation: navHintFlash 0.9s ease; border-radius: 5px; }
         @media (prefers-reduced-motion: reduce) { #nav-mode-hint.flash { animation: none; } }
+        /* Draws attention to freshly-populated Inspector content — a one-shot highlight flash,
+           not a loop, so it reads as "new content just arrived" without nagging. Re-triggered
+           on every selection (see renderInfoPanel*), including picking a different item while
+           the Inspector is already open. */
+        @keyframes ipSelectPulse { 0% { background: rgba(59,130,246,0); box-shadow: inset 0 0 0 0 rgba(59,130,246,0); }
+            15% { background: rgba(59,130,246,0.14); box-shadow: inset 0 0 0 1px rgba(59,130,246,0.4); }
+            100% { background: rgba(59,130,246,0); box-shadow: inset 0 0 0 0 rgba(59,130,246,0); } }
+        #info-body.select-pulse { animation: ipSelectPulse 0.7s ease; border-radius: 8px; }
+        @media (prefers-reduced-motion: reduce) { #info-body.select-pulse { animation: none; } }
         .btn-tools { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
         /* Keyboard focus rings (accessibility) */
         :focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
@@ -623,6 +632,19 @@
         }
         #shaft-tooltip .t-name { font-weight: 700; color: var(--accent-orange); }
         #shaft-tooltip .t-depth { color: #cbd5e1; }
+
+        /* Screen-space "clear selection" chip — tracks the 3D selection marker's projected
+           position every frame (see updateSelectionDismiss), so it always reads as attached to
+           whatever is currently selected, from any camera angle. Positioned/shown by JS only;
+           display:none is the real default, not just an offscreen transform, so it never
+           intercepts clicks over the canvas while nothing is selected. */
+        #selection-dismiss { position: absolute; z-index: 8; display: none;
+            width: 26px; height: 26px; border-radius: 50%; transform: translate(-50%, -50%);
+            background: rgba(20,20,28,0.88); color: #fff; border: 1px solid rgba(255,255,255,0.25);
+            font-size: 0.95rem; line-height: 1; cursor: pointer; align-items: center; justify-content: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.4); transition: background 0.12s, transform 0.12s; }
+        #selection-dismiss.show { display: flex; }
+        #selection-dismiss:hover { background: #e0554a; transform: translate(-50%, -50%) scale(1.12); }
 
         /* Annotations side panel (left) */
         #annot-panel {
@@ -1192,6 +1214,10 @@
         <svg id="measure-svg" aria-hidden="true"></svg>
         <svg id="hitbox-svg" aria-hidden="true"></svg>
         <div id="shaft-tooltip"></div>
+        <!-- Follows the 3D selection marker (see updateSelectionDismiss) — clicking it is the
+             explicit, always-visible way to clear a selection, on top of the existing paths
+             (tapping empty space, tapping the same item again, switching to Views). -->
+        <button id="selection-dismiss" type="button" title="Clear selection" aria-label="Clear selection">✕</button>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
         <div id="compass" title="Face north">
@@ -1625,6 +1651,34 @@
         function clearSelectionMarker() {
             if (selectionMarker) selectionMarker.visible = false;
             clearSelectionURL();
+        }
+        // Full "nothing is selected" reset — clears the 3D marker AND the Inspector's stale
+        // content/has-selection flag, so the empty-state prompt shows immediately rather than
+        // leaving the last item's data on screen next to a marker that's already gone. Used by
+        // the explicit dismiss actions (the ✕ chip, tapping an already-selected item again);
+        // tapping empty terrain intentionally stays lighter-weight (clearSelectionMarker alone,
+        // pre-existing behaviour) since that's an incidental miss-click, not a deliberate dismiss.
+        function resetInspectorToEmpty() {
+            const body = document.getElementById('info-body');
+            const pane = document.getElementById('inspector-pane');
+            if (body) body.innerHTML = '';
+            if (pane) pane.classList.remove('has-selection');
+            clearSelectionMarker();
+        }
+        // Keeps the on-canvas "clear selection" chip glued to the selection marker's projected
+        // screen position every frame (called from animate() right alongside the marker's own
+        // billboard update). Hidden whenever there's no selection, or the marker's point is
+        // off-screen/behind the camera (projectToScreen returns null in that case) — it should
+        // never sit at a stale position or float free of the thing it's meant to dismiss.
+        function updateSelectionDismiss() {
+            const chip = document.getElementById('selection-dismiss');
+            if (!chip) return;
+            if (!selectionMarker || !selectionMarker.visible) { chip.classList.remove('show'); return; }
+            const p = projectToScreen(selectionMarker.position);
+            if (!p) { chip.classList.remove('show'); return; }
+            chip.style.left = p.x + 'px';
+            chip.style.top = (p.y - 26) + 'px';   // sits just above the marker, not on top of it
+            chip.classList.add('show');
         }
 
         // --- Shareable selection link: encode the current inspector selection into the URL
@@ -5585,27 +5639,40 @@
                     if (p) addAnnotation(p.x, p.z);
                     return;
                 }
+                // Tapping the SAME item that's already selected toggles it off — an explicit,
+                // discoverable "click again to deselect" path alongside the ✕ chip and tapping
+                // empty space. Checked against the URL's ?sel= (the same source of truth
+                // restoreSelectionFromURL reads), so it stays correct without a separate
+                // "currently selected" variable to keep in sync.
+                const curSel = parseSelectionFromURL();
+                const isReselect = (type, id) => curSel && curSel.type === type && curSel.id === String(id);
                 const xhit = pickXsec(ev);   // gallery cross-section hotspot → inspector
                 if (xhit) {
+                    const idx = xsecMeshes.indexOf(xhit.object);
+                    if (isReselect('xsec', idx)) { resetInspectorToEmpty(); setPanelMode('views'); return; }
                     selectAt(xhit.point); renderXsecPanel(xhit.object.userData);
-                    setSelectionURL('xsec', xsecMeshes.indexOf(xhit.object));
+                    setSelectionURL('xsec', idx);
                     return;
                 }
                 const hit = pick(ev);
                 if (hit) {
+                    const name = hit.object.userData.name;
+                    if (isReselect('shaft', name)) { resetInspectorToEmpty(); setPanelMode('views'); return; }
                     // Tapping a shaft opens the info overlay (no camera fly).
                     selectAt(hit.point);
-                    renderInfoPanel(shaftById[hit.object.userData.name]);
-                    setSelectionURL('shaft', hit.object.userData.name);
+                    renderInfoPanel(shaftById[name]);
+                    setSelectionURL('shaft', name);
                     // Keep the Qanat Profile chart's highlighted tick in sync, in case it's open.
-                    currentSelectedShaftId = hit.object.userData.name;
+                    currentSelectedShaftId = name;
                     rebuildProfilePanel();
                     return;
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
                 if (shit) {
+                    const kind = shit.object.userData.kind;
+                    if (isReselect('spot', kind)) { resetInspectorToEmpty(); setPanelMode('views'); return; }
                     selectAt(shit.point); renderSpotPanel(shit.object.userData);
-                    setSelectionURL('spot', shit.object.userData.kind);
+                    setSelectionURL('spot', kind);
                     return;
                 }
                 const qhit = pickQanat(ev);   // qanat gallery tube → inspector
@@ -5625,8 +5692,10 @@
                 }
                 const sthit = pickStrata(ev);   // geology strata band (weathered/sandstone/marl/keuper)
                 if (sthit) {
-                    selectAt(sthit.point); renderStrataPanel(sthit.object.userData.code);
-                    setSelectionURL('strata', sthit.object.userData.code);
+                    const code = sthit.object.userData.code;
+                    if (isReselect('strata', code)) { resetInspectorToEmpty(); setPanelMode('views'); return; }
+                    selectAt(sthit.point); renderStrataPanel(code);
+                    setSelectionURL('strata', code);
                     return;
                 }
                 clearSelectionMarker();   // tapped empty terrain/space: drop the previous selection
@@ -5909,6 +5978,16 @@
             const pane = document.getElementById('inspector-pane');
             if (pane) pane.classList.add('has-selection');
             setPanelMode('inspector');
+            // One-shot attention pulse on the freshly-populated content — restart it even if a
+            // previous pulse is still mid-flight (switching selections quickly) by removing the
+            // class and forcing a reflow before re-adding it; a plain re-add is a no-op if the
+            // class is already present, since the animation wouldn't restart.
+            const body = document.getElementById('info-body');
+            if (body) {
+                body.classList.remove('select-pulse');
+                void body.offsetWidth;
+                body.classList.add('select-pulse');
+            }
         }
         function initInfoPanel() {
             const bv = document.getElementById('mode-views'), bi = document.getElementById('mode-inspector'),
@@ -5927,6 +6006,8 @@
             });
             const closeBtn = document.getElementById('inspector-close');
             if (closeBtn) closeBtn.addEventListener('click', () => { clearSelectionMarker(); setPanelMode('views'); });
+            const dismissChip = document.getElementById('selection-dismiss');
+            if (dismissChip) dismissChip.addEventListener('click', () => { resetInspectorToEmpty(); setPanelMode('views'); });
             // Opening/closing a fact row's <details> (native toggle event) records its
             // open/closed state in openDetailRows (keyed by row label) so it survives the next
             // renderInfoPanel/renderStrataPanel/etc. rebuild for a different item — see
@@ -6703,6 +6784,13 @@
         function selectShaftFromProfile(shaftId) {
             const rec = shaftById[shaftId];
             if (!rec) return;
+            // Same "click the already-selected item again to deselect" toggle as the 3D canvas.
+            const cur = parseSelectionFromURL();
+            if (cur && cur.type === 'shaft' && cur.id === shaftId) {
+                resetInspectorToEmpty(); setPanelMode('views');
+                currentSelectedShaftId = null; rebuildProfilePanel();
+                return;
+            }
             const mesh = shaftMeshes.find(m => m.userData.name === shaftId);
             const pos = mesh ? mesh.getWorldPosition(new THREE.Vector3()) : null;
             if (pos) {
@@ -6905,6 +6993,7 @@
             updateCutawayPlane();   // keep the look-inside cut facing the camera
             updateXsecCutawayPlane();   // keep the qanat cross-section cut on the correct side (and following, if enabled)
             if (selectionMarker && selectionMarker.visible) selectionMarker.quaternion.copy(camera.quaternion);
+            updateSelectionDismiss();
             controls.update();
             renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
