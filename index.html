@@ -1688,6 +1688,7 @@
             }
         }
         let contourMaterial, crossSectionMaterial;
+        let terrainFillMatRef = null;   // last-built fill surface material, for the vector export's terrain fill colour
         let lastTerrainSeg = { x: 0, z: 0 };   // last terrain tessellation (dev density readout)
         let subsurfaceGroup;                   // all man-made underground structures (x-ray unit)
         let terrainFadeMats = [];   // fill + contour-line materials driven by the opacity slider
@@ -2719,6 +2720,7 @@
             });
             fillMat.userData.baseOpacity = 1.0;
             fillMat.userData.isFill = true;   // the one depth-writing terrain surface
+            terrainFillMatRef = fillMat;   // vector export reads this for the terrain fill colour
             terrainFadeMats.push(fillMat);
             xsecClipMats.push(fillMat);   // qanat cross-section cutaway also slices the terrain surface
             // Raster base layer (satellite ortho / LiDAR relief): drape the baked texture on
@@ -6359,7 +6361,16 @@
             const addEdge = (x1, z1, x2, z2) => { for (let i = 0; i <= N; i++) { const t = i / N, x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t; boundary.push(new THREE.Vector3(x, getTerrainHeight(x, z), z)); } };
             addEdge(-halfW, -halfD, halfW, -halfD); addEdge(halfW, -halfD, halfW, halfD);
             addEdge(halfW, halfD, -halfW, halfD); addEdge(-halfW, halfD, -halfW, -halfD);
-            (groups['terrain'] = groups['terrain'] || []).push({ color: '#555555', fill: false, smoothLoop: boundary });
+            // Fill colour: the live fill surface's own flat colour when it's untextured (no
+            // raster drape) — matching what the plain/contour-map base actually looks like.
+            // A satellite/LiDAR-relief drape is real imagery, not geometry, so per the
+            // "geometry only" export rule above it's never rasterised into the fill; the flat
+            // scheme colour stands in for it instead, so the terrain silhouette in the export
+            // isn't left hollow.
+            const terrainFillColor = (terrainFillMatRef && !terrainFillMatRef.map)
+                ? '#' + terrainFillMatRef.color.getHexString()
+                : (prefersDark() ? '#33363f' : '#f0e8d6');
+            (groups['terrain'] = groups['terrain'] || []).push({ color: '#555555', fillColor: terrainFillColor, smoothLoop: boundary });
 
             const project = v3 => { const p = v3.clone().project(camera); return { x: (p.x + 1) / 2 * w, y: (1 - p.y) / 2 * h, behind: !isFinite(p.z) || Math.abs(p.z) > 1 }; };
             const pathFor = segs => segs.map(([a, b]) => {
@@ -6416,8 +6427,17 @@
             LAYER_ORDER.forEach(layer => {
                 const arr = groups[layer]; if (!arr || !arr.length) return;
                 body += `<g id="${layer}">`;
-                arr.forEach(({ segs, color, fill, loops, opacity, smoothLoop, smoothChain }) => {
+                arr.forEach(({ segs, color, fill, loops, opacity, smoothLoop, smoothChain, fillColor }) => {
                     if (smoothLoop) {
+                        // Fill first (so it sits under the crisp outline stroke drawn next), and
+                        // only when the whole loop is on-screen — same all-or-nothing rule as
+                        // the strata fills below, since a partial filled outline would look
+                        // broken rather than merely incomplete. The stroke itself still tolerates
+                        // partial off-screen runs (smoothStrokePath), matching the old behaviour.
+                        if (fillColor) {
+                            const fd = smoothFillPath(smoothLoop);
+                            if (fd) body += `<path d="${fd}" fill="${fillColor}" stroke="none"/>`;
+                        }
                         const d = smoothStrokePath(smoothLoop, true);
                         if (d) body += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1"/>`;
                     } else if (fill) {
