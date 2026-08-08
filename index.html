@@ -995,6 +995,13 @@
             </div>
         </div>
         <div class="tab-pane" data-pane="qanat">
+            <div class="control-group" id="grp-qanat-style">
+                <label>Shafts &amp; gallery</label>
+                <div class="segmented" id="qanat-style-toggle" role="group" aria-label="Shaft and gallery rendering style">
+                    <button type="button" data-qstyle="solid" title="Solid shaded volumes (default)">◆ Solid</button>
+                    <button type="button" data-qstyle="technical" title="Flat line art: paper-filled shafts with an outline, dashed below ground — the brochure's technical-drawing convention">✎ Technical drawing</button>
+                </div>
+            </div>
             <div class="control-group">
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
                 <label class="check-row"><input type="checkbox" id="param-dip"> Bedding&nbsp;dip&nbsp;(≈2%&nbsp;SE,&nbsp;exaggerated)</label>
@@ -1339,6 +1346,12 @@
             shaftCutaway: false,          // dev "Look inside": clip the camera-facing half through the subsurface centre
             seeInside: false,             // "See inside (follow view)": clip the camera-facing half through the current view target, following the camera as it orbits
             detailedGallery: false,       // reconstructed hollow gallery bore (fig 5-15 profile) over the explored reach, instead of the solid tube
+            // "Technical drawing" rendering for the shafts + gallery only (the terrain/strata
+            // keep their normal look): flat line art in the brochure's block-diagram idiom —
+            // each shaft is an opaque paper-coloured tube with a thin ink outline, solid above
+            // ground and dashed below it (the drawing convention for hidden geometry). Inverts
+            // ink/paper in dark mode rather than forcing a white page.
+            technicalDraw: false,
             diameterRealism: 1.25,        // multiplier of true 1:1 scale for shaft/gallery radii: 1x = real size, higher = exaggerated for visibility
             xsecCutaway: false,           // Qanat cutaway: a plane locked along the route's Z-centreline slices the terrain + shaft/gallery open lengthwise (north/south half removed)
             xsecCutawayFullRoute: false,  // extend the hollow reconstructed bore across the whole route (inferred ends included), not just the explored core
@@ -1783,6 +1796,12 @@
         // the gallery read as flowing water. Baked to 512² WebP (~240 KB total). See docs.
         const TEX = {};
         let waterMats = [];         // water materials whose normal scrolls in animate()
+        // Technical-drawing mode: the two silhouette verticals of each shaft outline live in a
+        // Y-rotated group that animate() re-aims at the camera every frame. A cylinder's true
+        // silhouette from any near-horizontal view is just its two extreme verticals plus the
+        // rim ellipses, so aiming a pre-built pair beats recomputing real silhouette edges
+        // (meshSilhouetteSegments, used by the SVG export) 15× per frame.
+        let techSilhouetteGroups = [];
         function loadPBRTextures() {
             const L = new THREE.TextureLoader();
             const wrap = (t, srgb) => { t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -2081,6 +2100,11 @@
                 if (!o.material) return;
                 const mats = Array.isArray(o.material) ? o.material : [o.material];
                 mats.forEach(m => {
+                    // Technical-drawing shaft ink/paper is exempt: a line drawing means
+                    // full-strength strokes on an opaque page, and a half-faded outline reads as
+                    // a rendering glitch rather than a dimmer shaft. The slider still governs
+                    // everything else down here (gallery tube, aux channel, overflow, markers).
+                    if (m.userData.techInk) return;
                     if (m.userData._baseOp == null) m.userData._baseOp = (m.opacity != null ? m.opacity : 1);
                     m.opacity = m.userData._baseOp * v;
                     m.transparent = true;
@@ -2756,6 +2780,7 @@
             strataMeshes.length = 0;   // geology cross-section strata bands
             qanatMeshes.length = 0;   // gallery/tunnel tube meshes
             waterMats = [];          // PBR water materials (scrolled in animate); rebuilt each build
+            techSilhouetteGroups = [];   // technical-drawing shaft outlines (re-aimed in animate)
             // All man-made underground structures (shaft bodies, gallery + aux tunnels, overflow,
             // step markers, gallery flow arrows) go in ONE group so the "Underground x-ray" toggle
             // treats them as a unit — see applyXrayMode(). Surface markers (shaft caps, labels,
@@ -3066,6 +3091,62 @@
                 color: col, depthTest: dt, depthWrite: false, transparent: true, opacity: op });
             const cageMat = mkCageMat(0.95, false, COL_SHAFT_INFERRED);   // inferred cap cage (crisp, x-ray)
             const cageFaintMat = mkCageMat(0.4, ugDT, COL_SHAFT_INFERRED); // inferred below-ground cage
+            // --- "Technical drawing" shaft rendering (params.technicalDraw) -----------------
+            // Ink on paper: the fill is the SCENE BACKGROUND colour, so a shaft reads as an
+            // opaque tube punched through whatever it crosses (contours above ground, strata
+            // below) rather than a see-through ghost — and its shape is carried entirely by the
+            // thin ink outline, exactly as in the brochure's block diagram. Dark mode inverts
+            // the pair (light ink on the dark page) instead of forcing a white page.
+            const techPaper = new THREE.Color(sceneBackgroundColor());
+            const techInk = prefersDark() ? 0xe8eaed : 0x1a1a1a;
+            // transparent:true at opacity 1 is deliberate, not redundant: it puts these in the
+            // TRANSPARENT render pass, which is the only way renderOrder can sort them after the
+            // translucent strata/aquifer sheets. Left in the opaque pass they drew first and the
+            // strata painted straight over the paper fill.
+            const mkTechFill = dt => {
+                const m = new THREE.MeshBasicMaterial({ color: techPaper, depthTest: dt,
+                    depthWrite: false, transparent: true, opacity: 1 });
+                m.userData.techInk = true;
+                return m;
+            };
+            const techFillCapMat = mkTechFill(false);    // above ground: x-ray like every surface marker
+            const techFillBodyMat = mkTechFill(ugDT);    // below ground: respects the x-ray toggle
+            // Solid outline above ground, DASHED below it — the hidden-line convention, decided
+            // from which segment this is rather than from a real occlusion test. That's honest
+            // here (below ground genuinely IS hidden) and deterministic, where true hidden-line
+            // removal isn't feasible per-frame in WebGL.
+            const techLineCapMat = new THREE.LineBasicMaterial({
+                color: techInk, depthTest: false, depthWrite: false, transparent: true, opacity: 1 });
+            const techLineBodyMat = new THREE.LineDashedMaterial({
+                color: techInk, dashSize: 0.22, gapSize: 0.16, depthTest: ugDT, depthWrite: false,
+                transparent: true, opacity: 1 });
+            techLineCapMat.userData.techInk = true;
+            techLineBodyMat.userData.techInk = true;
+            // Rim ellipses (fixed geometry) + the two silhouette verticals (camera-aimed, see
+            // techSilhouetteGroups). Drawn above the paper fill so the outline always wins.
+            function addTechShaftOutline(dest, x, z, cyY, h, r, isCap) {
+                const lineMat = isCap ? techLineCapMat : techLineBodyMat;
+                const ring = y => {
+                    const pts = [];
+                    for (let k = 0; k <= 24; k++) {
+                        const a = k / 24 * Math.PI * 2;
+                        pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
+                    }
+                    const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat);
+                    ln.computeLineDistances();   // no-op for the solid material, required by the dashed one
+                    ln.position.set(x, 0, z); ln.renderOrder = 14;
+                    dest.add(ln);
+                };
+                ring(cyY + h / 2); ring(cyY - h / 2);
+                const g = new THREE.Group();
+                g.position.set(x, cyY, z);
+                const vl = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(-r, -h / 2, 0), new THREE.Vector3(-r, h / 2, 0),
+                    new THREE.Vector3(r, -h / 2, 0), new THREE.Vector3(r, h / 2, 0)]), lineMat);
+                vl.computeLineDistances(); vl.renderOrder = 14;
+                g.add(vl); dest.add(g);
+                techSilhouetteGroups.push(g);
+            }
             const surf = pillarDefs.map(p => getTerrainHeight(p.x, p.z));
             // Research status (fig 6-4) also colours each SHAFT's own body black/grey —
             // a separate per-shaft fact from the gallery-segment tube colouring above (they
@@ -3140,6 +3221,17 @@
                     const cyl = new THREE.CylinderGeometry(shaftR, shaftR, h, 16);
                     const isCap = (order === 'cap');
                     const dest = isCap ? modelGroup : subsurfaceGroup;
+                    // Technical drawing takes over the shaft's LOOK only: same geometry, same
+                    // userData, so picking/hover/timeline/cutaway all behave identically. It also
+                    // supersedes the documented-vs-inferred solid/ghost-cage split and the
+                    // research-status colour bars, since the drawing idiom is one uniform stroke.
+                    if (params.technicalDraw) {
+                        const m = new THREE.Mesh(cyl, isCap ? techFillCapMat : techFillBodyMat);
+                        m.position.set(p.x, cyY, p.z); m.renderOrder = 11; m.userData = ud;
+                        dest.add(m); shaftMeshes.push(m);
+                        addTechShaftOutline(dest, p.x, p.z, cyY, h, shaftR, isCap);
+                        return;
+                    }
                     const rsCol = colorOverride !== undefined ? colorOverride : rsColor;
                     if (rsCol != null) {
                         // The figure draws every shaft as one uniform solid bar — bypass the
@@ -3208,7 +3300,9 @@
                 // research-status colouring) pass allowWaterPBR=false so their colour isn't
                 // replaced by the fixed water blue.
                 let mat;
-                if (allowWaterPBR && params.pbr && TEX.water) {
+                // Technical drawing keeps the gallery a flat blue stroke (as the brochure draws
+                // it), so the lit/rippling water material is bypassed even if PBR is on.
+                if (allowWaterPBR && params.pbr && TEX.water && !params.technicalDraw) {
                     mat = new THREE.MeshStandardMaterial({ color: 0x2f6fae, normalMap: TEX.water,
                         roughness: 0.16, metalness: 0.2, transparent: true, opacity: 0.92, depthTest: ugDT });
                     waterMats.push(mat);
@@ -4371,6 +4465,14 @@
                 attribEl.textContent = credit || '';
                 attribEl.style.display = credit ? 'block' : 'none';
             };
+            // Reflects params.technicalDraw onto the Solid/Technical segmented control. A
+            // function declaration (not a const) so hydrateControlsFromParams can call it on the
+            // ?ui=-restore path regardless of definition order.
+            function syncQanatStyleUI() {
+                const want = params.technicalDraw ? 'technical' : 'solid';
+                document.querySelectorAll('#qanat-style-toggle button').forEach(b =>
+                    b.classList.toggle('active', b.dataset.qstyle === want));
+            }
             document.getElementById('param-baselayer').addEventListener('change', e => {
                 params.baseLayer = e.target.value;
                 syncBaseLayerUI();
@@ -4478,6 +4580,21 @@
                 b.classList.toggle('active', b.dataset.theme === themeOverride);
                 b.addEventListener('click', () => applyTheme(b.dataset.theme));
             });
+
+            // Shafts & gallery rendering style: Solid volumes (default) vs the brochure's flat
+            // "Technical drawing" line art. Rebuilds the model, since it changes which meshes
+            // and outlines get built rather than just a material property.
+            document.querySelectorAll('#qanat-style-toggle button').forEach(b => {
+                b.addEventListener('click', () => {
+                    const want = (b.dataset.qstyle === 'technical');
+                    if (params.technicalDraw === want) return;
+                    params.technicalDraw = want;
+                    syncQanatStyleUI();
+                    buildParametricModel();
+                    setParamsURL();
+                });
+            });
+            syncQanatStyleUI();
 
             // Dev-only control, persistent effect: shrinks the "Quick views" preset cards
             // (icon + label only, no caption) once dev mode is exited and they reappear.
@@ -4963,6 +5080,7 @@
                 }
                 document.body.classList.toggle('show-hitboxes', params.showHitboxes);
                 syncBaseLayerUI();
+                syncQanatStyleUI();
                 syncConditionalOptions();
             }
             const PRESETS = {
@@ -6993,6 +7111,11 @@
             updateCutawayPlane();   // keep the look-inside cut facing the camera
             updateXsecCutawayPlane();   // keep the qanat cross-section cut on the correct side (and following, if enabled)
             if (selectionMarker && selectionMarker.visible) selectionMarker.quaternion.copy(camera.quaternion);
+            // Technical drawing: aim each shaft's silhouette verticals so they stay on the tube's
+            // screen-horizontal extremes as the camera orbits. atan2(dx, dz) points the group's
+            // local +Z at the camera, which puts its local ±X perpendicular to the view.
+            for (const g of techSilhouetteGroups)
+                g.rotation.y = Math.atan2(camera.position.x - g.position.x, camera.position.z - g.position.z);
             updateSelectionDismiss();
             controls.update();
             renderer.render(scene, camera);
