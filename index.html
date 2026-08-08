@@ -3099,6 +3099,16 @@
             // the pair (light ink on the dark page) instead of forcing a white page.
             const techPaper = new THREE.Color(sceneBackgroundColor());
             const techInk = prefersDark() ? 0xe8eaed : 0x1a1a1a;
+            // Schematic enlargement, applied to the shaft and gallery radii in this mode ONLY.
+            // At true scale the gallery bore lands on ~2.5 screen px and a shaft on ~1.9 px
+            // (measured at the default view), so an outlined section with a water line inside it
+            // simply cannot resolve. The reference figure has the same problem and solves it with
+            // a 5x VERTICAL exaggeration — its scale bar reads 50 m horizontal against 10 m
+            // vertical — so drawing these ~4x oversized here is the same schematic concession,
+            // just spent on the bore instead of the whole Y axis. Shaft and gallery are scaled by
+            // the same factor, so their relative proportions (1.0 m shaft vs 1.33 m bore) stay
+            // truthful, and the labelled "diameter realism" slider still multiplies on top.
+            const TECH_EXAG = 4;
             // transparent:true at opacity 1 is deliberate, not redundant: it puts these in the
             // TRANSPARENT render pass, which is the only way renderOrder can sort them after the
             // translucent strata/aquifer sheets. Left in the opaque pass they drew first and the
@@ -3111,21 +3121,31 @@
             };
             const techFillCapMat = mkTechFill(false);    // above ground: x-ray like every surface marker
             const techFillBodyMat = mkTechFill(ugDT);    // below ground: respects the x-ray toggle
-            // Solid outline above ground, DASHED below it — the hidden-line convention, decided
-            // from which segment this is rather than from a real occlusion test. That's honest
-            // here (below ground genuinely IS hidden) and deterministic, where true hidden-line
-            // removal isn't feasible per-frame in WebGL.
-            const techLineCapMat = new THREE.LineBasicMaterial({
-                color: techInk, depthTest: false, depthWrite: false, transparent: true, opacity: 1 });
-            const techLineBodyMat = new THREE.LineDashedMaterial({
-                color: techInk, dashSize: 0.22, gapSize: 0.16, depthTest: ugDT, depthWrite: false,
-                transparent: true, opacity: 1 });
-            techLineCapMat.userData.techInk = true;
-            techLineBodyMat.userData.techInk = true;
+            // Ink strokes. In the reference, a DASH means "not certain" — the unmapped gallery
+            // ends are dashed blue ([4] / [2 4] dash patterns in the source vectors) — while the
+            // surveyed geometry is drawn solid. So dashing here follows the SSOT's own
+            // documented-vs-inferred fact, which also keeps that distinction legible in this mode
+            // instead of flattening it (it isn't the reference's other dash use, hidden-line
+            // removal against the cut face: this app renders the subsurface as always-visible
+            // x-ray, so "occluded" isn't a state that exists to encode).
+            const techLineMats = {};
+            const techLine = (dashed, dt) => {
+                const key = (dashed ? 'd' : 's') + (dt ? '1' : '0');
+                if (!techLineMats[key]) {
+                    const m = dashed
+                        ? new THREE.LineDashedMaterial({ color: techInk, dashSize: 0.22, gapSize: 0.16,
+                            depthTest: dt, depthWrite: false, transparent: true, opacity: 1 })
+                        : new THREE.LineBasicMaterial({ color: techInk, depthTest: dt,
+                            depthWrite: false, transparent: true, opacity: 1 });
+                    m.userData.techInk = true;
+                    techLineMats[key] = m;
+                }
+                return techLineMats[key];
+            };
             // Rim ellipses (fixed geometry) + the two silhouette verticals (camera-aimed, see
             // techSilhouetteGroups). Drawn above the paper fill so the outline always wins.
-            function addTechShaftOutline(dest, x, z, cyY, h, r, isCap) {
-                const lineMat = isCap ? techLineCapMat : techLineBodyMat;
+            function addTechShaftOutline(dest, x, z, cyY, h, r, isCap, dashed) {
+                const lineMat = techLine(dashed, isCap ? false : ugDT);
                 const ring = y => {
                     const pts = [];
                     for (let k = 0; k <= 24; k++) {
@@ -3217,7 +3237,7 @@
                 // this segment (the P-1/P4 explored collar at the top of an otherwise-grey body)
                 // without touching the shaft's own rsColor.
                 const addSeg = (h, cyY, order, colorOverride) => {
-                    const shaftR = sceneRadius(SHAFT_RADIUS_M);
+                    const shaftR = sceneRadius(SHAFT_RADIUS_M) * (params.technicalDraw ? TECH_EXAG : 1);
                     const cyl = new THREE.CylinderGeometry(shaftR, shaftR, h, 16);
                     const isCap = (order === 'cap');
                     const dest = isCap ? modelGroup : subsurfaceGroup;
@@ -3229,7 +3249,7 @@
                         const m = new THREE.Mesh(cyl, isCap ? techFillCapMat : techFillBodyMat);
                         m.position.set(p.x, cyY, p.z); m.renderOrder = 11; m.userData = ud;
                         dest.add(m); shaftMeshes.push(m);
-                        addTechShaftOutline(dest, p.x, p.z, cyY, h, shaftR, isCap);
+                        addTechShaftOutline(dest, p.x, p.z, cyY, h, shaftR, isCap, !documented);
                         return;
                     }
                     const rsCol = colorOverride !== undefined ? colorOverride : rsColor;
@@ -3288,10 +3308,70 @@
             shaftMeshes.forEach(m => m.userData.depthMeters =
                 (m.userData.depthM != null) ? m.userData.depthM : m.userData.depthUnits * mpuNow);
 
+            // --- Technical drawing: the gallery drawn as a TUNNEL -----------------------------
+            // The brochure figure does not draw the gallery as a coloured rod. It draws the
+            // tunnel's section — a bore outlined by an ink roof line and floor line — and puts
+            // the WATER inside it as its own bold blue stroke lying on the floor. Two distinct
+            // elements, so a dry channel can be drawn as a tunnel with no water in it at all
+            // (the P-7A/P-5A auxiliary channel and P1's sounding gallery, which never carried
+            // water, use exactly that).
+            // Roof/floor are the centreline offset ±radius in Y. For a near-level gallery seen
+            // from a near-horizontal camera that IS its silhouette — the same simplification the
+            // shaft outlines make, and it degenerates gracefully (rails converge) looking
+            // straight down, which this axonometric idiom never really does.
+            const techWaterMat = new THREE.MeshBasicMaterial({
+                color: 0x007dc5, depthTest: ugDT, depthWrite: false, transparent: true, opacity: 1 });
+            techWaterMat.userData.techInk = true;
+            function techConduit(points, opt) {
+                if (points.length < 2) return;
+                const { dashed = false, pickable = false, water = true } = opt || {};
+                const r = (opt && opt.radius != null ? opt.radius : sceneRadius(GALLERY_RADIUS_M)) * TECH_EXAG;
+                const cv = new THREE.CatmullRomCurve3(points);
+                const N = Math.max(24, points.length * 16);
+                // Paper-filled bore: makes the tunnel opaque against the strata, so the roof and
+                // floor lines read as the edges of a solid object rather than two stray curves.
+                const bore = new THREE.Mesh(new THREE.TubeGeometry(cv, N, r, 8, false), techFillBodyMat);
+                bore.renderOrder = 11;
+                bore.userData.vecMode = 'silhouette'; bore.userData.vecLayer = 'tunnel';
+                subsurfaceGroup.add(bore);
+                if (pickable) { bore.userData.kind = 'qanat'; qanatMeshes.push(bore); }
+                const spine = cv.getPoints(N);
+                const lineMat = techLine(dashed, ugDT);
+                const rail = dy => {
+                    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+                        spine.map(q => new THREE.Vector3(q.x, q.y + dy, q.z))), lineMat);
+                    l.computeLineDistances(); l.renderOrder = 14;
+                    subsurfaceGroup.add(l);
+                };
+                rail(r); rail(-r);
+                if (!water) return;
+                // A thin TUBE, not a Line: WebGL ignores linewidth, and the reference's water is a
+                // conspicuously bold stroke inside the bore — a 1px hairline would read as
+                // incidental rather than as the thing the whole structure exists to carry.
+                const wr = r * 0.3;
+                // Seated at 1.5x its own radius above the centreline-minus-r floor, not exactly
+                // on it: the rails are pure Y offsets while the water is a real tube, so its
+                // silhouette bulges toward the camera and a flush placement let the blue spill
+                // visibly below the floor line at oblique angles. This keeps it inside the bore.
+                const wpts = spine.map(q => new THREE.Vector3(q.x, q.y - r + wr * 1.5, q.z));
+                const addWater = arr => {
+                    if (arr.length < 2) return;
+                    const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arr),
+                        Math.max(4, arr.length * 2), wr, 6, false), techWaterMat);
+                    m.renderOrder = 13;
+                    m.userData.vecMode = 'silhouette'; m.userData.vecLayer = 'tunnel';
+                    subsurfaceGroup.add(m);
+                };
+                if (!dashed) { addWater(wpts); return; }
+                const DASH = 7, GAP = 5;   // samples per dash/gap, matching tunnelDashed's rhythm
+                for (let i = 0; i < wpts.length - 1; i += DASH + GAP)
+                    addWater(wpts.slice(i, Math.min(wpts.length, i + DASH + 1)));
+            }
             // Tunnel polyline through the shaft bases: solid explored core +
             // dashed inferred ends.
             function tunnelTube(points, color, pickable = false, allowWaterPBR = true) {
                 if (points.length < 2) return;
+                if (params.technicalDraw) return techConduit(points, { pickable });
                 const cv = new THREE.CatmullRomCurve3(points);
                 const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), sceneRadius(GALLERY_RADIUS_M), 8, false);
                 // Realistic mode: render the explored core as flowing water (lit, with a
@@ -3317,8 +3397,9 @@
             // Inferred gallery ends: a DASHED tube (short tube segments) instead of a 1px
             // hairline, so the inferred extent reads at the same weight as the solid explored
             // core — just broken to signal "reconstructed, not surveyed".
-            function tunnelDashed(points, color, pickable = false) {
+            function tunnelDashed(points, color, pickable = false, water = true) {
                 if (points.length < 2) return;
+                if (params.technicalDraw) return techConduit(points, { dashed: true, pickable, water });
                 const cv = new THREE.CatmullRomCurve3(points);
                 const SAMPLES = Math.max(60, points.length * 24);
                 const pts = cv.getPoints(SAMPLES);
@@ -3337,6 +3418,8 @@
             }
             function tunnelFatTube(points, color, radius) {
                 if (points.length < 2) return;
+                // Auxiliary channel: a tunnel with NO water line — it is the dry channel.
+                if (params.technicalDraw) return techConduit(points, { radius, water: false });
                 const cv = new THREE.CatmullRomCurve3(points);
                 const g = new THREE.TubeGeometry(cv, Math.max(24, points.length * 16), radius, 8, false);
                 const mm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, depthTest: ugDT }));
@@ -3524,7 +3607,7 @@
                     const halfLen = (p1SG.schematicExtentM / 2) / metersPerXUnit();
                     const a = new THREE.Vector3(p1.x - halfLen, y, p1.z);
                     const b = new THREE.Vector3(p1.x + halfLen, y, p1.z);
-                    tunnelDashed([a, b], COL.qanatDry);
+                    tunnelDashed([a, b], COL.qanatDry, false, false);   // abandoned: never carried water
                     const s = createTextSprite('Sounding gallery (P1) — no channel', '#8a7a5d', 13);
                     s.scale.set(6.5, 1.1, 1);
                     s.position.set(p1.x, y + 1.1, p1.z);
