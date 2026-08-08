@@ -1001,6 +1001,12 @@
                     <button type="button" data-qstyle="solid" title="Solid shaded volumes (default)">◆ Solid</button>
                     <button type="button" data-qstyle="technical" title="Flat line art: paper-filled shafts with an outline, dashed below ground — the brochure's technical-drawing convention">✎ Technical drawing</button>
                 </div>
+                <label style="margin-top:12px">Shaft heads (above ground)</label>
+                <div class="segmented" id="shaft-head-toggle" role="group" aria-label="Above-ground shaft head height">
+                    <button type="button" data-head="full" title="Stub standing proud of the terrain (default)">Full</button>
+                    <button type="button" data-head="slice" title="Flush rim — still marks each opening on the surface, including with Underground x-ray off">Thin slice</button>
+                    <button type="button" data-head="none" title="Nothing above ground at all">Hidden</button>
+                </div>
             </div>
             <div class="control-group">
                 <label class="check-row"><input type="checkbox" id="param-geology" checked> Show&nbsp;geology&nbsp;(strata&nbsp;+&nbsp;water)</label>
@@ -1352,6 +1358,10 @@
             // ground and dashed below it (the drawing convention for hidden geometry). Inverts
             // ink/paper in dark mode rather than forcing a white page.
             technicalDraw: false,
+            // Height of the above-ground shaft head: 'full' (stub standing proud of the terrain),
+            // 'slice' (flush rim — still marks the position on the surface, including with the
+            // x-ray toggle off) or 'none'. See the CAP constant in the shaft builder.
+            shaftHead: 'full',
             diameterRealism: 1.25,        // multiplier of true 1:1 scale for shaft/gallery radii: 1x = real size, higher = exaggerated for visibility
             xsecCutaway: false,           // Qanat cutaway: a plane locked along the route's Z-centreline slices the terrain + shaft/gallery open lengthwise (north/south half removed)
             xsecCutawayFullRoute: false,  // extend the hollow reconstructed bore across the whole route (inferred ends included), not just the explored core
@@ -3210,10 +3220,16 @@
                 shaftBaseById[p.id] = bp;
                 (AUX_SHAFTS[p.id] ? auxPts : basePts).push(bp);
                 if (len > localMaxLen) localMaxLen = len;
-                // Every shaft gets a short above-ground stub so its opening is visible
-                // over the terrain (inferred shafts included — they were previously hidden
-                // as sub-surface translucent pillars that blended into the contours).
-                const CAP = 0.35;                             // above-ground stub height (units) — half the previous 0.7
+                // Above-ground shaft head, height set by params.shaftHead:
+                //   full  — the stub that stands proud of the terrain (the long-standing default),
+                //           so every opening reads even for inferred shafts, which used to hide as
+                //           sub-surface translucent pillars that blended into the contours.
+                //   slice — a flush rim: too short to stand out as a post, but its top disc still
+                //           marks the position on the surface. Caps render depthTest:false (x-ray)
+                //           regardless of the Underground x-ray toggle, so a slice stays visible
+                //           even with x-ray off, when the buried body is occluded by terrain.
+                //   none  — nothing above ground at all.
+                const CAP = { full: 0.35, slice: 0.1, none: 0 }[params.shaftHead] ?? 0.35;
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented,
                              vecMode: 'silhouette', vecLayer: 'shaft' };
@@ -3283,7 +3299,7 @@
                 // Both the above-ground cap (surface marker) and the below-ground body are
                 // ALWAYS built now; the "Underground x-ray" toggle only sets whether the body
                 // is drawn atop the terrain (x-ray) or occluded by it (see ugDT above).
-                addSeg(CAP, sy + CAP / 2, 'cap');
+                if (CAP > 0) addSeg(CAP, sy + CAP / 2, 'cap');
                 // Research status: P-1/P4 carry a real explored (black) depth at the TOP of an
                 // otherwise-unexplored (grey) body — see shaftCollarDepthM (an inferred, low/
                 // medium-confidence estimate, not a documented measurement; pd-fig-6-4-status).
@@ -4558,6 +4574,8 @@
                 const want = params.technicalDraw ? 'technical' : 'solid';
                 document.querySelectorAll('#qanat-style-toggle button').forEach(b =>
                     b.classList.toggle('active', b.dataset.qstyle === want));
+                document.querySelectorAll('#shaft-head-toggle button').forEach(b =>
+                    b.classList.toggle('active', b.dataset.head === params.shaftHead));
             }
             document.getElementById('param-baselayer').addEventListener('change', e => {
                 params.baseLayer = e.target.value;
@@ -4675,6 +4693,15 @@
                     const want = (b.dataset.qstyle === 'technical');
                     if (params.technicalDraw === want) return;
                     params.technicalDraw = want;
+                    syncQanatStyleUI();
+                    buildParametricModel();
+                    setParamsURL();
+                });
+            });
+            document.querySelectorAll('#shaft-head-toggle button').forEach(b => {
+                b.addEventListener('click', () => {
+                    if (params.shaftHead === b.dataset.head) return;
+                    params.shaftHead = b.dataset.head;
                     syncQanatStyleUI();
                     buildParametricModel();
                     setParamsURL();
