@@ -3096,10 +3096,12 @@
             // carried entirely by the thin ink outline, as in the brochure's block diagram. The
             // fill is WHITE (the reference's page colour) rather than the app's cream scene
             // background, so the drawn structures read as a distinct drawing laid over the
-            // terrain instead of dissolving into it. Dark mode swaps the pair — dark paper, light
-            // ink — rather than forcing a white page on an otherwise dark scene.
-            const techPaper = prefersDark() ? 0x1a1a1a : 0xffffff;
-            const techInk = prefersDark() ? 0xf0f2f5 : 0x1a1a1a;
+            // terrain instead of dissolving into it. Deliberately NOT theme-dependent: a
+            // technical drawing is white paper and black ink, and keeping that fixed in dark mode
+            // reads as a drawing laid on the dark scene rather than a second colour scheme to
+            // reason about.
+            const techPaper = 0xffffff;
+            const techInk = 0x1a1a1a;
             // Schematic enlargement, applied to the shaft and gallery radii in this mode ONLY.
             // At true scale the gallery bore lands on ~2.5 screen px and a shaft on ~1.9 px
             // (measured at the default view), so an outlined section with a water line inside it
