@@ -3224,12 +3224,15 @@
                 //   full  — the stub that stands proud of the terrain (the long-standing default),
                 //           so every opening reads even for inferred shafts, which used to hide as
                 //           sub-surface translucent pillars that blended into the contours.
-                //   slice — a flush rim: too short to stand out as a post, but its top disc still
-                //           marks the position on the surface. Caps render depthTest:false (x-ray)
-                //           regardless of the Underground x-ray toggle, so a slice stays visible
-                //           even with x-ray off, when the buried body is occluded by terrain.
+                //   slice — a short collar rather than a post, but tall enough to read side-on as
+                //           well as from above. Caps render depthTest:false (x-ray) regardless of
+                //           the Underground x-ray toggle, so a slice stays visible even with
+                //           x-ray off, when the buried body is occluded by terrain. (Started at
+                //           0.1 units, which is only ~2 screen px at a typical zoom and read as a
+                //           smudge from the side; 0.22 is unmistakable while still visibly a
+                //           collar and not the full stub.)
                 //   none  — nothing above ground at all.
-                const CAP = { full: 0.35, slice: 0.1, none: 0 }[params.shaftHead] ?? 0.35;
+                const CAP = { full: 0.35, slice: 0.22, none: 0 }[params.shaftHead] ?? 0.35;
                 const ud = { name: p.id, depthUnits: len, topY: sy, x: p.x, z: p.z,
                              floorM: floorM, depthM: depthM, documented: documented,
                              vecMode: 'silhouette', vecLayer: 'shaft' };
