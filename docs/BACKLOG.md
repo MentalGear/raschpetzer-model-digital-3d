@@ -222,13 +222,16 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     the town context into the background at its border (Settings, on) · blur behind the
     title & captions (plain backdrop blur, Settings, **off** by default) · far view: small
     model labels hide and the gallery shows as a bold glowing x-ray line · see-through
-    buildings, decided per building: a house between the camera and the site / the active
-    marker is drawn as a white OUTLINE of its roof and wall edges over a faint fill (the
-    earlier circular fade looked wrong) · the tour opens with ONE continuous flight that
-    always looks at the Raschpëtzer up the hill: it pulls back from "You are here", glides
-    past the town hall and over the sports complex Prince Henri (captions change as they go
-    by, with distance and direction to the site) and takes off toward the plateau — no
-    stops at the landmarks · the overview moved to the end of the loop · a station photo
+    buildings with ONE rule, per building: a building turns into a white OUTLINE of its roof
+    and wall edges (over a faint fill) when, on screen, it covers a visible marker's orb or
+    the foot of its stalk and stands in front of it, or when it is within ~25 m of the
+    camera; hysteresis + a ~0.35 s crossfade per building stop the popping (the earlier
+    circular fade looked wrong) · marker orbs never float lower than 24 m above their ground,
+    so they stay above the roofs up close · the tour opens with ONE continuous flight that
+    always looks at the Raschpëtzer up the hill: from "You are here" it drifts back over the
+    town hall and sideways over the sports complex Prince Henri — low enough that each one's
+    orb and roof pass through the lower part of the frame, no stops and no extra captions —
+    and takes off toward the plateau · the overview moved to the end of the loop · a station photo
     card (lower right) per tour stop.
   - **Photos wanted** (stand-ins marked `tourPhotoPlaceholder: true` in data/poi.json):
     the kiosk square / Maison Dufaing, town hall, sports hall, Dauvebur spring; optionally
