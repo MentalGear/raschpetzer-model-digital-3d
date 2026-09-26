@@ -966,6 +966,12 @@
             </select>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
             <label class="check-row"><input type="checkbox" id="param-pois" checked> Points&nbsp;of&nbsp;interest</label>
+            <div id="grp-poi-opts" style="margin-left:22px">
+                <label>POI size <span class="val" id="lbl-poi-size">1.00×</span></label>
+                <input type="range" id="param-poi-size" min="0.4" max="2.5" step="0.05" value="1" aria-label="Point-of-interest marker size">
+                <label class="check-row"><input type="checkbox" id="param-poi-screen" checked> Constant&nbsp;screen&nbsp;size</label>
+                <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 4px;line-height:1.35;">On: markers stay the same size on screen at any zoom. Off: they scale with the model, like the terrain.</div>
+            </div>
         </div>
 
         <!-- Settings pane (⚙): everything from the old collapsible "Advanced configuration",
@@ -1330,6 +1336,8 @@
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showPois: true,               // floating visitor points of interest (data/poi.json)
+            poiScale: 1.0,                // POI marker size multiplier ("POI size" slider)
+            poiScreenSize: true,          // POI markers keep a constant on-screen size (off = scale with the model)
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showSounding: false,          // exploratory sounding gallery at P1 (documented, no channel, schematic extent)
             showSteps: false,             // gallery floor-drop step markers (P4/P6) — off by default
@@ -1644,13 +1652,14 @@
             selectionMarker.visible = true;
             selectionMarker.material.visible = !opts.poiId;
             selectionMarker.userData.worldRadius = opts.worldRadius || 0;
+            selectionMarker.userData.poiDisc = opts.poiDisc || null;
             setPoiHighlight(opts.poiId || null);
             updateSelectionMarker();
         }
         // Select a clicked/restored spot: a POI highlights its whole circle, anything else gets
         // the ring at the hit point.
         function selectSpotAt(d, point) {
-            if (d && d.kind === 'poi' && d.center) selectAt(d.center, { poiId: d.id, worldRadius: d.radius });
+            if (d && d.kind === 'poi' && d.disc) selectAt(d.disc.getWorldPosition(new THREE.Vector3()), { poiId: d.id, poiDisc: d.disc });
             else selectAt(point);
         }
         // Keep the ring a CONSTANT on-screen size (outer radius SELECTION_RING_PX css px) and
@@ -1662,15 +1671,27 @@
         function updateSelectionMarker() {
             if (!selectionMarker || !selectionMarker.visible) return;
             selectionMarker.quaternion.copy(camera.quaternion);   // billboards toward the camera
-            // View-space depth (not straight-line distance), so the size stays uniform
-            // off-centre too: that's what the perspective divide uses.
-            const depth = _selTmp.copy(selectionMarker.position).applyMatrix4(camera.matrixWorldInverse).z;
-            const h = renderer.domElement.clientHeight || 1;
-            const worldPerPx = 2 * Math.abs(depth) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom / h;
+            // A selected POI: follow its (live-scaled) circle — centre and radius change as
+            // the POI size / screen-size mode rescales it every frame.
+            const disc = selectionMarker.userData.poiDisc;
+            let wr = selectionMarker.userData.worldRadius;
+            if (disc) {
+                disc.getWorldPosition(selectionMarker.position);
+                wr = disc.getWorldScale(_selTmp).x / 2;
+            }
+            const worldPerPx = worldPerPxAt(selectionMarker.position);
             selectionMarker.scale.setScalar(Math.max(1e-6, worldPerPx * SELECTION_RING_PX / 0.78));   // 0.78 = ring geometry outer radius
             // On-screen radius of what's highlighted (the ring, or a POI circle) — for the ✕ chip.
-            const wr = selectionMarker.userData.worldRadius;
             selectionMarker.userData.radiusPx = wr ? wr / worldPerPx : SELECTION_RING_PX;
+        }
+        // World-space size of one css pixel at `pos`. View-space depth (not straight-line
+        // distance), so the size stays uniform off-centre too: that's what the perspective
+        // divide uses.
+        const _wppTmp = new THREE.Vector3();
+        function worldPerPxAt(pos) {
+            const depth = _wppTmp.copy(pos).applyMatrix4(camera.matrixWorldInverse).z;
+            const h = renderer.domElement.clientHeight || 1;
+            return 2 * Math.abs(depth) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom / h;
         }
         let toastTimer = null;
         function showToast(msg) {
@@ -1710,8 +1731,15 @@
             if (!selectionMarker || !selectionMarker.visible) { chip.classList.remove('show'); return; }
             const p = projectToScreen(selectionMarker.position);
             if (!p) { chip.classList.remove('show'); return; }
-            chip.style.left = p.x + 'px';
-            chip.style.top = (p.y - (selectionMarker.userData.radiusPx || SELECTION_RING_PX) - 6) + 'px';   // just above the marker/circle, not on top of it
+            const r = selectionMarker.userData.radiusPx || SELECTION_RING_PX;
+            if (selectionMarker.userData.poiDisc) {
+                // POI circle: pin to its top-right rim, clear of the name label above it.
+                chip.style.left = (p.x + r * 0.72) + 'px';
+                chip.style.top = (p.y - r * 0.72) + 'px';
+            } else {
+                chip.style.left = p.x + 'px';
+                chip.style.top = (p.y - r - 6) + 'px';   // just above the ring, not on top of it
+            }
             chip.classList.add('show');
         }
 
@@ -4227,12 +4255,20 @@
                 if (sel !== st.selected) { st.selected = sel; st.repaint(); }
             });
         }
+        // Each POI is ONE group anchored at its ground point (circle, stalk, arrowhead, ground
+        // ring and label all in local coords), so it can be scaled uniformly every frame by
+        // updatePoiScales(): either a constant on-screen size (params.poiScreenSize) or a fixed
+        // model-space size — both times the "POI size" slider (params.poiScale).
+        const POI_DIAM = 3.4;        // circle diameter at scale 1 (scene units)
+        const POI_LIFT = 9.0;        // circle centre above the ground point at scale 1
+        const POI_SCREEN_PX = 64;    // circle diameter (css px) in screen-size mode, at POI size 1×
+        let poiGroups = [];          // [{ group, disc }] for the current build
         function addPois(halfW, halfD) {
+            poiGroups = [];
             const list = (SSOT.poi && SSOT.poi.pois) || [];
             if (!params.showPois || !list.length) return;
             const isGeo = params.terrainSource === 'geodata' && geodata.ready;
-            const DIAM = 3.4;     // circle diameter (scene units)
-            const LIFT = 9.0;     // circle centre above the ground point
+            const DIAM = POI_DIAM, LIFT = POI_LIFT;
             list.forEach(poi => {
                 let x, z;
                 if (poi.anchorShaft) {
@@ -4246,47 +4282,51 @@
                 const inside = Math.abs(x) <= halfW && Math.abs(z) <= halfD;
                 // A shaft-anchored POI points at the top of the shaft's own label, not through it.
                 const gy = getTerrainHeight(x, z) + (poi.anchorShaft ? 1.6 : 0);
-                const cy = gy + LIFT;
                 const col = new THREE.Color(poi.color || '#444');
                 const noPick = o => { o.raycast = () => {}; return o; };
+                const group = new THREE.Group();
+                group.position.set(x, gy, z);
 
                 // Connector: thin stalk from under the circle to just above the arrowhead.
-                const tipH = 0.9, stalkBot = gy + tipH, stalkTop = cy - DIAM / 2;
+                const tipH = 0.9, stalkTop = LIFT - DIAM / 2;
                 const stalk = noPick(new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.06, 0.06, stalkTop - stalkBot, 6),
+                    new THREE.CylinderGeometry(0.06, 0.06, stalkTop - tipH, 6),
                     new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 })));
-                stalk.position.set(x, (stalkTop + stalkBot) / 2, z);
-                stalk.renderOrder = 29; modelGroup.add(stalk);
+                stalk.position.y = (stalkTop + tipH) / 2;
+                stalk.renderOrder = 29; group.add(stalk);
                 // Arrowhead pointing down at the ground position.
                 const arrow = noPick(new THREE.Mesh(new THREE.ConeGeometry(0.32, tipH, 12),
                     new THREE.MeshBasicMaterial({ color: col })));
                 arrow.rotation.x = Math.PI;
-                arrow.position.set(x, gy + tipH / 2, z);
-                arrow.renderOrder = 29; modelGroup.add(arrow);
+                arrow.position.y = tipH / 2;
+                arrow.renderOrder = 29; group.add(arrow);
                 // Flat ground ring marking the spot itself.
                 const ring = noPick(new THREE.Mesh(new THREE.RingGeometry(0.45, 0.7, 28),
                     new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8,
                         side: THREE.DoubleSide, depthWrite: false })));
                 ring.rotation.x = -Math.PI / 2;
-                ring.position.set(x, gy + 0.08, z);
-                ring.renderOrder = 29; modelGroup.add(ring);
+                ring.position.y = 0.08;
+                ring.renderOrder = 29; group.add(ring);
 
                 // The floating circle (clickable → inspector).
                 const disc = new THREE.Sprite(new THREE.SpriteMaterial({
                     map: poiTexture(poi), transparent: true, depthTest: true, depthWrite: false }));
                 disc.scale.set(DIAM, DIAM, 1);
-                disc.position.set(x, cy, z);
+                disc.position.y = LIFT;
                 disc.renderOrder = 31;
-                disc.userData = Object.assign({}, poi, { kind: 'poi', poiKind: poi.kind, inside,
-                    center: disc.position.clone(), radius: DIAM / 2 });
-                modelGroup.add(disc); spotMeshes.push(disc);
+                disc.userData = Object.assign({}, poi, { kind: 'poi', poiKind: poi.kind, inside, disc });
+                group.add(disc); spotMeshes.push(disc);
 
                 const lbl = createTextSprite(poi.name + (inside ? '' : ' (off‑map)'), poi.color || '#333', 22,
                     disc.userData);   // the name is as clickable as the circle
                 const li = lbl.material.map.image;
-                lbl.scale.set(1.6 * li.width / li.height, 1.6, 1);   // keep the text's aspect
-                lbl.position.set(x, cy + DIAM / 2 + 0.9, z);
-                modelGroup.add(lbl); spotMeshes.push(lbl);
+                const LBL_H = 2.6;   // label sprite height: ~14 px text in screen mode at 1×
+                lbl.scale.set(LBL_H * li.width / li.height, LBL_H, 1);   // keep the text's aspect
+                lbl.position.y = LIFT + DIAM / 2 + LBL_H * 0.4;
+                group.add(lbl); spotMeshes.push(lbl);
+
+                modelGroup.add(group);
+                poiGroups.push({ group, disc });
 
                 // Off-map (e.g. south of the qanat's front cut): a dashed ground connector from
                 // the nearest window edge out to the marker, the same cue the villa uses.
@@ -4300,6 +4340,24 @@
                     conn.computeLineDistances(); conn.renderOrder = 9; modelGroup.add(conn);
                 }
             });
+            // A selected POI survives the rebuild: re-point the selection at its new circle.
+            if (poiSelectedId && selectionMarker && selectionMarker.visible && selectionMarker.userData.poiDisc) {
+                const g = poiGroups.find(pg => pg.disc.userData.id === poiSelectedId);
+                if (g) selectionMarker.userData.poiDisc = g.disc;
+            }
+            updatePoiScales();
+        }
+        // Per frame: size every POI group. Screen mode keeps the circle POI_SCREEN_PX × size
+        // on screen at any zoom (world size of one pixel at the POI's ground point); model mode
+        // keeps a fixed scene size (scale 1 = the original model-space marker) × size.
+        const _poiTmp = new THREE.Vector3();
+        function updatePoiScales() {
+            if (!poiGroups.length || !camera || !renderer) return;
+            for (const { group } of poiGroups) {
+                let s = params.poiScale;
+                if (params.poiScreenSize) s *= worldPerPxAt(group.getWorldPosition(_poiTmp)) * POI_SCREEN_PX / POI_DIAM;
+                group.scale.setScalar(Math.max(1e-6, s));
+            }
         }
 
         function addPaths(halfW, halfD) {
@@ -4803,9 +4861,22 @@
                 buildParametricModel();
             });
 
+            const grpPoiOpts = document.getElementById('grp-poi-opts');
+            grpPoiOpts.style.display = params.showPois ? '' : 'none';
             document.getElementById('param-pois').addEventListener('change', e => {
                 params.showPois = e.target.checked;
+                grpPoiOpts.style.display = params.showPois ? '' : 'none';
                 buildParametricModel();
+            });
+            // POI size / screen-size mode: applied live every frame (updatePoiScales) — no rebuild.
+            const poiSizeSl = document.getElementById('param-poi-size'), poiSizeLb = document.getElementById('lbl-poi-size');
+            poiSizeSl.value = params.poiScale; poiSizeLb.innerText = params.poiScale.toFixed(2) + '×';
+            poiSizeSl.addEventListener('input', e => {
+                params.poiScale = parseFloat(e.target.value);
+                poiSizeLb.innerText = params.poiScale.toFixed(2) + '×';
+            });
+            document.getElementById('param-poi-screen').addEventListener('change', e => {
+                params.poiScreenSize = e.target.checked;
             });
             document.getElementById('param-paths').addEventListener('change', e => {
                 params.showPaths = e.target.checked;
@@ -5094,7 +5165,8 @@
                 'param-underground-opacity': v => ['lbl-underground-opacity', v.toFixed(2)],
                 'param-terrain-opacity': v => ['lbl-terrain-opacity', v.toFixed(2)],
                 'param-surround': v => ['lbl-surround', v.toFixed(1) + '×'],
-                'param-front-margin': v => ['lbl-front-margin', v + ' m']
+                'param-front-margin': v => ['lbl-front-margin', v + ' m'],
+                'param-poi-size': v => ['lbl-poi-size', v.toFixed(2) + '×']
             };
             // Mirrors PRESET_SETTERS' targets (plus the controls no preset ever touches) but
             // reads the CURRENT value instead of setting one. Used once at startup to reflect
@@ -5121,6 +5193,8 @@
                 'param-perched': () => params.showPerched,
                 'param-paths': () => params.showPaths,
                 'param-pois': () => params.showPois,
+                'param-poi-size': () => params.poiScale,
+                'param-poi-screen': () => params.poiScreenSize,
                 'ov-aquifer': () => params.overlay.aquifer,
                 'ov-contours': () => params.overlay.contours,
                 'ov-spot': () => params.overlay.spot,
@@ -7224,6 +7298,7 @@
             updateSelectionDismiss();
             controls.update();
             camera.updateMatrixWorld();
+            updatePoiScales();         // POI markers: constant screen size or model size × slider
             updateSelectionMarker();   // billboard + constant screen size, from this frame's camera
             renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'

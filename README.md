@@ -28,7 +28,8 @@ source; documented facts are visually distinguished from inferred/schematic ones
   and knowledge‑status badges; **Guided tour** flies P‑7A→P9.
 - **Points of interest**: floating photo/icon circles with a connector arrow down to
   the ground (Raschpëtzer parking, P5, the spring outflow), clickable for details;
-  defined in `data/poi.json` (toggle *Points of interest*).
+  defined in `data/poi.json` (toggle *Points of interest*, with a *POI size* slider and a
+  *Constant screen size* switch: fixed on-screen size at any zoom, or scale with the model).
 - **Annotations** (drop notes, localStorage, import/export), **measurement tool**,
   **animated water flow**, W↔E flip, reference-image overlay.
 - **Context-aware controls**: only the sliders/toggles that affect the current

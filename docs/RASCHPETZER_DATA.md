@@ -31,6 +31,7 @@ Dataset 1.0.0 · CC-BY-4.0.
 - **LUREF/LTM shaft survey** — Coordonnées Raschpëtzer — surveyed shaft coordinates, LUREF/LTM (EPSG:2169) (Werner, Henri)
 - **Werner 1997 plan re-measurement (candidate, not adopted)** — LUREF (Gauss-Luxembourg) coordinates for shafts P-7A, P-5A, P-4, P-1, P0, P1, and P2, re-measured from a 1997 plan (Werner, Henri, 2026)
 - **OpenStreetMap (visitor POIs)** — Visitor points of interest around the Raschpëtzer (amenity=parking, natural=spring) in OpenStreetMap <https://www.openstreetmap.org/> (accessed 2026-09-26)
+- **Leaflet 2017** — Raschpëtzer — An underground aqueduct (visitor leaflet, EN) (Syndicat d'initiative et de tourisme de la Commune de Walferdange, 2017)
 
 ## Headline characteristics [Brochure 2018]
 

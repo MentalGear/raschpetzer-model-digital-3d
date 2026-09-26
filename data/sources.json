@@ -176,5 +176,13 @@
     "license": "ODbL 1.0",
     "attribution": "© OpenStreetMap contributors",
     "note": "Community-mapped positions used only to place visitor-orientation markers (data/poi.json); not survey-grade."
+  },
+  "leaflet2017": {
+    "type": "leaflet", "crm": "E73_Information_Object",
+    "short": "Leaflet 2017",
+    "title": "Raschpëtzer — An underground aqueduct (visitor leaflet, EN)",
+    "authors": ["Syndicat d'initiative et de tourisme de la Commune de Walferdange"],
+    "year": 2017,
+    "note": "sources/primary/20170501 Dépliant Rachpëtzer_en.pdf. Access map (p.1): walking route to the visitor's gallery starts at the car park by the bus stop on the CR 125 ('15-minute walk from the car park adjacent to the CR 125 road'); inset plan marks the 'Release of diverted water' SW of P-4."
   }
 }
