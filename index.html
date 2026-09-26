@@ -1635,11 +1635,23 @@
             selectionMarker.raycast = () => {};   // never itself pickable
             scene.add(selectionMarker);
         }
-        function selectAt(point) {
+        // opts.poiId: the selection IS a POI circle — its own rim turns gold (setPoiHighlight)
+        // instead of drawing the ring; the (hidden) marker still tracks the circle's centre and
+        // opts.worldRadius so the ✕ chip sits just above the circle's top edge.
+        function selectAt(point, opts = {}) {
             if (!selectionMarker || !point) return;
             selectionMarker.position.copy(point);
             selectionMarker.visible = true;
+            selectionMarker.material.visible = !opts.poiId;
+            selectionMarker.userData.worldRadius = opts.worldRadius || 0;
+            setPoiHighlight(opts.poiId || null);
             updateSelectionMarker();
+        }
+        // Select a clicked/restored spot: a POI highlights its whole circle, anything else gets
+        // the ring at the hit point.
+        function selectSpotAt(d, point) {
+            if (d && d.kind === 'poi' && d.center) selectAt(d.center, { poiId: d.id, worldRadius: d.radius });
+            else selectAt(point);
         }
         // Keep the ring a CONSTANT on-screen size (outer radius SELECTION_RING_PX css px) and
         // facing the camera, whatever the zoom: rescale it each frame by the world size of one
@@ -1656,6 +1668,9 @@
             const h = renderer.domElement.clientHeight || 1;
             const worldPerPx = 2 * Math.abs(depth) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom / h;
             selectionMarker.scale.setScalar(Math.max(1e-6, worldPerPx * SELECTION_RING_PX / 0.78));   // 0.78 = ring geometry outer radius
+            // On-screen radius of what's highlighted (the ring, or a POI circle) — for the ✕ chip.
+            const wr = selectionMarker.userData.worldRadius;
+            selectionMarker.userData.radiusPx = wr ? wr / worldPerPx : SELECTION_RING_PX;
         }
         let toastTimer = null;
         function showToast(msg) {
@@ -1668,6 +1683,7 @@
         }
         function clearSelectionMarker() {
             if (selectionMarker) selectionMarker.visible = false;
+            setPoiHighlight(null);
             clearSelectionURL();
         }
         // Full "nothing is selected" reset — clears the 3D marker AND the Inspector's stale
@@ -1695,7 +1711,7 @@
             const p = projectToScreen(selectionMarker.position);
             if (!p) { chip.classList.remove('show'); return; }
             chip.style.left = p.x + 'px';
-            chip.style.top = (p.y - 26) + 'px';   // sits just above the marker, not on top of it
+            chip.style.top = (p.y - (selectionMarker.userData.radiusPx || SELECTION_RING_PX) - 6) + 'px';   // just above the marker/circle, not on top of it
             chip.classList.add('show');
         }
 
@@ -1760,7 +1776,7 @@
                 if (m) { selectAt(m.position); renderXsecPanel(m.userData); }
             } else if (type === 'spot') {
                 const m = spotMeshes.find(mm => spotSelId(mm.userData) === id);
-                if (m) { selectAt(m.position); renderSpotPanel(m.userData); }
+                if (m) { selectSpotAt(m.userData, m.position); renderSpotPanel(m.userData); }
             } else if (type === 'strata') {
                 const m = strataMeshes.find(mm => mm.userData.code === id);
                 if (m) {
@@ -4158,12 +4174,14 @@
             }
             ctx.restore();
         }
-        function paintPoiCircle(ctx, poi, img) {
-            const S = POI_TEX_SIZE, R = S / 2, ring = S * 0.055;
+        function paintPoiCircle(ctx, poi, img, selected) {
+            const S = POI_TEX_SIZE, R = S / 2, ring = S * (selected ? 0.09 : 0.055);
             ctx.clearRect(0, 0, S, S);
-            // White outer ring, then a thin coloured rim, then the photo / icon disc.
+            // White outer ring (gold + thicker when selected — the circle itself is the
+            // selection highlight), then a thin coloured rim, then the photo / icon disc.
             ctx.beginPath(); ctx.arc(R, R, R - 2, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff'; ctx.fill();
+            ctx.fillStyle = selected ? '#' + new THREE.Color(COL.annotationSel || 0xffd23f).getHexString() : '#ffffff';
+            ctx.fill();
             ctx.beginPath(); ctx.arc(R, R, R - ring, 0, Math.PI * 2);
             ctx.fillStyle = poi.color || '#444'; ctx.fill();
             const inner = R - ring - S * 0.02;
@@ -4181,20 +4199,33 @@
         }
         function poiTexture(poi) {
             const key = poi.id + '|' + (poi.photo || '') + '|' + (poi.icon || '') + '|' + (poi.color || '');
-            if (POI_TEX[key]) return POI_TEX[key];
+            if (POI_TEX[key]) return POI_TEX[key].tex;
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = POI_TEX_SIZE;
             const ctx = canvas.getContext('2d');
-            paintPoiCircle(ctx, poi, null);   // icon first; swapped for the photo once it loads
             const tex = new THREE.CanvasTexture(canvas);
             tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+            const st = { poi, ctx, tex, img: null, selected: poi.id === poiSelectedId };
+            st.repaint = () => { paintPoiCircle(ctx, poi, st.img, st.selected); tex.needsUpdate = true; };
+            st.repaint();   // icon first; swapped for the photo once it loads
             if (poi.photo) {
                 const img = new Image();
-                img.onload = () => { paintPoiCircle(ctx, poi, img); tex.needsUpdate = true; };
+                img.onload = () => { st.img = img; st.repaint(); };
                 img.src = poi.photo;   // on error the drawn icon simply stays
             }
-            POI_TEX[key] = tex;
+            POI_TEX[key] = st;
             return tex;
+        }
+        // Highlight one POI's circle (or none). Textures are cached across rebuilds, so the
+        // highlight survives them too.
+        let poiSelectedId = null;
+        function setPoiHighlight(id) {
+            if (id === poiSelectedId) return;
+            poiSelectedId = id;
+            Object.values(POI_TEX).forEach(st => {
+                const sel = st.poi.id === id;
+                if (sel !== st.selected) { st.selected = sel; st.repaint(); }
+            });
         }
         function addPois(halfW, halfD) {
             const list = (SSOT.poi && SSOT.poi.pois) || [];
@@ -4246,7 +4277,8 @@
                 disc.scale.set(DIAM, DIAM, 1);
                 disc.position.set(x, cy, z);
                 disc.renderOrder = 31;
-                disc.userData = Object.assign({}, poi, { kind: 'poi', poiKind: poi.kind, inside });
+                disc.userData = Object.assign({}, poi, { kind: 'poi', poiKind: poi.kind, inside,
+                    center: disc.position.clone(), radius: DIAM / 2 });
                 modelGroup.add(disc); spotMeshes.push(disc);
 
                 const lbl = createTextSprite(poi.name + (inside ? '' : ' (off‑map)'), poi.color || '#333', 22,
@@ -5845,7 +5877,7 @@
                 if (shit) {
                     const kind = spotSelId(shit.object.userData);
                     if (isReselect('spot', kind)) { resetInspectorToEmpty(); setPanelMode('views'); return; }
-                    selectAt(shit.point); renderSpotPanel(shit.object.userData);
+                    selectSpotAt(shit.object.userData, shit.point); renderSpotPanel(shit.object.userData);
                     setSelectionURL('spot', kind);
                     return;
                 }
