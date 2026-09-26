@@ -814,14 +814,26 @@
             --at-red-hi: #e8674a; --at-red-lo: #a3261a; }
         #attract .at-scrim { position: absolute; inset: 0;
             background:
-                radial-gradient(ellipse 75% 85% at 100% 0%, rgba(var(--at-dark),0.92) 0%, rgba(var(--at-dark),0.66) 32%, rgba(var(--at-dark),0.20) 62%, rgba(var(--at-dark),0) 80%),
-                radial-gradient(ellipse 60% 45% at 0% 100%, rgba(var(--at-dark),0.74) 0%, rgba(var(--at-dark),0.36) 45%, rgba(var(--at-dark),0) 75%),
+                radial-gradient(ellipse 75% 85% at 100% 0%, rgba(var(--at-dark),0.78) 0%, rgba(var(--at-dark),0.50) 32%, rgba(var(--at-dark),0.14) 62%, rgba(var(--at-dark),0) 80%),
+                radial-gradient(ellipse 60% 45% at 0% 100%, rgba(var(--at-dark),0.40) 0%, rgba(var(--at-dark),0.18) 45%, rgba(var(--at-dark),0) 75%),
                 linear-gradient(to top, rgba(12,14,20,0.45) 0%, rgba(12,14,20,0) 22%); }
         /* Faint fresco/plaster grain over the red corner only (SVG turbulence, masked). */
         #attract .at-grain { position: absolute; inset: 0; opacity: 0.22; mix-blend-mode: overlay;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
             -webkit-mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #000 0%, rgba(0,0,0,0.6) 40%, transparent 70%);
             mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #000 0%, rgba(0,0,0,0.6) 40%, transparent 70%); }
+        /* Frosted glass (Apple-TV style) behind the text laid over the moving scene: the title
+           corner gets a PROGRESSIVE blur (strong in the corner, fading out — no hard card edge);
+           the caption sits on a frosted card. The blur keeps text legible over any shot without
+           darkening the whole picture. */
+        #attract .at-blur { position: absolute; pointer-events: none;
+            -webkit-backdrop-filter: blur(22px) saturate(1.5) brightness(0.8); backdrop-filter: blur(22px) saturate(1.5) brightness(0.8); }
+        #attract .at-blur-title { top: 0; right: 0; width: min(62vw, 980px); height: min(46vh, 420px);
+            -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 0%, rgba(0,0,0,0.85) 45%, transparent 100%);
+            mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 0%, rgba(0,0,0,0.85) 45%, transparent 100%); }
+        #attract .at-glass { background: rgba(22, 25, 32, 0.34); border: 1px solid rgba(255,255,255,0.14);
+            box-shadow: 0 18px 50px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+            -webkit-backdrop-filter: blur(26px) saturate(1.6); backdrop-filter: blur(26px) saturate(1.6); }
         #attract .at-split { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; display: none;
             background: var(--at-gold); box-shadow: 0 0 14px rgba(227,178,92,0.9); }
         #attract .at-split.show { display: block; }
@@ -846,7 +858,8 @@
         #attract .at-rule { height: 2px; width: clamp(80px, 14vw, 220px); margin: 0.9em 0 0 auto;
             background: linear-gradient(to left, var(--at-gold), rgba(227,178,92,0)); }
         #attract .at-caption { position: absolute; left: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
-            max-width: min(560px, 80vw); color: #f5efe4; text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+            max-width: min(560px, 80vw); color: #f5efe4; text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+            padding: 18px 24px 20px; border-radius: 22px;
             transition: opacity 0.6s ease, transform 0.6s ease; }
         #attract .at-caption.hidden { opacity: 0; transform: translateY(8px); }
         #attract .at-cap-kicker { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
@@ -855,13 +868,14 @@
         #attract .at-cap-text { font-size: clamp(0.9rem, 1.4vw, 1.1rem); line-height: 1.45; color: #e7e1d6; }
         #attract .at-prompt { position: absolute; left: 50%; bottom: clamp(16px, 3vh, 34px); transform: translateX(-50%);
             font-size: clamp(0.8rem, 1.3vw, 1rem); letter-spacing: 0.28em; text-transform: uppercase; color: #fbf6ec;
-            text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap; }
+            text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap;
+            padding: 9px 22px 9px 26px; border-radius: 999px; }
         #attract .at-dots { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(20px, 3.5vh, 38px); display: flex; gap: 6px; }
         #attract .at-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: background 0.4s, transform 0.4s; }
         #attract .at-dots span.on { background: var(--at-gold); transform: scale(1.35); }
         #attract .at-attrib { position: absolute; right: clamp(20px, 4vw, 64px); bottom: 6px; font-size: 0.62rem;
             color: rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-        @keyframes atPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+        @keyframes atPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
         @keyframes atTitleIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) { #attract .at-prompt { animation: none; } #attract .at-title { animation: none; } }
 
@@ -1303,20 +1317,21 @@
          gradient, per-shot caption bottom-left, "touch to explore" prompt. -->
     <div id="attract" aria-live="polite">
         <div class="at-scrim"></div>
+        <div class="at-blur at-blur-title"></div>
         <div class="at-title">
             <div class="at-kicker">Walferdange · Luxembourg</div>
             <h1>RASCHPËTZER</h1>
             <div class="at-sub">The Romans’ hidden water</div>
             <div class="at-rule"></div>
         </div>
-        <div class="at-caption hidden">
+        <div class="at-caption at-glass hidden">
             <div class="at-cap-kicker" id="at-cap-kicker"></div>
             <div class="at-cap-title" id="at-cap-title"></div>
             <div class="at-cap-text" id="at-cap-text"></div>
         </div>
         <div class="at-split" id="at-split"><span class="at-split-l">Surface</span><span class="at-split-r">Beneath</span></div>
         <div class="at-dots" id="at-dots"></div>
-        <div class="at-prompt">Touch anywhere to explore</div>
+        <div class="at-prompt at-glass">Touch anywhere to explore</div>
         <div class="at-attrib">Topographic map, aerial &amp; LiDAR terrain © ACT · geoportail.lu · Luxembourg open data</div>
     </div>
 
@@ -8007,8 +8022,14 @@
                 const camPos = h.clone().addScaledVector(dir, -22).add(new THREE.Vector3(0, 5, 0));
                 const target = h.clone().lerp(qanat, 0.35);
                 const off = camPos.clone().sub(target), dist = off.length();
-                shots.push({ target, dist, el: THREE.MathUtils.radToDeg(Math.asin(off.y / dist)),
-                    az: THREE.MathUtils.radToDeg(Math.atan2(off.x, off.z)), spin: 0.5, dur: 12,
+                const el = THREE.MathUtils.radToDeg(Math.asin(off.y / dist)), az = THREE.MathUtils.radToDeg(Math.atan2(off.x, off.z));
+                // Opens close on the kiosk marker (the square, the houses around it), then pulls
+                // back and tilts up until the plateau with the qanat rises behind it.
+                const wpp = 2 * 9 * Math.tan(THREE.MathUtils.degToRad(ATTRACT_FOV) / 2) / (renderer.domElement.clientHeight || 900);
+                const liftW = POI_LIFT * (params.poiScreenSize ? wpp * POI_SCREEN_PX * params.poiScale / POI_DIAM : params.poiScale);
+                shots.push({ target: h.clone().add(new THREE.Vector3(0, liftW * 0.6, 0)), dist: 9, el: 16, az: az - 25,
+                    end: { target, dist, el, az, from: 0.28 },   // dolly out over the shot (from 28 % of it)
+                    spin: 0.5, dur: 15,
                     kicker: 'You are here', title: 'Walferdange town centre',
                     text: here.disc.userData.caption || '' });
             }
@@ -8051,8 +8072,16 @@
             return shots;
         }
         function attractPose(shot, secs) {
-            const az = shot.az + shot.spin * secs;
-            return { pos: orbitPose(shot.target, shot.dist, shot.el, az), target: shot.target };
+            let { target, dist, el, az } = shot;
+            if (shot.end) {   // a moving shot: ease from the start framing to shot.end
+                const f = shot.end.from || 0;
+                const k = easeInOut(Math.min(1, Math.max(0, (secs / shot.dur - f) / (1 - f))));
+                target = shot.target.clone().lerp(shot.end.target, k);
+                dist = dist + (shot.end.dist - dist) * k;
+                el = el + (shot.end.el - el) * k;
+                az = az + (shot.end.az - az) * k;
+            }
+            return { pos: orbitPose(target, dist, el, az + shot.spin * secs), target };
         }
         function setAttractCaption(shot) {
             const cap = document.querySelector('#attract .at-caption');

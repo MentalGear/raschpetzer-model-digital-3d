@@ -201,6 +201,21 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
   hook. Translate with the same tone, not literally: FR *« L'eau cachée des Romains »* ·
   DE *„Das verborgene Wasser der Römer“* · LB *„D'verstoppt Waasser vun de Réimer“*
   (LB to be checked by a native speaker).
+- **Use the terrain's edge (the clip-off margin) instead of the trench, sometimes.** Today the
+  context terrain just stops in a hard line against the dark background. Two cheap ways to
+  make that edge mean something:
+  - *Diorama block:* give the whole context block geological side walls (the same strata
+    maths as `strataColumn` / the trench walls, sampled every ~20 m along the four edges:
+    ~4 × 150 columns, one mesh, built once). The landscape then reads as a cut-out museum
+    model, and the edge teaches the layer cake (sandstone over marl) everywhere.
+  - *Slice reveal:* for some shots, move the block's front edge itself to the qanat line with
+    ONE clipping plane across the whole landscape (the south half disappears) and show the
+    strata wall along that line, with the gallery and shafts exposed in it. Cheaper than the
+    4-plane trench and more dramatic in wide shots; the trench stays for close-ups, where
+    removing half the world would feel like too much. Could alternate per loop with the
+    trench / split reveal (`attractReveal: 'slice'`).
+  - Alternative for the far edges: fade the terrain into the background (edge vignette or
+    distance fog tinted to the background colour) so the border never shows as a line.
 - **Burn-in safeguard for an always-on screen.** The title card, the button row and the
   chapter bar are static and would stay on screen all day.
   - Alternate the title's corner (upper right ↔ upper left) per loop or per shot. The shot
