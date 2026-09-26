@@ -42,8 +42,21 @@ source; documented facts are visually distinguished from inferred/schematic ones
   2 minutes idle. Shared links with a view/selection (`?cam=` / `?sel=`) skip it.
 - **Town context**: a coarse (~50 m) ACT LiDAR 2019 grid + geoportail.lu topographic map/aerial
   over Walferdange and the valley (`scripts/bake-context.mjs`), shown around the modelled window,
-  with **3D buildings** extruded from OpenStreetMap footprints (`scripts/bake-buildings.mjs`;
-  most heights are type-based estimates — only ~4 % of footprints carry a height tag).
+  with **3D buildings**: the ACT national 3D buildings 2023 (LOD 2.2 roofs, oblique-photo
+  façade textures; data.public.lu, CC0; `scripts/bake-buildings3d.py`) for Walferdange, and
+  OpenStreetMap footprints extruded to (mostly estimated) heights where ACT has none
+  (`scripts/bake-buildings.mjs`). Buildings between the camera and what it looks at dissolve
+  (dithered), so they never hide the kiosk marker or the view.
+  Note: the ACT2023v2 CityGML declares EPSG:2169 but lists **northing first** — the bake
+  swaps the axes (`--swap-xy`; checked against the correctly ordered 2020 edition).
+- **High-quality textures (big screen)** (Settings, off by default): swaps in 4096² building
+  atlases (768 px façades near the kiosk / car parks / visitor's gallery) and an 8192 px
+  context aerial (~0.4 m/px). Loaded on demand; needs ~1 GB of video memory.
+- **Site level of detail**: from far away (the town, the overview) the whole qanat is ONE
+  "Raschpëtzer" marker with the qanat shown in x-ray beneath it; the detailed POIs fade in
+  as you get closer (tap the marker to fly in). While a POI is active, the others shrink and fade.
+- **Arrow keys** ← / →: previous / next station — tour shot on the title screen (the tour
+  keeps running), or point of interest while exploring (selects it and flies there).
 - **Active POI**: the selected POI (or the tour's current stop) grows ~2.4× and swaps its icon
   for its photo where one exists (P5, P-4 interior, parking sign, spring outflow).
 - **Annotations** (drop notes, localStorage, import/export), **measurement tool**,
@@ -161,7 +174,8 @@ rebuild, since the whole scene rebuilds on most setting changes.
 | `bun run bake` | Validate → generate `assets/data.bundle.js` + `docs/RASCHPETZER_DATA.md` |
 | `bun run validate` | Validate the SSOT (CI gate) |
 | `node scripts/bake-buildings.mjs` | Re-fetch OSM building footprints for the 3D-buildings layer |
-| `node scripts/bake-context.mjs` | Re-fetch the town-context map/aerial drapes (terrain grid: see the script header) |
+| `node scripts/bake-context.mjs [--hq]` | Re-fetch the town-context map/aerial drapes (`--hq`: the 8192 px aerial; terrain grid: see the script header) |
+| `python3 scripts/bake-buildings3d.py <gml> <zip> --swap-xy` | Bake the ACT 2023 LOD2 textured buildings (geometry + std/HQ texture atlases) from the commune download |
 | `bun run build` | Validate + bake (static site; deploy by serving the repo root) |
 
 ## Deploy (static / GitHub Pages)

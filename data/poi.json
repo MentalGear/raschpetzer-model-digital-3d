@@ -1,5 +1,5 @@
 {
-  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`.",
+  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `site: true` marks the single whole-site marker shown INSTEAD of the detailed POIs when the camera is far away (e.g. from the town / kiosk) — the details fade in as you get closer (index.html SITE_LOD). `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`.",
   "pois": [
     {
       "id": "you-are-here",
@@ -8,12 +8,37 @@
       "icon": "here",
       "color": "#d62828",
       "kiosk": true,
-      "geo": { "crs": "EPSG:4326", "lat": 49.65905, "lon": 6.13215, "status": "documented" },
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.65905,
+        "lon": 6.13215,
+        "status": "documented"
+      },
       "source": "osm-poi",
       "status": "documented",
       "caption": "Walferdange town centre, in front of Maison Dufaing. The Raschpëtzer lies ~1.4 km north-east, under the wooded Pëtschend plateau.",
       "description": "Kiosk location: the square in front of Maison Dufaing (1, Rue Josy Welter), by the Rond-Point des Roses in Walferdange town centre. The Raschpëtzer's visitor's gallery is ~1400 m to the north-east as the crow flies; by car or bus, follow Rue Prince Henri / CR 126 up the hill to the visitor car park (~1810 m, east-north-east) and walk ~15 minutes.",
       "note": "Position: the open space between Maison Dufaing (OSM building way 477351713) and the Rond-Point des Roses (OSM junction=roundabout). Adjust `geo` in data/poi.json if the display stands elsewhere on the square. The town surroundings use a coarse (~50 m) ACT LiDAR 2019 context grid and the geoportail.lu topographic map."
+    },
+    {
+      "id": "raschpetzer-site",
+      "name": "Raschpëtzer",
+      "kind": "site",
+      "icon": "site",
+      "color": "#a8322a",
+      "site": true,
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.66625,
+        "lon": 6.1499,
+        "status": "documented"
+      },
+      "lift": 0.6,
+      "source": "brochure2018",
+      "status": "documented",
+      "description": "The Raschpëtzer qanat: a Roman underground aqueduct (in use c. AD 140–350) under the wooded Pëtschend plateau between Walferdange and Helmsange — a line of shafts over a near-level gallery that drew groundwater out of the sandstone. Zoom in (or tap) for the car park, the visitor's gallery, the lit shafts and the spring outflow.",
+      "note": "Single whole-site marker for distant views, placed at the centre of the documented shaft line (mean of the 15 georeferenced shafts, data/shafts.json). It replaces the detailed POIs until the camera is close enough to tell them apart.",
+      "caption": "The Roman qanat under the Pëtschend plateau."
     },
     {
       "id": "parking",
@@ -24,7 +49,12 @@
       "photo": "assets/poi/parking-sign.webp",
       "photoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (102).jpg”",
       "photoUrl": "https://commons.wikimedia.org/wiki/File:Walferdange,_Gr%C3%BCnewald,_Raschp%C3%ABtzer_(102).jpg",
-      "geo": { "crs": "EPSG:4326", "lat": 49.663673, "lon": 6.15625, "status": "documented" },
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.663673,
+        "lon": 6.15625,
+        "status": "documented"
+      },
       "source": "leaflet2017",
       "osm": "way/385690665",
       "status": "documented",
@@ -54,7 +84,12 @@
       "kind": "gallery",
       "icon": "gallery",
       "color": "#8a3b12",
-      "geo": { "crs": "EPSG:4326", "lat": 49.666435, "lon": 6.147872, "status": "documented" },
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.666435,
+        "lon": 6.147872,
+        "status": "documented"
+      },
       "lift": 1.7,
       "source": "leaflet2017",
       "status": "documented",
@@ -71,7 +106,12 @@
       "photo": "assets/poi/spring-outflow.webp",
       "photoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (104).jpg”",
       "photoUrl": "https://commons.wikimedia.org/wiki/File:Walferdange,_Gr%C3%BCnewald,_Raschp%C3%ABtzer_(104).jpg",
-      "geo": { "crs": "EPSG:4326", "lat": 49.666272, "lon": 6.147987, "status": "documented" },
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.666272,
+        "lon": 6.147987,
+        "status": "documented"
+      },
       "source": "leaflet2017",
       "status": "documented",
       "description": "Visible water outflow at the end of the secondary channel, reconstructed in 2000 to show how the Roman channel is built inside the hill: dry-stone side walls covered with flat stones and gravel. Three information panels surround the spot; the pond and chute below were designed for the site and are not historical (Brochure 2018 p.32).",
@@ -101,7 +141,12 @@
       "kind": "spring",
       "icon": "spring",
       "color": "#0a9bc4",
-      "geo": { "crs": "EPSG:4326", "lat": 49.666927, "lon": 6.146035, "status": "documented" },
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.666927,
+        "lon": 6.146035,
+        "status": "documented"
+      },
       "source": "osm-poi",
       "osm": "node/7006473939",
       "status": "documented",
@@ -115,7 +160,12 @@
       "kind": "bus",
       "icon": "bus",
       "color": "#0b6e4f",
-      "geo": { "crs": "EPSG:4326", "lat": 49.663876, "lon": 6.156876, "status": "reconstructed" },
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.663876,
+        "lon": 6.156876,
+        "status": "reconstructed"
+      },
       "source": "leaflet2017",
       "status": "reconstructed",
       "description": "Bus stop on the CR 126 (CR 125 in the 2017 leaflet) next to the visitor car park, at the start of the walking route to the qanat.",
@@ -128,7 +178,12 @@
       "kind": "parking",
       "icon": "parking",
       "color": "#1f5fbf",
-      "geo": { "crs": "EPSG:4326", "lat": 49.66355, "lon": 6.158283, "status": "documented" },
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.66355,
+        "lon": 6.158283,
+        "status": "documented"
+      },
       "source": "leaflet2017",
       "osm": "way/384122920",
       "status": "documented",

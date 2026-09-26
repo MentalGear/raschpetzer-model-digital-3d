@@ -934,6 +934,7 @@
     <script src="assets/geodata-inset-raschpetzer.js"></script>
     <script src="assets/geodata-context-walferdange.js"></script>
     <script src="assets/buildings-context.js"></script>
+    <script src="assets/buildings3d-context.js"></script>
     <script src="assets/data.bundle.js"></script>
     <script src="assets/vectors-walferdange.js"></script>
     <script src="assets/paths-walferdange.js"></script>
@@ -1114,7 +1115,9 @@
                 <div id="geo-status" style="font-size:0.72rem;color:var(--panel-text-dim);margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Surrounding&nbsp;context&nbsp;(town,&nbsp;valley,&nbsp;villa)</label>
-                <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-buildings" checked> 3D&nbsp;buildings&nbsp;(OSM;&nbsp;heights&nbsp;mostly&nbsp;estimated)</label>
+                <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-buildings" checked> 3D&nbsp;buildings&nbsp;(ACT&nbsp;2023,&nbsp;textured)</label>
+                <label class="check-row" style="margin-left:44px"><input type="checkbox" id="param-buildings-see" checked> See&nbsp;through&nbsp;buildings&nbsp;in&nbsp;the&nbsp;way</label>
+                <label class="check-row" style="margin-left:22px" title="Loads ~40 MB more: 4096² building-texture atlases (768 px façades near the key spots) and a finer aerial photo of the town context. Meant for a big display with a capable GPU (~1 GB of video memory)."><input type="checkbox" id="param-hq-assets"> High&#8209;quality&nbsp;textures&nbsp;(big&nbsp;screen)</label>
                 <div class="opt-group" id="grp-hires-inset">
                     <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
                     <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 8px;line-height:1.35;">Denser LiDAR patch (~3.6&nbsp;m cells vs. the main terrain's ~7.5&nbsp;m) over just the shaft area. Subtle at normal zoom &mdash; mainly useful up close, or as a base for future higher-res sampling.</div>
@@ -1443,7 +1446,9 @@
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showPois: true,               // floating visitor points of interest (data/poi.json)
             attractMode: true,            // title screen + ~90 s camera tour on load and after 2 min idle (kiosk)
-            showBuildings: true,          // 3D buildings (OSM footprints) on the surrounding-context terrain
+            showBuildings: true,          // 3D buildings (ACT 2023 LOD2 textured; OSM fallback) on the surrounding-context terrain
+            buildingsSeeThrough: true,    // buildings between the camera and its target dissolve (dithered)
+            hqAssets: false,              // high-quality textures (big screen): HQ building atlases + finer context aerial
             attractReveal: 'cut',         // how the tour reveals the qanat: 'cut' (terrain trench) | 'split' (split screen)
             poiScale: 1.0,                // POI marker size multiplier ("POI size" slider)
             poiScreenSize: true,          // POI markers keep a constant on-screen size (off = scale with the model)
@@ -2311,14 +2316,26 @@
                 south: g.south, north: g.north, meters: g.meters, ready: true });
         }
         const contextTextures = {};   // 'topo' | 'ortho' -> { tex, ready }
+        // (Re)called when "High-quality textures" toggles: the 2019 aerial swaps between its
+        // 2048 px and 8192 px (~0.4 m/px, mipmapped) versions; the old texture is freed once
+        // the new one has arrived.
         function loadContextTextures() {
-            [['topo', 'assets/topomap-context.jpg'], ['ortho', 'assets/ortho-context.jpg']].forEach(([key, file]) => {
-                contextTextures[key] = { tex: null, ready: false };
+            const hq = !!params.hqAssets;
+            [['topo', 'assets/topomap-context.jpg', false],
+             ['ortho', hq ? 'assets/ortho-context-hq.jpg' : 'assets/ortho-context.jpg', hq]].forEach(([key, file, mip]) => {
+                const cur = contextTextures[key];
+                if (cur && cur.file === file) return;
+                if (!cur) contextTextures[key] = { tex: null, ready: false };
+                contextTextures[key].file = file;
                 new THREE.TextureLoader().load(file, tex => {
+                    if (contextTextures[key].file !== file) { tex.dispose(); return; }   // toggled again meanwhile
                     tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-                    tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+                    if (mip) { tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); }
+                    else { tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; }
+                    const old = contextTextures[key].tex;
                     contextTextures[key].tex = tex; contextTextures[key].ready = true;
                     if (params.showGhostApron && modelGroup) buildParametricModel();
+                    if (old) old.dispose();
                 }, undefined, () => console.warn('context texture failed: ' + file));
             });
         }
@@ -4065,62 +4082,251 @@
                 modelGroup.add(bp); blueprintOnly.push(bp);
             }
         }
-        // --- 3D buildings: OpenStreetMap footprints (assets/buildings-context.js, see
-        // scripts/bake-buildings.mjs) extruded on the context terrain — orientation for the
-        // town and the title tour. Most heights are type-based estimates (see the bake).
-        // One merged, lit mesh in its own scene group, rebuilt only when the placement
-        // (window / vertical scale / flip / tour-vs-explore) changes, not on every UI rebuild.
+        // --- 3D buildings on the context terrain ------------------------------------------
+        // Primary: the ACT national 3D buildings 2023 (LOD 2.2 roofs + oblique-photo textures,
+        // CC0; assets/buildings3d-context.js, see scripts/bake-buildings3d.py) for the commune
+        // of Walferdange. Fallback: OpenStreetMap footprints extruded to (mostly estimated)
+        // heights (assets/buildings-context.js) where ACT has no building — the neighbouring
+        // communes inside the context window. Textures: the standard set (256 px near the
+        // camera's key spots, 64 px elsewhere) or, with "High-quality textures" on, the HQ set
+        // (768 / 160 px on 4096² atlases, loaded on demand). One mesh per atlas + one
+        // vertex-coloured mesh, in their own scene group, rebuilt only when the placement
+        // (window / vertical scale / flip / tour-vs-explore / texture set) changes.
+        // Buildings between the camera and what it looks at dissolve (dithered) so they never
+        // hide the view — see bldFade / updateBuildingFade().
         let buildingsGroup = null, buildingsKey = '';
+        let B3 = null;   // decoded ACT buildings
+        const b64buf = str => { const bin = atob(str), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
+        function act3dSet(S) {
+            const t = new Uint8Array(b64buf(S.t)), uv = new Uint16Array(b64buf(S.uv));
+            // Per-ring start into the uv stream (only textured rings have uvs).
+            const start = new Int32Array(t.length);
+            for (let i = 0, acc = 0; i < t.length; i++) { start[i] = t[i] ? acc : -1; if (t[i]) acc += B3.r[i] & 0x3fff; }
+            return { atlases: S.atlases, t, uv, start, tex: [] };
+        }
+        function act3d() {
+            if (B3 || !window.RASCH_BUILDINGS3D) return B3;
+            const D = window.RASCH_BUILDINGS3D;
+            B3 = { D, v: new Int16Array(b64buf(D.v)), r: new Uint16Array(b64buf(D.r)), b: new Uint16Array(b64buf(D.b)),
+                   c: new Uint8Array(b64buf(D.c)), sets: {} };
+            B3.sets.std = act3dSet(D.std);
+            return B3;
+        }
+        function act3dTextures(set) {
+            if (!set.tex.length) {
+                const L = new THREE.TextureLoader(), aniso = renderer.capabilities.getMaxAnisotropy();
+                set.tex = set.atlases.map(f => {
+                    const tx = L.load(f);
+                    tx.anisotropy = aniso;
+                    return tx;
+                });
+            }
+            return set.tex;
+        }
+        // HQ set: its uv/atlas index script is loaded only when first asked for.
+        let hqLoading = false;
+        function ensureHqBuildings() {
+            if (window.RASCH_BUILDINGS3D_HQ || hqLoading) return;
+            hqLoading = true;
+            const sc = document.createElement('script');
+            sc.src = 'assets/buildings3d-hq.js';
+            sc.onload = () => { hqLoading = false; buildingsKey = ''; buildParametricModel(); };
+            sc.onerror = () => { hqLoading = false; showToast('High-quality building textures could not be loaded'); };
+            document.head.appendChild(sc);
+        }
+        // Near-camera see-through: fragments close to the camera→target line (and anything
+        // right in front of the lens) are discarded in an ordered-dither pattern.
+        // Two sight lines: to the orbit target, and to the marker that matters most (the active
+        // POI, else the kiosk "You are here") — so the buildings right in front of either clear.
+        const bldFade = { uCam: { value: new THREE.Vector3() }, uTgt: { value: new THREE.Vector3() },
+                          uTgt2: { value: new THREE.Vector3() }, uR: { value: 0 }, uR2: { value: 0 }, uNear: { value: 0 } };
+        function fadeMaterial(m) {
+            m.onBeforeCompile = sh => {
+                Object.assign(sh.uniforms, bldFade);
+                sh.vertexShader = 'varying vec3 vBldW;\n' + sh.vertexShader.replace('#include <project_vertex>',
+                    '#include <project_vertex>\n vBldW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+                sh.fragmentShader = 'varying vec3 vBldW;\nuniform vec3 uCam, uTgt, uTgt2;\nuniform float uR, uR2, uNear;\n' +
+                    'float bldB2(vec2 a) { a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }\n' +
+                    // 0..1 how much a point is "in the way" of the sight line cam→tg (radius r at the far end)
+                    'float bldSight(vec3 tg, float r) { if (r <= 0.0) return 0.0; vec3 seg = tg - uCam;\n' +
+                    '  float t = clamp(dot(vBldW - uCam, seg) / max(dot(seg, seg), 1e-6), 0.0, 1.0);\n' +
+                    '  float d = length(vBldW - (uCam + seg * t)); float R = r * mix(0.35, 1.0, t);\n' +
+                    '  return (1.0 - smoothstep(R * 0.5, R, d)) * (1.0 - smoothstep(0.82, 0.96, t)); }\n' +
+                    sh.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+                    {
+                        float a = max(bldSight(uTgt, uR), bldSight(uTgt2, uR2));
+                        a = max(a, 1.0 - smoothstep(uNear * 0.5, uNear, length(vBldW - uCam)));
+                        float bay = bldB2(gl_FragCoord.xy * 0.5) * 0.25 + bldB2(gl_FragCoord.xy) + 0.03;
+                        if (a * 0.9 > bay) discard;   // ~10 % stays as a faint dotted ghost
+                    }`);
+            };
+            m.customProgramCacheKey = () => 'bldfade';
+            return m;
+        }
+        // Per frame: aim the see-through corridor at the current view.
+        function updateBuildingFade() {
+            if (!buildingsGroup || !buildingsGroup.visible) return;
+            const tgt = attract.on && attract.pose ? attract.pose.target : controls.target;
+            bldFade.uCam.value.copy(camera.position);
+            bldFade.uTgt.value.copy(tgt);
+            const on = params.buildingsSeeThrough;
+            const dist = camera.position.distanceTo(tgt);
+            bldFade.uR.value = on ? Math.max(1.2, dist * 0.06) : 0;
+            bldFade.uNear.value = on ? Math.max(1.0, dist * 0.08) : 0;
+            // Second sight line: the active POI (else the kiosk marker), down to its ground spot.
+            const pg = poiGroups.find(p => p.disc.userData.id === poiActiveId && p.group.visible) ||
+                poiGroups.find(p => p.kiosk && p.group.visible);
+            bldFade.uR2.value = 0;
+            if (on && pg) {
+                pg.group.getWorldPosition(bldFade.uTgt2.value);
+                const d2 = camera.position.distanceTo(bldFade.uTgt2.value);
+                if (d2 < dist * 1.5) bldFade.uR2.value = Math.max(1.2, d2 * 0.1);
+            }
+        }
         function updateBuildings(halfW, halfD) {
-            const B = window.RASCH_BUILDINGS;
+            const OSM = window.RASCH_BUILDINGS, A = act3d();
             if (!buildingsGroup) { buildingsGroup = new THREE.Group(); scene.add(buildingsGroup); }
-            const show = params.showBuildings && params.showGhostApron && B && geodataContext.ready &&
+            const show = params.showBuildings && params.showGhostApron && (A || OSM) && geodataContext.ready &&
                 params.terrainSource === 'geodata' && geodata.ready;
             buildingsGroup.visible = !!show;
             if (!show) return;
+            if (params.hqAssets) ensureHqBuildings();
+            if (A && params.hqAssets && window.RASCH_BUILDINGS3D_HQ && !A.sets.hq) A.sets.hq = act3dSet(window.RASCH_BUILDINGS3D_HQ);
+            const set = A ? ((params.hqAssets && A.sets.hq) || A.sets.std) : null;
             const key = [geoView.west, geoView.east, geoView.south, geoView.north, params.width, params.depth,
-                params.vExag, params.flipWE, attract.on].join('|');
+                params.vExag, params.flipWE, attract.on, set === (A && A.sets.hq)].join('|');
             if (key === buildingsKey) return;
             buildingsKey = key;
             buildingsGroup.children.forEach(c => { c.geometry.dispose(); c.material.dispose(); });
             buildingsGroup.clear();
-            const pos = [], col = [];
-            const wall = new THREE.Color(0xe9e2d6), wallEst = new THREE.Color(0xdcd6cc), roof = new THREE.Color(0x6e6763);   // slate grey: most roofs here are slate
+            // Drop the other texture set from the GPU (the HQ atlases are big).
+            if (A) for (const k in A.sets) if (A.sets[k] !== set && A.sets[k].tex.length) { A.sets[k].tex.forEach(t => t.dispose()); A.sets[k].tex = []; }
             const W2 = params.width / 2;
-            for (const b of B.buildings) {
-                const r = b.r, n = r.length / 2;
-                const pts = [];
-                let cxs = 0, czs = 0;
-                for (let i = 0; i < n; i++) {
-                    const sc = geoToScene(r[2 * i + 1], r[2 * i]);
-                    pts.push(new THREE.Vector2(sc.x, sc.z)); cxs += sc.x; czs += sc.z;
+            const hidden = (cx, cz) => !attract.on && Math.abs(cx) <= W2 && cz >= -halfD;   // explore: keep the modelled window clear
+            const addMesh = (pos, attrs, mat) => {
+                if (!pos.length) return;
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                for (const k in attrs) g.setAttribute(k, new THREE.Float32BufferAttribute(attrs[k], k === 'uv' ? 2 : 3));
+                g.computeVertexNormals();
+                const mesh = new THREE.Mesh(g, fadeMaterial(mat));
+                mesh.raycast = () => {};
+                buildingsGroup.add(mesh);
+            };
+            // Linear lon/lat → scene mapping (geoToScene is affine) and vertical metres → Y.
+            const D = A ? A.D : null;
+            const lon0 = D ? D.lon0 : 6.14, lat0 = D ? D.lat0 : 49.66;
+            const s0 = geoToScene(lat0, lon0), s1 = geoToScene(lat0 + 0.01, lon0 + 0.01);
+            const ax = (s1.x - s0.x) / 0.01, az = (s1.z - s0.z) / 0.01, ym = metersToYDepth(1);
+            const occupied = new Set();   // ~20 m cells covered by ACT buildings (OSM fallback skips them)
+            const cellOf = (lon, lat) => Math.floor((lon - 6) / 0.00025) + ':' + Math.floor((lat - 49) / 0.00018);
+            if (A) {
+                const { v, r, b, c } = A;
+                const tex = act3dTextures(set);
+                const tb = tex.map(() => ({ pos: [], uv: [] }));
+                const cb = { pos: [], color: [] };
+                const kx = 111320 * Math.cos(lat0 * Math.PI / 180) * 1e-6, ky = 111320 * 1e-6;
+                let ri = 0, vi = 0;
+                for (let bi = 0; bi < b.length; bi++) {
+                    const nR = b[bi], r0 = ri, v0 = vi;
+                    let nv = 0;
+                    for (let k = 0; k < nR; k++) nv += r[r0 + k] & 0x3fff;
+                    ri += nR; vi += nv;
+                    // Footprint extent, lowest point, centroid.
+                    let zmin = Infinity, lo0 = Infinity, lo1 = -Infinity, la0 = Infinity, la1 = -Infinity;
+                    for (let q = v0; q < v0 + nv; q++) {
+                        const lo = v[3 * q], la = v[3 * q + 1];
+                        zmin = Math.min(zmin, v[3 * q + 2]);
+                        lo0 = Math.min(lo0, lo); lo1 = Math.max(lo1, lo); la0 = Math.min(la0, la); la1 = Math.max(la1, la);
+                    }
+                    for (let x = Math.floor((lon0 + lo0 * 1e-6 - 6) / 0.00025); x <= Math.floor((lon0 + lo1 * 1e-6 - 6) / 0.00025); x++)
+                        for (let y = Math.floor((lat0 + la0 * 1e-6 - 49) / 0.00018); y <= Math.floor((lat0 + la1 * 1e-6 - 49) / 0.00018); y++)
+                            occupied.add(x + ':' + y);
+                    const cx = s0.x + ax * (lo0 + lo1) / 2e6, cz = s0.z + az * (la0 + la1) / 2e6;
+                    if (hidden(cx, cz)) continue;
+                    // Seat the building on the (coarse) context terrain: its lowest ground-level
+                    // corner at the terrain height there; heights keep the terrain's vertical scale.
+                    let base = Infinity;
+                    for (let q = v0; q < v0 + nv; q++) if (v[3 * q + 2] <= zmin + 15)
+                        base = Math.min(base, getTerrainHeight(s0.x + ax * v[3 * q] * 1e-6, s0.z + az * v[3 * q + 1] * 1e-6));
+                    base -= 0.05;
+                    // Polygons: an exterior ring followed by its holes.
+                    let q0 = v0;
+                    for (let k = 0; k < nR;) {
+                        const ext = r0 + k, rings = [ext];
+                        let n = r[ext] & 0x3fff;
+                        const starts = [q0];
+                        let qn = q0 + n;
+                        k++;
+                        while (k < nR && (r[r0 + k] & 0x8000)) { rings.push(r0 + k); starts.push(qn); qn += r[r0 + k] & 0x3fff; k++; }
+                        q0 = qn;
+                        // Newell normal (metres) → drop its dominant axis → 2D triangulation.
+                        let nx = 0, ny = 0, nz = 0;
+                        for (let i = 0; i < n; i++) {
+                            const a = starts[0] + i, bq = starts[0] + (i + 1) % n;
+                            const ax1 = v[3 * a] * kx, ay1 = v[3 * a + 1] * ky, az1 = v[3 * a + 2] * 0.1;
+                            const bx1 = v[3 * bq] * kx, by1 = v[3 * bq + 1] * ky, bz1 = v[3 * bq + 2] * 0.1;
+                            nx += (ay1 - by1) * (az1 + bz1); ny += (az1 - bz1) * (ax1 + bx1); nz += (ax1 - bx1) * (ay1 + by1);
+                        }
+                        const anx = Math.abs(nx), any = Math.abs(ny), anz = Math.abs(nz);
+                        if (anx + any + anz < 1e-9) continue;
+                        const p2 = q => anz >= anx && anz >= any ? new THREE.Vector2(v[3 * q] * kx, v[3 * q + 1] * ky)
+                            : anx >= any ? new THREE.Vector2(v[3 * q + 1] * ky, v[3 * q + 2] * 0.1)
+                            : new THREE.Vector2(v[3 * q] * kx, v[3 * q + 2] * 0.1);
+                        const loops = rings.map((rr, j) => { const L = []; for (let i = 0; i < (r[rr] & 0x3fff); i++) L.push(starts[j] + i); return L; });
+                        let tris;
+                        try { tris = THREE.ShapeUtils.triangulateShape(loops[0].map(p2), loops.slice(1).map(L => L.map(p2))); }
+                        catch (e) { continue; }
+                        const flat = loops.flat();
+                        const ti = set.t[ext];
+                        const uvOf = [];
+                        if (ti) loops.forEach((L, j) => {
+                            const st = set.start[rings[j]] >= 0 ? set.start[rings[j]] : set.start[ext];
+                            const own = set.start[rings[j]] >= 0;
+                            L.forEach((_, i) => { const u = st + (own ? i : 0); uvOf.push(set.uv[2 * u] / 65535, set.uv[2 * u + 1] / 65535); });
+                        });
+                        const out = ti ? tb[ti - 1] : cb;
+                        if (!out) continue;
+                        const col = [c[3 * ext] / 255, c[3 * ext + 1] / 255, c[3 * ext + 2] / 255];
+                        for (const tr of tris) for (const idx of tr) {
+                            const q = flat[idx];
+                            out.pos.push(s0.x + ax * v[3 * q] * 1e-6, base + (v[3 * q + 2] - zmin) * 0.1 * ym, s0.z + az * v[3 * q + 1] * 1e-6);
+                            if (ti) out.uv.push(uvOf[2 * idx], uvOf[2 * idx + 1]);
+                            else out.color.push(col[0], col[1], col[2]);
+                        }
+                    }
                 }
-                const cx = cxs / n, cz = czs / n;
-                // Explore view: nothing over the modelled window or in front of its cut face
-                // (the same area the translucent context leaves clear).
-                if (!attract.on && Math.abs(cx) <= W2 && cz >= -halfD) continue;
-                let base = Infinity;
-                for (const p of pts) base = Math.min(base, getTerrainHeight(p.x, p.y));
-                base -= 0.05;
-                const top = base + metersToYDepth(b.h);
-                const wc = b.est ? wallEst : wall;
-                // Walls
-                for (let i = 0; i < n; i++) {
-                    const a = pts[i], c = pts[(i + 1) % n];
-                    pos.push(a.x, base, a.y, c.x, base, c.y, c.x, top, c.y,  a.x, base, a.y, c.x, top, c.y, a.x, top, a.y);
-                    for (let q = 0; q < 6; q++) col.push(wc.r, wc.g, wc.b);
-                }
-                // Roof (flat; footprints only — OSM rarely has roof shapes here)
-                const tris = THREE.ShapeUtils.triangulateShape(pts, []);
-                for (const t of tris) for (const k of t) { pos.push(pts[k].x, top, pts[k].y); col.push(roof.r, roof.g, roof.b); }
+                tb.forEach((o, i) => addMesh(o.pos, { uv: o.uv }, new THREE.MeshLambertMaterial({ map: tex[i], side: THREE.DoubleSide })));
+                addMesh(cb.pos, { color: cb.color }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
             }
-            const g = new THREE.BufferGeometry();
-            g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-            g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-            g.computeVertexNormals();
-            const mesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
-            mesh.raycast = () => {};
-            buildingsGroup.add(mesh);
+            if (OSM) {
+                const pos = [], col = [];
+                const wall = new THREE.Color(0xe9e2d6), wallEst = new THREE.Color(0xdcd6cc), roof = new THREE.Color(0x6e6763);   // slate grey: most roofs here are slate
+                for (const bd of OSM.buildings) {
+                    const rr = bd.r, n = rr.length / 2;
+                    let lo = 0, la = 0;
+                    for (let i = 0; i < n; i++) { lo += rr[2 * i]; la += rr[2 * i + 1]; }
+                    lo /= n; la /= n;
+                    if (occupied.has(cellOf(lo, la))) continue;   // ACT has this one (textured, real roof)
+                    const pts = [];
+                    for (let i = 0; i < n; i++) { const sc = geoToScene(rr[2 * i + 1], rr[2 * i]); pts.push(new THREE.Vector2(sc.x, sc.z)); }
+                    const cc = geoToScene(la, lo);
+                    if (hidden(cc.x, cc.z)) continue;
+                    let base = Infinity;
+                    for (const pt of pts) base = Math.min(base, getTerrainHeight(pt.x, pt.y));
+                    base -= 0.05;
+                    const top = base + metersToYDepth(bd.h);
+                    const wc = bd.est ? wallEst : wall;
+                    for (let i = 0; i < n; i++) {
+                        const a = pts[i], e = pts[(i + 1) % n];
+                        pos.push(a.x, base, a.y, e.x, base, e.y, e.x, top, e.y,  a.x, base, a.y, e.x, top, e.y, a.x, top, a.y);
+                        for (let q = 0; q < 6; q++) col.push(wc.r, wc.g, wc.b);
+                    }
+                    const tris = THREE.ShapeUtils.triangulateShape(pts, []);
+                    for (const t of tris) for (const k of t) { pos.push(pts[k].x, top, pts[k].y); col.push(roof.r, roof.g, roof.b); }
+                }
+                addMesh(pos, { color: col }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+            }
         }
         // Is a scene point covered by the context apron (so "off-map" markers still stand on ground)?
         function inContextApron(lat, lon) {
@@ -4504,6 +4710,24 @@
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.beginPath(); ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2); ctx.fill();
                 ctx.globalCompositeOperation = 'source-over';
+            } else if (icon === 'site') {
+                // The whole qanat in section, like the title art: a hill rising to the east,
+                // shafts of growing depth dropping from it, the near-level gallery at their feet.
+                const x0 = S * 0.2, x1 = S * 0.8, g = S * 0.68;
+                const hill = x => { const f = (x - x0) / (x1 - x0); return S * (0.52 - 0.24 * Math.sin(f * Math.PI * 0.62)); };
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.lineWidth = S * 0.04;
+                ctx.beginPath();
+                for (let i = 0; i <= 24; i++) { const x = x0 - S * 0.03 + (x1 - x0 + S * 0.06) * i / 24; i ? ctx.lineTo(x, hill(x)) : ctx.moveTo(x, hill(x)); }
+                ctx.stroke();
+                ctx.lineWidth = S * 0.026;
+                for (const f of [0.14, 0.38, 0.62, 0.86]) {
+                    const x = x0 + (x1 - x0) * f;
+                    ctx.beginPath(); ctx.moveTo(x, hill(x) + S * 0.02); ctx.lineTo(x, g); ctx.stroke();
+                }
+                ctx.strokeStyle = '#bfe9f5';   // the water-carrying gallery
+                ctx.lineWidth = S * 0.055;
+                ctx.beginPath(); ctx.moveTo(x0 - S * 0.04, g + S * 0.012); ctx.lineTo(x1 + S * 0.02, g - S * 0.012); ctx.stroke();
             } else if (icon === 'bus') {
                 // Bus front: body, windscreen, wheels.
                 const w = S * 0.40, h = S * 0.40, x0 = S / 2 - w / 2, y0 = S * 0.28, r = S * 0.05;
@@ -4602,8 +4826,8 @@
             const list = (SSOT.poi && SSOT.poi.pois) || [];
             if (!params.showPois || !list.length) return;
             const isGeo = params.terrainSource === 'geodata' && geodata.ready;
-            const DIAM = POI_DIAM;
             list.forEach(poi => {
+                const DIAM = POI_DIAM * (poi.site ? 1.35 : 1);   // the whole-site marker is a little larger
                 const LIFT = POI_LIFT * (poi.lift || 1);   // optional per-POI stagger (data/poi.json `lift`)
                 let x, z;
                 if (poi.anchorShaft) {
@@ -4632,7 +4856,7 @@
                 stalk.renderOrder = 29; group.add(stalk);
                 // Arrowhead pointing down at the ground position.
                 const arrow = noPick(new THREE.Mesh(new THREE.ConeGeometry(0.32, tipH, 12),
-                    new THREE.MeshBasicMaterial({ color: col })));
+                    new THREE.MeshBasicMaterial({ color: col, transparent: true })));
                 arrow.rotation.x = Math.PI;
                 arrow.position.y = tipH / 2;
                 arrow.renderOrder = 29; group.add(arrow);
@@ -4662,9 +4886,13 @@
                 group.add(lbl); spotMeshes.push(lbl);
 
                 modelGroup.add(group);
-                const pg = { group, disc, lbl, ring, conn: null, kiosk: !!poi.kiosk,
+                lbl.material.transparent = true;
+                const pg = { group, disc, lbl, ring, conn: null, kiosk: !!poi.kiosk, site: !!poi.site,
                     lblOffset: DIAM / 2 + LBL_H * 0.4, baseDiam: DIAM, lift: LIFT,
-                    lblW: lbl.scale.x, lblH: lbl.scale.y, grow: poi.id === poiActiveId ? POI_ACTIVE_SCALE : 1 };
+                    lblW: lbl.scale.x, lblH: lbl.scale.y, grow: poi.id === poiActiveId ? POI_ACTIVE_SCALE : 1,
+                    fade: null,   // 0..1 visibility (site level of detail × dimming), eased per frame
+                    // every material with its full opacity, so the group can fade as a whole
+                    mats: [stalk, arrow, ring, disc, lbl].map(o => [o.material, o.material.opacity]) };
                 poiGroups.push(pg);
 
                 // Off-map (e.g. south of the qanat's front cut): a dashed ground connector from
@@ -4677,7 +4905,7 @@
                         new THREE.LineDashedMaterial({ color: col, dashSize: 1.2, gapSize: 0.9,
                             transparent: true, opacity: 0.7, depthTest: false })));
                     conn.computeLineDistances(); conn.renderOrder = 9; modelGroup.add(conn);
-                    pg.conn = conn;
+                    pg.conn = conn; pg.mats.push([conn.material, conn.material.opacity]);
                 }
             });
             // A selected POI survives the rebuild: re-point the selection at its new circle.
@@ -4691,15 +4919,66 @@
         // on screen at any zoom (world size of one pixel at the POI's ground point); model mode
         // keeps a fixed scene size (scale 1 = the original model-space marker) × size.
         const _poiTmp = new THREE.Vector3(), _poiTmp2 = new THREE.Vector3();
+        const POI_DIM_SCALE = 0.72, POI_DIM_OPACITY = 0.5;   // the other markers while one is active
+        // Site LOD thresholds: view height (m) at the site centre above which the whole-site
+        // marker replaces the details (far) / below which the details return (near).
+        const SITE_LOD = { near: 620, far: 860 };
+        let siteFar = 0, siteLodGoal = 0;   // 0 = detailed POIs, 1 = one whole-site marker
+        // Horizontal metres per scene unit (GeoData; ~10 m/unit otherwise).
+        function metersPerUnitH() {
+            if (!(params.terrainSource === 'geodata' && geodata.ready)) return 10;
+            const lat = (geoView.north + geoView.south) / 2;
+            return (geoView.east - geoView.west) * 111320 * Math.cos(lat * Math.PI / 180) / params.width;
+        }
+        // Fly the camera to a POI so the view height at it is `spanM` metres, keeping the
+        // current viewing direction (but at least 22° above the horizon).
+        function flyToPoi(id, spanM) {
+            const pg = poiGroups.find(p => p.disc.userData.id === id);
+            if (!pg || !camera) return;
+            const target = pg.group.getWorldPosition(new THREE.Vector3());
+            const dir = camera.position.clone().sub(controls.target);
+            if (dir.lengthSq() < 1e-6) dir.set(0, 1, 1);
+            dir.normalize();
+            const minEl = Math.sin(THREE.MathUtils.degToRad(22));
+            if (dir.y < minEl) { const hz = Math.sqrt(1 - minEl * minEl), l = Math.hypot(dir.x, dir.z) || 1; dir.set(dir.x / l * hz, minEl, dir.z / l * hz); }
+            const dist = spanM / metersPerUnitH() / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom);
+            flyTo(target.clone().addScaledVector(dir, dist), target, 1100);
+        }
+        function siteViewSpanM(pg) {
+            const h = renderer.domElement.clientHeight || 1;
+            return worldPerPxAt(pg.group.getWorldPosition(_poiTmp)) * h * metersPerUnitH();
+        }
         function updatePoiScales() {
             if (!poiGroups.length || !camera || !renderer) return;
             const now = performance.now(), dt = Math.min(0.1, (now - (updatePoiScales.last || now)) / 1000);
             updatePoiScales.last = now;
             setPoiActive(attract.on ? attract.activePoi : poiSelectedId);
-            const ease = 1 - Math.exp(-dt * 7);
+            const ease = 1 - Math.exp(-dt * 7), fadeEase = 1 - Math.exp(-dt * 4);
+            // Site level of detail: far away (e.g. from the town) the whole site is ONE marker;
+            // the detailed POIs take over once you're close enough to tell them apart. Measured
+            // as the view height (m) at the site — fov-independent, with hysteresis so it
+            // doesn't flicker at the threshold; siteFar eases the crossfade.
+            const siteG = poiGroups.find(p => p.site);
+            if (siteG) {
+                const span = siteViewSpanM(siteG);
+                if (span > SITE_LOD.far) siteLodGoal = 1; else if (span < SITE_LOD.near) siteLodGoal = 0;
+            } else siteLodGoal = 0;
+            siteFar = updatePoiScales.first ? siteFar + (siteLodGoal - siteFar) * fadeEase : siteLodGoal;
+            updatePoiScales.first = true;
+            const activeShown = poiActiveId != null && poiGroups.some(p => p.disc.userData.id === poiActiveId);
             for (const pg of poiGroups) {
                 const { group } = pg;
-                const goal = pg.disc.userData.id === poiActiveId ? POI_ACTIVE_SCALE : 1;
+                const id = pg.disc.userData.id, isActive = id === poiActiveId, isSel = id === poiSelectedId;
+                // Visibility: kiosk always; the site marker when far; the details when near;
+                // whatever is active/selected stays. Others dim + shrink while one is active.
+                let vis = pg.kiosk ? 1 : pg.site ? siteFar : 1 - siteFar;
+                if (isActive || isSel) vis = 1;
+                const dimmed = activeShown && !isActive;
+                const opGoal = vis * (dimmed ? POI_DIM_OPACITY : 1);
+                pg.fade = pg.fade == null ? opGoal : pg.fade + (opGoal - pg.fade) * fadeEase;
+                for (const [m, o] of pg.mats) m.opacity = o * pg.fade;
+                pg.faded = pg.fade < 0.03;
+                const goal = isActive ? POI_ACTIVE_SCALE : dimmed ? POI_DIM_SCALE : 1;
                 pg.grow = pg.grow == null ? goal : pg.grow + (goal - pg.grow) * ease;
                 // Grow the circle + label only (not the stalk): keep the circle's bottom where the
                 // stalk ends, so the enlarged marker doesn't float away from its spot.
@@ -4739,7 +5018,7 @@
             const placed = [];
             for (const pg of order) {
                 let show = true;
-                if (params.poiDeclutter) {
+                if (params.poiDeclutter && !pg.faded && pg.fade > 0.35) {   // near-invisible markers don't block others
                     pg.group.updateMatrixWorld(true);
                     const wpp = worldPerPxAt(pg.disc.getWorldPosition(_poiTmp2));
                     const dr = pg.disc.getWorldScale(_poiTmp2).x / 2 / wpp;
@@ -4751,6 +5030,7 @@
                     if (!sel && rects.some(r => placed.some(q => hit(r, q)))) show = false;
                     else placed.push(...rects);
                 }
+                if (pg.faded) show = false;
                 pg.group.visible = show;
                 if (pg.conn) pg.conn.visible = show;
             }
@@ -5396,6 +5676,14 @@
                 params.showBuildings = e.target.checked;
                 buildParametricModel();
             });
+            document.getElementById('param-buildings-see').addEventListener('change', e => {
+                params.buildingsSeeThrough = e.target.checked;
+            });
+            document.getElementById('param-hq-assets').addEventListener('change', e => {
+                params.hqAssets = e.target.checked;
+                loadContextTextures();
+                buildParametricModel();
+            });
             // Valley context ghost apron (toward the inferred villa)
             document.getElementById('param-ghost-apron').addEventListener('change', e => {
                 params.showGhostApron = e.target.checked;
@@ -5598,6 +5886,8 @@
                 'param-pois': () => params.showPois,
                 'param-attract': () => params.attractMode,
                 'param-buildings': () => params.showBuildings,
+                'param-buildings-see': () => params.buildingsSeeThrough,
+                'param-hq-assets': () => params.hqAssets,
                 'param-attract-reveal': () => params.attractReveal,
                 'param-poi-size': () => params.poiScale,
                 'param-poi-screen': () => params.poiScreenSize,
@@ -6362,6 +6652,8 @@
                     if (isReselect('spot', kind)) { resetInspectorToEmpty(); setPanelMode('views'); return; }
                     selectSpotAt(shit.object.userData, shit.point); renderSpotPanel(shit.object.userData);
                     setSelectionURL('spot', kind);
+                    // The whole-site marker (far view): fly in until the detailed POIs appear.
+                    if (shit.object.userData.site) flyToPoi(shit.object.userData.id, SITE_LOD.near * 0.7);
                     return;
                 }
                 const qhit = pickQanat(ev);   // qanat gallery tube → inspector
@@ -7900,7 +8192,8 @@
                 if (div) div.classList.remove('show');
                 updateTourCut(r);
                 setAttractPass('surface');
-                if (subsurfaceGroup) subsurfaceGroup.visible = r > 0.02;
+                // …and from far away (site LOD) the whole qanat shows in x-ray under the one marker.
+                if (subsurfaceGroup) subsurfaceGroup.visible = r > 0.02 || siteFar > 0.5;
                 renderer.render(scene, camera);
                 return;
             }
@@ -8009,11 +8302,46 @@
                 tourCut.walls.visible = true;
             }
         }
+        function isTypingTarget(t) {
+            return !!(t && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)));
+        }
+        // Tour: jump to the previous/next shot (the tour keeps running from there).
+        function attractJump(step) {
+            const n = attract.shots.length;
+            if (!n) return;
+            if (attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
+            attract.idx = ((Math.max(0, attract.idx) + step) % n + n) % n;
+            attract.shotStart = performance.now();
+            const shot = attract.shots[attract.idx];
+            attract.activePoi = shot.poiId || null;
+            setAttractCaption(shot);
+        }
+        // Explore: select the previous/next point of interest (data/poi.json order, without
+        // the whole-site marker) and fly to it.
+        function stepPoi(step) {
+            const list = poiGroups.filter(p => !p.site);
+            if (!list.length) return;
+            const cur = list.findIndex(p => p.disc.userData.id === poiSelectedId);
+            const pg = list[cur < 0 ? (step > 0 ? 0 : list.length - 1) : ((cur + step) % list.length + list.length) % list.length];
+            const d = pg.disc.userData;
+            selectSpotAt(d, pg.group.position); renderSpotPanel(d);
+            setSelectionURL('spot', spotSelId(d));
+            // The kiosk is out in the town: frame it wider than the on-site stops.
+            flyToPoi(d.id, pg.kiosk ? 700 : 380);
+        }
         function initAttract() {
             // Any deliberate interaction ends the title screen (and is swallowed, so the same
             // touch doesn't also select or drag); every interaction resets the idle timer.
             const onInteract = ev => {
                 lastInteraction = performance.now();
+                if (ev.type === 'keydown' && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') &&
+                    !ev.metaKey && !ev.ctrlKey && !ev.altKey && !ev.shiftKey && !isTypingTarget(ev.target)) {
+                    // ← / → : previous / next station — tour shot, or (exploring) point of interest.
+                    ev.preventDefault(); ev.stopPropagation();
+                    const step = ev.key === 'ArrowRight' ? 1 : -1;
+                    if (attract.on) attractJump(step); else stepPoi(step);
+                    return;
+                }
                 if (!attract.on) return;
                 if (ev.type === 'pointermove') return;
                 ev.preventDefault(); ev.stopPropagation();
@@ -8065,6 +8393,7 @@
             camera.updateMatrixWorld();
             updatePoiScales();         // POI markers: constant screen size or model size × slider
             updateSelectionMarker();   // billboard + constant screen size, from this frame's camera
+            updateBuildingFade();      // buildings between the camera and its target dissolve
             if (attract.on) renderAttractFrame(now); else renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
             // events and the fly-to animation above.

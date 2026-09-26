@@ -22,7 +22,8 @@
     "prebuild": "node scripts/validate.mjs",
     "serve": "vite preview",
     "bake:context": "node scripts/bake-context.mjs",
-    "bake:buildings": "node scripts/bake-buildings.mjs"
+    "bake:buildings": "node scripts/bake-buildings.mjs",
+    "bake:context-hq": "node scripts/bake-context.mjs --hq"
   },
   "devDependencies": {
     "vite": "^5.4.11"
