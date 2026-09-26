@@ -144,26 +144,36 @@ and #7 (CRS registry + spacing invariant) are being actioned separately.
 - **Reconcile the LiDAR vertical datum** (NG95/EVRF) with the brochure's "m a.s.l." in one
   line of provenance. *(surveyor)*
 
-## Kiosk — programs & storytelling (2026-09-26)
+## Kiosk — lenses & storytelling (2026-09-26)
 
 For the physical display in front of Maison Dufaing (title-screen tour, `attract` in index.html).
 
-- **Program buttons A–E (physical + on-screen).** Coloured buttons on the outside of the
+- **Lens buttons A–E (physical + on-screen).** Coloured buttons on the outside of the
   showcase vitrine, mirrored as a matching row of coloured buttons along the bottom of the
-  screen. Each one starts a *program*: the same site seen through a different lens, e.g.
-  A Geology & water · B Roman builders (how it was built and used) · C Rediscovery (1986 →
-  today) · D The site today (visit, opening hours, walk) · E Free explore.
-  - Hardware: USB-HID arcade buttons (they act as keys A–E; `keydown` works through glass,
-    no drivers). One colour and one letter per program, identical on the vitrine and on screen.
-  - A program = the tour-shot format (camera pose, reveal, POI, caption) plus a per-program
-    layer preset (geology, x-ray, timeline year, …) defined as data (`data/programs.json`), so
-    domain experts can write programs without touching code. ~60–120 s each, then back to the
+  screen. Each one starts a *lens*: one Raschpëtzer, seen through a different expertise,
+  e.g. A Geology & water · B Roman builders (how it was built and used) · C Rediscovery
+  (1986 → today) · D Kids · E The site today (visit, opening hours, walk).
+  - Hardware: arcade buttons on the vitrine wired to a USB keyboard encoder inside it (they
+    arrive as keys A–E, no drivers). One colour and one letter per lens, identical on the
+    vitrine and on screen.
+  - **Kids lens** (its own button, placed low enough for children to reach): follow a water
+    drop through the qanat — soaking through the sandstone, dripping into the gallery,
+    flowing downhill to the spring — told by a friendly guide character in short sentences.
+    Big, playful visuals (the x-ray cut, a "how deep is P5? — as tall as 12 houses" scale
+    comparison), a couple of "press the button when you see the shaft!" moments, and a
+    closing prompt to go and find the real P5 cover with its light button. Shorter (~60 s)
+    than the adult lenses, with simple vocabulary checked in all four languages.
+  - Audience level is a property of each lens (not a global switch), so a kid can press
+    one button and get something made for them.
+  - A lens = the tour-shot format (camera pose, reveal, POI, caption) plus a per-lens
+    layer preset (geology, x-ray, timeline year, …) defined as data (`data/lenses.json`), so
+    domain experts can write lenses without touching code. ~60–120 s each, then back to the
     title loop; ← / → step through its stations; the idle timeout returns to the loop.
   - Keep the on-screen row visible during the attract loop ("press a colour"), label it in
-    FR/DE/LB/EN (multilingual captions per program), and show a progress bar for the
-    running program.
-- **"Back in time": the qanat under construction.** A program (or a special shot in
-  program B) that switches to the construction period (c. AD 140): open shafts with
+    FR/DE/LB/EN (multilingual captions per lens), and show a progress bar for the
+    running lens.
+- **"Back in time": the qanat under construction.** A lens (or a special shot in
+  lens B) that switches to the construction period (c. AD 140): open shafts with
   windlasses and spoil heaps, a partly driven gallery, workers' paths, no modern buildings
   or roads, period vegetation. The **split view** is the transition: a vertical wipe with
   "today" on the left and "c. AD 140" on the right, then the wipe slides across until the
