@@ -4203,30 +4203,35 @@
             edgeFadeU.uEdgeW.value = params.contextEdgeFade ? 260 / metersPerUnitH() : 0;
             if (scene.background && scene.background.isColor) edgeFadeU.uEdgeBg.value = scene.background;
         }
-        // Buildings are drawn in TWO passes: an opaque pass that skips ("discards") everything in
-        // the see-through zone — so those parts write no depth and never hide what's behind —
-        // and a translucent ghost pass that draws only that zone, fading smoothly from solid at
-        // its rim to ~12 % in the middle. (A single blended pass would mis-sort the merged
-        // meshes; the old ordered dither looked like a screen door on a big display.)
-        function fadeMaterial(m, ghost) {
-            if (ghost) { m.transparent = true; m.depthWrite = false; }
+        // See-through buildings, decided PER BUILDING (not a circle cut through the town): a
+        // building whose bounding sphere (vertex attribute `bc` = centre xyz + radius) crosses
+        // the sight line from the camera to its target / the active marker, or sits right in
+        // front of the lens, is drawn as an OUTLINE (its roof and wall edges) over a very faint
+        // fill instead of solid — you see through it and still see where it stands. Three
+        // passes share the geometry: 'solid' (discards the see-through buildings, so they write
+        // no depth and never hide what's behind), 'ghost' (their faint fill) and 'line' (their
+        // edges; a LineSegments of the ring outlines).
+        function fadeMaterial(m, mode) {
+            if (mode !== 'solid') { m.transparent = true; m.depthWrite = false; }
             m.onBeforeCompile = sh => {
                 Object.assign(sh.uniforms, bldFade);
-                sh.fragmentShader = 'uniform vec3 uCam, uTgt, uTgt2;\nuniform float uR, uR2, uNear;\n' +
-                    // 0..1 how much a point is "in the way" of the sight line cam→tg (radius r at the far end)
-                    'float bldSight(vec3 tg, float r) { if (r <= 0.0) return 0.0; vec3 seg = tg - uCam;\n' +
-                    '  float t = clamp(dot(vWPos - uCam, seg) / max(dot(seg, seg), 1e-6), 0.0, 1.0);\n' +
-                    '  float d = length(vWPos - (uCam + seg * t)); float R = r * mix(0.35, 1.0, t);\n' +
-                    '  return (1.0 - smoothstep(R * 0.5, R, d)) * (1.0 - smoothstep(0.82, 0.96, t)); }\n' +
+                sh.vertexShader = 'attribute vec4 bc;\nvarying vec4 vBC;\n' +
+                    sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n vBC = bc;');
+                sh.fragmentShader = 'varying vec4 vBC;\nuniform vec3 uCam, uTgt, uTgt2;\nuniform float uR, uR2, uNear;\n' +
+                    // 0..1 how much a building (centre c, radius rad) is "in the way" of the sight line cam→tg
+                    'float bldSight(vec3 c, float rad, vec3 tg, float r) { if (r <= 0.0) return 0.0; vec3 seg = tg - uCam;\n' +
+                    '  float t = clamp(dot(c - uCam, seg) / max(dot(seg, seg), 1e-6), 0.0, 1.0);\n' +
+                    '  float d = length(c - (uCam + seg * t)); float R = r + rad;\n' +
+                    '  return (1.0 - smoothstep(R * 0.85, R, d)) * (1.0 - smoothstep(0.9, 0.99, t)); }\n' +
                     sh.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
-                    float bldA = max(bldSight(uTgt, uR), bldSight(uTgt2, uR2));
-                    bldA = max(bldA, 1.0 - smoothstep(uNear * 0.5, uNear, length(vWPos - uCam)));
-                    ${ghost ? 'if (bldA <= 0.004) discard;' : 'if (bldA > 0.004) discard;'}`)
+                    float bldA = max(bldSight(vBC.xyz, vBC.w, uTgt, uR), bldSight(vBC.xyz, vBC.w, uTgt2, uR2));
+                    bldA = max(bldA, 1.0 - smoothstep(uNear, uNear * 1.3, length(vBC.xyz - uCam) - vBC.w));
+                    ${mode === 'solid' ? 'if (bldA > 0.5) discard;' : 'if (bldA <= 0.5) discard;'}`)
                     .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' +
-                        (ghost ? 'gl_FragColor.a *= mix(1.0, 0.12, smoothstep(0.0, 1.0, bldA));' : ''));
-                edgeFadeShader(sh);   // last: it prepends the vWPos varying the code above uses
+                        (mode === 'ghost' ? 'gl_FragColor.a *= 0.1;' : mode === 'line' ? 'gl_FragColor.a *= 0.9;' : ''));
+                edgeFadeShader(sh);   // last: it prepends the vWPos varying the edge fade uses
             };
-            m.customProgramCacheKey = () => ghost ? 'bldfade-ghost' : 'bldfade-solid';
+            m.customProgramCacheKey = () => 'bldfade-' + mode;
             return m;
         }
         // Per frame: aim the see-through corridor at the current view.
@@ -4237,8 +4242,8 @@
             bldFade.uTgt.value.copy(tgt);
             const on = params.buildingsSeeThrough;
             const dist = camera.position.distanceTo(tgt);
-            bldFade.uR.value = on ? Math.max(1.2, dist * 0.06) : 0;
-            bldFade.uNear.value = on ? Math.max(1.0, dist * 0.08) : 0;
+            bldFade.uR.value = on ? Math.max(0.3, dist * 0.012) : 0;
+            bldFade.uNear.value = on ? Math.max(0.5, dist * 0.05) : 0;
             // Second sight line: the active POI (else the kiosk marker), down to its ground spot.
             const pg = poiGroups.find(p => p.disc.userData.id === poiActiveId && p.group.visible) ||
                 poiGroups.find(p => p.kiosk && p.group.visible);
@@ -4246,7 +4251,7 @@
             if (on && pg) {
                 pg.group.getWorldPosition(bldFade.uTgt2.value);
                 const d2 = camera.position.distanceTo(bldFade.uTgt2.value);
-                if (d2 < dist * 1.5) bldFade.uR2.value = Math.max(1.2, d2 * 0.1);
+                if (d2 < dist * 1.5) bldFade.uR2.value = Math.max(0.3, d2 * 0.02);
             }
         }
         function updateBuildings(halfW, halfD) {
@@ -4270,17 +4275,28 @@
             if (A) for (const k in A.sets) if (A.sets[k] !== set && A.sets[k].tex.length) { A.sets[k].tex.forEach(t => t.dispose()); A.sets[k].tex = []; }
             const W2 = params.width / 2;
             const hidden = (cx, cz) => !attract.on && Math.abs(cx) <= W2 && cz >= -halfD;   // explore: keep the modelled window clear
+            const SIZE = { uv: 2, bc: 4 };
             const addMesh = (pos, attrs, mat) => {
                 if (!pos.length) return;
                 const g = new THREE.BufferGeometry();
                 g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-                for (const k in attrs) g.setAttribute(k, new THREE.Float32BufferAttribute(attrs[k], k === 'uv' ? 2 : 3));
+                for (const k in attrs) g.setAttribute(k, new THREE.Float32BufferAttribute(attrs[k], SIZE[k] || 3));
                 g.computeVertexNormals();
-                const mesh = new THREE.Mesh(g, fadeMaterial(mat, false));
+                const mesh = new THREE.Mesh(g, fadeMaterial(mat, 'solid'));
                 mesh.raycast = () => {};
-                const ghost = new THREE.Mesh(g, fadeMaterial(mat.clone(), true));   // shares the geometry
+                const ghost = new THREE.Mesh(g, fadeMaterial(mat.clone(), 'ghost'));   // shares the geometry
                 ghost.raycast = () => {};
                 buildingsGroup.add(mesh, ghost);
+            };
+            const lines = { pos: [], bc: [] };   // outline edges of every building (drawn only when see-through)
+            const addLines = () => {
+                if (!lines.pos.length) return;
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(lines.pos, 3));
+                g.setAttribute('bc', new THREE.Float32BufferAttribute(lines.bc, 4));
+                const l = new THREE.LineSegments(g, fadeMaterial(new THREE.LineBasicMaterial({ color: 0xf4efe6 }), 'line'));
+                l.raycast = () => {}; l.renderOrder = 3;
+                buildingsGroup.add(l);
             };
             // Linear lon/lat → scene mapping (geoToScene is affine) and vertical metres → Y.
             const D = A ? A.D : null;
@@ -4292,8 +4308,8 @@
             if (A) {
                 const { v, r, b, c } = A;
                 const tex = act3dTextures(set);
-                const tb = tex.map(() => ({ pos: [], uv: [] }));
-                const cb = { pos: [], color: [] };
+                const tb = tex.map(() => ({ pos: [], uv: [], bc: [] }));
+                const cb = { pos: [], color: [], bc: [] };
                 const kx = 111320 * Math.cos(lat0 * Math.PI / 180) * 1e-6, ky = 111320 * 1e-6;
                 let ri = 0, vi = 0;
                 for (let bi = 0; bi < b.length; bi++) {
@@ -4302,10 +4318,10 @@
                     for (let k = 0; k < nR; k++) nv += r[r0 + k] & 0x3fff;
                     ri += nR; vi += nv;
                     // Footprint extent, lowest point, centroid.
-                    let zmin = Infinity, lo0 = Infinity, lo1 = -Infinity, la0 = Infinity, la1 = -Infinity;
+                    let zmin = Infinity, zmax = -Infinity, lo0 = Infinity, lo1 = -Infinity, la0 = Infinity, la1 = -Infinity;
                     for (let q = v0; q < v0 + nv; q++) {
                         const lo = v[3 * q], la = v[3 * q + 1];
-                        zmin = Math.min(zmin, v[3 * q + 2]);
+                        zmin = Math.min(zmin, v[3 * q + 2]); zmax = Math.max(zmax, v[3 * q + 2]);
                         lo0 = Math.min(lo0, lo); lo1 = Math.max(lo1, lo); la0 = Math.min(la0, la); la1 = Math.max(la1, la);
                     }
                     for (let x = Math.floor((lon0 + lo0 * 1e-6 - 6) / 0.00025); x <= Math.floor((lon0 + lo1 * 1e-6 - 6) / 0.00025); x++)
@@ -4319,6 +4335,16 @@
                     for (let q = v0; q < v0 + nv; q++) if (v[3 * q + 2] <= zmin + 15)
                         base = Math.min(base, getTerrainHeight(s0.x + ax * v[3 * q] * 1e-6, s0.z + az * v[3 * q + 1] * 1e-6));
                     base -= 0.05;
+                    // Bounding sphere (scene units) for the per-building see-through test.
+                    const hy = (zmax - zmin) * 0.05 * ym;
+                    const BC = [cx, base + hy, cz, Math.hypot(Math.abs(ax) * (lo1 - lo0) * 5e-7, Math.abs(az) * (la1 - la0) * 5e-7, hy)];
+                    const P3 = q => [s0.x + ax * v[3 * q] * 1e-6, base + (v[3 * q + 2] - zmin) * 0.1 * ym, s0.z + az * v[3 * q + 1] * 1e-6];
+                    // Outline: every ring's edges.
+                    for (let k = 0, q = v0; k < nR; k++) {
+                        const n = r[r0 + k] & 0x3fff;
+                        for (let i = 0; i < n; i++) { lines.pos.push(...P3(q + i), ...P3(q + (i + 1) % n)); lines.bc.push(...BC, ...BC); }
+                        q += n;
+                    }
                     // Polygons: an exterior ring followed by its holes.
                     let q0 = v0;
                     for (let k = 0; k < nR;) {
@@ -4360,16 +4386,17 @@
                         for (const tr of tris) for (const idx of tr) {
                             const q = flat[idx];
                             out.pos.push(s0.x + ax * v[3 * q] * 1e-6, base + (v[3 * q + 2] - zmin) * 0.1 * ym, s0.z + az * v[3 * q + 1] * 1e-6);
+                            out.bc.push(BC[0], BC[1], BC[2], BC[3]);
                             if (ti) out.uv.push(uvOf[2 * idx], uvOf[2 * idx + 1]);
                             else out.color.push(col[0], col[1], col[2]);
                         }
                     }
                 }
-                tb.forEach((o, i) => addMesh(o.pos, { uv: o.uv }, new THREE.MeshLambertMaterial({ map: tex[i], side: THREE.DoubleSide })));
-                addMesh(cb.pos, { color: cb.color }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+                tb.forEach((o, i) => addMesh(o.pos, { uv: o.uv, bc: o.bc }, new THREE.MeshLambertMaterial({ map: tex[i], side: THREE.DoubleSide })));
+                addMesh(cb.pos, { color: cb.color, bc: cb.bc }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
             }
             if (OSM) {
-                const pos = [], col = [];
+                const pos = [], col = [], obc = [];
                 const wall = new THREE.Color(0xe9e2d6), wallEst = new THREE.Color(0xdcd6cc), roof = new THREE.Color(0x6e6763);   // slate grey: most roofs here are slate
                 for (const bd of OSM.buildings) {
                     const rr = bd.r, n = rr.length / 2;
@@ -4386,16 +4413,25 @@
                     base -= 0.05;
                     const top = base + metersToYDepth(bd.h);
                     const wc = bd.est ? wallEst : wall;
+                    let rad = 0;
+                    for (const pt of pts) rad = Math.max(rad, Math.hypot(pt.x - cc.x, pt.y - cc.z));
+                    const BC = [cc.x, (base + top) / 2, cc.z, Math.hypot(rad, (top - base) / 2)];
+                    const nb = pos.length;
                     for (let i = 0; i < n; i++) {
                         const a = pts[i], e = pts[(i + 1) % n];
                         pos.push(a.x, base, a.y, e.x, base, e.y, e.x, top, e.y,  a.x, base, a.y, e.x, top, e.y, a.x, top, a.y);
                         for (let q = 0; q < 6; q++) col.push(wc.r, wc.g, wc.b);
+                        // outline: base edge, top edge, corner
+                        lines.pos.push(a.x, base, a.y, e.x, base, e.y,  a.x, top, a.y, e.x, top, e.y,  a.x, base, a.y, a.x, top, a.y);
+                        for (let q = 0; q < 6; q++) lines.bc.push(...BC);
                     }
                     const tris = THREE.ShapeUtils.triangulateShape(pts, []);
                     for (const t of tris) for (const k of t) { pos.push(pts[k].x, top, pts[k].y); col.push(roof.r, roof.g, roof.b); }
+                    for (let q = nb; q < pos.length; q += 3) obc.push(...BC);
                 }
-                addMesh(pos, { color: col }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+                addMesh(pos, { color: col, bc: obc }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
             }
+            addLines();
         }
         // Is a scene point covered by the context apron (so "off-map" markers still stand on ground)?
         function inContextApron(lat, lon) {
@@ -8111,53 +8147,49 @@
             const qanat = DEFAULT_CAM.target.clone();
             const site = (SSOT.site && SSOT.site.site) || {};
             const here = poiGroups.find(pg => pg.kiosk);
-            // 1. From the town: behind the kiosk, looking up at the plateau over it.
+            // 1. From the town to the site, in ONE continuous flight. The camera always looks at
+            // the Raschpëtzer (the whole-site marker) while it glides back from the kiosk, drifts
+            // past the town hall and over the sports complex — places people know, passed in the
+            // foreground, never stopped at — and then climbs away toward the plateau. The caption
+            // changes as each landmark goes by (data/poi.json landmarks with `tour: true`).
+            const sitePg = poiGroups.find(p => p.site);
+            const siteGeo = sitePg ? sitePg.disc.userData.geo : null;
+            const sitePos = sitePg ? sitePg.group.position.clone() : qanat.clone();
+            const ground = (x, z) => getTerrainHeight(x, z);
             if (here) {
-                const h = here.group.position.clone();
-                const dir = new THREE.Vector3(qanat.x - h.x, 0, qanat.z - h.z).normalize();
-                // Kiosk marker in the lower third, the plateau rising behind it.
-                const camPos = h.clone().addScaledVector(dir, -22).add(new THREE.Vector3(0, 5, 0));
-                const target = h.clone().lerp(qanat, 0.35);
-                const off = camPos.clone().sub(target), dist = off.length();
-                const el = THREE.MathUtils.radToDeg(Math.asin(off.y / dist)), az = THREE.MathUtils.radToDeg(Math.atan2(off.x, off.z));
-                // Opens close on the kiosk marker (the square, the houses around it), then pulls
-                // back and tilts up until the plateau with the qanat rises behind it.
-                const wpp = 2 * 9 * Math.tan(THREE.MathUtils.degToRad(ATTRACT_FOV) / 2) / (renderer.domElement.clientHeight || 900);
-                const liftW = POI_LIFT * (params.poiScreenSize ? wpp * POI_SCREEN_PX * params.poiScale / POI_DIAM : params.poiScale);
-                shots.push({ target: h.clone().add(new THREE.Vector3(0, liftW * 0.6, 0)), dist: 9, el: 16, az: az - 25,
-                    end: { target, dist, el, az, from: 0.28 },   // dolly out over the shot (from 28 % of it)
-                    spin: 0.5, dur: 15,
-                    kicker: 'You are here', title: 'Walferdange town centre',
-                    text: here.disc.userData.caption || '',
-                    image: here.disc.userData.tourPhoto, imageCredit: here.disc.userData.tourPhotoCredit,
-                    imagePlaceholder: here.disc.userData.tourPhotoPlaceholder });
+                const u = 1 / metersPerUnitH();   // scene units per metre
+                const behind = (p, backM, upM) => {   // a point on the far side of p from the site
+                    const dir = new THREE.Vector3(sitePos.x - p.x, 0, sitePos.z - p.z).normalize();
+                    const q = p.clone().addScaledVector(dir, -backM * u);
+                    q.y = Math.max(ground(q.x, q.z), p.y) + upM * u;
+                    return q;
+                };
+                const where = g => siteGeo && g ? ` The Raschpëtzer is ${(geoDistM(g, siteGeo) / 1000).toFixed(1)} km to the ${compassWord(g, siteGeo)}.` : '';
+                const h = here.group.position.clone(), hd = here.disc.userData;
+                const pts = [behind(h, 110, 24), behind(h, 170, 34)];   // pulling back: the kiosk low in frame, the hill ahead
+                const caps = [{ at: 0, kicker: 'You are here', title: 'Walferdange town centre', text: hd.caption || '',
+                    image: hd.tourPhoto, imageCredit: hd.tourPhotoCredit, imagePlaceholder: hd.tourPhotoPlaceholder }];
+                const lms = poiGroups.filter(pg => pg.landmark && pg.disc.userData.tour);
+                lms.forEach(pg => {
+                    const d = pg.disc.userData;
+                    pts.push(behind(pg.group.position, 70, 45 + 10 * pts.length));
+                    caps.push({ idx: pts.length - 1, kicker: 'Passing', title: d.name, text: (d.caption || '') + where(d.geo),
+                        image: d.tourPhoto, imageCredit: d.tourPhotoCredit, imagePlaceholder: d.tourPhotoPlaceholder });
+                });
+                // Take-off: up and out toward the plateau, ending where the qanat shot picks up.
+                const last = pts[pts.length - 1];
+                const toSite = sitePos.clone().sub(last); toSite.y = 0;
+                const lift = last.clone().addScaledVector(toSite, 0.35); lift.y = Math.max(last.y, ground(lift.x, lift.z)) + 160 * u;
+                const near = last.clone().addScaledVector(toSite, 0.7); near.y = Math.max(ground(near.x, near.z), sitePos.y) + 230 * u;
+                pts.push(lift, near);
+                caps.push({ idx: pts.length - 2, kicker: 'Up to the plateau', title: 'The Raschpëtzer',
+                    text: (sitePg && sitePg.disc.userData.caption) || 'The Roman qanat under the Pëtschend plateau.' });
+                const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+                const n = pts.length - 1;
+                caps.forEach(c => { if (c.idx != null) c.at = Math.max(0, (c.idx - 0.6) / n); });
+                const dur = 8 + 5 * n;
+                shots.push({ path: curve, target: sitePos.clone().add(new THREE.Vector3(0, 20 * u, 0)), dur, caps, ...caps[0] });
             }
-            // 1b. Town landmarks people know (town hall, sports hall, …; data/poi.json `tour`):
-            // seen from the side away from the qanat, so the plateau stands behind each one —
-            // "from here, it's over there".
-            const qanatGeo = (SSOT.poi.pois.find(p => p.site) || {}).geo;
-            poiGroups.filter(pg => pg.landmark && pg.disc.userData.tour).forEach(pg => {
-                const d = pg.disc.userData, h = pg.group.position.clone();
-                const dir = new THREE.Vector3(qanat.x - h.x, 0, qanat.z - h.z).normalize();
-                const wpp = 2 * 16 * Math.tan(THREE.MathUtils.degToRad(ATTRACT_FOV) / 2) / (renderer.domElement.clientHeight || 900);
-                const liftW = POI_LIFT * (d.lift || 1) * (params.poiScreenSize ? wpp * POI_SCREEN_PX * params.poiScale / POI_DIAM : params.poiScale);
-                let where = '';
-                if (qanatGeo && d.geo) {
-                    const km = geoDistM(d.geo, qanatGeo) / 1000;
-                    where = ` The Raschpëtzer is ${km.toFixed(1)} km to the ${compassWord(d.geo, qanatGeo)}.`;
-                }
-                shots.push({ target: h.clone().add(new THREE.Vector3(0, liftW * 0.6, 0)).addScaledVector(dir, 6),
-                    dist: 16, el: 20, az: THREE.MathUtils.radToDeg(Math.atan2(-dir.x, -dir.z)), spin: 1.0, dur: 7,
-                    kicker: 'In town', title: d.name, text: (d.caption || '') + where, poiId: d.id,
-                    image: d.tourPhoto, imageCredit: d.tourPhotoCredit, imagePlaceholder: d.tourPhotoPlaceholder });
-            });
-            // 2. Overview from above: town and plateau together.
-            // North-up (az ≈ 0) so the town map reads the way locals know it; the aim point sits
-            // a little north of the town–qanat midpoint so both land below the title card.
-            const mid = (here ? here.group.position.clone().lerp(qanat, 0.6) : qanat.clone()).add(new THREE.Vector3(0, 0, -16));
-            shots.push({ target: mid, dist: 200, el: 60, az: 8, spin: 1.2, dur: 11,
-                kicker: 'Overview', title: 'Town, valley and plateau',
-                text: 'Walferdange lies in the Alzette valley; the Raschpëtzer runs under the wooded Pëtschend plateau to the north-east.' });
             // 3. The qanat itself (x-ray: shafts and gallery under the plateau).
             // Split-view reveal: the "beneath" side sweeps in from the right, holds, sweeps out.
             shots.push({ target: qanat, dist: 64, el: 24, az: 352, spin: 1.2, dur: 14, wide: true,
@@ -8190,6 +8222,13 @@
                     kicker: `Point of interest · ${i + 1}/${stops.length}`, title: d.name, text: d.caption || '', poiId: d.id,
                     image: d.tourPhoto, imageCredit: d.tourPhotoCredit, imagePlaceholder: d.tourPhotoPlaceholder });
             });
+            // 5. Finale: overview from above, town and plateau together (then the loop restarts in town).
+            // North-up (az ≈ 0) so the town map reads the way locals know it; the aim point sits
+            // a little north of the town–qanat midpoint so both land below the title card.
+            const mid = (here ? here.group.position.clone().lerp(qanat, 0.6) : qanat.clone()).add(new THREE.Vector3(0, 0, -16));
+            shots.push({ target: mid, dist: 200, el: 60, az: 8, spin: 1.2, dur: 11,
+                kicker: 'Overview', title: 'Town, valley and plateau',
+                text: 'Walferdange lies in the Alzette valley; the Raschpëtzer runs under the wooded Pëtschend plateau to the north-east.' });
             return shots;
         }
         // Great-circle-ish distance (m) and 8-point compass word from geo a to geo b.
@@ -8203,6 +8242,11 @@
             return ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(deg / 45) % 8];
         }
         function attractPose(shot, secs) {
+            if (shot.path) {   // a flight along a camera path, always looking at shot.target
+                const k = Math.min(1, secs / shot.dur);
+                const e = 0.5 - 0.5 * Math.cos(Math.PI * k);   // gentle start and end
+                return { pos: shot.path.getPoint(e), target: shot.target };
+            }
             let { target, dist, el, az } = shot;
             if (shot.end) {   // a moving shot: ease from the start framing to shot.end
                 const f = shot.end.from || 0;
@@ -8241,6 +8285,7 @@
             if (tour.active) stopTour();
             if (measureMode) setMeasureMode(false);
             attract.on = true;
+            updatePoiScales.first = false;   // snap the site level of detail to the first shot (no fade-in from the old view)
             attract.saved = { baseLayer: params.baseLayer, showGhostApron: params.showGhostApron,
                 showPois: params.showPois, showContourLines: params.showContourLines, showSides: params.showSides,
                 showGeology: params.showGeology, xrayUnderground: params.xrayUnderground, xrayOpacity: params.xrayOpacity,
@@ -8307,9 +8352,16 @@
                 attract.shotStart = now;
                 shot = shots[attract.idx];
                 attract.activePoi = shot.poiId || null;   // enlarge the POI we're flying past
+                attract.capIdx = 0;
                 setAttractCaption(shot);
             }
             const secs = (now - attract.shotStart) / 1000;
+            if (shot.caps) {   // captions that change during the shot (the town flight)
+                const k = 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, secs / shot.dur));
+                let ci = 0;
+                shot.caps.forEach((c, i) => { if (k >= c.at) ci = i; });
+                if (ci !== attract.capIdx) { attract.capIdx = ci; setAttractCaption(Object.assign({}, shot, shot.caps[ci])); }
+            }
             const p = attractPose(shot, secs);
             const k = Math.min(1, secs / ATTRACT_TRANSITION_S);
             if (k < 1 && attract.from) {
@@ -8510,6 +8562,7 @@
             attract.shotStart = performance.now();
             const shot = attract.shots[attract.idx];
             attract.activePoi = shot.poiId || null;
+            attract.capIdx = 0;
             setAttractCaption(shot);
         }
         // Explore: select the previous/next point of interest (data/poi.json order, without

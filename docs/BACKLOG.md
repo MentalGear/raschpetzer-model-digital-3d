@@ -222,10 +222,14 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     the town context into the background at its border (Settings, on) · blur behind the
     title & captions (plain backdrop blur, Settings, **off** by default) · far view: small
     model labels hide and the gallery shows as a bold glowing x-ray line · see-through
-    buildings as a soft translucent fade (two-pass) instead of the dotted dither · town
-    landmarks (town hall, sports hall Prince Henri; castle and station as markers) flown past
-    between the kiosk close-up and the overview, each saying how far and in which direction
-    the Raschpëtzer lies · a station photo card (lower right) per tour stop.
+    buildings, decided per building: a house between the camera and the site / the active
+    marker is drawn as a white OUTLINE of its roof and wall edges over a faint fill (the
+    earlier circular fade looked wrong) · the tour opens with ONE continuous flight that
+    always looks at the Raschpëtzer up the hill: it pulls back from "You are here", glides
+    past the town hall and over the sports complex Prince Henri (captions change as they go
+    by, with distance and direction to the site) and takes off toward the plateau — no
+    stops at the landmarks · the overview moved to the end of the loop · a station photo
+    card (lower right) per tour stop.
   - **Photos wanted** (stand-ins marked `tourPhotoPlaceholder: true` in data/poi.json):
     the kiosk square / Maison Dufaing, town hall, sports hall, Dauvebur spring; optionally
     castle and station if they become tour stops, and a better view of the visitor's
@@ -233,11 +237,13 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
   - Check the kiosk marker's exact spot on site: it stands in the open ~4 m from the
     nearest building (ACT 2023), but from the tour's camera a house in front hides its
     foot — the see-through handles that, a site check would confirm the position.
-  - Landmark shots: the camera stands on the far side of each landmark so the plateau is
-    behind it; check on the real screen that the plateau (and the far-view site marker)
-    is actually in frame, and whether 7 s per landmark is enough.
-  - Tour length grew to ~2 min with the landmarks; consider trimming the POI fly-bys to
-    the four with photos, or making the landmarks their own "Where is it?" lens.
+  - Town flight: check on the real screen that the pace (~33 s) feels right and that the
+    kiosk marker reads in the first seconds; the path heights/distances are in
+    `buildAttractShots` (`behind(point, metres back, metres up)`).
+  - Placeholder photo cards are large; hide them instead (show no photo) if they look
+    unfinished on the kiosk before the real photos arrive.
+  - Tour length is ~2 min; consider trimming the POI fly-bys to the four with photos, or a
+    shorter loop for the attract mode and the full version as a lens.
   - Station photos could get a slow Ken Burns zoom, and a second photo per stop could
     alternate on long stops.
   - Diorama side walls for the whole context block (see the terrain-edge entry) remain an
