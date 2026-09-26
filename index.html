@@ -1638,8 +1638,24 @@
         function selectAt(point) {
             if (!selectionMarker || !point) return;
             selectionMarker.position.copy(point);
-            selectionMarker.quaternion.copy(camera.quaternion);   // billboards toward the camera
             selectionMarker.visible = true;
+            updateSelectionMarker();
+        }
+        // Keep the ring a CONSTANT on-screen size (outer radius SELECTION_RING_PX css px) and
+        // facing the camera, whatever the zoom: rescale it each frame by the world size of one
+        // screen pixel at the marker's depth — otherwise it shrinks to a dot when zoomed out
+        // and balloons over the target when zoomed in. (The ✕ chip is already pixel-offset.)
+        const SELECTION_RING_PX = 20;
+        const _selTmp = new THREE.Vector3();
+        function updateSelectionMarker() {
+            if (!selectionMarker || !selectionMarker.visible) return;
+            selectionMarker.quaternion.copy(camera.quaternion);   // billboards toward the camera
+            // View-space depth (not straight-line distance), so the size stays uniform
+            // off-centre too: that's what the perspective divide uses.
+            const depth = _selTmp.copy(selectionMarker.position).applyMatrix4(camera.matrixWorldInverse).z;
+            const h = renderer.domElement.clientHeight || 1;
+            const worldPerPx = 2 * Math.abs(depth) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom / h;
+            selectionMarker.scale.setScalar(Math.max(1e-6, worldPerPx * SELECTION_RING_PX / 0.78));   // 0.78 = ring geometry outer radius
         }
         let toastTimer = null;
         function showToast(msg) {
@@ -7173,9 +7189,10 @@
             updateHitboxOverlay();
             updateCutawayPlane();   // keep the look-inside cut facing the camera
             updateXsecCutawayPlane();   // keep the qanat cross-section cut on the correct side (and following, if enabled)
-            if (selectionMarker && selectionMarker.visible) selectionMarker.quaternion.copy(camera.quaternion);
             updateSelectionDismiss();
             controls.update();
+            camera.updateMatrixWorld();
+            updateSelectionMarker();   // billboard + constant screen size, from this frame's camera
             renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
             // events and the fly-to animation above.
