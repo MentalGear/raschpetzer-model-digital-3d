@@ -26,6 +26,9 @@ source; documented facts are visually distinguished from inferred/schematic ones
   keuper, with groundwater flowing **East** and the qanat gallery **West**.
 - **Click a shaft → info panel** with values, units, provenance (citation chips)
   and knowledge‑status badges; **Guided tour** flies P‑7A→P9.
+- **Points of interest**: floating photo/icon circles with a connector arrow down to
+  the ground (Raschpëtzer parking, P5, the spring outflow), clickable for details;
+  defined in `data/poi.json` (toggle *Points of interest*).
 - **Annotations** (drop notes, localStorage, import/export), **measurement tool**,
   **animated water flow**, W↔E flip, reference-image overlay.
 - **Context-aware controls**: only the sliders/toggles that affect the current
@@ -62,6 +65,7 @@ data/                      # ── Single Source of Truth (edit here) ──
   geology.json             #   strata, dip, structure, groundwater
   hydrology.json           #   flows, springs, chemistry
   paradata.json            #   reasoning behind modeled/inferred choices
+  poi.json                 #   visitor points of interest (parking, P5, spring) — orientation aids
   model-config.json        #   visualization-only config (camera, colours, scene scale) — NOT facts
 scripts/
   validate.mjs             # SSOT validation (CI gate)

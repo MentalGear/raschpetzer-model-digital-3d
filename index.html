@@ -965,6 +965,7 @@
                 <option value="none">Plain</option>
             </select>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
+            <label class="check-row"><input type="checkbox" id="param-pois" checked> Points&nbsp;of&nbsp;interest</label>
         </div>
 
         <!-- Settings pane (⚙): everything from the old collapsible "Advanced configuration",
@@ -1328,6 +1329,7 @@
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
+            showPois: true,               // floating visitor points of interest (data/poi.json)
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showSounding: false,          // exploratory sounding gallery at P1 (documented, no channel, schematic extent)
             showSteps: false,             // gallery floor-drop step markers (P4/P6) — off by default
@@ -1741,7 +1743,7 @@
                 const m = xsecMeshes[parseInt(id, 10)];
                 if (m) { selectAt(m.position); renderXsecPanel(m.userData); }
             } else if (type === 'spot') {
-                const m = spotMeshes.find(mm => mm.userData.kind === id);
+                const m = spotMeshes.find(mm => spotSelId(mm.userData) === id);
                 if (m) { selectAt(m.position); renderSpotPanel(m.userData); }
             } else if (type === 'strata') {
                 const m = strataMeshes.find(mm => mm.userData.code === id);
@@ -1803,6 +1805,8 @@
         let initialViewSet = false; // snap camera to the computed 0°-horizon default on first build
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
         const spotMeshes = [];    // springs / boreholes / resurgence pins, for click raycasting
+        // Selection id for a spot: its kind, or 'poi-<id>' so each POI selects/deselects on its own.
+        const spotSelId = d => d.kind === 'poi' ? 'poi-' + d.id : d.kind;
         const xsecMeshes = [];    // gallery cross-section hotspots (click → lightbox image)
         const strataMeshes = [];  // geology cross-section strata bands, for click → inspector info
         const qanatMeshes = [];   // gallery/tunnel tube meshes (main + aux + overflow), for click → inspector info
@@ -3744,6 +3748,7 @@
             // removed from the visualization — the WFS spring positions were not reliable enough
             // to show as fact, and the boreholes carried no usable data. See docs/BACKLOG.md.)
             addPaths(halfW, halfD);   // forest/hiking paths (OSM), draped on the terrain
+            addPois(halfW, halfD);    // floating visitor points of interest (data/poi.json)
 
             // --- 7. Geological cross-section (strata + groundwater) ---
             addGeology(halfW, halfD);
@@ -4102,6 +4107,153 @@
         // Forest/hiking paths (OpenStreetMap, baked into window.RASCH_PATHS). Each path is a
         // draped polyline that follows the terrain; segments are split as they cross the
         // visible window so nothing shoots off to an out-of-frame vertex.
+        // --- Points of interest (data/poi.json): a floating circle — photo or drawn icon —
+        // with a connector line + arrowhead down to the POI's ground position. Visitor
+        // orientation aids, not qanat facts. The circle textures are cached per POI across
+        // rebuilds (Material.dispose() in buildParametricModel leaves .map textures alone),
+        // so a photo loads once and later rebuilds reuse it.
+        const POI_TEX = {};
+        const POI_TEX_SIZE = 256;
+        function drawPoiIcon(ctx, icon, S) {
+            ctx.save();
+            ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#ffffff';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            if (icon === 'parking') {
+                ctx.font = `800 ${Math.round(S * 0.5)}px -apple-system, sans-serif`;
+                ctx.fillText('P', S / 2, S / 2 + S * 0.02);
+            } else if (icon === 'spring') {
+                // Water drop.
+                const cx = S / 2, top = S * 0.24, r = S * 0.17, cy = S * 0.58;
+                ctx.beginPath();
+                ctx.moveTo(cx, top);
+                ctx.bezierCurveTo(cx + r * 0.4, top + r * 0.9, cx + r, cy - r * 0.6, cx + r, cy);
+                ctx.arc(cx, cy, r, 0, Math.PI);
+                ctx.bezierCurveTo(cx - r, cy - r * 0.6, cx - r * 0.4, top + r * 0.9, cx, top);
+                ctx.fill();
+            } else if (icon === 'shaft') {
+                // Shaft seen from above: a ring (the masonry lining) around a dark opening.
+                ctx.lineWidth = S * 0.07;
+                ctx.beginPath(); ctx.arc(S / 2, S / 2, S * 0.22, 0, Math.PI * 2); ctx.stroke();
+                ctx.lineWidth = S * 0.03;
+                ctx.beginPath(); ctx.arc(S / 2, S / 2, S * 0.11, 0, Math.PI * 2); ctx.stroke();
+            } else {
+                ctx.font = `700 italic ${Math.round(S * 0.46)}px Georgia, serif`;
+                ctx.fillText('i', S / 2, S / 2 + S * 0.02);
+            }
+            ctx.restore();
+        }
+        function paintPoiCircle(ctx, poi, img) {
+            const S = POI_TEX_SIZE, R = S / 2, ring = S * 0.055;
+            ctx.clearRect(0, 0, S, S);
+            // White outer ring, then a thin coloured rim, then the photo / icon disc.
+            ctx.beginPath(); ctx.arc(R, R, R - 2, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff'; ctx.fill();
+            ctx.beginPath(); ctx.arc(R, R, R - ring, 0, Math.PI * 2);
+            ctx.fillStyle = poi.color || '#444'; ctx.fill();
+            const inner = R - ring - S * 0.02;
+            if (img) {
+                ctx.save();
+                ctx.beginPath(); ctx.arc(R, R, inner, 0, Math.PI * 2); ctx.clip();
+                // Cover-fit: fill the disc, crop the longer side.
+                const k = Math.max((2 * inner) / img.width, (2 * inner) / img.height);
+                const w = img.width * k, h = img.height * k;
+                ctx.drawImage(img, R - w / 2, R - h / 2, w, h);
+                ctx.restore();
+            } else {
+                drawPoiIcon(ctx, poi.icon, S);
+            }
+        }
+        function poiTexture(poi) {
+            const key = poi.id + '|' + (poi.photo || '') + '|' + (poi.icon || '') + '|' + (poi.color || '');
+            if (POI_TEX[key]) return POI_TEX[key];
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = POI_TEX_SIZE;
+            const ctx = canvas.getContext('2d');
+            paintPoiCircle(ctx, poi, null);   // icon first; swapped for the photo once it loads
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+            if (poi.photo) {
+                const img = new Image();
+                img.onload = () => { paintPoiCircle(ctx, poi, img); tex.needsUpdate = true; };
+                img.src = poi.photo;   // on error the drawn icon simply stays
+            }
+            POI_TEX[key] = tex;
+            return tex;
+        }
+        function addPois(halfW, halfD) {
+            const list = (SSOT.poi && SSOT.poi.pois) || [];
+            if (!params.showPois || !list.length) return;
+            const isGeo = params.terrainSource === 'geodata' && geodata.ready;
+            const DIAM = 3.4;     // circle diameter (scene units)
+            const LIFT = 9.0;     // circle centre above the ground point
+            list.forEach(poi => {
+                let x, z;
+                if (poi.anchorShaft) {
+                    const pd = pillarDefs.find(d => d.id === poi.anchorShaft);
+                    if (!pd) return;
+                    x = pd.x; z = pd.z;
+                } else if (poi.geo && isGeo) {
+                    const sc = geoToScene(poi.geo.lat, poi.geo.lon);
+                    x = sc.x; z = sc.z;
+                } else return;
+                const inside = Math.abs(x) <= halfW && Math.abs(z) <= halfD;
+                // A shaft-anchored POI points at the top of the shaft's own label, not through it.
+                const gy = getTerrainHeight(x, z) + (poi.anchorShaft ? 1.6 : 0);
+                const cy = gy + LIFT;
+                const col = new THREE.Color(poi.color || '#444');
+                const noPick = o => { o.raycast = () => {}; return o; };
+
+                // Connector: thin stalk from under the circle to just above the arrowhead.
+                const tipH = 0.9, stalkBot = gy + tipH, stalkTop = cy - DIAM / 2;
+                const stalk = noPick(new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.06, 0.06, stalkTop - stalkBot, 6),
+                    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 })));
+                stalk.position.set(x, (stalkTop + stalkBot) / 2, z);
+                stalk.renderOrder = 29; modelGroup.add(stalk);
+                // Arrowhead pointing down at the ground position.
+                const arrow = noPick(new THREE.Mesh(new THREE.ConeGeometry(0.32, tipH, 12),
+                    new THREE.MeshBasicMaterial({ color: col })));
+                arrow.rotation.x = Math.PI;
+                arrow.position.set(x, gy + tipH / 2, z);
+                arrow.renderOrder = 29; modelGroup.add(arrow);
+                // Flat ground ring marking the spot itself.
+                const ring = noPick(new THREE.Mesh(new THREE.RingGeometry(0.45, 0.7, 28),
+                    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8,
+                        side: THREE.DoubleSide, depthWrite: false })));
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.set(x, gy + 0.08, z);
+                ring.renderOrder = 29; modelGroup.add(ring);
+
+                // The floating circle (clickable → inspector).
+                const disc = new THREE.Sprite(new THREE.SpriteMaterial({
+                    map: poiTexture(poi), transparent: true, depthTest: true, depthWrite: false }));
+                disc.scale.set(DIAM, DIAM, 1);
+                disc.position.set(x, cy, z);
+                disc.renderOrder = 31;
+                disc.userData = Object.assign({}, poi, { kind: 'poi', poiKind: poi.kind, inside });
+                modelGroup.add(disc); spotMeshes.push(disc);
+
+                const lbl = createTextSprite(poi.name + (inside ? '' : ' (off‑map)'), poi.color || '#333', 22,
+                    disc.userData);   // the name is as clickable as the circle
+                const li = lbl.material.map.image;
+                lbl.scale.set(1.6 * li.width / li.height, 1.6, 1);   // keep the text's aspect
+                lbl.position.set(x, cy + DIAM / 2 + 0.9, z);
+                modelGroup.add(lbl); spotMeshes.push(lbl);
+
+                // Off-map (e.g. south of the qanat's front cut): a dashed ground connector from
+                // the nearest window edge out to the marker, the same cue the villa uses.
+                if (!inside) {
+                    const ex = Math.max(-halfW, Math.min(halfW, x)), ez = Math.max(-halfD, Math.min(halfD, z));
+                    const conn = noPick(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(ex, getTerrainHeight(ex, ez) + 0.1, ez),
+                        new THREE.Vector3(x, gy + 0.1, z)]),
+                        new THREE.LineDashedMaterial({ color: col, dashSize: 1.2, gapSize: 0.9,
+                            transparent: true, opacity: 0.7, depthTest: false })));
+                    conn.computeLineDistances(); conn.renderOrder = 9; modelGroup.add(conn);
+                }
+            });
+        }
+
         function addPaths(halfW, halfD) {
             const P = window.RASCH_PATHS;
             if (!params.showPaths || !P || !(params.terrainSource === 'geodata' && geodata.ready)) return;
@@ -4603,6 +4755,10 @@
                 buildParametricModel();
             });
 
+            document.getElementById('param-pois').addEventListener('change', e => {
+                params.showPois = e.target.checked;
+                buildParametricModel();
+            });
             document.getElementById('param-paths').addEventListener('change', e => {
                 params.showPaths = e.target.checked;
                 buildParametricModel();
@@ -4843,7 +4999,7 @@
                 'param-underground': true, 'param-realistic-diameters': 1.25,
                 'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
                 'param-aux': false, 'param-sounding': false, 'param-overflow': false,
-                'param-steps': false, 'param-research-status': false, 'param-perched': false, 'param-paths': false,
+                'param-steps': false, 'param-research-status': false, 'param-perched': false, 'param-paths': false, 'param-pois': true,
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
                 'param-hires-inset': false, 'param-hires-inset-tint': false,
@@ -4868,6 +5024,7 @@
                 'param-research-status': v => { params.showResearchStatus = v; },
                 'param-perched': v => { params.showPerched = v; },
                 'param-paths': v => { params.showPaths = v; },
+                'param-pois': v => { params.showPois = v; },
                 'ov-aquifer': v => { params.overlay.aquifer = v; },
                 'ov-contours': v => { params.overlay.contours = v; },
                 'ov-spot': v => { params.overlay.spot = v; },
@@ -4915,6 +5072,7 @@
                 'param-research-status': () => params.showResearchStatus,
                 'param-perched': () => params.showPerched,
                 'param-paths': () => params.showPaths,
+                'param-pois': () => params.showPois,
                 'ov-aquifer': () => params.overlay.aquifer,
                 'ov-contours': () => params.overlay.contours,
                 'ov-spot': () => params.overlay.spot,
@@ -5669,7 +5827,7 @@
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
                 if (shit) {
-                    const kind = shit.object.userData.kind;
+                    const kind = spotSelId(shit.object.userData);
                     if (isReselect('spot', kind)) { resetInspectorToEmpty(); setPanelMode('views'); return; }
                     selectAt(shit.point); renderSpotPanel(shit.object.userData);
                     setSelectionURL('spot', kind);
@@ -5936,10 +6094,33 @@
             body.innerHTML = h;
             showInspector();
         }
+        // Info panel for a visitor point of interest (data/poi.json).
+        function renderPoiPanel(p) {
+            const body = document.getElementById('info-body');
+            const kindLabel = { parking: 'Parking', shaft: 'Shaft', spring: 'Spring' }[p.poiKind] || 'Point of interest';
+            let h = `<h3>${p.name}</h3><div class="ip-sub">Point of interest · ${kindLabel}${statusBadge(p.status)}` +
+                `${p.inside === false ? ' · outside the shown area' : ''}</div>`;
+            if (p.photo) h += `<img src="${p.photo}" alt="${p.name}" style="display:block;width:100%;border-radius:8px;margin:8px 0 4px">` +
+                (p.photoCredit ? `<div class="ip-note" style="margin-top:0">Photo: ${p.photoUrl
+                    ? `<a href="${p.photoUrl}" target="_blank" rel="noopener" style="color:#58a6ff">${p.photoCredit}</a>` : p.photoCredit}</div>` : '');
+            if (p.description) h += `<p style="margin:8px 0;line-height:1.45">${p.description}</p>`;
+            const g = p.geo || (p.anchorShaft && shaftById[p.anchorShaft] && shaftById[p.anchorShaft].geo);
+            if (g && g.lat != null) {
+                const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lon}#map=18/${g.lat}/${g.lon}`;
+                h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
+                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${g.lat.toFixed(6)}, ${g.lon.toFixed(6)}</a></span></div>`;
+            }
+            if (p.source) h += `<div class="ip-row"><span class="ip-k">Source</span><span class="ip-v">${citeChip({ source: p.source })}` +
+                (p.osm ? ` <a href="https://www.openstreetmap.org/${p.osm}" target="_blank" rel="noopener" style="color:#58a6ff">${p.osm}</a>` : '') + `</span></div>`;
+            if (p.note) h += `<div class="ip-note">${p.note}</div>`;
+            body.innerHTML = h;
+            showInspector();
+        }
         // Info panel for a surveyed "spot" (spring / borehole / overflow resurgence).
         function renderSpotPanel(spot) {
             if (!spot) return;
             if (spot.kind === 'villa') return renderVillaPanel(spot);
+            if (spot.kind === 'poi') return renderPoiPanel(spot);
             const body = document.getElementById('info-body');
             const kindLabel = { spring: 'Spring (surveyed)',
                 borehole: 'Borehole / piezometer (surveyed)',

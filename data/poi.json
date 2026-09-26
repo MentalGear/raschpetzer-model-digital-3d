@@ -1,0 +1,45 @@
+{
+  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn when no `photo` is given (or while/if it fails to load): parking | shaft | spring | info. `photo` is a path under assets/poi/ with its `photoCredit`.",
+  "pois": [
+    {
+      "id": "parking",
+      "name": "Raschpëtzer Parking",
+      "kind": "parking",
+      "icon": "parking",
+      "color": "#1f5fbf",
+      "geo": { "crs": "EPSG:4326", "lat": 49.663673, "lon": 6.15625, "status": "inferred" },
+      "source": "osm-poi",
+      "osm": "way/385690665",
+      "status": "inferred",
+      "description": "Forest car park on the Pëtschend plateau, next to the 'Départ Auto pédestre Walferdange' trailhead — the nearest public surface parking to the shaft line (~400 m SE of P9).",
+      "note": "Position is the OSM amenity=parking area (way 385690665). Which of the nearby plateau car parks the 'Raschpëtzer' parking signs point to is inferred, not confirmed — verify on site."
+    },
+    {
+      "id": "p5",
+      "name": "P5 — visitor shaft",
+      "kind": "shaft",
+      "icon": "shaft",
+      "color": "#2b2b2b",
+      "anchorShaft": "P5",
+      "source": "brochure2018",
+      "status": "documented",
+      "description": "Deepest shaft (≈36 m) on the eastern plateau edge; first cleared to its base on 3 Oct 1986, rediscovering the gallery. A windowed metal cover lets visitors look down the shaft.",
+      "note": "Click the shaft itself for its documented depth, floor level and provenance."
+    },
+    {
+      "id": "spring",
+      "name": "Qanat spring outflow",
+      "kind": "spring",
+      "icon": "spring",
+      "color": "#0a9bc4",
+      "photo": "assets/poi/spring-outflow.webp",
+      "photoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (104).jpg”",
+      "photoUrl": "https://commons.wikimedia.org/wiki/File:Walferdange,_Gr%C3%BCnewald,_Raschp%C3%ABtzer_(104).jpg",
+      "geo": { "crs": "EPSG:4326", "lat": 49.666603, "lon": 6.147082, "status": "estimated" },
+      "source": "osm-poi",
+      "status": "estimated",
+      "description": "Visible water outflow at the end of the secondary channel, reconstructed in 2000 to show how the Roman channel is built inside the hill: dry-stone side walls covered with flat stones and gravel.",
+      "note": "Position is the photo's Commons geotag (camera location, ± a few metres). The field-surveyed overflow resurgence lies ~70 m east (see the P-4 overflow channel)."
+    }
+  ]
+}
