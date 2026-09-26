@@ -971,6 +971,8 @@
                 <input type="range" id="param-poi-size" min="0.4" max="2.5" step="0.05" value="1" aria-label="Point-of-interest marker size">
                 <label class="check-row"><input type="checkbox" id="param-poi-screen" checked> Constant&nbsp;screen&nbsp;size</label>
                 <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 4px;line-height:1.35;">On: markers stay the same size on screen at any zoom. Off: they scale with the model, like the terrain.</div>
+                <label class="check-row"><input type="checkbox" id="param-poi-declutter" checked> Hide&nbsp;overlapping&nbsp;markers</label>
+                <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 4px;line-height:1.35;">Markers that would overlap a more important one are hidden until you zoom in.</div>
             </div>
         </div>
 
@@ -1338,6 +1340,7 @@
             showPois: true,               // floating visitor points of interest (data/poi.json)
             poiScale: 1.0,                // POI marker size multiplier ("POI size" slider)
             poiScreenSize: true,          // POI markers keep a constant on-screen size (off = scale with the model)
+            poiDeclutter: true,           // hide POI markers that would overlap a higher-priority one on screen
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showSounding: false,          // exploratory sounding gallery at P1 (documented, no channel, schematic extent)
             showSteps: false,             // gallery floor-drop step markers (P4/P6) — off by default
@@ -4196,6 +4199,33 @@
                 ctx.beginPath(); ctx.arc(S / 2, S / 2, S * 0.22, 0, Math.PI * 2); ctx.stroke();
                 ctx.lineWidth = S * 0.03;
                 ctx.beginPath(); ctx.arc(S / 2, S / 2, S * 0.11, 0, Math.PI * 2); ctx.stroke();
+            } else if (icon === 'gallery') {
+                // Tunnel portal: an arched doorway.
+                const w = S * 0.36, h = S * 0.40, x0 = S / 2 - w / 2, yb = S * 0.70;
+                ctx.beginPath();
+                ctx.moveTo(x0, yb); ctx.lineTo(x0, yb - h + w / 2);
+                ctx.arc(S / 2, yb - h + w / 2, w / 2, Math.PI, 0);
+                ctx.lineTo(x0 + w, yb); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = 'rgba(0,0,0,0.55)';   // dark opening
+                const iw = w * 0.55, ix = S / 2 - iw / 2, ih = h * 0.72;
+                ctx.beginPath();
+                ctx.moveTo(ix, yb); ctx.lineTo(ix, yb - ih + iw / 2);
+                ctx.arc(S / 2, yb - ih + iw / 2, iw / 2, Math.PI, 0);
+                ctx.lineTo(ix + iw, yb); ctx.closePath(); ctx.fill();
+            } else if (icon === 'bus') {
+                // Bus front: body, windscreen, wheels.
+                const w = S * 0.40, h = S * 0.40, x0 = S / 2 - w / 2, y0 = S * 0.28, r = S * 0.05;
+                ctx.beginPath();
+                ctx.moveTo(x0 + r, y0); ctx.arcTo(x0 + w, y0, x0 + w, y0 + h, r);
+                ctx.arcTo(x0 + w, y0 + h, x0, y0 + h, r); ctx.arcTo(x0, y0 + h, x0, y0, r);
+                ctx.arcTo(x0, y0, x0 + w, y0, r); ctx.closePath(); ctx.fill();
+                ctx.fillRect(x0 + w * 0.08, y0 + h, w * 0.18, S * 0.06);
+                ctx.fillRect(x0 + w * 0.74, y0 + h, w * 0.18, S * 0.06);
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillRect(x0 + w * 0.12, y0 + h * 0.14, w * 0.76, h * 0.42);   // windscreen
+                ctx.beginPath(); ctx.arc(x0 + w * 0.22, y0 + h * 0.78, S * 0.028, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x0 + w * 0.78, y0 + h * 0.78, S * 0.028, 0, Math.PI * 2); ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
             } else {
                 ctx.font = `700 italic ${Math.round(S * 0.46)}px Georgia, serif`;
                 ctx.fillText('i', S / 2, S / 2 + S * 0.02);
@@ -4268,8 +4298,9 @@
             const list = (SSOT.poi && SSOT.poi.pois) || [];
             if (!params.showPois || !list.length) return;
             const isGeo = params.terrainSource === 'geodata' && geodata.ready;
-            const DIAM = POI_DIAM, LIFT = POI_LIFT;
+            const DIAM = POI_DIAM;
             list.forEach(poi => {
+                const LIFT = POI_LIFT * (poi.lift || 1);   // optional per-POI stagger (data/poi.json `lift`)
                 let x, z;
                 if (poi.anchorShaft) {
                     const pd = pillarDefs.find(d => d.id === poi.anchorShaft);
@@ -4326,7 +4357,8 @@
                 group.add(lbl); spotMeshes.push(lbl);
 
                 modelGroup.add(group);
-                poiGroups.push({ group, disc });
+                const pg = { group, disc, lbl, conn: null };
+                poiGroups.push(pg);
 
                 // Off-map (e.g. south of the qanat's front cut): a dashed ground connector from
                 // the nearest window edge out to the marker, the same cue the villa uses.
@@ -4338,6 +4370,7 @@
                         new THREE.LineDashedMaterial({ color: col, dashSize: 1.2, gapSize: 0.9,
                             transparent: true, opacity: 0.7, depthTest: false })));
                     conn.computeLineDistances(); conn.renderOrder = 9; modelGroup.add(conn);
+                    pg.conn = conn;
                 }
             });
             // A selected POI survives the rebuild: re-point the selection at its new circle.
@@ -4350,13 +4383,47 @@
         // Per frame: size every POI group. Screen mode keeps the circle POI_SCREEN_PX × size
         // on screen at any zoom (world size of one pixel at the POI's ground point); model mode
         // keeps a fixed scene size (scale 1 = the original model-space marker) × size.
-        const _poiTmp = new THREE.Vector3();
+        const _poiTmp = new THREE.Vector3(), _poiTmp2 = new THREE.Vector3();
         function updatePoiScales() {
             if (!poiGroups.length || !camera || !renderer) return;
             for (const { group } of poiGroups) {
                 let s = params.poiScale;
                 if (params.poiScreenSize) s *= worldPerPxAt(group.getWorldPosition(_poiTmp)) * POI_SCREEN_PX / POI_DIAM;
                 group.scale.setScalar(Math.max(1e-6, s));
+            }
+            declutterPois();
+        }
+        // Screen-space decluttering (params.poiDeclutter): place markers in priority order —
+        // the selected POI first, then data/poi.json order — and hide any whose circle or label
+        // would overlap one already placed. Zooming in separates them again, like map labels.
+        function declutterPois() {
+            const R = renderer.domElement.getBoundingClientRect(), W = R.width, H = R.height;
+            const rectOf = (obj, halfWpx, halfHpx) => {
+                const v = obj.getWorldPosition(_poiTmp).project(camera);
+                if (v.z > 1) return null;   // behind the camera
+                const x = (v.x + 1) / 2 * W, y = (1 - v.y) / 2 * H;
+                return [x - halfWpx, y - halfHpx, x + halfWpx, y + halfHpx];
+            };
+            const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+            const order = poiGroups.slice().sort((a, b) =>
+                (b.disc.userData.id === poiSelectedId) - (a.disc.userData.id === poiSelectedId));
+            const placed = [];
+            for (const pg of order) {
+                let show = true;
+                if (params.poiDeclutter) {
+                    pg.group.updateMatrixWorld(true);
+                    const wpp = worldPerPxAt(pg.disc.getWorldPosition(_poiTmp2));
+                    const dr = pg.disc.getWorldScale(_poiTmp2).x / 2 / wpp;
+                    const ls = pg.lbl.getWorldScale(_poiTmp2);
+                    // Label canvases carry side padding: count ~85% of the width as text.
+                    const rects = [rectOf(pg.disc, dr, dr), rectOf(pg.lbl, ls.x / 2 / wpp * 0.85, ls.y / 2 / wpp * 0.6)]
+                        .filter(Boolean);
+                    const sel = pg.disc.userData.id === poiSelectedId;
+                    if (!sel && rects.some(r => placed.some(q => hit(r, q)))) show = false;
+                    else placed.push(...rects);
+                }
+                pg.group.visible = show;
+                if (pg.conn) pg.conn.visible = show;
             }
         }
 
@@ -4878,6 +4945,9 @@
             document.getElementById('param-poi-screen').addEventListener('change', e => {
                 params.poiScreenSize = e.target.checked;
             });
+            document.getElementById('param-poi-declutter').addEventListener('change', e => {
+                params.poiDeclutter = e.target.checked;
+            });
             document.getElementById('param-paths').addEventListener('change', e => {
                 params.showPaths = e.target.checked;
                 buildParametricModel();
@@ -5195,6 +5265,7 @@
                 'param-pois': () => params.showPois,
                 'param-poi-size': () => params.poiScale,
                 'param-poi-screen': () => params.poiScreenSize,
+                'param-poi-declutter': () => params.poiDeclutter,
                 'ov-aquifer': () => params.overlay.aquifer,
                 'ov-contours': () => params.overlay.contours,
                 'ov-spot': () => params.overlay.spot,
@@ -5823,7 +5894,9 @@
                 return pickInMeshes(dom, ev, shaftMeshes, h => !clipHidesHit(h));
             }
             function pickSpot(ev) {
-                return pickInMeshes(dom, ev, spotMeshes);
+                // Raycasting ignores .visible, so skip POI markers hidden by the declutter pass.
+                const shown = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+                return pickInMeshes(dom, ev, spotMeshes, h => shown(h.object));
             }
             function pickXsec(ev) {
                 return pickInMeshes(dom, ev, xsecMeshes);
@@ -6219,7 +6292,8 @@
         // Info panel for a visitor point of interest (data/poi.json).
         function renderPoiPanel(p) {
             const body = document.getElementById('info-body');
-            const kindLabel = { parking: 'Parking', shaft: 'Shaft', spring: 'Spring' }[p.poiKind] || 'Point of interest';
+            const kindLabel = { parking: 'Parking', shaft: 'Shaft', spring: 'Spring', gallery: 'Visitor gallery',
+                bus: 'Public transport' }[p.poiKind] || 'Point of interest';
             let h = `<h3>${p.name}</h3><div class="ip-sub">Point of interest · ${kindLabel}${statusBadge(p.status)}` +
                 `${p.inside === false ? ' · outside the shown area' : ''}</div>`;
             if (p.photo) h += `<img src="${p.photo}" alt="${p.name}" style="display:block;width:100%;border-radius:8px;margin:8px 0 4px">` +

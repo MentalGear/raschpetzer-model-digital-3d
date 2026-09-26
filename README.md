@@ -27,9 +27,11 @@ source; documented facts are visually distinguished from inferred/schematic ones
 - **Click a shaft → info panel** with values, units, provenance (citation chips)
   and knowledge‑status badges; **Guided tour** flies P‑7A→P9.
 - **Points of interest**: floating photo/icon circles with a connector arrow down to
-  the ground (Raschpëtzer parking, P5, the spring outflow), clickable for details;
+  the ground — car parks and bus stop on the CR 125, the visitor's gallery, the lit
+  shafts P5 and P-4, the diverted-water outflow and the Dauvebur spring — clickable for details;
   defined in `data/poi.json` (toggle *Points of interest*, with a *POI size* slider and a
-  *Constant screen size* switch: fixed on-screen size at any zoom, or scale with the model).
+  *Constant screen size* switch: fixed on-screen size at any zoom, or scale with the model;
+  overlapping markers are hidden by priority until you zoom in).
 - **Annotations** (drop notes, localStorage, import/export), **measurement tool**,
   **animated water flow**, W↔E flip, reference-image overlay.
 - **Context-aware controls**: only the sliders/toggles that affect the current
