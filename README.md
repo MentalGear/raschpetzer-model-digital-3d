@@ -55,6 +55,12 @@ source; documented facts are visually distinguished from inferred/schematic ones
 - **Site level of detail**: from far away (the town, the overview) the whole qanat is ONE
   "Raschpëtzer" marker with the qanat shown in x-ray beneath it; the detailed POIs fade in
   as you get closer (tap the marker to fly in). While a POI is active, the others shrink and fade.
+- **Title tour extras**: town landmarks (town hall, sports hall) flown past before the
+  overview, a station photo per stop (data/poi.json `tourPhoto`; stand-ins until real photos
+  arrive), the wide qanat shot **slices the whole landscape** along the qanat line (close-ups
+  still dig a trench; Settings → *Reveal the qanat by*), the town context **fades softly**
+  into the background at its border, and an optional plain **blur behind the title and
+  captions** (Settings, off by default).
 - **Arrow keys** ← / →: previous / next station — tour shot on the title screen (the tour
   keeps running), or point of interest while exploring (selects it and flies there).
 - **Active POI**: the selected POI (or the tour's current stop) grows ~2.4× and swaps its icon

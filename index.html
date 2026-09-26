@@ -814,26 +814,22 @@
             --at-red-hi: #e8674a; --at-red-lo: #a3261a; }
         #attract .at-scrim { position: absolute; inset: 0;
             background:
-                radial-gradient(ellipse 75% 85% at 100% 0%, rgba(var(--at-dark),0.78) 0%, rgba(var(--at-dark),0.50) 32%, rgba(var(--at-dark),0.14) 62%, rgba(var(--at-dark),0) 80%),
-                radial-gradient(ellipse 60% 45% at 0% 100%, rgba(var(--at-dark),0.40) 0%, rgba(var(--at-dark),0.18) 45%, rgba(var(--at-dark),0) 75%),
+                radial-gradient(ellipse 75% 85% at 100% 0%, rgba(var(--at-dark),0.92) 0%, rgba(var(--at-dark),0.66) 32%, rgba(var(--at-dark),0.20) 62%, rgba(var(--at-dark),0) 80%),
+                radial-gradient(ellipse 60% 45% at 0% 100%, rgba(var(--at-dark),0.74) 0%, rgba(var(--at-dark),0.36) 45%, rgba(var(--at-dark),0) 75%),
                 linear-gradient(to top, rgba(12,14,20,0.45) 0%, rgba(12,14,20,0) 22%); }
         /* Faint fresco/plaster grain over the red corner only (SVG turbulence, masked). */
         #attract .at-grain { position: absolute; inset: 0; opacity: 0.22; mix-blend-mode: overlay;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
             -webkit-mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #000 0%, rgba(0,0,0,0.6) 40%, transparent 70%);
             mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #000 0%, rgba(0,0,0,0.6) 40%, transparent 70%); }
-        /* Frosted glass (Apple-TV style) behind the text laid over the moving scene: the title
-           corner gets a PROGRESSIVE blur (strong in the corner, fading out — no hard card edge);
-           the caption sits on a frosted card. The blur keeps text legible over any shot without
-           darkening the whole picture. */
-        #attract .at-blur { position: absolute; pointer-events: none;
-            -webkit-backdrop-filter: blur(22px) saturate(1.5) brightness(0.8); backdrop-filter: blur(22px) saturate(1.5) brightness(0.8); }
-        #attract .at-blur-title { top: 0; right: 0; width: min(62vw, 980px); height: min(46vh, 420px);
-            -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 0%, rgba(0,0,0,0.85) 45%, transparent 100%);
-            mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, #000 0%, rgba(0,0,0,0.85) 45%, transparent 100%); }
-        #attract .at-glass { background: rgba(22, 25, 32, 0.34); border: 1px solid rgba(255,255,255,0.14);
-            box-shadow: 0 18px 50px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
-            -webkit-backdrop-filter: blur(26px) saturate(1.6); backdrop-filter: blur(26px) saturate(1.6); }
+        /* Optional (Settings → "Blur behind title & captions", off by default): a plain
+           backdrop blur on a lightly tinted panel behind the title and the caption, for
+           legibility over busy shots. Off = the corner gradient + text shadows alone. */
+        #attract .at-title, #attract .at-caption { border-radius: 16px; transition: padding 0.3s; }
+        #attract.blur .at-title, #attract.blur .at-caption { background: rgba(18, 21, 28, 0.28);
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+        #attract.blur .at-title { padding: 14px 22px 18px 28px; }
+        #attract.blur .at-caption { padding: 16px 22px 18px; }
         #attract .at-split { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; display: none;
             background: var(--at-gold); box-shadow: 0 0 14px rgba(227,178,92,0.9); }
         #attract .at-split.show { display: block; }
@@ -858,18 +854,28 @@
         #attract .at-rule { height: 2px; width: clamp(80px, 14vw, 220px); margin: 0.9em 0 0 auto;
             background: linear-gradient(to left, var(--at-gold), rgba(227,178,92,0)); }
         #attract .at-caption { position: absolute; left: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
-            max-width: min(560px, 80vw); color: #f5efe4; text-shadow: 0 1px 6px rgba(0,0,0,0.45);
-            padding: 18px 24px 20px; border-radius: 22px;
+            max-width: min(560px, 80vw); color: #f5efe4; text-shadow: 0 2px 12px rgba(0,0,0,0.7);
             transition: opacity 0.6s ease, transform 0.6s ease; }
         #attract .at-caption.hidden { opacity: 0; transform: translateY(8px); }
         #attract .at-cap-kicker { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
             color: var(--at-gold); text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 14px rgba(0,0,0,0.6); }
         #attract .at-cap-title { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.3rem, 2.6vw, 2.1rem); margin: 0.15em 0 0.25em; }
         #attract .at-cap-text { font-size: clamp(0.9rem, 1.4vw, 1.1rem); line-height: 1.45; color: #e7e1d6; }
+        /* Station photo (data/poi.json tourPhoto): lower right, clear of the caption (lower left)
+           and of the POI, which the shots frame left of centre. */
+        #attract .at-photo { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
+            width: min(380px, 30vw); transition: opacity 0.6s ease, transform 0.6s ease; }
+        #attract .at-photo.hidden { opacity: 0; transform: translateY(8px); }
+        #attract .at-cap-img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18); }
+        #attract .at-cap-img[hidden] { display: none; }
+        #attract .at-cap-img.placeholder { opacity: 0.7; }
+        #attract .at-cap-credit { font-size: 0.6rem; color: rgba(255,255,255,0.6); margin-top: 5px; text-align: right;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+        #attract .at-cap-credit:empty { display: none; }
         #attract .at-prompt { position: absolute; left: 50%; bottom: clamp(16px, 3vh, 34px); transform: translateX(-50%);
             font-size: clamp(0.8rem, 1.3vw, 1rem); letter-spacing: 0.28em; text-transform: uppercase; color: #fbf6ec;
-            text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap;
-            padding: 9px 22px 9px 26px; border-radius: 999px; }
+            text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap; }
         #attract .at-dots { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(20px, 3.5vh, 38px); display: flex; gap: 6px; }
         #attract .at-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: background 0.4s, transform 0.4s; }
         #attract .at-dots span.on { background: var(--at-gold); transform: scale(1.35); }
@@ -1131,6 +1137,7 @@
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Surrounding&nbsp;context&nbsp;(town,&nbsp;valley,&nbsp;villa)</label>
                 <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-buildings" checked> 3D&nbsp;buildings&nbsp;(ACT&nbsp;2023,&nbsp;textured)</label>
                 <label class="check-row" style="margin-left:44px"><input type="checkbox" id="param-buildings-see" checked> See&nbsp;through&nbsp;buildings&nbsp;in&nbsp;the&nbsp;way</label>
+                <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-edge-fade" checked> Soft&nbsp;edge&nbsp;(fade&nbsp;into&nbsp;background)</label>
                 <label class="check-row" style="margin-left:22px" title="Loads ~40 MB more: 4096² building-texture atlases (768 px façades near the key spots) and a finer aerial photo of the town context. Meant for a big display with a capable GPU (~1 GB of video memory)."><input type="checkbox" id="param-hq-assets"> High&#8209;quality&nbsp;textures&nbsp;(big&nbsp;screen)</label>
                 <div class="opt-group" id="grp-hires-inset">
                     <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
@@ -1208,9 +1215,12 @@
             <label class="check-row"><input type="checkbox" id="param-attract" checked> Title&nbsp;screen&nbsp;&amp;&nbsp;tour&nbsp;(kiosk)</label>
             <label for="param-attract-reveal" style="margin-top:6px">Reveal the qanat by</label>
             <select id="param-attract-reveal">
-                <option value="cut">Cutting away the terrain</option>
+                <option value="mixed">Slice (wide) + trench (close-ups)</option>
+                <option value="cut">Trench cut into the terrain</option>
+                <option value="slice">Slicing the whole landscape</option>
                 <option value="split">Split screen (surface | beneath)</option>
             </select>
+            <label class="check-row" style="margin-top:6px"><input type="checkbox" id="param-attract-blur"> Blur&nbsp;behind&nbsp;title&nbsp;&amp;&nbsp;captions</label>
             <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 8px;line-height:1.35;">Opens on a title screen with a ~90&nbsp;s camera tour (town → overview → points of interest), and returns to it after 2&nbsp;minutes without interaction. Shared links to a view or selection skip it.</div>
         </div>
         <div class="control-group">
@@ -1317,21 +1327,24 @@
          gradient, per-shot caption bottom-left, "touch to explore" prompt. -->
     <div id="attract" aria-live="polite">
         <div class="at-scrim"></div>
-        <div class="at-blur at-blur-title"></div>
         <div class="at-title">
             <div class="at-kicker">Walferdange · Luxembourg</div>
             <h1>RASCHPËTZER</h1>
             <div class="at-sub">The Romans’ hidden water</div>
             <div class="at-rule"></div>
         </div>
-        <div class="at-caption at-glass hidden">
+        <div class="at-photo hidden" id="at-photo">
+            <img id="at-cap-img" class="at-cap-img" alt="" hidden>
+            <div class="at-cap-credit" id="at-cap-credit"></div>
+        </div>
+        <div class="at-caption hidden">
             <div class="at-cap-kicker" id="at-cap-kicker"></div>
             <div class="at-cap-title" id="at-cap-title"></div>
             <div class="at-cap-text" id="at-cap-text"></div>
         </div>
         <div class="at-split" id="at-split"><span class="at-split-l">Surface</span><span class="at-split-r">Beneath</span></div>
         <div class="at-dots" id="at-dots"></div>
-        <div class="at-prompt at-glass">Touch anywhere to explore</div>
+        <div class="at-prompt">Touch anywhere to explore</div>
         <div class="at-attrib">Topographic map, aerial &amp; LiDAR terrain © ACT · geoportail.lu · Luxembourg open data</div>
     </div>
 
@@ -1464,7 +1477,9 @@
             showBuildings: true,          // 3D buildings (ACT 2023 LOD2 textured; OSM fallback) on the surrounding-context terrain
             buildingsSeeThrough: true,    // buildings between the camera and its target dissolve (dithered)
             hqAssets: false,              // high-quality textures (big screen): HQ building atlases + finer context aerial
-            attractReveal: 'cut',         // how the tour reveals the qanat: 'cut' (terrain trench) | 'split' (split screen)
+            attractReveal: 'mixed',       // how the tour reveals the qanat: 'mixed' (slice for the wide shot, trench for close-ups) | 'cut' (terrain trench) | 'slice' (whole landscape cut along the qanat) | 'split' (split screen)
+            attractBlur: false,           // blur the scene behind the tour's title and caption text
+            contextEdgeFade: true,        // the town context fades into the background at its border
             poiScale: 1.0,                // POI marker size multiplier ("POI size" slider)
             poiScreenSize: true,          // POI markers keep a constant on-screen size (off = scale with the model)
             poiDeclutter: true,           // hide POI markers that would overlap a higher-priority one on screen
@@ -4082,9 +4097,9 @@
             const aerial = ['satellite', 'winter', 'ortho1967'].includes(params.baseLayer);
             const t = contextTextures[aerial ? 'ortho' : 'topo'];
             const full = attract.on;
-            const mat = new THREE.MeshBasicMaterial({
+            const mat = edgeFadeMaterial(new THREE.MeshBasicMaterial({
                 color: (t && t.ready) ? 0xffffff : 0xe4dccb, map: (t && t.ready) ? t.tex : null,
-                transparent: !full, opacity: full ? 1 : 0.5, side: THREE.DoubleSide, depthWrite: full });
+                transparent: !full, opacity: full ? 1 : 0.5, side: THREE.DoubleSide, depthWrite: full }));
             const apron = new THREE.Mesh(geo, mat);
             apron.position.set(cx, 0, cz); apron.renderOrder = -1;
             apron.raycast = () => {};   // backdrop only: never a pick / zoom target
@@ -4092,7 +4107,7 @@
             modelGroup.add(apron);
             if (full) {
                 surfaceOnly.push(apron);
-                const bp = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: BLUEPRINT.ground, side: THREE.DoubleSide }));
+                const bp = new THREE.Mesh(geo, edgeFadeMaterial(new THREE.MeshBasicMaterial({ color: BLUEPRINT.ground, side: THREE.DoubleSide })));
                 bp.position.copy(apron.position); bp.renderOrder = -1; bp.raycast = () => {}; bp.userData.tourClip = true;
                 modelGroup.add(bp); blueprintOnly.push(bp);
             }
@@ -4109,7 +4124,7 @@
         // (window / vertical scale / flip / tour-vs-explore / texture set) changes.
         // Buildings between the camera and what it looks at dissolve (dithered) so they never
         // hide the view — see bldFade / updateBuildingFade().
-        let buildingsGroup = null, buildingsKey = '';
+        let buildingsGroup = null, buildingsKey = '', buildingsBuild = 0;   // buildingsBuild: bumps on every rebuild
         let B3 = null;   // decoded ACT buildings
         const b64buf = str => { const bin = atob(str), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
         function act3dSet(S) {
@@ -4155,27 +4170,63 @@
         // POI, else the kiosk "You are here") — so the buildings right in front of either clear.
         const bldFade = { uCam: { value: new THREE.Vector3() }, uTgt: { value: new THREE.Vector3() },
                           uTgt2: { value: new THREE.Vector3() }, uR: { value: 0 }, uR2: { value: 0 }, uNear: { value: 0 } };
-        function fadeMaterial(m) {
+        // Shared shader plumbing: a world-position varying (vWPos) for the effects below.
+        function withWorldPos(sh) {
+            if (sh.vertexShader.includes('vWPos')) return;
+            sh.vertexShader = 'varying vec3 vWPos;\n' + sh.vertexShader.replace('#include <project_vertex>',
+                '#include <project_vertex>\n vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+            sh.fragmentShader = 'varying vec3 vWPos;\n' + sh.fragmentShader;
+        }
+        // Soft edge of the town context: within uEdgeW of the context block's border the surface
+        // blends into the background colour, so the landscape never ends in a hard line.
+        const edgeFadeU = { uEdgeBox: { value: new THREE.Vector4() }, uEdgeW: { value: 0 }, uEdgeBg: { value: new THREE.Color() } };
+        function edgeFadeShader(sh) {
+            withWorldPos(sh);
+            Object.assign(sh.uniforms, edgeFadeU);
+            sh.fragmentShader = 'uniform vec4 uEdgeBox;\nuniform float uEdgeW;\nuniform vec3 uEdgeBg;\n' +
+                sh.fragmentShader.replace('#include <fog_fragment>', `#include <fog_fragment>
+                if (uEdgeW > 0.0) {
+                    float e = min(min(vWPos.x - uEdgeBox.x, uEdgeBox.y - vWPos.x), min(vWPos.z - uEdgeBox.z, uEdgeBox.w - vWPos.z));
+                    gl_FragColor.rgb = mix(uEdgeBg, gl_FragColor.rgb, smoothstep(0.0, uEdgeW, e));
+                }`);
+        }
+        function edgeFadeMaterial(m) {
+            m.onBeforeCompile = edgeFadeShader;
+            m.customProgramCacheKey = () => 'edgefade';
+            return m;
+        }
+        // Per frame: the context box (scene coords), fade width and the CURRENT background (by
+        // reference: the tour's blueprint pass recolours scene.background in place).
+        function updateEdgeFade() {
+            const B = CONTEXT_BBOX, a = geoToScene(B.north, B.west), b = geoToScene(B.south, B.east);
+            edgeFadeU.uEdgeBox.value.set(Math.min(a.x, b.x), Math.max(a.x, b.x), Math.min(a.z, b.z), Math.max(a.z, b.z));
+            edgeFadeU.uEdgeW.value = params.contextEdgeFade ? 260 / metersPerUnitH() : 0;
+            if (scene.background && scene.background.isColor) edgeFadeU.uEdgeBg.value = scene.background;
+        }
+        // Buildings are drawn in TWO passes: an opaque pass that skips ("discards") everything in
+        // the see-through zone — so those parts write no depth and never hide what's behind —
+        // and a translucent ghost pass that draws only that zone, fading smoothly from solid at
+        // its rim to ~12 % in the middle. (A single blended pass would mis-sort the merged
+        // meshes; the old ordered dither looked like a screen door on a big display.)
+        function fadeMaterial(m, ghost) {
+            if (ghost) { m.transparent = true; m.depthWrite = false; }
             m.onBeforeCompile = sh => {
                 Object.assign(sh.uniforms, bldFade);
-                sh.vertexShader = 'varying vec3 vBldW;\n' + sh.vertexShader.replace('#include <project_vertex>',
-                    '#include <project_vertex>\n vBldW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-                sh.fragmentShader = 'varying vec3 vBldW;\nuniform vec3 uCam, uTgt, uTgt2;\nuniform float uR, uR2, uNear;\n' +
-                    'float bldB2(vec2 a) { a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }\n' +
+                sh.fragmentShader = 'uniform vec3 uCam, uTgt, uTgt2;\nuniform float uR, uR2, uNear;\n' +
                     // 0..1 how much a point is "in the way" of the sight line cam→tg (radius r at the far end)
                     'float bldSight(vec3 tg, float r) { if (r <= 0.0) return 0.0; vec3 seg = tg - uCam;\n' +
-                    '  float t = clamp(dot(vBldW - uCam, seg) / max(dot(seg, seg), 1e-6), 0.0, 1.0);\n' +
-                    '  float d = length(vBldW - (uCam + seg * t)); float R = r * mix(0.35, 1.0, t);\n' +
+                    '  float t = clamp(dot(vWPos - uCam, seg) / max(dot(seg, seg), 1e-6), 0.0, 1.0);\n' +
+                    '  float d = length(vWPos - (uCam + seg * t)); float R = r * mix(0.35, 1.0, t);\n' +
                     '  return (1.0 - smoothstep(R * 0.5, R, d)) * (1.0 - smoothstep(0.82, 0.96, t)); }\n' +
                     sh.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
-                    {
-                        float a = max(bldSight(uTgt, uR), bldSight(uTgt2, uR2));
-                        a = max(a, 1.0 - smoothstep(uNear * 0.5, uNear, length(vBldW - uCam)));
-                        float bay = bldB2(gl_FragCoord.xy * 0.5) * 0.25 + bldB2(gl_FragCoord.xy) + 0.03;
-                        if (a * 0.9 > bay) discard;   // ~10 % stays as a faint dotted ghost
-                    }`);
+                    float bldA = max(bldSight(uTgt, uR), bldSight(uTgt2, uR2));
+                    bldA = max(bldA, 1.0 - smoothstep(uNear * 0.5, uNear, length(vWPos - uCam)));
+                    ${ghost ? 'if (bldA <= 0.004) discard;' : 'if (bldA > 0.004) discard;'}`)
+                    .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' +
+                        (ghost ? 'gl_FragColor.a *= mix(1.0, 0.12, smoothstep(0.0, 1.0, bldA));' : ''));
+                edgeFadeShader(sh);   // last: it prepends the vWPos varying the code above uses
             };
-            m.customProgramCacheKey = () => 'bldfade';
+            m.customProgramCacheKey = () => ghost ? 'bldfade-ghost' : 'bldfade-solid';
             return m;
         }
         // Per frame: aim the see-through corridor at the current view.
@@ -4214,6 +4265,7 @@
             buildingsKey = key;
             buildingsGroup.children.forEach(c => { c.geometry.dispose(); c.material.dispose(); });
             buildingsGroup.clear();
+            buildingsBuild++;
             // Drop the other texture set from the GPU (the HQ atlases are big).
             if (A) for (const k in A.sets) if (A.sets[k] !== set && A.sets[k].tex.length) { A.sets[k].tex.forEach(t => t.dispose()); A.sets[k].tex = []; }
             const W2 = params.width / 2;
@@ -4224,9 +4276,11 @@
                 g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
                 for (const k in attrs) g.setAttribute(k, new THREE.Float32BufferAttribute(attrs[k], k === 'uv' ? 2 : 3));
                 g.computeVertexNormals();
-                const mesh = new THREE.Mesh(g, fadeMaterial(mat));
+                const mesh = new THREE.Mesh(g, fadeMaterial(mat, false));
                 mesh.raycast = () => {};
-                buildingsGroup.add(mesh);
+                const ghost = new THREE.Mesh(g, fadeMaterial(mat.clone(), true));   // shares the geometry
+                ghost.raycast = () => {};
+                buildingsGroup.add(mesh, ghost);
             };
             // Linear lon/lat → scene mapping (geoToScene is affine) and vertical metres → Y.
             const D = A ? A.D : null;
@@ -4743,6 +4797,12 @@
                 ctx.strokeStyle = '#bfe9f5';   // the water-carrying gallery
                 ctx.lineWidth = S * 0.055;
                 ctx.beginPath(); ctx.moveTo(x0 - S * 0.04, g + S * 0.012); ctx.lineTo(x1 + S * 0.02, g - S * 0.012); ctx.stroke();
+            } else if (icon === 'landmark') {
+                // A public building: pediment, columns, steps.
+                const x0 = S * 0.27, x1 = S * 0.73, top = S * 0.26, eave = S * 0.40, base = S * 0.70;
+                ctx.beginPath(); ctx.moveTo(S / 2, top); ctx.lineTo(x1 + S * 0.03, eave); ctx.lineTo(x0 - S * 0.03, eave); ctx.closePath(); ctx.fill();
+                for (const f of [0.08, 0.36, 0.64, 0.92]) ctx.fillRect(x0 + (x1 - x0) * f - S * 0.025, eave + S * 0.03, S * 0.05, base - eave - S * 0.06);
+                ctx.fillRect(x0 - S * 0.03, base - S * 0.03, x1 - x0 + S * 0.06, S * 0.05);
             } else if (icon === 'bus') {
                 // Bus front: body, windscreen, wheels.
                 const w = S * 0.40, h = S * 0.40, x0 = S / 2 - w / 2, y0 = S * 0.28, r = S * 0.05;
@@ -4902,7 +4962,7 @@
 
                 modelGroup.add(group);
                 lbl.material.transparent = true;
-                const pg = { group, disc, lbl, ring, conn: null, kiosk: !!poi.kiosk, site: !!poi.site,
+                const pg = { group, disc, lbl, ring, conn: null, kiosk: !!poi.kiosk, site: !!poi.site, landmark: !!poi.landmark,
                     lblOffset: DIAM / 2 + LBL_H * 0.4, baseDiam: DIAM, lift: LIFT,
                     lblW: lbl.scale.x, lblH: lbl.scale.y, grow: poi.id === poiActiveId ? POI_ACTIVE_SCALE : 1,
                     fade: null,   // 0..1 visibility (site level of detail × dimming), eased per frame
@@ -4986,7 +5046,7 @@
                 const id = pg.disc.userData.id, isActive = id === poiActiveId, isSel = id === poiSelectedId;
                 // Visibility: kiosk always; the site marker when far; the details when near;
                 // whatever is active/selected stays. Others dim + shrink while one is active.
-                let vis = pg.kiosk ? 1 : pg.site ? siteFar : 1 - siteFar;
+                let vis = pg.kiosk ? 1 : (pg.site || pg.landmark) ? siteFar : 1 - siteFar;
                 if (isActive || isSel) vis = 1;
                 const dimmed = activeShown && !isActive;
                 const opGoal = vis * (dimmed ? POI_DIM_OPACITY : 1);
@@ -5014,6 +5074,40 @@
             const pulse = 1 + 0.6 * (0.5 + 0.5 * Math.sin(performance.now() / 420));
             for (const pg of poiGroups) if (pg.kiosk) pg.ring.scale.setScalar(pulse);
             declutterPois();
+            updateFarView();
+        }
+        // Far site view (siteFar → 1): the model's small text labels (shaft ids, depths, …) are
+        // unreadable specks from the town, so they hide; the qanat gallery gets a bold glowing
+        // x-ray line (fixed ~6 m radius ≈ a few px at that distance) that says "it's here".
+        let farLabelsHidden = false, farLabelsSig = '', farLine = null, farLineSig = '';
+        function updateFarView() {
+            if (!modelGroup) return;
+            const hide = siteFar > 0.5;
+            const sig = modelGroup.children.length + ':' + (modelGroup.children[0] ? modelGroup.children[0].uuid : '');
+            if (hide !== farLabelsHidden || sig !== farLabelsSig) {
+                farLabelsHidden = hide; farLabelsSig = sig;
+                modelGroup.traverse(o => {
+                    if (o.__textLabel && !(o.userData && o.userData.kind === 'poi')) o.material.visible = !hide;
+                });
+            }
+            const pts = lastBasePts;
+            const lsig = pts.length ? pts.length + ':' + pts[0].x.toFixed(2) + ':' + pts[0].y.toFixed(2) : '';
+            if (lsig !== farLineSig || (farLine && farLine.parent !== modelGroup)) {
+                farLineSig = lsig;
+                if (farLine) { farLine.parent && farLine.parent.remove(farLine); farLine.geometry.dispose(); farLine = null; }
+                if (pts.length >= 2) {
+                    const sorted = pts.slice().sort((a, b) => a.x - b.x).map(p => new THREE.Vector3(p.x, p.y, p.z));
+                    const r = 6 / metersPerUnitH();
+                    farLine = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(sorted), sorted.length * 2, r, 8, false),
+                        new THREE.MeshBasicMaterial({ color: 0x6fdcf5, transparent: true, opacity: 0, depthTest: false, depthWrite: false }));
+                    farLine.renderOrder = 28; farLine.raycast = () => {};
+                    modelGroup.add(farLine);
+                }
+            }
+            if (farLine) {
+                farLine.material.opacity = 0.9 * Math.max(0, (siteFar - 0.15) / 0.85);
+                farLine.visible = farLine.material.opacity > 0.01;
+            }
         }
         // Screen-space decluttering (params.poiDeclutter): place markers in priority order —
         // the selected POI first, then data/poi.json order — and hide any whose circle or label
@@ -5165,6 +5259,7 @@
             if (pickTarget) sprite.userData = pickTarget;
             else sprite.raycast = () => {};   // no natural click target: not pickable (no zoom-target / rotation-centre either)
             sprite.scale.set(6, 1.35 * lines.length, 1);
+            sprite.__textLabel = true;   // hidden in the far site view (updateFarView), except POI labels
             return sprite;
         }
 
@@ -5904,6 +5999,8 @@
                 'param-buildings-see': () => params.buildingsSeeThrough,
                 'param-hq-assets': () => params.hqAssets,
                 'param-attract-reveal': () => params.attractReveal,
+                'param-attract-blur': () => params.attractBlur,
+                'param-edge-fade': () => params.contextEdgeFade,
                 'param-poi-size': () => params.poiScale,
                 'param-poi-screen': () => params.poiScreenSize,
                 'param-poi-declutter': () => params.poiDeclutter,
@@ -8031,8 +8128,29 @@
                     end: { target, dist, el, az, from: 0.28 },   // dolly out over the shot (from 28 % of it)
                     spin: 0.5, dur: 15,
                     kicker: 'You are here', title: 'Walferdange town centre',
-                    text: here.disc.userData.caption || '' });
+                    text: here.disc.userData.caption || '',
+                    image: here.disc.userData.tourPhoto, imageCredit: here.disc.userData.tourPhotoCredit,
+                    imagePlaceholder: here.disc.userData.tourPhotoPlaceholder });
             }
+            // 1b. Town landmarks people know (town hall, sports hall, …; data/poi.json `tour`):
+            // seen from the side away from the qanat, so the plateau stands behind each one —
+            // "from here, it's over there".
+            const qanatGeo = (SSOT.poi.pois.find(p => p.site) || {}).geo;
+            poiGroups.filter(pg => pg.landmark && pg.disc.userData.tour).forEach(pg => {
+                const d = pg.disc.userData, h = pg.group.position.clone();
+                const dir = new THREE.Vector3(qanat.x - h.x, 0, qanat.z - h.z).normalize();
+                const wpp = 2 * 16 * Math.tan(THREE.MathUtils.degToRad(ATTRACT_FOV) / 2) / (renderer.domElement.clientHeight || 900);
+                const liftW = POI_LIFT * (d.lift || 1) * (params.poiScreenSize ? wpp * POI_SCREEN_PX * params.poiScale / POI_DIAM : params.poiScale);
+                let where = '';
+                if (qanatGeo && d.geo) {
+                    const km = geoDistM(d.geo, qanatGeo) / 1000;
+                    where = ` The Raschpëtzer is ${km.toFixed(1)} km to the ${compassWord(d.geo, qanatGeo)}.`;
+                }
+                shots.push({ target: h.clone().add(new THREE.Vector3(0, liftW * 0.6, 0)).addScaledVector(dir, 6),
+                    dist: 16, el: 20, az: THREE.MathUtils.radToDeg(Math.atan2(-dir.x, -dir.z)), spin: 1.0, dur: 7,
+                    kicker: 'In town', title: d.name, text: (d.caption || '') + where, poiId: d.id,
+                    image: d.tourPhoto, imageCredit: d.tourPhotoCredit, imagePlaceholder: d.tourPhotoPlaceholder });
+            });
             // 2. Overview from above: town and plateau together.
             // North-up (az ≈ 0) so the town map reads the way locals know it; the aim point sits
             // a little north of the town–qanat midpoint so both land below the title card.
@@ -8042,9 +8160,11 @@
                 text: 'Walferdange lies in the Alzette valley; the Raschpëtzer runs under the wooded Pëtschend plateau to the north-east.' });
             // 3. The qanat itself (x-ray: shafts and gallery under the plateau).
             // Split-view reveal: the "beneath" side sweeps in from the right, holds, sweeps out.
-            shots.push({ target: qanat, dist: 64, el: 24, az: 352, spin: 1.2, dur: 14,
+            shots.push({ target: qanat, dist: 64, el: 24, az: 352, spin: 1.2, dur: 14, wide: true,
                 reveal: [[0, 0], [3, 0], [6.5, 1], [11.5, 1], [14, 0]], splitTo: 0.42,
                 kicker: 'The qanat', title: 'A Roman underground aqueduct',
+                ...(() => { const sp = SSOT.poi.pois.find(p => p.site) || {};
+                    return { image: sp.tourPhoto, imageCredit: sp.tourPhotoCredit, imagePlaceholder: sp.tourPhotoPlaceholder }; })(),
                 text: `Shafts up to ${QANAT.maxDepthM} m deep over a near-level gallery` +
                     (site.channelExploredM ? ` — ${site.channelExploredM} m explored` : '') +
                     (site.servicePeriod ? `, in use c. AD ${site.servicePeriod.fromAD}–${site.servicePeriod.toAD}.` : '.') });
@@ -8067,9 +8187,20 @@
                 shots.push({ target: pg.group.position.clone().add(new THREE.Vector3(0, liftW * 0.85, 0)).addScaledVector(right, 4.5),
                     dist: 27, el: 30, az, spin: 2.2, dur: 8.5,
                     reveal: reveal ? [[0, 0], [2.6, 0], [4.6, 1], [7, 1], [8.5, 0]] : null, splitTo: 0.5,
-                    kicker: `Point of interest · ${i + 1}/${stops.length}`, title: d.name, text: d.caption || '', poiId: d.id });
+                    kicker: `Point of interest · ${i + 1}/${stops.length}`, title: d.name, text: d.caption || '', poiId: d.id,
+                    image: d.tourPhoto, imageCredit: d.tourPhotoCredit, imagePlaceholder: d.tourPhotoPlaceholder });
             });
             return shots;
+        }
+        // Great-circle-ish distance (m) and 8-point compass word from geo a to geo b.
+        function geoDistM(a, b) {
+            const k = 111320, c = Math.cos((a.lat + b.lat) / 2 * Math.PI / 180);
+            return Math.hypot((b.lon - a.lon) * k * c, (b.lat - a.lat) * k);
+        }
+        function compassWord(a, b) {
+            const c = Math.cos((a.lat + b.lat) / 2 * Math.PI / 180);
+            const deg = (Math.atan2((b.lon - a.lon) * c, b.lat - a.lat) * 180 / Math.PI + 360) % 360;
+            return ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(deg / 45) % 8];
         }
         function attractPose(shot, secs) {
             let { target, dist, el, az } = shot;
@@ -8086,13 +8217,21 @@
         function setAttractCaption(shot) {
             const cap = document.querySelector('#attract .at-caption');
             if (!cap) return;
-            cap.classList.add('hidden');
+            const ph = document.getElementById('at-photo');
+            cap.classList.add('hidden'); ph.classList.add('hidden');
             setTimeout(() => {
                 if (!attract.on) return;
                 document.getElementById('at-cap-kicker').textContent = shot.kicker || '';
                 document.getElementById('at-cap-title').textContent = shot.title || '';
                 document.getElementById('at-cap-text').textContent = shot.text || '';
+                const im = document.getElementById('at-cap-img'), cr = document.getElementById('at-cap-credit');
+                if (shot.image) {
+                    im.src = shot.image; im.hidden = false;
+                    im.classList.toggle('placeholder', !!shot.imagePlaceholder);
+                    cr.textContent = shot.imageCredit ? 'Photo: ' + shot.imageCredit : '';
+                } else { im.hidden = true; im.removeAttribute('src'); cr.textContent = ''; }
                 cap.classList.remove('hidden');
+                if (shot.image) ph.classList.remove('hidden');
             }, 650);
             const dots = document.getElementById('at-dots');
             if (dots) [...dots.children].forEach((d, i) => d.classList.toggle('on', i === attract.idx));
@@ -8217,9 +8356,12 @@
             const div = document.getElementById('at-split');
             const el = renderer.domElement, w = el.clientWidth, h = el.clientHeight;
             if (params.attractReveal !== 'split') {
-                // Terrain cut: one normal render; the trench + exposed qanat do the reveal.
+                // Terrain cut: one normal render; the trench / slice + exposed qanat do the reveal.
+                // 'mixed': the wide qanat shot slices the whole landscape, close-ups dig a trench.
                 if (div) div.classList.remove('show');
-                updateTourCut(r);
+                const shot = attract.shots[attract.idx] || {};
+                const mode = params.attractReveal === 'mixed' ? (shot.wide ? 'slice' : 'cut') : params.attractReveal;
+                updateTourCut(r, mode);
                 setAttractPass('surface');
                 // …and from far away (site LOD) the whole qanat shows in x-ray under the one marker.
                 if (subsurfaceGroup) subsurfaceGroup.visible = r > 0.02 || siteFar > 0.5;
@@ -8261,7 +8403,7 @@
             const k = Math.max(m - metersToYDepth(KO_M), base + 0.3);
             return [sT, w, g, m, k, base].map(v => Math.max(v, base));
         }
-        function buildTrenchWalls(xmin, xmax, cutZ, zFront, bottom) {
+        function buildTrenchWalls(xmin, xmax, cutZ, zFront, bottom, slice) {
             const C = strataColors(), cols = [C.weath, C.sand, C.marl, C.ko, C.km];
             const pos = [], col = [];
             const wall = pts => {   // pts: [{x,z}, ...] along the wall
@@ -8277,6 +8419,14 @@
                 }
             };
             const line = (x0, z0, x1, z1, n) => Array.from({ length: n + 1 }, (_, i) => ({ x: x0 + (x1 - x0) * i / n, z: z0 + (z1 - z0) * i / n }));
+            if (slice) {
+                // Slice: only the section face, across the whole landscape (one column / ~12 m).
+                wall(line(xmin, cutZ, xmax, cutZ, Math.min(400, Math.ceil((xmax - xmin) * metersPerUnitH() / 12))));
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+                return g;
+            }
             wall(line(xmin, cutZ, xmax, cutZ, 90));       // back wall: the section along the qanat
             wall(line(xmin, cutZ, xmin, zFront, 24));     // side walls
             wall(line(xmax, cutZ, xmax, zFront, 24));
@@ -8291,13 +8441,21 @@
             g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
             return g;
         }
-        function updateTourCut(r) {
+        // mode 'cut': a trench in front of the qanat (x-range of the qanat, ~90 m deep toward the
+        // camera). mode 'slice': ONE section across the WHOLE landscape — everything south of
+        // the qanat line (terrain, context, buildings) is removed and the strata face runs the
+        // full width; the cut sweeps in from the landscape's southern edge.
+        function updateTourCut(r, mode) {
+            const slice = mode === 'slice';
             const on = r > 0.01 && lastBasePts.length >= 2;
-            // (Re)collect the clip targets after each model rebuild.
-            if (!tourCut.mats.length || !tourCut.mats[0].__alive) {
+            // (Re)collect the clip targets after each model / buildings rebuild.
+            if (!tourCut.mats.length || !tourCut.mats[0].__alive || tourCut.bBuild !== buildingsBuild) {
+                if (tourCut.on) tourCut.mats.forEach(m => { m.clippingPlanes = null; m.needsUpdate = true; });
                 tourCut.mats = [];
                 modelGroup.traverse(o => { if (o.userData && o.userData.tourClip && o.material) tourCut.mats.push(o.material); });
+                if (buildingsGroup) buildingsGroup.children.forEach(o => tourCut.mats.push(o.material));
                 tourCut.mats.forEach(m => { m.__alive = true; });
+                tourCut.bBuild = buildingsBuild;
                 tourCut.on = false; tourCut.lastKey = '';
                 if (tourCut.walls) { tourCut.walls.parent && tourCut.walls.parent.remove(tourCut.walls); tourCut.walls.geometry.dispose(); tourCut.walls = null; }
             }
@@ -8309,20 +8467,29 @@
             }
             if (!on) return;
             const xs = lastBasePts.map(p => p.x), zs = lastBasePts.map(p => p.z);
-            const xmin = Math.min(...xs) - 3, xmax = Math.max(...xs) + 3;
-            const cutZFinal = xsecRouteZ + 0.4, zFront = Math.max(...zs) + 9;
+            let xmin = Math.min(...xs) - 3, xmax = Math.max(...xs) + 3, zFront = Math.max(...zs) + 9;
+            if (slice) {   // the whole context block
+                const B = CONTEXT_BBOX, a = geoToScene(B.north, B.west), b = geoToScene(B.south, B.east);
+                xmin = Math.min(a.x, b.x) - 1; xmax = Math.max(a.x, b.x) + 1; zFront = Math.max(a.z, b.z) + 1;
+            }
+            const cutZFinal = xsecRouteZ + 0.4;
             // Dig only ~12 m below the lowest gallery floor, not down to the scene base.
-            const bottom = Math.min(...lastBasePts.map(p => p.y)) - metersToYDepth(12);
+            let bottom = Math.min(...lastBasePts.map(p => p.y)) - metersToYDepth(12);
             const cutZ = zFront - easeInOut(Math.min(1, r)) * (zFront - cutZFinal);
+            if (slice) {   // the section crosses the valley too: reach below its lowest ground
+                let lo = Infinity;
+                for (let i = 0; i <= 60; i++) lo = Math.min(lo, getTerrainHeight(xmin + (xmax - xmin) * i / 60, cutZFinal));
+                bottom = Math.min(bottom, lo - metersToYDepth(15));
+            }
             const P = tourCut.planes;
             P[0].set(new THREE.Vector3(0, 0, -1), cutZ);     // clipped where z > cutZ …
             P[1].set(new THREE.Vector3(0, 0, 1), -zFront);   // … and z < zFront …
             P[2].set(new THREE.Vector3(-1, 0, 0), xmin);     // … and x > xmin …
             P[3].set(new THREE.Vector3(1, 0, 0), -xmax);     // … and x < xmax (clipIntersection)
-            const key = cutZ.toFixed(2);
+            const key = mode + cutZ.toFixed(2);
             if (key !== tourCut.lastKey) {
                 tourCut.lastKey = key;
-                const g = buildTrenchWalls(xmin, xmax, cutZ, zFront, bottom);
+                const g = buildTrenchWalls(xmin, xmax, cutZ, zFront, bottom, slice);
                 if (!tourCut.walls) {
                     tourCut.walls = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
                     tourCut.walls.renderOrder = 2; tourCut.walls.raycast = () => {};
@@ -8386,6 +8553,12 @@
             });
             const rv = document.getElementById('param-attract-reveal');
             if (rv) rv.addEventListener('change', e => { params.attractReveal = e.target.value; });
+            const bl = document.getElementById('param-attract-blur');
+            const applyBlur = () => document.getElementById('attract').classList.toggle('blur', !!params.attractBlur);
+            if (bl) bl.addEventListener('change', e => { params.attractBlur = e.target.checked; applyBlur(); });
+            applyBlur();
+            const ef = document.getElementById('param-edge-fade');
+            if (ef) ef.addEventListener('change', e => { params.contextEdgeFade = e.target.checked; });
             const btn = document.getElementById('btn-attract');
             if (btn) btn.addEventListener('click', () => setTimeout(startAttract, 0));
         }
@@ -8423,6 +8596,7 @@
             updatePoiScales();         // POI markers: constant screen size or model size × slider
             updateSelectionMarker();   // billboard + constant screen size, from this frame's camera
             updateBuildingFade();      // buildings between the camera and its target dissolve
+            updateEdgeFade();          // the town context fades into the background at its border
             if (attract.on) renderAttractFrame(now); else renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
             // events and the fly-to animation above.

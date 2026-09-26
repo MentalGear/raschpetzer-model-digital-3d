@@ -1,5 +1,5 @@
 {
-  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `site: true` marks the single whole-site marker shown INSTEAD of the detailed POIs when the camera is far away (e.g. from the town / kiosk) — the details fade in as you get closer (index.html SITE_LOD). `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`.",
+  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `site: true` marks the single whole-site marker shown INSTEAD of the detailed POIs when the camera is far away (e.g. from the town / kiosk) — the details fade in as you get closer (index.html SITE_LOD). `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`. `tourPhoto` (+ `tourPhotoCredit`) is the picture shown in the title tour's caption card at that stop (`tourPhotoPlaceholder: true` marks a stand-in until a real photo is supplied). `landmark: true` marks a well-known town place (town hall, sports hall, …) used for orientation: shown in the far/town view with the whole-site marker, hidden among the on-site details; with `tour: true` it is a stop of the title tour, flown past between the town and the overview.",
   "pois": [
     {
       "id": "you-are-here",
@@ -18,7 +18,9 @@
       "status": "documented",
       "caption": "Walferdange town centre, in front of Maison Dufaing. The Raschpëtzer lies ~1.4 km north-east, under the wooded Pëtschend plateau.",
       "description": "Kiosk location: the square in front of Maison Dufaing (1, Rue Josy Welter), by the Rond-Point des Roses in Walferdange town centre. The Raschpëtzer's visitor's gallery is ~1400 m to the north-east as the crow flies; by car or bus, follow Rue Prince Henri / CR 126 up the hill to the visitor car park (~1810 m, east-north-east) and walk ~15 minutes.",
-      "note": "Position: the open space between Maison Dufaing (OSM building way 477351713) and the Rond-Point des Roses (OSM junction=roundabout). Adjust `geo` in data/poi.json if the display stands elsewhere on the square. The town surroundings use a coarse (~50 m) ACT LiDAR 2019 context grid and the geoportail.lu topographic map."
+      "note": "Position: the open space between Maison Dufaing (OSM building way 477351713) and the Rond-Point des Roses (OSM junction=roundabout). Adjust `geo` in data/poi.json if the display stands elsewhere on the square. The town surroundings use a coarse (~50 m) ACT LiDAR 2019 context grid and the geoportail.lu topographic map.",
+      "tourPhoto": "assets/poi/placeholder.webp",
+      "tourPhotoPlaceholder": true
     },
     {
       "id": "raschpetzer-site",
@@ -38,7 +40,94 @@
       "status": "documented",
       "description": "The Raschpëtzer qanat: a Roman underground aqueduct (in use c. AD 140–350) under the wooded Pëtschend plateau between Walferdange and Helmsange — a line of shafts over a near-level gallery that drew groundwater out of the sandstone. Zoom in (or tap) for the car park, the visitor's gallery, the lit shafts and the spring outflow.",
       "note": "Single whole-site marker for distant views, placed at the centre of the documented shaft line (mean of the 15 georeferenced shafts, data/shafts.json). It replaces the detailed POIs until the camera is close enough to tell them apart.",
-      "caption": "The Roman qanat under the Pëtschend plateau."
+      "caption": "The Roman qanat under the Pëtschend plateau.",
+      "tourPhoto": "assets/poi/gallery-waterfall.webp",
+      "tourPhotoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (107).jpg”"
+    },
+    {
+      "id": "townhall",
+      "name": "Town hall (Mairie)",
+      "kind": "landmark",
+      "icon": "landmark",
+      "color": "#5b6475",
+      "landmark": true,
+      "tour": true,
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.658566,
+        "lon": 6.130508,
+        "status": "documented"
+      },
+      "source": "osm-poi",
+      "osm": "Mairie de Walferdange, 1 Place de la Mairie",
+      "status": "documented",
+      "tourPhoto": "assets/poi/placeholder.webp",
+      "tourPhotoPlaceholder": true,
+      "description": "Mairie de Walferdange (1, Place de la Mairie), next to the kiosk square. Guided visits of the Raschpëtzer can be booked here (Leaflet 2017).",
+      "note": "Position: OpenStreetMap amenity=townhall 'Mairie de Walferdange' (via Nominatim). Landmark for orientation only.",
+      "caption": "Walferdange town hall — guided visits of the qanat are booked here."
+    },
+    {
+      "id": "sports-hall",
+      "name": "Sports hall Prince Henri",
+      "kind": "landmark",
+      "icon": "landmark",
+      "color": "#5b6475",
+      "landmark": true,
+      "tour": true,
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.660848,
+        "lon": 6.130509,
+        "status": "documented"
+      },
+      "source": "osm-poi",
+      "osm": "way/34837772",
+      "status": "documented",
+      "tourPhoto": "assets/poi/placeholder.webp",
+      "tourPhotoPlaceholder": true,
+      "description": "Hall omnisports Prince Henri, the commune's sports complex by the Alzette cycle path.",
+      "note": "Position: OpenStreetMap leisure=sports_centre way 34837772 (centre). Landmark for orientation only.",
+      "caption": "The Prince Henri sports complex by the Alzette."
+    },
+    {
+      "id": "castle",
+      "name": "Château de Walferdange",
+      "kind": "landmark",
+      "icon": "landmark",
+      "color": "#5b6475",
+      "landmark": true,
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.660395,
+        "lon": 6.133814,
+        "status": "documented"
+      },
+      "source": "osm-poi",
+      "status": "documented",
+      "description": "Château de Walferdange (Route de Diekirch), the former grand-ducal residence.",
+      "note": "Position: OpenStreetMap historic=castle (via Nominatim). Landmark for orientation only.",
+      "caption": "Château de Walferdange."
+    },
+    {
+      "id": "station",
+      "name": "Walferdange station",
+      "kind": "landmark",
+      "icon": "landmark",
+      "color": "#5b6475",
+      "landmark": true,
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.661947,
+        "lon": 6.136385,
+        "status": "documented"
+      },
+      "source": "osm-poi",
+      "osm": "node/3730496871",
+      "status": "documented",
+      "description": "Walferdange railway station (CFL line 10, Luxembourg – Ettelbruck).",
+      "note": "Position: OpenStreetMap railway=station node 3730496871. Landmark for orientation only.",
+      "caption": "Walferdange railway station."
     },
     {
       "id": "parking",
@@ -60,7 +149,9 @@
       "status": "documented",
       "description": "Visitor car park on the CR 126 — the continuation of Rue Prince Henri climbing east out of Walferdange (labelled CR 125 in the 2017 leaflet), by the bus stop — start of the marked ~15-minute walk past the shafts to the visitor's gallery at P-5 (Leaflet 2017).",
       "note": "Identified on the Leaflet 2017 access map (route start, next to the bus stop); the map georeferenced from 7 shaft positions (≤2 m residual) puts the lot within ~40 m of this OpenStreetMap amenity=parking area (way 385690665), whose centre is used here. A second car park ~130 m further east on the CR 125 is also marked on the leaflet.",
-      "caption": "Start of the 15-minute walk to the qanat — by the bus stop on the CR 126."
+      "caption": "Start of the 15-minute walk to the qanat — by the bus stop on the CR 126.",
+      "tourPhoto": "assets/poi/trail-sign.webp",
+      "tourPhotoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (103).jpg”"
     },
     {
       "id": "p5",
@@ -76,7 +167,9 @@
       "status": "documented",
       "description": "Deepest shaft (≈36 m) on the eastern plateau edge; first cleared to its base on 3 Oct 1986, rediscovering the gallery. Its steel cover has a glass window, and a button beside it switches on glare-free lighting down the whole shaft (to a small drip-fed pool at the bottom).",
       "note": "An information panel stands beside P5 (Leaflet 2017 plan; OSM 'Le Qanat Romain de Helmsange' board, 3 m away). Click the shaft itself for its documented depth, floor level and provenance.",
-      "caption": "The deepest shaft, 36 m — press the button by its glass cover to light it up."
+      "caption": "The deepest shaft, 36 m — press the button by its glass cover to light it up.",
+      "tourPhoto": "assets/poi/p5-cover.webp",
+      "tourPhotoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (Puits 05).jpg”"
     },
     {
       "id": "visitor-gallery",
@@ -95,7 +188,9 @@
       "status": "documented",
       "description": "Entrance to the 17 m horizontal visitor's gallery (2000, pre-cast concrete) leading to the base of P-5, where the qanat water leaves the built channel in a small waterfall into limestone fissures (the 'geological accident'). Drawings of the system are posted inside; lights switch on automatically. Open Sundays, April–October, 2:30–5:30 pm; free (Leaflet 2017).",
       "note": "Entrance position read from the Leaflet 2017 inset plan (1:625), georeferenced from 13 main-line shafts (≤1.7 m residual). Guided visits can be booked at Walferdange town hall.",
-      "caption": "A 17 m tunnel to the qanat itself. Open Sundays, April–October, 2:30–5:30 pm."
+      "caption": "A 17 m tunnel to the qanat itself. Open Sundays, April–October, 2:30–5:30 pm.",
+      "tourPhoto": "assets/poi/gallery-base.webp",
+      "tourPhotoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (106).jpg”"
     },
     {
       "id": "spring",
@@ -116,7 +211,9 @@
       "status": "documented",
       "description": "Visible water outflow at the end of the secondary channel, reconstructed in 2000 to show how the Roman channel is built inside the hill: dry-stone side walls covered with flat stones and gravel. Three information panels surround the spot; the pond and chute below were designed for the site and are not historical (Brochure 2018 p.32).",
       "note": "Placed at the field-GPS-surveyed outlet of the P-4 lateral channel (gallery.json overflowChannel.surfaceOutlet), matching the Leaflet 2017 plan ('Release of diverted water', SW of P-4) and the OSM spring node. The photo's own Commons geotag (camera position) lies ~70 m NW and was not used.",
-      "caption": "Diverted qanat water still flows out here, through a reconstructed Roman-style channel."
+      "caption": "Diverted qanat water still flows out here, through a reconstructed Roman-style channel.",
+      "tourPhoto": "assets/poi/spring-pond.webp",
+      "tourPhotoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (105).jpg”"
     },
     {
       "id": "p-4",
@@ -133,7 +230,9 @@
       "status": "documented",
       "description": "12 m shaft built entirely of dry sandstone masonry on the Alzette hillside. Its windowed steel cover and push-button lighting show the base, where the overflow threshold diverts surplus water into the lateral channel (Brochure 2018 p.31).",
       "note": "Click the shaft itself for its documented depth and provenance.",
-      "caption": "Lit shaft over the overflow weir that diverts surplus water into a side channel."
+      "caption": "Lit shaft over the overflow weir that diverts surplus water into a side channel.",
+      "tourPhoto": "assets/poi/p-4-cover.webp",
+      "tourPhotoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (Puits -04).jpg”"
     },
     {
       "id": "dauvebur",
@@ -152,7 +251,9 @@
       "status": "documented",
       "description": "Spring (~20 m³/day) cleared in 2015 in the search for a continuation of the qanat channel; its 1875 brick intake was removed and the spring restored to its natural state. A trail created in 2015 leads down to it from the qanat site (Brochure 2018 pp.12, 32).",
       "note": "Position: OpenStreetMap spring node 'Dauwebuer' (node 7006473939); the spring symbol on the Leaflet 2017 access map, georeferenced, lies ~17 m from it.",
-      "caption": "A spring restored in 2015 while searching for the qanat's lost continuation."
+      "caption": "A spring restored in 2015 while searching for the qanat's lost continuation.",
+      "tourPhoto": "assets/poi/placeholder.webp",
+      "tourPhotoPlaceholder": true
     },
     {
       "id": "bus-stop",
