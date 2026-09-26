@@ -1,6 +1,20 @@
 {
-  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn when no `photo` is given (or while/if it fails to load): parking | shaft | spring | gallery | bus | info. List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`.",
+  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn when no `photo` is given (or while/if it fails to load): parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`.",
   "pois": [
+    {
+      "id": "you-are-here",
+      "name": "You are here",
+      "kind": "here",
+      "icon": "here",
+      "color": "#d62828",
+      "kiosk": true,
+      "geo": { "crs": "EPSG:4326", "lat": 49.65905, "lon": 6.13215, "status": "documented" },
+      "source": "osm-poi",
+      "status": "documented",
+      "caption": "Walferdange town centre, in front of Maison Dufaing. The Raschpëtzer lies ~1.4 km north-east, under the wooded Pëtschend plateau.",
+      "description": "Kiosk location: the square in front of Maison Dufaing (1, Rue Josy Welter), by the Rond-Point des Roses in Walferdange town centre. The Raschpëtzer's visitor's gallery is ~1400 m to the north-east as the crow flies; by car or bus, follow Rue Prince Henri / CR 126 up the hill to the visitor car park (~1810 m, east-north-east) and walk ~15 minutes.",
+      "note": "Position: the open space between Maison Dufaing (OSM building way 477351713) and the Rond-Point des Roses (OSM junction=roundabout). Adjust `geo` in data/poi.json if the display stands elsewhere on the square. The town surroundings use a coarse (~50 m) ACT LiDAR 2019 context grid and the geoportail.lu topographic map."
+    },
     {
       "id": "parking",
       "name": "Raschpëtzer Parking",
@@ -11,8 +25,9 @@
       "source": "leaflet2017",
       "osm": "way/385690665",
       "status": "documented",
-      "description": "Visitor car park on the CR 125, by the bus stop — start of the marked ~15-minute walk past the shafts to the visitor's gallery at P-5 (Leaflet 2017).",
-      "note": "Identified on the Leaflet 2017 access map (route start, next to the bus stop); the map georeferenced from 7 shaft positions (≤2 m residual) puts the lot within ~40 m of this OpenStreetMap amenity=parking area (way 385690665), whose centre is used here. A second car park ~130 m further east on the CR 125 is also marked on the leaflet."
+      "description": "Visitor car park on the CR 126 — the continuation of Rue Prince Henri climbing east out of Walferdange (labelled CR 125 in the 2017 leaflet), by the bus stop — start of the marked ~15-minute walk past the shafts to the visitor's gallery at P-5 (Leaflet 2017).",
+      "note": "Identified on the Leaflet 2017 access map (route start, next to the bus stop); the map georeferenced from 7 shaft positions (≤2 m residual) puts the lot within ~40 m of this OpenStreetMap amenity=parking area (way 385690665), whose centre is used here. A second car park ~130 m further east on the CR 125 is also marked on the leaflet.",
+      "caption": "Start of the 15-minute walk to the qanat — by the bus stop on the CR 126."
     },
     {
       "id": "p5",
@@ -24,7 +39,8 @@
       "source": "brochure2018",
       "status": "documented",
       "description": "Deepest shaft (≈36 m) on the eastern plateau edge; first cleared to its base on 3 Oct 1986, rediscovering the gallery. Its steel cover has a glass window, and a button beside it switches on glare-free lighting down the whole shaft (to a small drip-fed pool at the bottom).",
-      "note": "An information panel stands beside P5 (Leaflet 2017 plan; OSM 'Le Qanat Romain de Helmsange' board, 3 m away). Click the shaft itself for its documented depth, floor level and provenance."
+      "note": "An information panel stands beside P5 (Leaflet 2017 plan; OSM 'Le Qanat Romain de Helmsange' board, 3 m away). Click the shaft itself for its documented depth, floor level and provenance.",
+      "caption": "The deepest shaft, 36 m — press the button by its glass cover to light it up."
     },
     {
       "id": "visitor-gallery",
@@ -37,7 +53,8 @@
       "source": "leaflet2017",
       "status": "documented",
       "description": "Entrance to the 17 m horizontal visitor's gallery (2000, pre-cast concrete) leading to the base of P-5, where the qanat water leaves the built channel in a small waterfall into limestone fissures (the 'geological accident'). Drawings of the system are posted inside; lights switch on automatically. Open Sundays, April–October, 2:30–5:30 pm; free (Leaflet 2017).",
-      "note": "Entrance position read from the Leaflet 2017 inset plan (1:625), georeferenced from 13 main-line shafts (≤1.7 m residual). Guided visits can be booked at Walferdange town hall."
+      "note": "Entrance position read from the Leaflet 2017 inset plan (1:625), georeferenced from 13 main-line shafts (≤1.7 m residual). Guided visits can be booked at Walferdange town hall.",
+      "caption": "A 17 m tunnel to the qanat itself. Open Sundays, April–October, 2:30–5:30 pm."
     },
     {
       "id": "spring",
@@ -52,7 +69,8 @@
       "source": "leaflet2017",
       "status": "documented",
       "description": "Visible water outflow at the end of the secondary channel, reconstructed in 2000 to show how the Roman channel is built inside the hill: dry-stone side walls covered with flat stones and gravel. Three information panels surround the spot; the pond and chute below were designed for the site and are not historical (Brochure 2018 p.32).",
-      "note": "Placed at the field-GPS-surveyed outlet of the P-4 lateral channel (gallery.json overflowChannel.surfaceOutlet), matching the Leaflet 2017 plan ('Release of diverted water', SW of P-4) and the OSM spring node. The photo's own Commons geotag (camera position) lies ~70 m NW and was not used."
+      "note": "Placed at the field-GPS-surveyed outlet of the P-4 lateral channel (gallery.json overflowChannel.surfaceOutlet), matching the Leaflet 2017 plan ('Release of diverted water', SW of P-4) and the OSM spring node. The photo's own Commons geotag (camera position) lies ~70 m NW and was not used.",
+      "caption": "Diverted qanat water still flows out here, through a reconstructed Roman-style channel."
     },
     {
       "id": "p-4",
@@ -65,7 +83,8 @@
       "source": "brochure2018",
       "status": "documented",
       "description": "12 m shaft built entirely of dry sandstone masonry on the Alzette hillside. Its windowed steel cover and push-button lighting show the base, where the overflow threshold diverts surplus water into the lateral channel (Brochure 2018 p.31).",
-      "note": "Click the shaft itself for its documented depth and provenance."
+      "note": "Click the shaft itself for its documented depth and provenance.",
+      "caption": "Lit shaft over the overflow weir that diverts surplus water into a side channel."
     },
     {
       "id": "dauvebur",
@@ -78,19 +97,21 @@
       "osm": "node/7006473939",
       "status": "documented",
       "description": "Spring (~20 m³/day) cleared in 2015 in the search for a continuation of the qanat channel; its 1875 brick intake was removed and the spring restored to its natural state. A trail created in 2015 leads down to it from the qanat site (Brochure 2018 pp.12, 32).",
-      "note": "Position: OpenStreetMap spring node 'Dauwebuer' (node 7006473939); the spring symbol on the Leaflet 2017 access map, georeferenced, lies ~17 m from it."
+      "note": "Position: OpenStreetMap spring node 'Dauwebuer' (node 7006473939); the spring symbol on the Leaflet 2017 access map, georeferenced, lies ~17 m from it.",
+      "caption": "A spring restored in 2015 while searching for the qanat's lost continuation."
     },
     {
       "id": "bus-stop",
-      "name": "Bus stop (CR 125)",
+      "name": "Bus stop",
       "kind": "bus",
       "icon": "bus",
       "color": "#0b6e4f",
       "geo": { "crs": "EPSG:4326", "lat": 49.663876, "lon": 6.156876, "status": "reconstructed" },
       "source": "leaflet2017",
       "status": "reconstructed",
-      "description": "Bus stop on the CR 125 next to the visitor car park, at the start of the walking route to the qanat.",
-      "note": "Position read from the bus symbol on the Leaflet 2017 access map (georeferenced from 7 shafts; symbol placement ± ~10–20 m). Not cross-checked against a stop register."
+      "description": "Bus stop on the CR 126 (CR 125 in the 2017 leaflet) next to the visitor car park, at the start of the walking route to the qanat.",
+      "note": "Position read from the bus symbol on the Leaflet 2017 access map (georeferenced from 7 shafts; symbol placement ± ~10–20 m). Not cross-checked against a stop register.",
+      "caption": "Bus stop next to the visitor car park."
     },
     {
       "id": "parking-east",
@@ -102,8 +123,9 @@
       "source": "leaflet2017",
       "osm": "way/384122920",
       "status": "documented",
-      "description": "Second car park on the CR 125, just east of the bus stop; the walk to the qanat starts from the main visitor car park ~130 m west.",
-      "note": "Marked P on the Leaflet 2017 access map (georeferenced position ~18 m from this OpenStreetMap parking area, whose centre is used)."
+      "description": "Second car park on the same road, just east of the bus stop; the walk to the qanat starts from the main visitor car park ~130 m west.",
+      "note": "Marked P on the Leaflet 2017 access map (georeferenced position ~18 m from this OpenStreetMap parking area, whose centre is used).",
+      "caption": "Second car park, just east of the bus stop."
     }
   ]
 }

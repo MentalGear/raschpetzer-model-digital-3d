@@ -8,6 +8,7 @@ bun.lockb
 # bake-lidar.mjs backup of the previous baked terrain grid
 assets/geodata-walferdange.js.bak
 assets/geodata-inset-raschpetzer.js.bak
+assets/geodata-context-walferdange.js.bak
 
 # temporary agent worktrees
 .claude/worktrees/

@@ -32,6 +32,13 @@ source; documented facts are visually distinguished from inferred/schematic ones
   defined in `data/poi.json` (toggle *Points of interest*, with a *POI size* slider and a
   *Constant screen size* switch: fixed on-screen size at any zoom, or scale with the model;
   overlapping markers are hidden by priority until you zoom in).
+- **Title screen / kiosk mode** (default on; Settings → *Title screen & tour*): opens on a
+  DVD-menu-style title card over a looping ~90 s camera tour — from the **"You are here"**
+  kiosk marker in Walferdange town centre (in front of Maison Dufaing), an overview from above,
+  the qanat, then each point of interest, with captions. Any touch exits; it returns after
+  2 minutes idle. Shared links with a view/selection (`?cam=` / `?sel=`) skip it.
+- **Town context**: a coarse (~50 m) ACT LiDAR 2019 grid + geoportail.lu topographic map/aerial
+  over Walferdange and the valley (`scripts/bake-context.mjs`), shown around the modelled window.
 - **Annotations** (drop notes, localStorage, import/export), **measurement tool**,
   **animated water flow**, W↔E flip, reference-image overlay.
 - **Context-aware controls**: only the sliders/toggles that affect the current
@@ -146,6 +153,7 @@ rebuild, since the whole scene rebuilds on most setting changes.
 | `bun run dev` | Bake, then serve with Vite at :5173 |
 | `bun run bake` | Validate → generate `assets/data.bundle.js` + `docs/RASCHPETZER_DATA.md` |
 | `bun run validate` | Validate the SSOT (CI gate) |
+| `node scripts/bake-context.mjs` | Re-fetch the town-context map/aerial drapes (terrain grid: see the script header) |
 | `bun run build` | Validate + bake (static site; deploy by serving the repo root) |
 
 ## Deploy (static / GitHub Pages)

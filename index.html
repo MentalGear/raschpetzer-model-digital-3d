@@ -796,6 +796,55 @@
         }
         #measure-readout b { color: #ffd23f; }
 
+        /* Title screen / kiosk attract mode (see startAttract). A full-viewport overlay above
+           the 3D canvas: DVD-menu style title in the upper-right corner over a dark radial
+           gradient that fades out across the scene, a lower-left caption for the current
+           camera shot, and a pulsing "touch to explore" prompt. All chrome is hidden. */
+        #attract { position: fixed; inset: 0; z-index: 70; pointer-events: none; display: none; }
+        body.attract #attract { display: block; }
+        body.attract #ui-panel, body.attract #wip-banner, body.attract #legend-modal-backdrop,
+        body.attract #profile-modal-backdrop, body.attract #nav-pad, body.attract .compass-label,
+        body.attract #compass, body.attract .instructions, body.attract #drawer-toggle,
+        body.attract #selection-dismiss, body.attract #timeline-bar, body.attract #ortho-attrib,
+        body.attract #scale-bar { display: none !important; }
+        body.attract #canvas-container { cursor: pointer; }
+        #attract .at-scrim { position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 75% 85% at 100% 0%, rgba(12,14,20,0.90) 0%, rgba(12,14,20,0.62) 32%, rgba(12,14,20,0.18) 62%, rgba(12,14,20,0) 80%),
+                radial-gradient(ellipse 60% 45% at 0% 100%, rgba(12,14,20,0.72) 0%, rgba(12,14,20,0.35) 45%, rgba(12,14,20,0) 75%),
+                linear-gradient(to top, rgba(12,14,20,0.45) 0%, rgba(12,14,20,0) 22%); }
+        #attract .at-title { position: absolute; top: clamp(20px, 5vh, 56px); right: clamp(20px, 4vw, 64px);
+            text-align: right; color: #f5efe4; text-shadow: 0 2px 18px rgba(0,0,0,0.6);
+            animation: atTitleIn 1.6s ease both; }
+        #attract .at-kicker { font-size: clamp(0.72rem, 1.3vw, 0.95rem); letter-spacing: 0.32em;
+            text-transform: uppercase; color: #e6b45a; margin-bottom: 0.4em; }
+        #attract .at-title h1 { font-family: "Trajan Pro", "Cinzel", "Optima", Georgia, "Times New Roman", serif;
+            font-weight: 400; font-size: clamp(2.4rem, 7vw, 6rem); line-height: 1; letter-spacing: 0.08em;
+            color: #fbf6ec; margin: 0; }
+        #attract .at-sub { font-family: Georgia, "Times New Roman", serif; font-style: italic;
+            font-size: clamp(0.95rem, 2vw, 1.5rem); color: #d9d1c3; margin-top: 0.35em; }
+        #attract .at-rule { height: 2px; width: clamp(80px, 14vw, 220px); margin: 0.9em 0 0 auto;
+            background: linear-gradient(to left, #e6b45a, rgba(230,180,90,0)); }
+        #attract .at-caption { position: absolute; left: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
+            max-width: min(560px, 80vw); color: #f5efe4; text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+            transition: opacity 0.6s ease, transform 0.6s ease; }
+        #attract .at-caption.hidden { opacity: 0; transform: translateY(8px); }
+        #attract .at-cap-kicker { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
+            color: #f3c46a; text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 14px rgba(0,0,0,0.6); }
+        #attract .at-cap-title { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.3rem, 2.6vw, 2.1rem); margin: 0.15em 0 0.25em; }
+        #attract .at-cap-text { font-size: clamp(0.9rem, 1.4vw, 1.1rem); line-height: 1.45; color: #e7e1d6; }
+        #attract .at-prompt { position: absolute; left: 50%; bottom: clamp(16px, 3vh, 34px); transform: translateX(-50%);
+            font-size: clamp(0.8rem, 1.3vw, 1rem); letter-spacing: 0.28em; text-transform: uppercase; color: #fbf6ec;
+            text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap; }
+        #attract .at-dots { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(20px, 3.5vh, 38px); display: flex; gap: 6px; }
+        #attract .at-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: background 0.4s, transform 0.4s; }
+        #attract .at-dots span.on { background: #e6b45a; transform: scale(1.35); }
+        #attract .at-attrib { position: absolute; right: clamp(20px, 4vw, 64px); bottom: 6px; font-size: 0.62rem;
+            color: rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        @keyframes atPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+        @keyframes atTitleIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: reduce) { #attract .at-prompt { animation: none; } #attract .at-title { animation: none; } }
+
         #tour-bar {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             z-index: 12; display: none; align-items: center; gap: 6px;
@@ -863,6 +912,7 @@
     <script src="vendor/OrbitControls.js"></script>
     <script src="assets/geodata-walferdange.js"></script>
     <script src="assets/geodata-inset-raschpetzer.js"></script>
+    <script src="assets/geodata-context-walferdange.js"></script>
     <script src="assets/data.bundle.js"></script>
     <script src="assets/vectors-walferdange.js"></script>
     <script src="assets/paths-walferdange.js"></script>
@@ -1042,7 +1092,7 @@
             <div class="control-group">
                 <div id="geo-status" style="font-size:0.72rem;color:var(--panel-text-dim);margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
-                <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
+                <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Surrounding&nbsp;context&nbsp;(town,&nbsp;valley,&nbsp;villa)</label>
                 <div class="opt-group" id="grp-hires-inset">
                     <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
                     <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 8px;line-height:1.35;">Denser LiDAR patch (~3.6&nbsp;m cells vs. the main terrain's ~7.5&nbsp;m) over just the shaft area. Subtle at normal zoom &mdash; mainly useful up close, or as a base for future higher-res sampling.</div>
@@ -1115,6 +1165,11 @@
             <button id="btn-export-svg" type="button" class="dev-toggle" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
         </div>
         <div class="control-group">
+            <label>Title screen</label>
+            <label class="check-row"><input type="checkbox" id="param-attract" checked> Title&nbsp;screen&nbsp;&amp;&nbsp;tour&nbsp;(kiosk)</label>
+            <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 8px;line-height:1.35;">Opens on a title screen with a ~90&nbsp;s camera tour (town → overview → points of interest), and returns to it after 2&nbsp;minutes without interaction. Shared links to a view or selection skip it.</div>
+        </div>
+        <div class="control-group">
             <label class="check-row dev-opt" id="row-presets-compact"><input type="checkbox" id="param-presets-compact"> Compact&nbsp;quick-view&nbsp;cards</label>
             <button id="btn-dev-mode" type="button" class="dev-toggle">🛠 Developer mode</button>
         </div>
@@ -1124,6 +1179,7 @@
         <div class="control-group">
             <label>Tools</label>
             <div class="btn-tools">
+                <button id="btn-attract" type="button">🎬 Title screen</button>
                 <button id="btn-share" type="button">🔗 Share</button>
                 <button id="btn-timeline" type="button">⏳ Timeline</button>
                 <button id="btn-legend" type="button">▤ Legend</button>
@@ -1212,6 +1268,26 @@
     </div>
 
     <div id="dev-border" aria-hidden="true"></div>
+
+    <!-- Title screen / kiosk attract mode (see startAttract): title top-right over a corner
+         gradient, per-shot caption bottom-left, "touch to explore" prompt. -->
+    <div id="attract" aria-live="polite">
+        <div class="at-scrim"></div>
+        <div class="at-title">
+            <div class="at-kicker">Walferdange · Luxembourg</div>
+            <h1>RASCHPËTZER</h1>
+            <div class="at-sub">An underground Roman aqueduct</div>
+            <div class="at-rule"></div>
+        </div>
+        <div class="at-caption hidden">
+            <div class="at-cap-kicker" id="at-cap-kicker"></div>
+            <div class="at-cap-title" id="at-cap-title"></div>
+            <div class="at-cap-text" id="at-cap-text"></div>
+        </div>
+        <div class="at-dots" id="at-dots"></div>
+        <div class="at-prompt">Touch anywhere to explore</div>
+        <div class="at-attrib">Topographic map, aerial &amp; LiDAR terrain © ACT · geoportail.lu · Luxembourg open data</div>
+    </div>
 
     <!-- Full-screen image lightbox (scale in/out). Opened by clicking any img.lb-img. -->
     <div id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
@@ -1338,6 +1414,7 @@
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
             showPois: true,               // floating visitor points of interest (data/poi.json)
+            attractMode: true,            // title screen + ~90 s camera tour on load and after 2 min idle (kiosk)
             poiScale: 1.0,                // POI marker size multiplier ("POI size" slider)
             poiScreenSize: true,          // POI markers keep a constant on-screen size (off = scale with the model)
             poiDeclutter: true,           // hide POI markers that would overlap a higher-priority one on screen
@@ -2188,8 +2265,35 @@
         }
         // Bilinear sample of the inset grid at a real (lon,lat), returning raw metres (masl).
         // Clamps to the inset's own small bbox — this patch is never used outside it.
-        function sampleGeoInsetMasl(lon, lat) {
-            const g = geodataInset, C = g.cols, R = g.rows, d = g.meters;
+        function sampleGeoInsetMasl(lon, lat) { return sampleGridMasl(geodataInset, lon, lat); }
+
+        // --- Coarse "town context" grid (~50 m ACT LiDAR 2019 samples over CONTEXT_BBOX, see
+        //     scripts/bake-context.mjs): Walferdange centre, the Alzette valley and the plateau.
+        //     Only consulted OUTSIDE the main LiDAR grid (GEO_BBOX) — see sampleGeo — so the
+        //     modelled qanat window is untouched; it gives the surrounding-context apron, the
+        //     title-screen tour and the "You are here" kiosk marker real ground to stand on. ---
+        const CONTEXT_BBOX = { west: 6.118, east: 6.162, south: 49.652, north: 49.6708 };
+        const geodataContext = { ready: false, cols: 0, rows: 0, west: 0, east: 0, south: 0, north: 0, meters: null };
+        function loadContextGeoData() {
+            const g = window.BAKED_GEODATA_CONTEXT;
+            if (!g || !g.meters) return;
+            Object.assign(geodataContext, { cols: g.cols, rows: g.rows, west: g.west, east: g.east,
+                south: g.south, north: g.north, meters: g.meters, ready: true });
+        }
+        const contextTextures = {};   // 'topo' | 'ortho' -> { tex, ready }
+        function loadContextTextures() {
+            [['topo', 'assets/topomap-context.jpg'], ['ortho', 'assets/ortho-context.jpg']].forEach(([key, file]) => {
+                contextTextures[key] = { tex: null, ready: false };
+                new THREE.TextureLoader().load(file, tex => {
+                    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+                    tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+                    contextTextures[key].tex = tex; contextTextures[key].ready = true;
+                    if (params.showGhostApron && modelGroup) buildParametricModel();
+                }, undefined, () => console.warn('context texture failed: ' + file));
+            });
+        }
+        function sampleGridMasl(g, lon, lat) {
+            const C = g.cols, R = g.rows, d = g.meters;
             const gu = (lon - g.west) / (g.east - g.west);
             const gv = (g.north - lat) / (g.north - g.south);
             const ix = Math.min(Math.max(gu, 0), 1) * (C - 1);
@@ -2252,6 +2356,10 @@
             const C = geodata.cols, R = geodata.rows, d = geodata.data;
             const lon = geoView.west + u * (geoView.east - geoView.west);
             const lat = geoView.north - v * (geoView.north - geoView.south);
+            // Beyond the main LiDAR grid: the coarse town-context grid (same metres → same
+            // normalisation, so heights stay continuous across the seam).
+            if (geodataContext.ready && (lon < GEO_BBOX.west || lon > GEO_BBOX.east || lat < GEO_BBOX.south || lat > GEO_BBOX.north))
+                return (sampleGridMasl(geodataContext, lon, lat) - geodata.minM) / ((geodata.maxM - geodata.minM) || 1);
             const gu = (lon - GEO_BBOX.west) / (GEO_BBOX.east - GEO_BBOX.west);
             const gv = (GEO_BBOX.north - lat) / (GEO_BBOX.north - GEO_BBOX.south);
             const ix = Math.min(Math.max(gu, 0), 1) * (C - 1);
@@ -2796,10 +2904,20 @@
             initSourcesModal();
             initLightbox();
             initTour();
+            initAttract();
             openLegendModal();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadInsetGeoData();   // optional hi-res inset patch, if the asset shipped
-            loadGeoData(() => { buildParametricModel(); restoreSelectionFromURL(); });
+            loadContextGeoData(); // coarse town-context grid (surroundings / title tour / kiosk marker)
+            loadContextTextures();
+            // A shared link to a specific view/selection skips the title screen.
+            const linkTarget = !!(urlCam || pendingSelection);
+            loadGeoData(() => {
+                buildParametricModel(); restoreSelectionFromURL();
+                // Next frame: setupUI() (which syncs the controls from params) must run first,
+                // or the controls would pick up the tour's temporary settings.
+                if (params.attractMode && !linkTarget) requestAnimationFrame(() => startAttract());
+            });
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
             loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
             setupUI();
@@ -3675,7 +3793,9 @@
             // --- "Ghost" valley context: a faded, low-res terrain apron extending WEST from the
             // window toward the inferred villa, so the recipient site sits on ground rather than
             // floating. Uses real (in-bbox) LiDAR via getTerrainHeight; on by default, toggleable.
-            if (params.showGhostApron && isGeo && SSOT.site.villa && SSOT.site.villa.geo && SSOT.site.villa.geo.lat != null) {
+            if (params.showGhostApron && isGeo && geodataContext.ready) {
+                addContextApron(halfD);
+            } else if (params.showGhostApron && isGeo && SSOT.site.villa && SSOT.site.villa.geo && SSOT.site.villa.geo.lat != null) {
                 const vsc = geoToScene(SSOT.site.villa.geo.lat, SSOT.site.villa.geo.lon);
                 const westEnd = params.flipWE ? halfW : -halfW;               // window's west edge (scene x)
                 const beyond = params.flipWE ? (vsc.x > westEnd) : (vsc.x < westEnd);
@@ -3843,6 +3963,59 @@
             rebuildFlow();               // rebuild animated-flow particles for the new paths
             rebuildProfilePanel();       // refresh the profile chart if it's open
             updateDensityReadout();      // refresh the dev density readout (segX/segZ just recomputed)
+        }
+
+        // Surrounding-context apron: the whole CONTEXT_BBOX (town, valley, plateau) as a coarse
+        // terrain sheet draped with the context topographic map (or the 2019 aerial when a
+        // satellite base layer is active). Sits just below the modelled window, which draws
+        // over it. Normally a translucent backdrop (depthWrite off, so the geology cut face
+        // and everything else still read through it); fully opaque in the title-screen tour.
+        function addContextApron(halfD) {
+            const C = CONTEXT_BBOX;
+            const nw = geoToScene(C.north, C.west), se = geoToScene(C.south, C.east);
+            const x0 = Math.min(nw.x, se.x), x1 = Math.max(nw.x, se.x), z0 = nw.z, z1 = se.z;
+            const geo = new THREE.PlaneGeometry(x1 - x0, z1 - z0, 176, 116);
+            geo.rotateX(-Math.PI / 2);
+            const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+            const pos = geo.attributes.position, uv = geo.attributes.uv;
+            for (let k = 0; k < pos.count; k++) {
+                const x = pos.getX(k) + cx, z = pos.getZ(k) + cz;
+                pos.setY(k, getTerrainHeight(x, z) - 0.12);
+                const lon = sceneXToLon(x);
+                const lat = geoView.north - ((z + halfD) / params.depth) * (geoView.north - geoView.south);
+                uv.setXY(k, (lon - C.west) / (C.east - C.west), (lat - C.south) / (C.north - C.south));
+            }
+            geo.computeVertexNormals();
+            // Explore view: leave out the modelled window AND the ground in front of its cut
+            // face, so the translucent context never veils the terrain or the geology section
+            // (the town and valley around it stay). The tour shows the full, opaque sheet.
+            if (!attract.on) {
+                const idx = geo.index.array, keep = [];
+                const W2 = params.width / 2;
+                for (let t = 0; t < idx.length; t += 3) {
+                    let mx = 0, mz = 0;
+                    for (let q = 0; q < 3; q++) { mx += pos.getX(idx[t + q]); mz += pos.getZ(idx[t + q]); }
+                    mx = mx / 3 + cx; mz = mz / 3 + cz;
+                    if (Math.abs(mx) <= W2 && mz >= -halfD) continue;
+                    keep.push(idx[t], idx[t + 1], idx[t + 2]);
+                }
+                geo.setIndex(keep);
+            }
+            const aerial = ['satellite', 'winter', 'ortho1967'].includes(params.baseLayer);
+            const t = contextTextures[aerial ? 'ortho' : 'topo'];
+            const full = attract.on;
+            const mat = new THREE.MeshBasicMaterial({
+                color: (t && t.ready) ? 0xffffff : 0xe4dccb, map: (t && t.ready) ? t.tex : null,
+                transparent: !full, opacity: full ? 1 : 0.5, side: THREE.DoubleSide, depthWrite: full });
+            const apron = new THREE.Mesh(geo, mat);
+            apron.position.set(cx, 0, cz); apron.renderOrder = -1;
+            apron.raycast = () => {};   // backdrop only: never a pick / zoom target
+            modelGroup.add(apron);
+        }
+        // Is a scene point covered by the context apron (so "off-map" markers still stand on ground)?
+        function inContextApron(lat, lon) {
+            return params.showGhostApron && geodataContext.ready &&
+                lon >= CONTEXT_BBOX.west && lon <= CONTEXT_BBOX.east && lat >= CONTEXT_BBOX.south && lat <= CONTEXT_BBOX.north;
         }
 
         // Dev density readout: shows the terrain tessellation the last build actually used
@@ -4212,6 +4385,15 @@
                 ctx.moveTo(ix, yb); ctx.lineTo(ix, yb - ih + iw / 2);
                 ctx.arc(S / 2, yb - ih + iw / 2, iw / 2, Math.PI, 0);
                 ctx.lineTo(ix + iw, yb); ctx.closePath(); ctx.fill();
+            } else if (icon === 'here') {
+                // Map pin with a hollow centre.
+                const cx = S / 2, cy = S * 0.42, r = S * 0.19;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, Math.PI * 0.82, Math.PI * 0.18);
+                ctx.lineTo(cx, S * 0.78); ctx.closePath(); ctx.fill();
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath(); ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2); ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
             } else if (icon === 'bus') {
                 // Bus front: body, windscreen, wheels.
                 const w = S * 0.40, h = S * 0.40, x0 = S / 2 - w / 2, y0 = S * 0.28, r = S * 0.05;
@@ -4310,7 +4492,8 @@
                     const sc = geoToScene(poi.geo.lat, poi.geo.lon);
                     x = sc.x; z = sc.z;
                 } else return;
-                const inside = Math.abs(x) <= halfW && Math.abs(z) <= halfD;
+                const inside = (Math.abs(x) <= halfW && Math.abs(z) <= halfD) ||
+                    (poi.geo && inContextApron(poi.geo.lat, poi.geo.lon));
                 // A shaft-anchored POI points at the top of the shaft's own label, not through it.
                 const gy = getTerrainHeight(x, z) + (poi.anchorShaft ? 1.6 : 0);
                 const col = new THREE.Color(poi.color || '#444');
@@ -4353,11 +4536,12 @@
                 const li = lbl.material.map.image;
                 const LBL_H = 2.6;   // label sprite height: ~14 px text in screen mode at 1×
                 lbl.scale.set(LBL_H * li.width / li.height, LBL_H, 1);   // keep the text's aspect
-                lbl.position.y = LIFT + DIAM / 2 + LBL_H * 0.4;
+                lbl.position.y = LIFT + DIAM / 2 + LBL_H * 0.4;   // re-aimed per frame (updatePoiScales)
                 group.add(lbl); spotMeshes.push(lbl);
 
                 modelGroup.add(group);
-                const pg = { group, disc, lbl, conn: null };
+                const pg = { group, disc, lbl, ring, conn: null, kiosk: !!poi.kiosk,
+                    lblOffset: DIAM / 2 + LBL_H * 0.4 };
                 poiGroups.push(pg);
 
                 // Off-map (e.g. south of the qanat's front cut): a dashed ground connector from
@@ -4391,6 +4575,13 @@
                 if (params.poiScreenSize) s *= worldPerPxAt(group.getWorldPosition(_poiTmp)) * POI_SCREEN_PX / POI_DIAM;
                 group.scale.setScalar(Math.max(1e-6, s));
             }
+            // Labels sit above their circle along the SCREEN's up direction (not world +Y), so
+            // they don't slide behind the circle when looking down from above.
+            _poiTmp2.set(0, 1, 0).applyQuaternion(camera.quaternion);
+            for (const pg of poiGroups) pg.lbl.position.copy(pg.disc.position).addScaledVector(_poiTmp2, pg.lblOffset);
+            // Kiosk marker: a slow pulsing ground ring, so "You are here" catches the eye.
+            const pulse = 1 + 0.6 * (0.5 + 0.5 * Math.sin(performance.now() / 420));
+            for (const pg of poiGroups) if (pg.kiosk) pg.ring.scale.setScalar(pulse);
             declutterPois();
         }
         // Screen-space decluttering (params.poiDeclutter): place markers in priority order —
@@ -4405,8 +4596,9 @@
                 return [x - halfWpx, y - halfHpx, x + halfWpx, y + halfHpx];
             };
             const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
-            const order = poiGroups.slice().sort((a, b) =>
-                (b.disc.userData.id === poiSelectedId) - (a.disc.userData.id === poiSelectedId));
+            // Kiosk ("You are here") first, then the selection, then data order.
+            const rank = pg => (pg.kiosk ? 2 : 0) + (pg.disc.userData.id === poiSelectedId ? 1 : 0);
+            const order = poiGroups.slice().sort((a, b) => rank(b) - rank(a));
             const placed = [];
             for (const pg of order) {
                 let show = true;
@@ -4418,7 +4610,7 @@
                     // Label canvases carry side padding: count ~85% of the width as text.
                     const rects = [rectOf(pg.disc, dr, dr), rectOf(pg.lbl, ls.x / 2 / wpp * 0.85, ls.y / 2 / wpp * 0.6)]
                         .filter(Boolean);
-                    const sel = pg.disc.userData.id === poiSelectedId;
+                    const sel = pg.disc.userData.id === poiSelectedId || pg.kiosk;
                     if (!sel && rects.some(r => placed.some(q => hit(r, q)))) show = false;
                     else placed.push(...rects);
                 }
@@ -5263,6 +5455,7 @@
                 'param-perched': () => params.showPerched,
                 'param-paths': () => params.showPaths,
                 'param-pois': () => params.showPois,
+                'param-attract': () => params.attractMode,
                 'param-poi-size': () => params.poiScale,
                 'param-poi-screen': () => params.poiScreenSize,
                 'param-poi-declutter': () => params.poiDeclutter,
@@ -6293,7 +6486,7 @@
         function renderPoiPanel(p) {
             const body = document.getElementById('info-body');
             const kindLabel = { parking: 'Parking', shaft: 'Shaft', spring: 'Spring', gallery: 'Visitor gallery',
-                bus: 'Public transport' }[p.poiKind] || 'Point of interest';
+                bus: 'Public transport', here: 'Your location' }[p.poiKind] || 'Point of interest';
             let h = `<h3>${p.name}</h3><div class="ip-sub">Point of interest · ${kindLabel}${statusBadge(p.status)}` +
                 `${p.inside === false ? ' · outside the shown area' : ''}</div>`;
             if (p.photo) h += `<img src="${p.photo}" alt="${p.name}" style="display:block;width:100%;border-radius:8px;margin:8px 0 4px">` +
@@ -7342,6 +7535,193 @@
             }
         }
 
+        // --- Title screen / kiosk attract mode -----------------------------------------
+        // A DVD-menu-style title card over a looping ~90 s camera tour: from the town (the
+        // "You are here" kiosk) → overview from above → the qanat → a fly-by of each point of
+        // interest, with a caption per shot. Any touch / click / key ends it; after
+        // ATTRACT_IDLE_MS without interaction it starts again (params.attractMode). Shared
+        // links that carry a view or a selection (?cam= / ?sel=) skip it on load.
+        const ATTRACT_IDLE_MS = 120000;
+        const ATTRACT_FOV = 35;
+        const ATTRACT_BG = 0x1c2129;   // dark slate behind the tour; the fog fades the terrain into it
+        const attract = { on: false, shots: [], idx: -1, shotStart: 0, from: null, saved: null, pose: null };
+        let lastInteraction = performance.now();
+        // Camera pose on a sphere around `target`: az 0° = from the south (+Z), el = elevation.
+        function orbitPose(target, dist, elDeg, azDeg) {
+            const el = THREE.MathUtils.degToRad(elDeg), az = THREE.MathUtils.degToRad(azDeg);
+            return new THREE.Vector3(target.x + dist * Math.cos(el) * Math.sin(az),
+                target.y + dist * Math.sin(el), target.z + dist * Math.cos(el) * Math.cos(az));
+        }
+        function buildAttractShots() {
+            const shots = [];
+            const byId = id => poiGroups.find(pg => pg.disc.userData.id === id);
+            const qanat = DEFAULT_CAM.target.clone();
+            const site = (SSOT.site && SSOT.site.site) || {};
+            const here = poiGroups.find(pg => pg.kiosk);
+            // 1. From the town: behind the kiosk, looking up at the plateau over it.
+            if (here) {
+                const h = here.group.position.clone();
+                const dir = new THREE.Vector3(qanat.x - h.x, 0, qanat.z - h.z).normalize();
+                // Kiosk marker in the lower third, the plateau rising behind it.
+                const camPos = h.clone().addScaledVector(dir, -22).add(new THREE.Vector3(0, 5, 0));
+                const target = h.clone().lerp(qanat, 0.35);
+                const off = camPos.clone().sub(target), dist = off.length();
+                shots.push({ target, dist, el: THREE.MathUtils.radToDeg(Math.asin(off.y / dist)),
+                    az: THREE.MathUtils.radToDeg(Math.atan2(off.x, off.z)), spin: 0.5, dur: 12,
+                    kicker: 'You are here', title: 'Walferdange town centre',
+                    text: here.disc.userData.caption || '' });
+            }
+            // 2. Overview from above: town and plateau together.
+            // North-up (az ≈ 0) so the town map reads the way locals know it; the aim point sits
+            // a little north of the town–qanat midpoint so both land below the title card.
+            const mid = (here ? here.group.position.clone().lerp(qanat, 0.6) : qanat.clone()).add(new THREE.Vector3(0, 0, -16));
+            shots.push({ target: mid, dist: 200, el: 60, az: 8, spin: 1.2, dur: 11,
+                kicker: 'Overview', title: 'Town, valley and plateau',
+                text: 'Walferdange lies in the Alzette valley; the Raschpëtzer runs under the wooded Pëtschend plateau to the north-east.' });
+            // 3. The qanat itself (x-ray: shafts and gallery under the plateau).
+            shots.push({ target: qanat, dist: 64, el: 24, az: 352, spin: 1.4, dur: 11,
+                kicker: 'The qanat', title: 'A Roman underground aqueduct',
+                text: `Shafts up to ${QANAT.maxDepthM} m deep over a near-level gallery` +
+                    (site.channelExploredM ? ` — ${site.channelExploredM} m explored` : '') +
+                    (site.servicePeriod ? `, in use c. AD ${site.servicePeriod.fromAD}–${site.servicePeriod.toAD}.` : '.') });
+            // 4. Fly-by of the points of interest.
+            const tourIds = ['parking', 'p5', 'visitor-gallery', 'spring', 'p-4', 'dauvebur'];
+            const stops = tourIds.map(byId).filter(Boolean);
+            stops.forEach((pg, i) => {
+                const d = pg.disc.userData;
+                shots.push({ target: pg.group.position.clone().add(new THREE.Vector3(0, 1.5, 0)),
+                    dist: 27, el: 30, az: [340, 20, 330, 15, 350, 25][i % 6], spin: 2.2, dur: 8.5,
+                    kicker: `Point of interest · ${i + 1}/${stops.length}`, title: d.name, text: d.caption || '' });
+            });
+            return shots;
+        }
+        function attractPose(shot, secs) {
+            const az = shot.az + shot.spin * secs;
+            return { pos: orbitPose(shot.target, shot.dist, shot.el, az), target: shot.target };
+        }
+        function setAttractCaption(shot) {
+            const cap = document.querySelector('#attract .at-caption');
+            if (!cap) return;
+            cap.classList.add('hidden');
+            setTimeout(() => {
+                if (!attract.on) return;
+                document.getElementById('at-cap-kicker').textContent = shot.kicker || '';
+                document.getElementById('at-cap-title').textContent = shot.title || '';
+                document.getElementById('at-cap-text').textContent = shot.text || '';
+                cap.classList.remove('hidden');
+            }, 650);
+            const dots = document.getElementById('at-dots');
+            if (dots) [...dots.children].forEach((d, i) => d.classList.toggle('on', i === attract.idx));
+        }
+        function startAttract() {
+            if (attract.on || !camera) return;
+            if (tour.active) stopTour();
+            if (measureMode) setMeasureMode(false);
+            attract.on = true;
+            attract.saved = { baseLayer: params.baseLayer, showGhostApron: params.showGhostApron,
+                showPois: params.showPois, showContourLines: params.showContourLines, showSides: params.showSides,
+                far: camera.far, fov: camera.fov, background: scene.background };
+            params.baseLayer = 'topo'; params.showGhostApron = true; params.showPois = true;
+            params.showContourLines = false;   // the topographic drape already carries contours
+            params.showSides = false;          // no block walls: the tour shows continuous ground
+            scene.background = new THREE.Color(ATTRACT_BG);
+            scene.fog = new THREE.Fog(ATTRACT_BG, 200, 900);
+            _camURLPending = false;   // never write the tour's camera into the shareable URL
+            resetInspectorToEmpty(); setPanelMode('views'); closeAllModals();
+            document.body.classList.remove('drawer-open');
+            document.body.classList.add('attract');
+            controls.enabled = false; camAnim = null;
+            // A wider, cinematic lens for the tour (the explore view's 14° telephoto can't hold
+            // the town and the plateau 1.4 km behind it in one frame).
+            camera.fov = ATTRACT_FOV; camera.far = 5000; camera.updateProjectionMatrix();
+            buildParametricModel();
+            onResize();
+            attract.shots = buildAttractShots();
+            const dots = document.getElementById('at-dots');
+            if (dots) dots.innerHTML = attract.shots.map(() => '<span></span>').join('');
+            attract.idx = -1;
+            attract.from = { pos: camera.position.clone(), target: controls.target.clone() };
+        }
+        function stopAttract() {
+            if (!attract.on) return;
+            attract.on = false;
+            document.body.classList.remove('attract');
+            const sv = attract.saved || {};
+            params.baseLayer = sv.baseLayer; params.showGhostApron = sv.showGhostApron; params.showPois = sv.showPois;
+            params.showContourLines = sv.showContourLines; params.showSides = sv.showSides;
+            scene.background = sv.background || new THREE.Color(sceneBackgroundColor());
+            scene.fog = null;
+            camera.far = sv.far || 1000; camera.fov = sv.fov || camera.fov; camera.updateProjectionMatrix();
+            controls.enabled = true;
+            buildParametricModel();
+            onResize();
+            flyTo(DEFAULT_CAM.pos.clone(), DEFAULT_CAM.target.clone(), 1400);
+            document.querySelector('#attract .at-caption').classList.add('hidden');
+            lastInteraction = performance.now();
+        }
+        const easeInOut = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        const ATTRACT_TRANSITION_S = 3.0;
+        // Per frame (from animate): drive the camera while the title screen runs, or start it
+        // after the idle timeout. Returns true when it owns the camera this frame.
+        function updateAttract(now) {
+            if (!attract.on) {
+                if (params.attractMode && now - lastInteraction > ATTRACT_IDLE_MS && !annotateMode) startAttract();
+                if (!attract.on) return false;
+            }
+            const shots = attract.shots;
+            if (!shots.length) return true;
+            let shot = shots[attract.idx];
+            if (attract.idx < 0 || (now - attract.shotStart) / 1000 > shot.dur) {
+                if (attract.idx >= 0 && attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
+                attract.idx = (attract.idx + 1) % shots.length;
+                attract.shotStart = now;
+                shot = shots[attract.idx];
+                setAttractCaption(shot);
+            }
+            const secs = (now - attract.shotStart) / 1000;
+            const p = attractPose(shot, secs);
+            const k = Math.min(1, secs / ATTRACT_TRANSITION_S);
+            if (k < 1 && attract.from) {
+                const e = easeInOut(k);
+                const pos = attract.from.pos.clone().lerp(p.pos, e);
+                const target = attract.from.target.clone().lerp(p.target, e);
+                // Arc over the terrain between distant shots instead of cutting through it.
+                pos.y += Math.sin(Math.PI * e) * 0.25 * attract.from.pos.distanceTo(p.pos);
+                attract.pose = { pos, target };
+            } else {
+                attract.pose = p;
+            }
+            camera.position.copy(attract.pose.pos);
+            controls.target.copy(attract.pose.target);
+            camera.lookAt(attract.pose.target);
+            if (scene.fog) {
+                const d = attract.pose.pos.distanceTo(attract.pose.target);
+                scene.fog.near = d * 1.5; scene.fog.far = d * 4.5;
+            }
+            return true;
+        }
+        function initAttract() {
+            // Any deliberate interaction ends the title screen (and is swallowed, so the same
+            // touch doesn't also select or drag); every interaction resets the idle timer.
+            const onInteract = ev => {
+                lastInteraction = performance.now();
+                if (!attract.on) return;
+                if (ev.type === 'pointermove') return;
+                ev.preventDefault(); ev.stopPropagation();
+                stopAttract();
+            };
+            ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(t =>
+                window.addEventListener(t, onInteract, { capture: true, passive: false }));
+            window.addEventListener('pointermove', onInteract, { capture: true, passive: true });
+            const cb = document.getElementById('param-attract');
+            if (cb) cb.addEventListener('change', e => {
+                params.attractMode = e.target.checked;
+                lastInteraction = performance.now();
+            });
+            const btn = document.getElementById('btn-attract');
+            if (btn) btn.addEventListener('click', () => setTimeout(startAttract, 0));
+        }
+
         function onResize() {
             const c = document.getElementById('canvas-container');
             camera.aspect = c.clientWidth / c.clientHeight;
@@ -7370,7 +7750,7 @@
             updateCutawayPlane();   // keep the look-inside cut facing the camera
             updateXsecCutawayPlane();   // keep the qanat cross-section cut on the correct side (and following, if enabled)
             updateSelectionDismiss();
-            controls.update();
+            if (!updateAttract(now)) controls.update();   // the title-screen tour owns the camera while it runs
             camera.updateMatrixWorld();
             updatePoiScales();         // POI markers: constant screen size or model size × slider
             updateSelectionMarker();   // billboard + constant screen size, from this frame's camera
@@ -7390,7 +7770,7 @@
             // negligible 'change' events for many seconds — each one re-arming the first-clause
             // 3s timer, so on its own that clause could starve forever and never write. The hard
             // 5s cap guarantees a write happens soon after the interaction, even mid-coast.
-            if (_camURLPending && (now - _camURLLastChange > 3000 || now - _camURLPendingSince > 5000)) {
+            if (_camURLPending && !attract.on && (now - _camURLLastChange > 3000 || now - _camURLPendingSince > 5000)) {
                 setCameraURL();
                 _camURLPending = false;
             }
