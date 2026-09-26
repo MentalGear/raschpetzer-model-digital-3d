@@ -35,7 +35,9 @@ source; documented facts are visually distinguished from inferred/schematic ones
 - **Title screen / kiosk mode** (default on; Settings → *Title screen & tour*): opens on a
   DVD-menu-style title card over a looping ~90 s camera tour — from the **"You are here"**
   kiosk marker in Walferdange town centre (in front of Maison Dufaing), an overview from above,
-  the qanat, then each point of interest, with captions. Any touch exits; it returns after
+  the qanat, then each point of interest, with captions — over the 2019 aerial, with a
+  split-view reveal (surface | an abstract "beneath" blueprint with the x-ray qanat) for the
+  qanat and the lit shafts. Any touch exits; it returns after
   2 minutes idle. Shared links with a view/selection (`?cam=` / `?sel=`) skip it.
 - **Town context**: a coarse (~50 m) ACT LiDAR 2019 grid + geoportail.lu topographic map/aerial
   over Walferdange and the valley (`scripts/bake-context.mjs`), shown around the modelled window.

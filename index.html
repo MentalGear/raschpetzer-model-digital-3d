@@ -808,29 +808,44 @@
         body.attract #selection-dismiss, body.attract #timeline-bar, body.attract #ortho-attrib,
         body.attract #scale-bar { display: none !important; }
         body.attract #canvas-container { cursor: pointer; }
+        /* Title-card palette: Pompeian red (Roman wall-painting cinnabar / red ochre) with a
+           gold-ochre rule and cream capitals — change the three tokens to restyle it. */
+        #attract { --at-red: 118, 30, 20; --at-gold: #e3b25c; --at-cream: #f7eddc; }
         #attract .at-scrim { position: absolute; inset: 0;
             background:
-                radial-gradient(ellipse 75% 85% at 100% 0%, rgba(12,14,20,0.90) 0%, rgba(12,14,20,0.62) 32%, rgba(12,14,20,0.18) 62%, rgba(12,14,20,0) 80%),
-                radial-gradient(ellipse 60% 45% at 0% 100%, rgba(12,14,20,0.72) 0%, rgba(12,14,20,0.35) 45%, rgba(12,14,20,0) 75%),
+                radial-gradient(ellipse 72% 82% at 100% 0%, rgba(var(--at-red),0.94) 0%, rgba(var(--at-red),0.78) 26%, rgba(var(--at-red),0.30) 52%, rgba(var(--at-red),0) 74%),
+                radial-gradient(ellipse 60% 45% at 0% 100%, rgba(30,12,9,0.74) 0%, rgba(30,12,9,0.36) 45%, rgba(30,12,9,0) 75%),
                 linear-gradient(to top, rgba(12,14,20,0.45) 0%, rgba(12,14,20,0) 22%); }
+        /* Faint fresco/plaster grain over the red corner only (SVG turbulence, masked). */
+        #attract .at-grain { position: absolute; inset: 0; opacity: 0.22; mix-blend-mode: overlay;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            -webkit-mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #000 0%, rgba(0,0,0,0.6) 40%, transparent 70%);
+            mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #000 0%, rgba(0,0,0,0.6) 40%, transparent 70%); }
+        #attract .at-split { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; display: none;
+            background: var(--at-gold); box-shadow: 0 0 14px rgba(227,178,92,0.9); }
+        #attract .at-split.show { display: block; }
+        #attract .at-split span { position: absolute; top: 46%; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.28em;
+            text-transform: uppercase; color: var(--at-cream); text-shadow: 0 1px 4px rgba(0,0,0,0.9); white-space: nowrap; }
+        #attract .at-split .at-split-l { right: 14px; }
+        #attract .at-split .at-split-r { left: 14px; color: #9fd8ec; }
         #attract .at-title { position: absolute; top: clamp(20px, 5vh, 56px); right: clamp(20px, 4vw, 64px);
             text-align: right; color: #f5efe4; text-shadow: 0 2px 18px rgba(0,0,0,0.6);
             animation: atTitleIn 1.6s ease both; }
         #attract .at-kicker { font-size: clamp(0.72rem, 1.3vw, 0.95rem); letter-spacing: 0.32em;
-            text-transform: uppercase; color: #e6b45a; margin-bottom: 0.4em; }
+            text-transform: uppercase; color: var(--at-gold); margin-bottom: 0.4em; }
         #attract .at-title h1 { font-family: "Trajan Pro", "Cinzel", "Optima", Georgia, "Times New Roman", serif;
             font-weight: 400; font-size: clamp(2.4rem, 7vw, 6rem); line-height: 1; letter-spacing: 0.08em;
-            color: #fbf6ec; margin: 0; }
+            color: var(--at-cream); margin: 0; }
         #attract .at-sub { font-family: Georgia, "Times New Roman", serif; font-style: italic;
             font-size: clamp(0.95rem, 2vw, 1.5rem); color: #d9d1c3; margin-top: 0.35em; }
         #attract .at-rule { height: 2px; width: clamp(80px, 14vw, 220px); margin: 0.9em 0 0 auto;
-            background: linear-gradient(to left, #e6b45a, rgba(230,180,90,0)); }
+            background: linear-gradient(to left, var(--at-gold), rgba(227,178,92,0)); }
         #attract .at-caption { position: absolute; left: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
             max-width: min(560px, 80vw); color: #f5efe4; text-shadow: 0 2px 12px rgba(0,0,0,0.7);
             transition: opacity 0.6s ease, transform 0.6s ease; }
         #attract .at-caption.hidden { opacity: 0; transform: translateY(8px); }
         #attract .at-cap-kicker { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
-            color: #f3c46a; text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 14px rgba(0,0,0,0.6); }
+            color: var(--at-gold); text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 14px rgba(0,0,0,0.6); }
         #attract .at-cap-title { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.3rem, 2.6vw, 2.1rem); margin: 0.15em 0 0.25em; }
         #attract .at-cap-text { font-size: clamp(0.9rem, 1.4vw, 1.1rem); line-height: 1.45; color: #e7e1d6; }
         #attract .at-prompt { position: absolute; left: 50%; bottom: clamp(16px, 3vh, 34px); transform: translateX(-50%);
@@ -838,7 +853,7 @@
             text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap; }
         #attract .at-dots { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(20px, 3.5vh, 38px); display: flex; gap: 6px; }
         #attract .at-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: background 0.4s, transform 0.4s; }
-        #attract .at-dots span.on { background: #e6b45a; transform: scale(1.35); }
+        #attract .at-dots span.on { background: var(--at-gold); transform: scale(1.35); }
         #attract .at-attrib { position: absolute; right: clamp(20px, 4vw, 64px); bottom: 6px; font-size: 0.62rem;
             color: rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
         @keyframes atPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
@@ -1273,6 +1288,7 @@
          gradient, per-shot caption bottom-left, "touch to explore" prompt. -->
     <div id="attract" aria-live="polite">
         <div class="at-scrim"></div>
+        <div class="at-grain"></div>
         <div class="at-title">
             <div class="at-kicker">Walferdange · Luxembourg</div>
             <h1>RASCHPËTZER</h1>
@@ -1284,6 +1300,7 @@
             <div class="at-cap-title" id="at-cap-title"></div>
             <div class="at-cap-text" id="at-cap-text"></div>
         </div>
+        <div class="at-split" id="at-split"><span class="at-split-l">Surface</span><span class="at-split-r">Beneath</span></div>
         <div class="at-dots" id="at-dots"></div>
         <div class="at-prompt">Touch anywhere to explore</div>
         <div class="at-attrib">Topographic map, aerial &amp; LiDAR terrain © ACT · geoportail.lu · Luxembourg open data</div>
@@ -2937,6 +2954,7 @@
             });
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
+            surfaceOnly.length = 0; blueprintOnly.length = 0;   // title-tour split-view passes (renderAttractFrame)
             xsecMeshes.length = 0;   // gallery cross-section hotspots
             strataMeshes.length = 0;   // geology cross-section strata bands
             qanatMeshes.length = 0;   // gallery/tunnel tube meshes
@@ -3009,6 +3027,16 @@
                 fillMat.needsUpdate = true;
             }
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
+            if (attract.on) {
+                // Title tour: the real (aerial) ground is the SURFACE pass; its "blueprint" twin —
+                // a dark, abstract sheet that the contour lines and the x-ray qanat read against —
+                // is the BENEATH pass of the split view.
+                surfaceOnly.push(surfMesh);
+                const bp = new THREE.Mesh(surfGeo, new THREE.MeshBasicMaterial({ color: BLUEPRINT.ground,
+                    polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0 }));
+                bp.raycast = () => {};
+                modelGroup.add(bp); blueprintOnly.push(bp);
+            }
             surfMesh.userData.isMapLayer = true;   // vector export's raster-map capture isolates this
             modelGroup.add(surfMesh);
             // Cull-back-face is a VISUAL choice (hide the coloured/textured underside), not a
@@ -3095,23 +3123,24 @@
             if (params.showContourLines) {
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
-            const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
+            const regMat = new THREE.LineBasicMaterial({ color: attract.on ? BLUEPRINT.contour : COL.contour, transparent: true, opacity: tOp });
             const regLS = new THREE.LineSegments(regGeo, regMat);
             regLS.userData.vecMode = 'line'; regLS.userData.vecLayer = 'contour'; regLS.userData.vecChain = true;
             modelGroup.add(regLS);
             const idxGeo = new THREE.BufferGeometry();
             idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
-            const idxMat = new THREE.LineBasicMaterial({ color: COL.contourIndex, transparent: true, opacity: tOp });
+            const idxMat = new THREE.LineBasicMaterial({ color: attract.on ? BLUEPRINT.contourIndex : COL.contourIndex, transparent: true, opacity: tOp });
             const idxLS = new THREE.LineSegments(idxGeo, idxMat);
             idxLS.userData.vecMode = 'line'; idxLS.userData.vecLayer = 'contour'; idxLS.userData.vecChain = true;
             modelGroup.add(idxLS);
+            if (attract.on) blueprintOnly.push(regLS, idxLS);
             regMat.userData.baseOpacity = 1.0;
             idxMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(regMat, idxMat);
             xsecClipMats.push(regMat, idxMat);   // qanat cross-section cutaway must clip these too, or they float over the exposed strata
 
-            // Elevation labels on index contours (real metres, GeoData only)
-            if (isGeo) {
+            // Elevation labels on index contours (real metres, GeoData only; not in the title tour)
+            if (isGeo && !attract.on) {
                 Object.keys(idxLabel).forEach(L => {
                     const p = idxLabel[L];
                     const metres = Math.round(geodata.minM + p.y * mpu);
@@ -3550,7 +3579,7 @@
             const inService = params.year >= 140 && params.year <= 350;
             // The qanat is always drawn blue — water still runs in the gallery today, so its
             // colour does not change with the timeline (only its existence does).
-            const galleryColor = COL.qanat;
+            const galleryColor = attract.on ? BLUEPRINT.gallery : COL.qanat;   // brighter on the tour's dark blueprint
             if (galleryBuilt) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
@@ -4011,6 +4040,12 @@
             apron.position.set(cx, 0, cz); apron.renderOrder = -1;
             apron.raycast = () => {};   // backdrop only: never a pick / zoom target
             modelGroup.add(apron);
+            if (full) {
+                surfaceOnly.push(apron);
+                const bp = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: BLUEPRINT.ground, side: THREE.DoubleSide }));
+                bp.position.copy(apron.position); bp.renderOrder = -1; bp.raycast = () => {};
+                modelGroup.add(bp); blueprintOnly.push(bp);
+            }
         }
         // Is a scene point covered by the context apron (so "off-map" markers still stand on ground)?
         function inContextApron(lat, lon) {
@@ -7543,6 +7578,12 @@
         // links that carry a view or a selection (?cam= / ?sel=) skip it on load.
         const ATTRACT_IDLE_MS = 120000;
         const ATTRACT_FOV = 35;
+        // Split-view "reveal" (title tour): the frame is drawn twice with a scissor — the left
+        // part as the real SURFACE (2019 aerial, qanat hidden), the right part as an abstract
+        // BENEATH view (dark blueprint ground, luminous contour lines, the x-ray shafts and
+        // gallery). Objects tagged at build time go in only one of the two passes.
+        const surfaceOnly = [], blueprintOnly = [];
+        const BLUEPRINT = { bg: 0x0b1622, ground: 0x10202e, contour: 0x2d6f86, contourIndex: 0x69b7d1, gallery: 0x4cc3ff };
         const ATTRACT_BG = 0x1c2129;   // dark slate behind the tour; the fog fades the terrain into it
         const attract = { on: false, shots: [], idx: -1, shotStart: 0, from: null, saved: null, pose: null };
         let lastInteraction = performance.now();
@@ -7579,7 +7620,9 @@
                 kicker: 'Overview', title: 'Town, valley and plateau',
                 text: 'Walferdange lies in the Alzette valley; the Raschpëtzer runs under the wooded Pëtschend plateau to the north-east.' });
             // 3. The qanat itself (x-ray: shafts and gallery under the plateau).
-            shots.push({ target: qanat, dist: 64, el: 24, az: 352, spin: 1.4, dur: 11,
+            // Split-view reveal: the "beneath" side sweeps in from the right, holds, sweeps out.
+            shots.push({ target: qanat, dist: 64, el: 24, az: 352, spin: 1.2, dur: 14,
+                split: [[0, 1], [3, 1], [6, 0.42], [11.5, 0.42], [14, 1]],
                 kicker: 'The qanat', title: 'A Roman underground aqueduct',
                 text: `Shafts up to ${QANAT.maxDepthM} m deep over a near-level gallery` +
                     (site.channelExploredM ? ` — ${site.channelExploredM} m explored` : '') +
@@ -7589,8 +7632,11 @@
             const stops = tourIds.map(byId).filter(Boolean);
             stops.forEach((pg, i) => {
                 const d = pg.disc.userData;
+                // Shafts (P5, P-4): reveal the shaft and gallery beneath the ground too.
+                const reveal = d.poiKind === 'shaft';
                 shots.push({ target: pg.group.position.clone().add(new THREE.Vector3(0, 1.5, 0)),
                     dist: 27, el: 30, az: [340, 20, 330, 15, 350, 25][i % 6], spin: 2.2, dur: 8.5,
+                    split: reveal ? [[0, 1], [2.6, 1], [4.4, 0.5], [7, 0.5], [8.5, 1]] : null,
                     kicker: `Point of interest · ${i + 1}/${stops.length}`, title: d.name, text: d.caption || '' });
             });
             return shots;
@@ -7620,10 +7666,13 @@
             attract.on = true;
             attract.saved = { baseLayer: params.baseLayer, showGhostApron: params.showGhostApron,
                 showPois: params.showPois, showContourLines: params.showContourLines, showSides: params.showSides,
+                showGeology: params.showGeology, xrayUnderground: params.xrayUnderground, xrayOpacity: params.xrayOpacity,
                 far: camera.far, fov: camera.fov, background: scene.background };
-            params.baseLayer = 'topo'; params.showGhostApron = true; params.showPois = true;
-            params.showContourLines = false;   // the topographic drape already carries contours
+            params.baseLayer = 'satellite'; params.showGhostApron = true; params.showPois = true;
+            params.showContourLines = true;    // drawn only in the split view's blueprint pass
             params.showSides = false;          // no block walls: the tour shows continuous ground
+            params.showGeology = false;        // the cut-face section would float over the lower hillside
+            params.xrayUnderground = true; params.xrayOpacity = 1.0;   // crisp qanat in the blueprint pass
             scene.background = new THREE.Color(ATTRACT_BG);
             scene.fog = new THREE.Fog(ATTRACT_BG, 200, 900);
             _camURLPending = false;   // never write the tour's camera into the shareable URL
@@ -7649,8 +7698,11 @@
             const sv = attract.saved || {};
             params.baseLayer = sv.baseLayer; params.showGhostApron = sv.showGhostApron; params.showPois = sv.showPois;
             params.showContourLines = sv.showContourLines; params.showSides = sv.showSides;
+            params.showGeology = sv.showGeology; params.xrayUnderground = sv.xrayUnderground; params.xrayOpacity = sv.xrayOpacity;
             scene.background = sv.background || new THREE.Color(sceneBackgroundColor());
             scene.fog = null;
+            if (subsurfaceGroup) subsurfaceGroup.visible = true;
+            const div = document.getElementById('at-split'); if (div) div.classList.remove('show');
             camera.far = sv.far || 1000; camera.fov = sv.fov || camera.fov; camera.updateProjectionMatrix();
             controls.enabled = true;
             buildParametricModel();
@@ -7699,6 +7751,46 @@
                 scene.fog.near = d * 1.5; scene.fog.far = d * 4.5;
             }
             return true;
+        }
+        // Where the split divider sits this frame (fraction of the width; 1 = all surface).
+        function attractSplitAt(now) {
+            const shot = attract.shots[attract.idx];
+            if (!shot || !shot.split) return 1;
+            const t = (now - attract.shotStart) / 1000, k = shot.split;
+            if (t <= k[0][0]) return k[0][1];
+            for (let i = 0; i < k.length - 1; i++) {
+                const [t0, v0] = k[i], [t1, v1] = k[i + 1];
+                if (t <= t1) return v0 + (v1 - v0) * easeInOut((t - t0) / (t1 - t0));
+            }
+            return k[k.length - 1][1];
+        }
+        function setAttractPass(pass) {
+            const bp = pass === 'blueprint';
+            surfaceOnly.forEach(o => { o.visible = !bp; });
+            blueprintOnly.forEach(o => { o.visible = bp; });
+            if (subsurfaceGroup) subsurfaceGroup.visible = bp;   // the qanat is only revealed beneath
+            scene.background.set(bp ? BLUEPRINT.bg : ATTRACT_BG);
+            if (scene.fog) scene.fog.color.set(bp ? BLUEPRINT.bg : ATTRACT_BG);
+        }
+        function renderAttractFrame(now) {
+            const f = attractSplitAt(now);
+            const div = document.getElementById('at-split');
+            const el = renderer.domElement, w = el.clientWidth, h = el.clientHeight;
+            if (f >= 0.999) {
+                setAttractPass('surface');
+                renderer.render(scene, camera);
+                if (div) div.classList.remove('show');
+                return;
+            }
+            const sx = Math.round(w * Math.max(0, f));
+            renderer.setScissorTest(true);
+            setAttractPass('surface');
+            renderer.setScissor(0, 0, sx, h); renderer.render(scene, camera);
+            setAttractPass('blueprint');
+            renderer.setScissor(sx, 0, w - sx, h); renderer.render(scene, camera);
+            renderer.setScissorTest(false);
+            setAttractPass('surface');   // leave the scene in its normal state between frames
+            if (div) { div.style.left = sx + 'px'; div.classList.add('show'); }
         }
         function initAttract() {
             // Any deliberate interaction ends the title screen (and is swallowed, so the same
@@ -7754,7 +7846,7 @@
             camera.updateMatrixWorld();
             updatePoiScales();         // POI markers: constant screen size or model size × slider
             updateSelectionMarker();   // billboard + constant screen size, from this frame's camera
-            renderer.render(scene, camera);
+            if (attract.on) renderAttractFrame(now); else renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
             // events and the fly-to animation above.
             if (_readoutDirty && now - _readoutLastPaint > 100) {
