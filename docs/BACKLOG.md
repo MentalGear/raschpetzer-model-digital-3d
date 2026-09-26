@@ -170,8 +170,45 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     domain experts can write lenses without touching code. ~60–120 s each, then back to the
     title loop; ← / → step through its stations; the idle timeout returns to the loop.
   - Keep the on-screen row visible during the attract loop ("press a colour"), label it in
-    FR/DE/LB/EN (multilingual captions per lens), and show a progress bar for the
-    running lens.
+    FR/DE/LB/EN (multilingual captions per lens).
+  - **Chapters inside a lens.** Each lens is split into named chapters (e.g. Rediscovery:
+    1986 the first shaft · 1990s the gallery · 2000 the visitor's gallery · Today). Along the
+    top of the screen, a segmented status bar: one segment per chapter, filling as it plays,
+    with the current chapter's title — so viewers always know where they are and how
+    long is left.
+  - **Buttons are soft keys.** The same five physical buttons change meaning with context,
+    and the on-screen row directly above them always shows what each does right now (like
+    an ATM). On the menu: A–E = choose a lens. Inside a lens, a fixed mapping for every
+    lens, e.g. **A ◀ previous chapter · B ⏸ pause / resume · C ▶ next chapter ·
+    D ⌂ back to the menu · E language** (or E = "tell me more" on chapters that have a
+    deeper layer). Keep "back to menu" on the same button in every lens, and hold any
+    button for 2 s as a universal "back to the menu".
+  - Lenses without content yet show a "coming soon" card, never a dead button.
+  - Keep it to five buttons at most; consider folding "Visit today" into a closing panel
+    shown at the end of every lens ("go and see it": the P5 cover and its light button,
+    the car park, the opening hours) and freeing that button.
+  - Decide early whether the kiosk has sound: a kids lens wants voice/sound effects, but a
+    kiosk on a public square may need to work silently with captions only.
+  - Have the kids' texts reviewed by a teacher (e.g. the Walferdange school) in all four
+    languages; simple language is harder than it looks.
+- **Burn-in safeguard for an always-on screen.** The title card, the button row and the
+  chapter bar are static and would stay on screen all day.
+  - Alternate the title's corner (upper right ↔ upper left) per loop or per shot. The shot
+    framing already keeps the POI clear of the title (target shifted to the camera's right in
+    `buildAttractShots`), so that offset has to mirror with the corner.
+  - A slow pixel drift (a few px over minutes) for the button row and the chapter bar; fade
+    static UI out after a few seconds without input and back in on a press.
+  - A nightly schedule (screen off or a dim black mode outside opening hours) — also saves
+    power. LCD panels suffer image retention rather than true burn-in, but the same
+    measures apply; OLED needs them more.
+- **Kiosk polish (from the 2026-09-26 review).**
+  - Try the "High-quality textures (big screen)" mode on the real kiosk PC and screen
+    early; if it stutters, the standard textures already look good at 1080p.
+  - Opening-hours badge on the visitor's gallery marker: "Today: open 14:30–17:30" /
+    "closed today" (Sundays April–October, per Leaflet 2017).
+  - The far-view site marker's caption could give distance and walk time ("1.4 km · ~15 min
+    from the car park"), and the overview could briefly draw the line from "You are here"
+    to the site.
 - **"Back in time": the qanat under construction.** A lens (or a special shot in
   lens B) that switches to the construction period (c. AD 140): open shafts with
   windlasses and spoil heaps, a partly driven gallery, workers' paths, no modern buildings
