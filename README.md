@@ -35,12 +35,17 @@ source; documented facts are visually distinguished from inferred/schematic ones
 - **Title screen / kiosk mode** (default on; Settings → *Title screen & tour*): opens on a
   DVD-menu-style title card over a looping ~90 s camera tour — from the **"You are here"**
   kiosk marker in Walferdange town centre (in front of Maison Dufaing), an overview from above,
-  the qanat, then each point of interest, with captions — over the 2019 aerial, with a
-  split-view reveal (surface | an abstract "beneath" blueprint with the x-ray qanat) for the
-  qanat and the lit shafts. Any touch exits; it returns after
+  the qanat, then each point of interest, with captions — over the 2019 aerial, revealing the
+  qanat underground for the
+  qanat and the lit shafts (Settings: *Reveal the qanat by* — cutting a trench into the
+  terrain, default, or a split screen). Any touch exits; it returns after
   2 minutes idle. Shared links with a view/selection (`?cam=` / `?sel=`) skip it.
 - **Town context**: a coarse (~50 m) ACT LiDAR 2019 grid + geoportail.lu topographic map/aerial
-  over Walferdange and the valley (`scripts/bake-context.mjs`), shown around the modelled window.
+  over Walferdange and the valley (`scripts/bake-context.mjs`), shown around the modelled window,
+  with **3D buildings** extruded from OpenStreetMap footprints (`scripts/bake-buildings.mjs`;
+  most heights are type-based estimates — only ~4 % of footprints carry a height tag).
+- **Active POI**: the selected POI (or the tour's current stop) grows ~2.4× and swaps its icon
+  for its photo where one exists (P5, P-4 interior, parking sign, spring outflow).
 - **Annotations** (drop notes, localStorage, import/export), **measurement tool**,
   **animated water flow**, W↔E flip, reference-image overlay.
 - **Context-aware controls**: only the sliders/toggles that affect the current
@@ -155,6 +160,7 @@ rebuild, since the whole scene rebuilds on most setting changes.
 | `bun run dev` | Bake, then serve with Vite at :5173 |
 | `bun run bake` | Validate → generate `assets/data.bundle.js` + `docs/RASCHPETZER_DATA.md` |
 | `bun run validate` | Validate the SSOT (CI gate) |
+| `node scripts/bake-buildings.mjs` | Re-fetch OSM building footprints for the 3D-buildings layer |
 | `node scripts/bake-context.mjs` | Re-fetch the town-context map/aerial drapes (terrain grid: see the script header) |
 | `bun run build` | Validate + bake (static site; deploy by serving the repo root) |
 

@@ -1,5 +1,5 @@
 {
-  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn when no `photo` is given (or while/if it fails to load): parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`.",
+  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`.",
   "pois": [
     {
       "id": "you-are-here",
@@ -21,6 +21,9 @@
       "kind": "parking",
       "icon": "parking",
       "color": "#1f5fbf",
+      "photo": "assets/poi/parking-sign.webp",
+      "photoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (102).jpg”",
+      "photoUrl": "https://commons.wikimedia.org/wiki/File:Walferdange,_Gr%C3%BCnewald,_Raschp%C3%ABtzer_(102).jpg",
       "geo": { "crs": "EPSG:4326", "lat": 49.663673, "lon": 6.15625, "status": "documented" },
       "source": "leaflet2017",
       "osm": "way/385690665",
@@ -35,6 +38,9 @@
       "kind": "shaft",
       "icon": "shaft",
       "color": "#2b2b2b",
+      "photo": "assets/poi/p5-cover.webp",
+      "photoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (Puits 05).jpg”",
+      "photoUrl": "https://commons.wikimedia.org/wiki/File:Walferdange,_Gr%C3%BCnewald,_Raschp%C3%ABtzer_(Puits_05).jpg",
       "anchorShaft": "P5",
       "source": "brochure2018",
       "status": "documented",
@@ -78,6 +84,9 @@
       "kind": "shaft",
       "icon": "shaft",
       "color": "#2b2b2b",
+      "photo": "assets/poi/p-4-interior.webp",
+      "photoCredit": "GilPe, CC BY-SA 4.0, via Wikimedia Commons — “Walferdange, Grünewald, Raschpëtzer (Puits -04 intérieur).jpg”",
+      "photoUrl": "https://commons.wikimedia.org/wiki/File:Walferdange,_Gr%C3%BCnewald,_Raschp%C3%ABtzer_(Puits_-04_int%C3%A9rieur).jpg",
       "anchorShaft": "P-4",
       "lift": 1.35,
       "source": "brochure2018",
