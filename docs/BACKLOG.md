@@ -144,6 +144,49 @@ and #7 (CRS registry + spacing invariant) are being actioned separately.
 - **Reconcile the LiDAR vertical datum** (NG95/EVRF) with the brochure's "m a.s.l." in one
   line of provenance. *(surveyor)*
 
+## Kiosk — programs & storytelling (2026-09-26)
+
+For the physical display in front of Maison Dufaing (title-screen tour, `attract` in index.html).
+
+- **Program buttons A–E (physical + on-screen).** Coloured buttons on the outside of the
+  showcase vitrine, mirrored as a matching row of coloured buttons along the bottom of the
+  screen. Each one starts a *program*: the same site seen through a different lens, e.g.
+  A Geology & water · B Roman builders (how it was built and used) · C Rediscovery (1986 →
+  today) · D The site today (visit, opening hours, walk) · E Free explore.
+  - Hardware: USB-HID arcade buttons (they act as keys A–E; `keydown` works through glass,
+    no drivers). One colour and one letter per program, identical on the vitrine and on screen.
+  - A program = the tour-shot format (camera pose, reveal, POI, caption) plus a per-program
+    layer preset (geology, x-ray, timeline year, …) defined as data (`data/programs.json`), so
+    domain experts can write programs without touching code. ~60–120 s each, then back to the
+    title loop; ← / → step through its stations; the idle timeout returns to the loop.
+  - Keep the on-screen row visible during the attract loop ("press a colour"), label it in
+    FR/DE/LB/EN (multilingual captions per program), and show a progress bar for the
+    running program.
+- **"Back in time": the qanat under construction.** A program (or a special shot in
+  programme B) that switches to the construction period (c. AD 140): open shafts with
+  windlasses and spoil heaps, a partly driven gallery, workers' paths, no modern buildings
+  or roads, period vegetation. The **split view** is the transition: a vertical wipe with
+  "today" on the left and "c. AD 140" on the right, then the wipe slides across until the
+  past fills the screen. It reuses the existing `attractReveal: 'split'` scissor renderer
+  with a "past" pass instead of the blueprint pass.
+  - Needs: low-poly construction props (windlass, bucket, spoil cones, timber frames),
+    reconstruction sources (Brochure 2018; qanat construction literature) and an
+    "illustrative reconstruction" label in the same spirit as the data-honesty rules above.
+    The 3D-buildings and aerial layers simply switch off in the past pass.
+- **Splat → look through the shaft-cover window.** A Gaussian-splat capture of one of the
+  steel shaft covers with a glass window (P5 or P-4). The camera orbits the splat, then
+  pushes into the window; at the glass, cut or crossfade to the view down the shaft (a
+  photo/video looking down the lit P5 shaft, or the 3D shaft + gallery in x-ray), then
+  continue down to the gallery.
+  - Capture: ~150–300 photos or a slow 4K video circling the cover, in overcast light (reflections
+    on the glass are the risk: capture with the shaft light on; mask or retouch the glass).
+    Train with Polycam / Luma / nerfstudio → `.splat` / `.ksplat`, trimmed to ~3–10 MB.
+  - Render with a three.js splat viewer (e.g. GaussianSplats3D) in its own scene/pass,
+    shown full-screen for this sequence only (not inside the small POI circle), and
+    lazy-loaded so it doesn't cost anything outside that sequence.
+  - Fallback / first step: a still of the cover and a still down the shaft with a
+    zoom-and-crossfade gives ~80 % of the effect without a capture session.
+
 ## Done
 - **Georeferenced LiDAR model**: ACT LiDAR 2019 (0.5 m) terrain; shafts placed by OSM
   coords (elevation-validated); near-level gallery reconstructed from the brochure
