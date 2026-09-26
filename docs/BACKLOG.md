@@ -222,9 +222,17 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     The 3D-buildings and aerial layers simply switch off in the past pass.
 - **Splat → look through the shaft-cover window.** A Gaussian-splat capture of one of the
   steel shaft covers with a glass window (P5 or P-4). The camera orbits the splat, then
-  pushes into the window; at the glass, cut or crossfade to the view down the shaft (a
-  photo/video looking down the lit P5 shaft, or the 3D shaft + gallery in x-ray), then
-  continue down to the gallery.
+  pushes into the window. **Transition at the glass:** as the camera nears the window, fade
+  the splat out and fade in a real photo taken looking down through that window (the lit
+  shaft, as a visitor sees it). Optionally continue into the 3D shaft + gallery in x-ray.
+  - Keep the motion going through the fade: the camera's push-in continues as a slow zoom
+    into the photo (Ken Burns), so the move never stops dead at the cut.
+  - Frame the photo to match: shoot it from the same spot the camera ends at, with the
+    window frame as a mask/vignette on the photo, so the edge lines up across the fade.
+  - Photo capture: shaft light on, phone lens pressed against the glass (kills reflections),
+    ideally in shade or at dusk; a short video clip down the shaft works the same way.
+  - P-4 already has a real interior photo (`assets/poi/p-4-interior.webp`, GilPe, CC BY-SA
+    4.0) that can prototype the transition before the P5 photo exists.
   - Capture: ~150–300 photos or a slow 4K video circling the cover, in overcast light (reflections
     on the glass are the risk: capture with the shaft light on; mask or retouch the glass).
     Train with Polycam / Luma / nerfstudio → `.splat` / `.ksplat`, trimmed to ~3–10 MB.
