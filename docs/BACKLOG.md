@@ -163,7 +163,7 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     FR/DE/LB/EN (multilingual captions per program), and show a progress bar for the
     running program.
 - **"Back in time": the qanat under construction.** A program (or a special shot in
-  programme B) that switches to the construction period (c. AD 140): open shafts with
+  program B) that switches to the construction period (c. AD 140): open shafts with
   windlasses and spoil heaps, a partly driven gallery, workers' paths, no modern buildings
   or roads, period vegetation. The **split view** is the transition: a vertical wipe with
   "today" on the left and "c. AD 140" on the right, then the wipe slides across until the
