@@ -191,6 +191,16 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     kiosk on a public square may need to work silently with captions only.
   - Have the kids' texts reviewed by a teacher (e.g. the Walferdange school) in all four
     languages; simple language is harder than it looks.
+- **Title-screen wording: understandable, about water, a little mysterious.** The name
+  RASCHPËTZER stays as the title (it's what the signs up the hill say); the line under it
+  is the hook. Now: *"The Romans' hidden water"*. Alternatives to try on passers-by:
+  *"Where Roman water still flows"* (true: diverted qanat water still runs out at the
+  spring) · *"A Roman secret under the forest"* · *"1,800 years of hidden water"* ·
+  *"The Romans' hidden treasure: water"*. A rotating teaser question can replace the
+  kicker line ("Who dug 36 m into the hill — and why?"), and each lens can have its own
+  hook. Translate with the same tone, not literally: FR *« L'eau cachée des Romains »* ·
+  DE *„Das verborgene Wasser der Römer“* · LB *„D'verstoppt Waasser vun de Réimer“*
+  (LB to be checked by a native speaker).
 - **Burn-in safeguard for an always-on screen.** The title card, the button row and the
   chapter bar are static and would stay on screen all day.
   - Alternate the title's corner (upper right ↔ upper left) per loop or per shot. The shot
