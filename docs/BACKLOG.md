@@ -251,6 +251,24 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     alternate on long stops.
   - Diorama side walls for the whole context block (see the terrain-edge entry) remain an
     option on top of the soft edge.
+- **Camera path editor (suggested 2026-09-27).** Tuning tour shots in code is slow; the
+  people who know the town should place them. In steps:
+  1. *Capture keyframes:* in developer mode, fly the camera by hand and press "Add
+     keyframe" — it stores camera position + look-at (or "look at the site", locked).
+     Playback reuses the tour's spline code.
+  2. *Keyframe list + timeline:* reorder / delete / retime keys, a caption per key, a
+     scrubber with "play from here", and a **safe-area overlay** (title corner, caption and
+     photo boxes, button row) so shots are composed around the text.
+  3. *Later, if needed:* draggable spline handles in the 3D view (three.js TransformControls).
+  - Store paths as data (`data/tour.json`, validated like the rest of the SSOT) in
+    lat / lon / metres-above-ground, not scene units, so they survive changes of the
+    window, vertical exaggeration or flip. Export/import JSON; the kiosk just loads it.
+  - Built-in guards: constant speed along the path (arc length, not per segment), eased
+    starts/stops, minimum height above terrain and roofs, no roll.
+  - The same editor would author the lens chapters (each chapter = a camera path + caption
+    + layer preset), so it doubles as the content tool for the A–E lenses.
+  - Off-the-shelf alternative: Theatre.js (timeline/keyframe studio for three.js) in
+    developer mode only — faster to get a polished timeline, but a sizeable dependency.
 - **Burn-in safeguard for an always-on screen.** The title card, the button row and the
   chapter bar are static and would stay on screen all day.
   - Alternate the title's corner (upper right ↔ upper left) per loop or per shot. The shot
