@@ -259,7 +259,13 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
   2. *Keyframe list + timeline:* reorder / delete / retime keys, a caption per key, a
      scrubber with "play from here", and a **safe-area overlay** (title corner, caption and
      photo boxes, button row) so shots are composed around the text.
-  3. *Later, if needed:* draggable spline handles in the 3D view (three.js TransformControls).
+  3. *The path in between, also by hand:* insert "via" keys to bend the route (fly there,
+     press "Add via point"), a per-segment curve tension / straight-line toggle, and a
+     live preview of the route as a line in the scene; draggable handles in the 3D view
+     (three.js TransformControls) only if that isn't enough.
+  - Principle (agreed 2026-09-27): camera positions AND the moves between them are set by
+    the user with the normal camera controls, not hard-coded in `buildAttractShots`; the
+    code keeps only the guards below and sensible defaults for new paths.
   - Store paths as data (`data/tour.json`, validated like the rest of the SSOT) in
     lat / lon / metres-above-ground, not scene units, so they survive changes of the
     window, vertical exaggeration or flip. Export/import JSON; the kiosk just loads it.
