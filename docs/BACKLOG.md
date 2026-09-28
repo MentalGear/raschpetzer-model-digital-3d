@@ -193,7 +193,14 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     languages; simple language is harder than it looks.
 - **Title-screen wording: understandable, about water, a little mysterious.** The name
   RASCHPËTZER stays as the title (it's what the signs up the hill say); the line under it
-  is the hook. Now: *"The Romans' hidden water"*. Alternatives to try on passers-by:
+  is the hook. Now (2026-09-28): subtitle *"Ancient Roman waterway"*, and under it a
+  gold line of short facts taking turns every 9 s — "Still carrying water after nearly
+  1,900 years" · "Shafts dug by hand up to 36 m into the hill" · "Rediscovered in 1986 —
+  open to visitors" (each backed by the SSOT). Wanted but NOT yet used: *"best preserved
+  (Roman qanat) north of the Alps"* — add it once a citable source is in
+  `data/sources.json` (brochure page / publication); "almost 2,000 years" was softened to
+  "nearly 1,900" (built c. AD 130–140). Earlier: *"The Romans' hidden water"*.
+  Alternatives to try on passers-by:
   *"Where Roman water still flows"* (true: diverted qanat water still runs out at the
   spring) · *"A Roman secret under the forest"* · *"1,800 years of hidden water"* ·
   *"The Romans' hidden treasure: water"*. A rotating teaser question can replace the

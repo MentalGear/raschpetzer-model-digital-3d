@@ -857,6 +857,10 @@
             filter: drop-shadow(0 2px 10px rgba(0,0,0,0.65)); }
         #attract .at-sub { font-family: Georgia, "Times New Roman", serif; font-style: italic;
             font-size: clamp(0.95rem, 2vw, 1.5rem); color: #d9d1c3; margin-top: 0.35em; }
+        /* Third line: short facts that take turns (initAttract), fading between them. */
+        #attract .at-subsub { font-size: clamp(0.78rem, 1.25vw, 1rem); letter-spacing: 0.04em; color: #e3b25c;
+            margin-top: 0.45em; min-height: 1.3em; transition: opacity 0.8s ease; }
+        #attract .at-subsub.fade { opacity: 0; }
         #attract .at-rule { height: 2px; width: clamp(80px, 14vw, 220px); margin: 0.9em 0 0 auto;
             background: linear-gradient(to left, var(--at-gold), rgba(227,178,92,0)); }
         #attract .at-caption { position: absolute; left: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
@@ -1384,7 +1388,8 @@
         <div class="at-title">
             <div class="at-kicker">Walferdange · Luxembourg</div>
             <h1>RASCHPËTZER</h1>
-            <div class="at-sub">The Romans’ hidden water</div>
+            <div class="at-sub">Ancient Roman waterway</div>
+            <div class="at-subsub" id="at-subsub">Still carrying water after nearly 1,900 years</div>
             <div class="at-rule"></div>
         </div>
         <div class="at-photo hidden" id="at-photo">
@@ -9016,6 +9021,19 @@
             const btn = document.getElementById('btn-attract');
             if (btn) btn.addEventListener('click', () => setTimeout(startAttract, 0));
             initPathEditor();
+            // Title facts, taking turns under the subtitle. Each one is in the SSOT:
+            // service AD 140–350 and water still running out at the spring (site.json, poi.json),
+            // the deepest shaft (QANAT.maxDepthM), the 1986 rediscovery (poi.json P5).
+            const facts = ['Still carrying water after nearly 1,900 years',
+                `Shafts dug by hand up to ${QANAT.maxDepthM} m into the hill`,
+                'Rediscovered in 1986 — open to visitors'];
+            let fi = 0;
+            setInterval(() => {
+                const el = document.getElementById('at-subsub');
+                if (!el || !attract.on) return;
+                el.classList.add('fade');
+                setTimeout(() => { fi = (fi + 1) % facts.length; el.textContent = facts[fi]; el.classList.remove('fade'); }, 800);
+            }, 9000);
             const btn2 = document.getElementById('btn-title-screen');
             if (btn2) btn2.addEventListener('click', () => setTimeout(startAttract, 0));
             document.getElementById('at-resume').addEventListener('click', () => attractResume());
