@@ -891,6 +891,11 @@
         #attract .at-dots span.on { background: var(--at-gold); transform: scale(1.35); }
         #attract .at-attrib { position: absolute; right: clamp(20px, 4vw, 64px); bottom: 6px; font-size: 0.62rem;
             color: rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        .poi-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+        .poi-nav span { font-size: 0.8rem; opacity: 0.75; }
+        .poi-nav button { flex: none; padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(127,127,127,0.35);
+            background: rgba(127,127,127,0.12); color: inherit; font: inherit; font-size: 0.82rem; cursor: pointer; }
+        .poi-nav button:hover { background: rgba(127,127,127,0.25); }
         /* Camera path editor (floats over the paused title screen). */
         #path-editor { display: none; position: fixed; left: 16px; top: 16px; z-index: 80; width: min(400px, calc(100vw - 32px));
             max-height: calc(100vh - 32px); overflow: auto; padding: 12px 14px; border-radius: 14px;
@@ -7234,7 +7239,12 @@
             if (p.source) h += `<div class="ip-row"><span class="ip-k">Source</span><span class="ip-v">${citeChip({ source: p.source })}` +
                 (p.osm ? ` <a href="https://www.openstreetmap.org/${p.osm}" target="_blank" rel="noopener" style="color:#58a6ff">${p.osm}</a>` : '') + `</span></div>`;
             if (p.note) h += `<div class="ip-note">${p.note}</div>`;
+            // Station navigation (also ← / → on the keyboard).
+            const st = poiStations(), si = st.findIndex(pg => pg.disc.userData.id === p.id);
+            if (si >= 0) h = `<div class="poi-nav"><button type="button" data-step="-1">◀ Previous</button>` +
+                `<span>${si + 1} / ${st.length}</span><button type="button" data-step="1">Next ▶</button></div>` + h;
             body.innerHTML = h;
+            body.querySelectorAll('.poi-nav [data-step]').forEach(b => b.addEventListener('click', () => stepPoi(+b.dataset.step)));
             showInspector();
         }
         // Info panel for a surveyed "spot" (spring / borehole / overflow resurgence).
@@ -8351,7 +8361,7 @@
                     (site.channelExploredM ? ` — ${site.channelExploredM} m explored` : '') +
                     (site.servicePeriod ? `, in use c. AD ${site.servicePeriod.fromAD}–${site.servicePeriod.toAD}.` : '.') });
             // 4. Fly-by of the points of interest.
-            const tourIds = ['p5', 'visitor-gallery', 'spring', 'p-4', 'dauvebur', 'parking'];   // the car park last: "how to get there" before the overview closes the loop
+            const tourIds = TOUR_POI_ORDER;
             const stops = tourIds.map(byId).filter(Boolean);
             stops.forEach((pg, i) => {
                 const d = pg.disc.userData;
@@ -8965,8 +8975,15 @@
         }
         // Explore: select the previous/next point of interest (data/poi.json order, without
         // the whole-site marker) and fly to it.
+        // Stations in tour order: the car park last ("how to get there"), then the rest.
+        const TOUR_POI_ORDER = ['p5', 'visitor-gallery', 'spring', 'p-4', 'dauvebur', 'parking'];
+        function poiStations() {
+            const rank = pg => { const id = pg.disc.userData.id, i = TOUR_POI_ORDER.indexOf(id);
+                return pg.kiosk ? -1 : i >= 0 ? i : 100 + poiGroups.indexOf(pg); };
+            return poiGroups.filter(p => !p.site).sort((a, b) => rank(a) - rank(b));
+        }
         function stepPoi(step) {
-            const list = poiGroups.filter(p => !p.site);
+            const list = poiStations();
             if (!list.length) return;
             const cur = list.findIndex(p => p.disc.userData.id === poiSelectedId);
             const pg = list[cur < 0 ? (step > 0 ? 0 : list.length - 1) : ((cur + step) % list.length + list.length) % list.length];

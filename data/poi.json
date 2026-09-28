@@ -10,15 +10,15 @@
       "kiosk": true,
       "geo": {
         "crs": "EPSG:4326",
-        "lat": 49.65905,
-        "lon": 6.13215,
+        "lat": 49.659165,
+        "lon": 6.131977,
         "status": "documented"
       },
       "source": "osm-poi",
       "status": "documented",
-      "caption": "Walferdange town centre, in front of Maison Dufaing. The Raschpëtzer lies ~1.4 km north-east, under the wooded Pëtschend plateau.",
-      "description": "Kiosk location: the square in front of Maison Dufaing (1, Rue Josy Welter), by the Rond-Point des Roses in Walferdange town centre. The Raschpëtzer's visitor's gallery is ~1400 m to the north-east as the crow flies; by car or bus, follow Rue Prince Henri / CR 126 up the hill to the visitor car park (~1810 m, east-north-east) and walk ~15 minutes.",
-      "note": "Position: the open space between Maison Dufaing (OSM building way 477351713) and the Rond-Point des Roses (OSM junction=roundabout). Adjust `geo` in data/poi.json if the display stands elsewhere on the square. The town surroundings use a coarse (~50 m) ACT LiDAR 2019 context grid and the geoportail.lu topographic map.",
+      "caption": "Walferdange town centre, by the old BIL bank on the Route de Diekirch. The Raschpëtzer lies ~1.4 km north-east, under the wooded Pëtschend plateau.",
+      "description": "Kiosk location: where the old BIL bank branch was (22, Route de Diekirch), by Maison Dufaing and the Rond-Point des Roses in Walferdange town centre. The Raschpëtzer's visitor's gallery is ~1400 m to the north-east as the crow flies; by car or bus, follow Rue Prince Henri / CR 126 up the hill to the visitor car park (~1800 m, east-north-east) and walk ~15 minutes.",
+      "note": "Position (moved 2026-09-28 at the project's request, ~18 m north-west of the first placement in front of Maison Dufaing): the OpenStreetMap node of the BIL branch (amenity=bank, 22 Route de Diekirch, via Nominatim). Adjust `geo` in data/poi.json to the display's exact spot once it is installed. The town surroundings use a coarse (~50 m) ACT LiDAR 2019 context grid and the geoportail.lu topographic map.",
       "tourPhoto": "assets/poi/placeholder.webp",
       "tourPhotoPlaceholder": true
     },

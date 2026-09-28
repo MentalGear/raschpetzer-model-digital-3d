@@ -260,6 +260,39 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     alternate on long stops.
   - Diorama side walls for the whole context block (see the terrain-edge entry) remain an
     option on top of the soft edge.
+- **Stepping through the POIs while exploring — DONE 2026-09-28.** Select any point of
+  interest (tap its orb): the inspector now has "◀ Previous · n / N · Next ▶" buttons;
+  ← / → do the same on a keyboard. Order = "You are here", then the tour order (P5 →
+  visitor's gallery → spring → P-4 → Dauvebur → car park), then the town landmarks and
+  the rest. Idea: a "Stations" entry in Views that starts at the first one.
+- **"You are here" moved (2026-09-28)** ~18 m north-west to the old BIL bank
+  (22 Route de Diekirch, OSM node) at the project's request; set the exact spot once the
+  display is installed.
+- **Everything local? (assessed 2026-09-28)**
+  - *Runtime — yes, already.* three.js is vendored (`vendor/`); terrain grids, aerials,
+    maps, overlays, 3D buildings + texture atlases, POI photos and the SSOT are all baked
+    into `assets/` (~48 MB) and `data/`. Nothing is fetched from the internet while it
+    runs; the only outside links are the OpenStreetMap / Wikimedia links in the inspector
+    text, and an OpenTopoData elevation fallback that only runs if the baked terrain file
+    were missing. So the kiosk works offline.
+  - Gaps to close: (1) the title font is a font *name* (Trajan / Cinzel / Optima) that
+    falls back to the system serif — bundle a font file (e.g. Cinzel, OFL) in `assets/`
+    so the kiosk looks the same everywhere; (2) add a service worker (the PWA
+    `manifest.json` is already there) that pre-caches all assets, so a kiosk that reboots
+    during a network outage still starts; (3) an automated "offline" test (headless
+    browser with the network blocked) to keep it that way.
+  - *Raw source data — no, and it shouldn't go into git as is.* The ACT 3D-building
+    download is ~440 MB (2023 CityGML + textures; the 2020 one ~300 MB) — above GitHub's
+    100 MB per-file limit and far above a healthy repo size. LiDAR samples
+    (`data/lidar/samples.ndjson`, 3.6 MB) are already in the repo; the WMS rasters are
+    baked outputs. Options, best first: (a) `sources/manifest.json` with each raw file's
+    official URL (data.public.lu, CC0), size and SHA-256 plus `scripts/fetch-sources.mjs`
+    to download and verify — reproducible without storing it; (b) attach the raw zips to a
+    GitHub Release (2 GB per file) as a frozen copy in case the portal changes; (c) Git LFS
+    (free quota ~1 GB storage / 1 GB bandwidth per month — tight for 440 MB).
+  - *Repo growth:* `.git` is ~74 MB; each re-bake of the building atlases / HQ aerial adds
+    ~20–35 MB of history. If re-bakes become frequent, move `assets/buildings3d/*.webp`
+    and `assets/ortho-context-hq.jpg` to Git LFS or to release assets.
 - **Camera path editor — first version DONE 2026-09-28** (Tools → 🎥 Camera path): opens
   the title screen paused with the visitor controls; "+ Keyframe" / "+ Via point" capture
   the current camera; keys can be reordered, re-set, toggled key↔via, deleted and flown to;

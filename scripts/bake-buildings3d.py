@@ -39,7 +39,7 @@ LON0 = (CONTEXT['west'] + CONTEXT['east']) / 2
 LAT0 = (CONTEXT['south'] + CONTEXT['north']) / 2
 Z0 = 220.0
 # Standard texture set: buildings within these radii of the camera's key spots.
-FOCUS = [(49.65905, 6.13215, 380),   # "You are here" kiosk / town centre
+FOCUS = [(49.659165, 6.131977, 380),   # "You are here" kiosk (old BIL bank) / town centre
          (49.66360, 6.15700, 260),   # plateau car parks + bus stop
          (49.66630, 6.14800, 250)]   # visitor's gallery / spring outflow
 # Texture caps (longest side, px) near the camera spots / elsewhere. Every building is textured in
