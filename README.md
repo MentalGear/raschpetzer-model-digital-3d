@@ -55,6 +55,12 @@ source; documented facts are visually distinguished from inferred/schematic ones
 - **Site level of detail**: from far away (the town, the overview) the whole qanat is ONE
   "Raschpëtzer" marker with the qanat shown in x-ray beneath it; the detailed POIs fade in
   as you get closer (tap the marker to fly in). While a POI is active, the others shrink and fade.
+- **Title screen interaction**: touching or dragging the title screen hands the camera to
+  the visitor (the tour pauses; "Resume tour" / "Explore the model" appear; it resumes by
+  itself after 45 s). A "▶ Title screen" button sits on the 3D view.
+- **Camera path editor** (Tools → 🎥 Camera path): place keyframes and via points with the
+  normal camera controls, preview the route and the tour with a safe-area overlay; paths are
+  stored as lat / lon / metres above ground in `data/tour.json` (`paths.town`).
 - **Title tour extras**: the tour opens with one continuous flight from "You are here" past
   the town hall and over the sports complex up toward the site, always looking at the
   Raschpëtzer (the overview closes the loop); a building that covers a marker (or is right

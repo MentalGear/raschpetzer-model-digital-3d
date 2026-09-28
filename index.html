@@ -107,6 +107,12 @@
            (translateX) rather than occupying that space. */
         #label-east { right: calc(var(--panel-w, 340px) + 18px); }
         /* Compass widget: a rotating north arrow; click to face north. */
+        #btn-title-screen { position: absolute; left: 16px; bottom: 16px; z-index: 6; padding: 9px 14px;
+            border-radius: 999px; border: 1px solid rgba(255,255,255,0.22); background: rgba(15,20,30,0.72);
+            color: #f5efe4; font: 600 0.82rem/1 -apple-system, sans-serif; letter-spacing: 0.03em; cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+        #btn-title-screen:hover { background: rgba(184,65,46,0.92); }
+        body.attract #btn-title-screen { display: none; }
         #compass {
             position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 6;
             border-radius: 50%; background: rgba(15,20,30,0.55);
@@ -807,7 +813,7 @@
         body.attract #compass, body.attract .instructions, body.attract #drawer-toggle,
         body.attract #selection-dismiss, body.attract #timeline-bar, body.attract #ortho-attrib,
         body.attract #scale-bar { display: none !important; }
-        body.attract #canvas-container { cursor: pointer; }
+
         /* Title-card palette: Pompeian red (Roman wall-painting cinnabar / red ochre) with a
            gold-ochre rule and cream capitals — change the three tokens to restyle it. */
         #attract { --at-dark: 12, 14, 20; --at-gold: #e3b25c; --at-cream: #f7eddc;
@@ -881,6 +887,53 @@
         #attract .at-dots span.on { background: var(--at-gold); transform: scale(1.35); }
         #attract .at-attrib { position: absolute; right: clamp(20px, 4vw, 64px); bottom: 6px; font-size: 0.62rem;
             color: rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        /* Camera path editor (floats over the paused title screen). */
+        #path-editor { display: none; position: fixed; left: 16px; top: 16px; z-index: 80; width: min(400px, calc(100vw - 32px));
+            max-height: calc(100vh - 32px); overflow: auto; padding: 12px 14px; border-radius: 14px;
+            background: rgba(18, 21, 28, 0.94); color: #e8e3da; border: 1px solid rgba(255,255,255,0.16);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); font: 13px/1.35 -apple-system, sans-serif; }
+        body.path-editing #path-editor { display: block; }
+        body.path-editing #attract #at-controls { left: auto; right: 24px; transform: none; }
+        #path-editor .pe-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 14px; }
+        #path-editor button { background: #2c323d; color: #eee; border: 1px solid rgba(255,255,255,0.15); border-radius: 7px;
+            padding: 5px 9px; cursor: pointer; font: inherit; }
+        #path-editor button:hover { background: #3a4150; }
+        #path-editor #pe-add-key { background: #b8412e; }
+        #path-editor #pe-add-via { background: #2f6f94; }
+        #path-editor .pe-hint { color: #a8a39a; font-size: 12px; margin: 4px 0 8px; }
+        #path-editor .pe-btns, #path-editor .pe-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+        #path-editor .pe-check { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
+        #path-editor select, #path-editor input[type=number], #path-editor textarea { background: #0f1218; color: #eee;
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 3px 5px; font: inherit; }
+        #path-editor textarea { width: 100%; box-sizing: border-box; font: 11px/1.3 ui-monospace, monospace; }
+        #path-editor #pe-keys { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+        #path-editor .pe-row { display: flex; gap: 4px; align-items: center; padding: 4px 6px; border-radius: 8px; background: rgba(255,255,255,0.04); cursor: pointer; }
+        #path-editor .pe-row.sel { background: rgba(227,178,92,0.18); outline: 1px solid rgba(227,178,92,0.5); }
+        #path-editor .pe-row button { padding: 2px 6px; font-size: 11px; }
+        #path-editor .pe-name { flex: 1; }
+        #path-editor .pe-dot { width: 10px; height: 10px; border-radius: 50%; background: #d62828; flex: none; }
+        #path-editor .pe-dot.via { background: #4fb6e8; }
+        #path-editor .pe-empty { color: #a8a39a; font-style: italic; padding: 6px 0; }
+        #path-editor summary { cursor: pointer; margin-top: 6px; color: #e3b25c; }
+        #safe-area { display: none; position: fixed; inset: 0; z-index: 75; pointer-events: none; }
+        body.path-editing.safe-area #safe-area { display: block; }
+        #safe-area .sa { position: absolute; border: 1.5px dashed rgba(227,178,92,0.85); background: rgba(227,178,92,0.06);
+            color: rgba(227,178,92,0.95); font: 600 11px/1 -apple-system, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px; box-sizing: border-box; }
+        #safe-area .sa-title { top: 2%; right: 2%; width: 50%; height: 25%; text-align: right; }
+        #safe-area .sa-cap { left: 3%; bottom: 7%; width: 42%; height: 24%; }
+        #safe-area .sa-photo { right: 3%; bottom: 7%; width: 28%; height: 27%; text-align: right; }
+        #safe-area .sa-prompt { left: 33%; bottom: 1%; width: 34%; height: 6%; text-align: center; }
+        /* Visitor in control on the title screen: Resume / Explore instead of the prompt. */
+        #attract #at-controls { position: absolute; left: 50%; bottom: clamp(14px, 3vh, 30px); transform: translateX(-50%);
+            display: none; gap: 12px; pointer-events: auto; }
+        body.attract-manual #attract #at-controls { display: flex; }
+        body.attract-manual #attract .at-prompt { display: none; }
+        #attract #at-controls button { font: 600 clamp(0.85rem, 1.3vw, 1rem)/1 -apple-system, sans-serif; letter-spacing: 0.06em;
+            padding: 13px 22px; border-radius: 999px; cursor: pointer; color: #fbf6ec;
+            background: rgba(18, 21, 28, 0.78); border: 1px solid rgba(255,255,255,0.28); box-shadow: 0 6px 20px rgba(0,0,0,0.45); }
+        #attract #at-controls #at-resume { background: #b8412e; border-color: rgba(255,255,255,0.35); }
+        #attract #at-controls button:hover { filter: brightness(1.15); }
+        body.attract #canvas-container { cursor: grab; }
         @keyframes atPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
         @keyframes atTitleIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) { #attract .at-prompt { animation: none; } #attract .at-title { animation: none; } }
@@ -1234,6 +1287,7 @@
             <label>Tools</label>
             <div class="btn-tools">
                 <button id="btn-attract" type="button">🎬 Title screen</button>
+                <button id="btn-path-editor" type="button">🎥 Camera path</button>
                 <button id="btn-share" type="button">🔗 Share</button>
                 <button id="btn-timeline" type="button">⏳ Timeline</button>
                 <button id="btn-legend" type="button">▤ Legend</button>
@@ -1344,8 +1398,37 @@
         </div>
         <div class="at-split" id="at-split"><span class="at-split-l">Surface</span><span class="at-split-r">Beneath</span></div>
         <div class="at-dots" id="at-dots"></div>
-        <div class="at-prompt">Touch anywhere to explore</div>
+        <div class="at-prompt">Touch to look around</div>
+        <div id="at-controls">
+            <button id="at-resume" type="button">▶&nbsp; Resume tour</button>
+            <button id="at-exit" type="button">✕&nbsp; Explore the model</button>
+        </div>
         <div class="at-attrib">Topographic map, aerial &amp; LiDAR terrain © ACT · geoportail.lu · Luxembourg open data</div>
+    </div>
+
+    <!-- Camera path editor (title screen, paused): keyframes from the normal camera controls. -->
+    <div id="path-editor" role="dialog" aria-label="Camera path editor">
+        <div class="pe-head"><b>🎥 Camera path — town flight</b><button id="pe-close" type="button" aria-label="Close">✕</button></div>
+        <div class="pe-hint">Drag / scroll to place the camera, then add a keyframe. Via points only bend the route.</div>
+        <div class="pe-btns"><button id="pe-add-key" type="button">+ Keyframe</button><button id="pe-add-via" type="button">+ Via point</button></div>
+        <div id="pe-keys"></div>
+        <label class="pe-check"><input type="checkbox" id="pe-look-site" checked> Always look at the Raschpëtzer</label>
+        <div class="pe-line"><label>Route <select id="pe-style"><option value="smooth">Smooth curve</option><option value="straight">Straight lines</option></select></label>
+            <label>Duration <input id="pe-dur" type="number" min="4" max="180" step="1" style="width:4.5em"> s</label></div>
+        <div class="pe-line"><input id="pe-scrub" type="range" min="0" max="1000" value="0" style="flex:1"><button id="pe-play" type="button">▶ Play tour</button></div>
+        <div class="pe-line"><label class="pe-check"><input type="checkbox" id="pe-route" checked> Show route</label>
+            <label class="pe-check"><input type="checkbox" id="pe-safe" checked> Safe-area overlay</label></div>
+        <details><summary>Save / load</summary>
+            <div class="pe-src" id="pe-src"></div>
+            <div class="pe-btns"><button id="pe-load-auto" type="button">Load the built-in flight</button><button id="pe-reset" type="button">Discard draft</button></div>
+            <textarea id="pe-json" rows="6" spellcheck="false"></textarea>
+            <div class="pe-btns"><button id="pe-copy" type="button">Copy JSON</button><button id="pe-apply" type="button">Apply pasted JSON</button></div>
+            <div class="pe-hint">Edits are saved in this browser. To make a path the kiosk's default, paste the JSON into <code>data/tour.json</code> → <code>paths.town</code>.</div>
+        </details>
+    </div>
+    <!-- Safe areas for framing tour shots: where the title, caption, photo and prompt sit. -->
+    <div id="safe-area" aria-hidden="true">
+        <div class="sa sa-title">Title</div><div class="sa sa-cap">Caption</div><div class="sa sa-photo">Photo</div><div class="sa sa-prompt">Buttons</div>
     </div>
 
     <!-- Full-screen image lightbox (scale in/out). Opened by clicking any img.lb-img. -->
@@ -1364,6 +1447,7 @@
         <button id="selection-dismiss" type="button" title="Clear selection" aria-label="Clear selection">✕</button>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
+        <button id="btn-title-screen" type="button" title="Title screen & tour (kiosk)">▶&nbsp;Title&nbsp;screen</button>
         <div id="compass" title="Face north">
             <div class="rose" id="compass-rose">
                 <div class="arrow"></div><span class="lbl">N</span><div class="tail"></div>
@@ -2831,6 +2915,10 @@
         function maslToY(masl) {
             const span = (geodata.maxM - geodata.minM) || 1;
             return (masl - geodata.minM) / span * geoVMul();
+        }
+        function sceneZToLat(z) {
+            const v = (z + params.depth / 2) / params.depth;
+            return geoView.north - v * (geoView.north - geoView.south);
         }
         function sceneXToLon(x) {
             let u = (x + params.width / 2) / params.width;
@@ -6811,6 +6899,7 @@
                 const dt = performance.now() - tapStart.t;
                 tapStart = null;
                 if (moved > 8 || dt > 600) return;   // a drag/orbit or long-press, not a tap
+                if (attract.on) return;   // title screen: taps only hand over the camera (no inspector there)
                 if (measureMode) {
                     const p = pickSurface(ev);
                     if (p) addMeasurePoint(p);
@@ -8239,7 +8328,12 @@
                 const n = pts.length - 1;
                 caps.forEach(c => { if (c.idx != null) c.at = Math.max(0, (c.idx - 0.6) / n); });
                 const dur = 8 + 5 * n;
-                shots.push({ path: curve, target: sitePos.clone().add(new THREE.Vector3(0, 20 * u, 0)), dur, caps, ...caps[0] });
+                const aim = sitePos.clone().add(new THREE.Vector3(0, 20 * u, 0));
+                const auto = { path: curve, target: aim, dur, caps, ...caps[0],
+                    sample: e => { const pos = curve.getPoint(e), target = aim.clone(); target.y -= pos.distanceTo(target) * 0.1; return { pos, target }; } };
+                const user = tourPathShot('town', sitePos);
+                shots.push(user ? Object.assign(user, { caps, ...caps[0] }) : auto);
+                autoTownPoints = pts;   // for the editor's "Load the built-in flight"
             }
             // 3. The qanat itself (x-ray: shafts and gallery under the plateau).
             // Split-view reveal: the "beneath" side sweeps in from the right, holds, sweeps out.
@@ -8293,6 +8387,10 @@
             return ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(deg / 45) % 8];
         }
         function attractPose(shot, secs) {
+            if (shot.sample) {   // a user-authored path (camera path editor)
+                const k = Math.min(1, secs / shot.dur);
+                return shot.sample(0.5 - 0.5 * Math.cos(Math.PI * k));
+            }
             if (shot.path) {   // a flight along a camera path, always looking at shot.target
                 const k = Math.min(1, secs / shot.dur);
                 const e = 0.5 - 0.5 * Math.cos(Math.PI * k);   // gentle start and end
@@ -8368,8 +8466,9 @@
         }
         function stopAttract() {
             if (!attract.on) return;
-            attract.on = false; attract.activePoi = null;
-            document.body.classList.remove('attract');
+            if (pathEd.open) pathEdClose();
+            attract.on = false; attract.activePoi = null; attract.manual = false;
+            document.body.classList.remove('attract', 'attract-manual');
             const sv = attract.saved || {};
             params.baseLayer = sv.baseLayer; params.showGhostApron = sv.showGhostApron; params.showPois = sv.showPois;
             params.showContourLines = sv.showContourLines; params.showSides = sv.showSides;
@@ -8396,13 +8495,17 @@
                 if (params.attractMode && now - lastInteraction > ATTRACT_IDLE_MS && !annotateMode) startAttract();
                 if (!attract.on) return false;
             }
+            if (attract.manual) {   // the visitor is looking around; resume after a quiet spell
+                if (now - lastInteraction > ATTRACT_MANUAL_IDLE_MS && !attract.editing) attractResume();
+                else return false;
+            }
             const shots = attract.shots;
             if (!shots.length) return true;
             let shot = shots[attract.idx];
             if (attract.idx < 0 || (now - attract.shotStart) / 1000 > shot.dur) {
                 if (attract.idx >= 0 && attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
                 attract.idx = (attract.idx + 1) % shots.length;
-                attract.shotStart = now;
+                attract.shotStart = now; attract.blendStart = now;
                 shot = shots[attract.idx];
                 attract.activePoi = shot.poiId || null;   // enlarge the POI we're flying past
                 attract.capIdx = 0;
@@ -8416,7 +8519,7 @@
                 if (ci !== attract.capIdx) { attract.capIdx = ci; setAttractCaption(Object.assign({}, shot, shot.caps[ci])); }
             }
             const p = attractPose(shot, secs);
-            const k = Math.min(1, secs / ATTRACT_TRANSITION_S);
+            const k = Math.min(1, (now - (attract.blendStart || attract.shotStart)) / 1000 / ATTRACT_TRANSITION_S);
             if (k < 1 && attract.from) {
                 const e = easeInOut(k);
                 const pos = attract.from.pos.clone().lerp(p.pos, e);
@@ -8440,7 +8543,7 @@
         function attractRevealAt(now) {
             const shot = attract.shots[attract.idx];
             if (!shot || !shot.reveal) return 0;
-            const t = (now - attract.shotStart) / 1000, k = shot.reveal;
+            const t = ((attract.manual ? attract.pausedAt : now) - attract.shotStart) / 1000, k = shot.reveal;
             if (t <= k[0][0]) return k[0][1];
             for (let i = 0; i < k.length - 1; i++) {
                 const [t0, v0] = k[i], [t1, v1] = k[i + 1];
@@ -8603,6 +8706,243 @@
                 tourCut.walls.visible = true;
             }
         }
+        // Title screen, visitor in control: the automatic camera pauses (the shot's clock
+        // freezes, so reveals and captions hold) and OrbitControls take over.
+        const ATTRACT_MANUAL_IDLE_MS = 45000;
+        function attractTakeControl() {
+            attract.manual = true;
+            attract.pausedAt = performance.now();
+            controls.enabled = true;
+            document.body.classList.add('attract-manual');
+        }
+        function attractResume() {
+            if (!attract.manual) return;
+            const now = performance.now();
+            attract.shotStart += now - attract.pausedAt;   // continue the shot where it paused …
+            attract.from = { pos: camera.position.clone(), target: controls.target.clone() };
+            attract.blendStart = now;                       // … gliding back onto its path
+            attract.manual = false;
+            controls.enabled = false;
+            document.body.classList.remove('attract-manual');
+        }
+        // --- Camera paths set by hand (camera path editor) ---------------------------------
+        // A path = keyframes captured from the normal camera controls. Stored as data in
+        // geographic terms — lat / lon / metres above ground — so it survives changes to the
+        // map window, vertical exaggeration or the W↔E flip:
+        //   { lookAt: 'site' | 'keys', style: 'smooth' | 'straight', duration: s,
+        //     keys: [{ lat, lon, agl, via?, look?: { lat, lon, agl } }] }
+        // Source: the editor's draft in this browser (localStorage) if any, else data/tour.json.
+        // Playback guards: constant speed along the path (arc length), eased start/stop,
+        // never lower than TOUR_MIN_AGL_M above the ground, no roll.
+        const TOUR_MIN_AGL_M = 20;
+        const TOUR_DRAFT_KEY = 'rasch-tour-path-';
+        let autoTownPoints = null;
+        function tourPathData(name) {
+            try { const d = localStorage.getItem(TOUR_DRAFT_KEY + name); if (d) return JSON.parse(d); } catch (e) {}
+            const t = SSOT.tour && SSOT.tour.paths && SSOT.tour.paths[name];
+            return t ? JSON.parse(JSON.stringify(t)) : null;
+        }
+        function geoKeyToScene(k) {
+            const sc = geoToScene(k.lat, k.lon);
+            return new THREE.Vector3(sc.x, getTerrainHeight(sc.x, sc.z) + (k.agl || 0) * metersToYDepth(1), sc.z);
+        }
+        function sceneToGeoKey(v) {
+            const r6 = x => Math.round(x * 1e6) / 1e6;
+            return { lat: r6(sceneZToLat(v.z)), lon: r6(sceneXToLon(v.x)),
+                     agl: Math.round((v.y - getTerrainHeight(v.x, v.z)) / metersToYDepth(1) * 10) / 10 };
+        }
+        function buildPathCurve(pts, style) {
+            if (style === 'straight') {
+                const cp = new THREE.CurvePath();
+                for (let i = 0; i < pts.length - 1; i++) cp.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
+                return cp;
+            }
+            return new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+        }
+        // Build a tour shot from a stored path (null if there is none / it's too short).
+        function tourPathShot(name, sitePos) {
+            const P = tourPathData(name);
+            if (!P || !P.keys || P.keys.length < 2 || !(params.terrainSource === 'geodata' && geodata.ready)) return null;
+            const pts = P.keys.map(geoKeyToScene);
+            const curve = buildPathCurve(pts, P.style);
+            // Look targets: the site, or per key (via points borrow their neighbours').
+            let looks = null;
+            if (P.lookAt === 'keys') {
+                const lk = P.keys.map(k => k.look && !k.via ? geoKeyToScene(k.look) : null);
+                for (let i = 0; i < lk.length; i++) if (!lk[i]) {
+                    let a = i - 1; while (a >= 0 && !lk[a]) a--;
+                    let b = i + 1; while (b < lk.length && !lk[b]) b++;
+                    const A = a >= 0 ? lk[a] : null, B = b < lk.length ? lk[b] : null;
+                    lk[i] = A && B ? A.clone().lerp(B, (i - a) / (b - a)) : (A || B || sitePos).clone();
+                }
+                looks = new THREE.CatmullRomCurve3(lk, false, 'centripetal');
+            }
+            const ym = metersToYDepth(1), u = 1 / metersPerUnitH();
+            const siteAim = sitePos.clone().add(new THREE.Vector3(0, 20 * u, 0));
+            const sample = e => {
+                const pos = curve.getPointAt(Math.min(1, Math.max(0, e)));   // arc length: constant speed
+                pos.y = Math.max(pos.y, getTerrainHeight(pos.x, pos.z) + TOUR_MIN_AGL_M * ym);
+                let target;
+                if (looks) target = looks.getPoint(curve.getUtoTmapping ? curve.getUtoTmapping(e) : e);
+                else { target = siteAim.clone(); target.y -= pos.distanceTo(target) * 0.1; }
+                return { pos, target };
+            };
+            return { sample, curve, dur: Math.max(4, +P.duration || 30), userPath: name };
+        }
+
+        // Editor UI: opens the title screen paused, visitor in control, with the panel on top.
+        const pathEd = { open: false, name: 'town', sel: -1, preview: null, data: null };
+        function pathEdLoad() {
+            pathEd.data = tourPathData(pathEd.name) || { lookAt: 'site', style: 'smooth', duration: 30, keys: [] };
+            if (!pathEd.data.keys) pathEd.data.keys = [];
+        }
+        function pathEdSave() {
+            try { localStorage.setItem(TOUR_DRAFT_KEY + pathEd.name, JSON.stringify(pathEd.data)); } catch (e) {}
+            // Rebuild the tour with the edited path, staying on the current shot.
+            if (attract.on) { const i = attract.idx; attract.shots = buildAttractShots(); attract.idx = Math.min(i, attract.shots.length - 1); }
+            pathEdRender(); pathEdPreview();
+        }
+        function pathEdOpen() {
+            if (!attract.on) startAttract();
+            requestAnimationFrame(() => {
+                attract.idx = 0; attract.shotStart = attract.blendStart = performance.now();
+                setAttractCaption(attract.shots[0] || {});
+                attractTakeControl();
+                pathEd.open = true; attract.editing = true;
+                document.body.classList.toggle('safe-area', document.getElementById('pe-safe').checked);
+                pathEdLoad();
+                document.body.classList.add('path-editing');
+                pathEdRender(); pathEdPreview();
+            });
+        }
+        function pathEdClose() {
+            pathEd.open = false; attract.editing = false;
+            document.body.classList.remove('path-editing');
+            if (pathEd.preview) { scene.remove(pathEd.preview); pathEd.preview.traverse(o => { if (o.geometry) o.geometry.dispose(); }); pathEd.preview = null; }
+        }
+        // Route preview in the scene: the path (gold), keyframes (red) and via points (blue).
+        function pathEdPreview() {
+            if (pathEd.preview) { scene.remove(pathEd.preview); pathEd.preview.traverse(o => { if (o.geometry) o.geometry.dispose(); }); pathEd.preview = null; }
+            if (!pathEd.open || !document.getElementById('pe-route').checked) return;
+            const g = new THREE.Group();
+            const keys = pathEd.data.keys;
+            if (keys.length >= 2) {
+                const shot = tourPathShot(pathEd.name, (poiGroups.find(p => p.site) || { group: { position: DEFAULT_CAM.target } }).group.position.clone());
+                if (shot) {
+                    const line = [];
+                    for (let i = 0; i <= 300; i++) line.push(shot.sample(i / 300).pos);
+                    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(line),
+                        new THREE.LineBasicMaterial({ color: 0xe3b25c, depthTest: false, transparent: true }));
+                    l.renderOrder = 40; g.add(l);
+                }
+            }
+            const r = 0.35;
+            keys.forEach((k, i) => {
+                const m = new THREE.Mesh(new THREE.SphereGeometry(i === pathEd.sel ? r * 1.6 : r, 12, 8),
+                    new THREE.MeshBasicMaterial({ color: k.via ? 0x4fb6e8 : 0xd62828, depthTest: false, transparent: true }));
+                m.position.copy(geoKeyToScene(k)); m.renderOrder = 41; m.raycast = () => {};
+                g.add(m);
+            });
+            pathEd.preview = g; scene.add(g);
+        }
+        function pathEdRender() {
+            const D = pathEd.data, list = document.getElementById('pe-keys');
+            document.getElementById('pe-look-site').checked = D.lookAt !== 'keys';
+            document.getElementById('pe-style').value = D.style || 'smooth';
+            document.getElementById('pe-dur').value = D.duration || 30;
+            list.innerHTML = D.keys.length ? '' : '<div class="pe-empty">No keyframes yet — fly the camera to a spot and press “+ Keyframe”.</div>';
+            D.keys.forEach((k, i) => {
+                const row = document.createElement('div');
+                row.className = 'pe-row' + (i === pathEd.sel ? ' sel' : '');
+                row.innerHTML = `<span class="pe-dot ${k.via ? 'via' : ''}"></span>` +
+                    `<span class="pe-name">${i + 1}. ${k.via ? 'via point' : 'keyframe'} · ${Math.round(k.agl)} m up</span>` +
+                    `<button data-a="go" title="Fly the camera here">Go</button><button data-a="set" title="Move this key to the current camera">Set here</button>` +
+                    `<button data-a="via" title="Toggle keyframe / via point">${k.via ? 'Key' : 'Via'}</button>` +
+                    `<button data-a="up" title="Move up">↑</button><button data-a="dn" title="Move down">↓</button><button data-a="del" title="Delete">✕</button>`;
+                row.addEventListener('click', ev => {
+                    const a = ev.target.dataset && ev.target.dataset.a;
+                    pathEd.sel = i;
+                    if (a === 'go' || !a) { pathEdGo(k); }
+                    else if (a === 'set') Object.assign(D.keys[i], pathEdCapture(k.via));
+                    else if (a === 'via') { k.via = !k.via; }
+                    else if (a === 'up' && i > 0) { [D.keys[i - 1], D.keys[i]] = [D.keys[i], D.keys[i - 1]]; pathEd.sel = i - 1; }
+                    else if (a === 'dn' && i < D.keys.length - 1) { [D.keys[i + 1], D.keys[i]] = [D.keys[i], D.keys[i + 1]]; pathEd.sel = i + 1; }
+                    else if (a === 'del') { D.keys.splice(i, 1); pathEd.sel = Math.min(i, D.keys.length - 1); }
+                    if (a === 'go' || !a) { pathEdRender(); pathEdPreview(); } else pathEdSave();
+                });
+                list.appendChild(row);
+            });
+            document.getElementById('pe-json').value = JSON.stringify(D, null, 1);
+            document.getElementById('pe-src').textContent = (() => {
+                try { if (localStorage.getItem(TOUR_DRAFT_KEY + pathEd.name)) return 'Draft saved in this browser.'; } catch (e) {}
+                return SSOT.tour && SSOT.tour.paths && SSOT.tour.paths[pathEd.name] ? 'From data/tour.json.' : 'Built-in flight (no stored path).';
+            })();
+        }
+        function pathEdCapture(via) {
+            const k = sceneToGeoKey(camera.position);
+            k.look = sceneToGeoKey(controls.target);
+            if (via) k.via = true;
+            return k;
+        }
+        function pathEdGo(k) {
+            const pos = geoKeyToScene(k);
+            const tgt = k.look && pathEd.data.lookAt === 'keys' ? geoKeyToScene(k.look)
+                : (poiGroups.find(p => p.site) || { group: { position: DEFAULT_CAM.target } }).group.position.clone();
+            camera.position.copy(pos); controls.target.copy(tgt); camera.lookAt(tgt); controls.update();
+            lastInteraction = performance.now();
+        }
+        function pathEdScrub(e) {
+            const shot = attract.shots && attract.shots[0];
+            if (!shot || !shot.sample) return;
+            const p = shot.sample(e);
+            camera.position.copy(p.pos); controls.target.copy(p.target); camera.lookAt(p.target); controls.update();
+            lastInteraction = performance.now();
+        }
+        function initPathEditor() {
+            const $ = id => document.getElementById(id);
+            $('btn-path-editor').addEventListener('click', () => setTimeout(pathEdOpen, 0));
+            $('pe-close').addEventListener('click', pathEdClose);
+            const add = via => {
+                const k = pathEdCapture(via), D = pathEd.data;
+                const at = pathEd.sel >= 0 ? pathEd.sel + 1 : D.keys.length;
+                D.keys.splice(at, 0, k); pathEd.sel = at; pathEdSave();
+            };
+            $('pe-add-key').addEventListener('click', () => add(false));
+            $('pe-add-via').addEventListener('click', () => add(true));
+            $('pe-look-site').addEventListener('change', e => { pathEd.data.lookAt = e.target.checked ? 'site' : 'keys'; pathEdSave(); });
+            $('pe-style').addEventListener('change', e => { pathEd.data.style = e.target.value; pathEdSave(); });
+            $('pe-dur').addEventListener('change', e => { pathEd.data.duration = Math.max(4, +e.target.value || 30); pathEdSave(); });
+            $('pe-route').addEventListener('change', pathEdPreview);
+            $('pe-safe').addEventListener('change', e => document.body.classList.toggle('safe-area', e.target.checked));
+            $('pe-scrub').addEventListener('input', e => pathEdScrub(+e.target.value / 1000));
+            $('pe-play').addEventListener('click', () => {   // play the whole tour from the start of this path
+                attract.idx = 0; attract.shotStart = performance.now() + 0; attract.pausedAt = performance.now();
+                attract.from = { pos: camera.position.clone(), target: controls.target.clone() };
+                setAttractCaption(attract.shots[0] || {});
+                attractResume();
+            });
+            $('pe-load-auto').addEventListener('click', () => {
+                if (!autoTownPoints) return;
+                pathEd.data = { lookAt: 'site', style: 'smooth', duration: 30, keys: autoTownPoints.map(v => sceneToGeoKey(v)) };
+                pathEd.sel = -1; pathEdSave();
+            });
+            $('pe-reset').addEventListener('click', () => {
+                try { localStorage.removeItem(TOUR_DRAFT_KEY + pathEd.name); } catch (e) {}
+                pathEd.sel = -1; pathEdLoad(); pathEdSave();
+                try { localStorage.removeItem(TOUR_DRAFT_KEY + pathEd.name); } catch (e) {}
+                pathEdRender();
+            });
+            $('pe-copy').addEventListener('click', () => {
+                const t = $('pe-json'); t.select();
+                (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(
+                    () => showToast('Path copied — paste it into data/tour.json → paths.' + pathEd.name),
+                    () => { document.execCommand && document.execCommand('copy'); showToast('Path selected — copy it (Ctrl/⌘+C)'); });
+            });
+            $('pe-apply').addEventListener('click', () => {
+                try { const d = JSON.parse($('pe-json').value); if (!Array.isArray(d.keys)) throw 0; pathEd.data = d; pathEd.sel = -1; pathEdSave(); }
+                catch (e) { showToast('That isn’t a valid path (needs a "keys" list)'); }
+            });
+        }
         function isTypingTarget(t) {
             return !!(t && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)));
         }
@@ -8612,7 +8952,7 @@
             if (!n) return;
             if (attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
             attract.idx = ((Math.max(0, attract.idx) + step) % n + n) % n;
-            attract.shotStart = performance.now();
+            attract.shotStart = attract.blendStart = performance.now();
             const shot = attract.shots[attract.idx];
             attract.activePoi = shot.poiId || null;
             attract.capIdx = 0;
@@ -8637,17 +8977,25 @@
             const onInteract = ev => {
                 lastInteraction = performance.now();
                 if (ev.type === 'keydown' && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') &&
-                    !ev.metaKey && !ev.ctrlKey && !ev.altKey && !ev.shiftKey && !isTypingTarget(ev.target)) {
+                    !ev.metaKey && !ev.ctrlKey && !ev.altKey && !ev.shiftKey && !isTypingTarget(ev.target) && !pathEd.open) {
                     // ← / → : previous / next station — tour shot, or (exploring) point of interest.
                     ev.preventDefault(); ev.stopPropagation();
                     const step = ev.key === 'ArrowRight' ? 1 : -1;
-                    if (attract.on) attractJump(step); else stepPoi(step);
+                    if (attract.on) { attractResume(); attractJump(step); } else stepPoi(step);
                     return;
                 }
                 if (!attract.on) return;
                 if (ev.type === 'pointermove') return;
-                ev.preventDefault(); ev.stopPropagation();
-                stopAttract();
+                if (ev.target && ev.target.closest && ev.target.closest('#at-controls, #path-editor')) return;   // its own buttons
+                if (ev.type === 'keydown') {
+                    if (ev.key === 'Escape') { ev.preventDefault(); stopAttract(); }
+                    return;
+                }
+                // Touch / drag / wheel: the visitor takes the camera. The title screen stays;
+                // the tour pauses (Resume / Explore buttons appear) and resumes by itself after
+                // ATTRACT_MANUAL_IDLE_MS without input. The event is NOT swallowed, so this same
+                // gesture already orbits / zooms.
+                if (!attract.manual) attractTakeControl();
             };
             ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(t =>
                 window.addEventListener(t, onInteract, { capture: true, passive: false }));
@@ -8667,6 +9015,11 @@
             if (ef) ef.addEventListener('change', e => { params.contextEdgeFade = e.target.checked; });
             const btn = document.getElementById('btn-attract');
             if (btn) btn.addEventListener('click', () => setTimeout(startAttract, 0));
+            initPathEditor();
+            const btn2 = document.getElementById('btn-title-screen');
+            if (btn2) btn2.addEventListener('click', () => setTimeout(startAttract, 0));
+            document.getElementById('at-resume').addEventListener('click', () => attractResume());
+            document.getElementById('at-exit').addEventListener('click', () => stopAttract());
         }
 
         function onResize() {

@@ -251,6 +251,21 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     alternate on long stops.
   - Diorama side walls for the whole context block (see the terrain-edge entry) remain an
     option on top of the soft edge.
+- **Camera path editor — first version DONE 2026-09-28** (Tools → 🎥 Camera path): opens
+  the title screen paused with the visitor controls; "+ Keyframe" / "+ Via point" capture
+  the current camera; keys can be reordered, re-set, toggled key↔via, deleted and flown to;
+  "Always look at the Raschpëtzer" or per-key look targets; smooth / straight route;
+  duration; a scrubber and "Play tour"; route preview in the scene; safe-area overlay; draft
+  saved in the browser, JSON export/import for `data/tour.json` (the kiosk reads
+  `paths.town` from there; the built-in flight is the fallback). Playback runs at constant
+  speed along the path, eased, never below 20 m above the ground.
+  Still open from the plan below: per-segment tension, captions per keyframe, holds
+  (pauses) at keyframes, more paths than the town flight (all tour shots, lens chapters),
+  draggable handles.
+  - Title screen, also 2026-09-28: touching / dragging no longer exits — the visitor takes
+    the camera, the tour pauses and "▶ Resume tour" / "✕ Explore the model" appear (it
+    resumes by itself after 45 s without input; Esc exits). A "▶ Title screen" button now
+    sits on the 3D view (bottom left) as well as in Tools.
 - **Camera path editor (suggested 2026-09-27).** Tuning tour shots in code is slow; the
   people who know the town should place them. In steps:
   1. *Capture keyframes:* in developer mode, fly the camera by hand and press "Add
