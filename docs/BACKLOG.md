@@ -238,7 +238,9 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     always looks at the Raschpëtzer up the hill: from "You are here" it drifts back over the
     town hall and sideways over the sports complex Prince Henri — low enough that each one's
     orb and roof pass through the lower part of the frame, no stops and no extra captions —
-    and takes off toward the plateau · the overview moved to the end of the loop · a station photo
+    and takes off toward the plateau · the overview moved to the end of the loop · the POI
+    fly-bys run P5 → visitor's gallery → spring → P-4 → Dauvebur → car park (the car park
+    last, as "how to get there", 2026-09-28) · a station photo
     card (lower right) per tour stop.
   - **Photos wanted** (stand-ins marked `tourPhotoPlaceholder: true` in data/poi.json):
     the kiosk square / Maison Dufaing, town hall, sports hall, Dauvebur spring; optionally

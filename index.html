@@ -8351,7 +8351,7 @@
                     (site.channelExploredM ? ` — ${site.channelExploredM} m explored` : '') +
                     (site.servicePeriod ? `, in use c. AD ${site.servicePeriod.fromAD}–${site.servicePeriod.toAD}.` : '.') });
             // 4. Fly-by of the points of interest.
-            const tourIds = ['parking', 'p5', 'visitor-gallery', 'spring', 'p-4', 'dauvebur'];
+            const tourIds = ['p5', 'visitor-gallery', 'spring', 'p-4', 'dauvebur', 'parking'];   // the car park last: "how to get there" before the overview closes the loop
             const stops = tourIds.map(byId).filter(Boolean);
             stops.forEach((pg, i) => {
                 const d = pg.disc.userData;
