@@ -26,6 +26,53 @@ source; documented facts are visually distinguished from inferred/schematic ones
   keuper, with groundwater flowing **East** and the qanat gallery **West**.
 - **Click a shaft → info panel** with values, units, provenance (citation chips)
   and knowledge‑status badges; **Guided tour** flies P‑7A→P9.
+- **Points of interest**: floating photo/icon circles with a connector arrow down to
+  the ground — car parks and bus stop on the CR 125, the visitor's gallery, the lit
+  shafts P5 and P-4, the diverted-water outflow and the Dauvebur spring — clickable for details;
+  defined in `data/poi.json` (toggle *Points of interest*, with a *POI size* slider and a
+  *Constant screen size* switch: fixed on-screen size at any zoom, or scale with the model;
+  overlapping markers are hidden by priority until you zoom in).
+- **Title screen / kiosk mode** (default on; Settings → *Title screen & tour*): opens on a
+  DVD-menu-style title card over a looping ~90 s camera tour — from the **"You are here"**
+  kiosk marker in Walferdange town centre (in front of Maison Dufaing), an overview from above,
+  the qanat, then each point of interest, with captions — over the 2019 aerial, revealing the
+  qanat underground for the
+  qanat and the lit shafts (Settings: *Reveal the qanat by* — cutting a trench into the
+  terrain, default, or a split screen). Any touch exits; it returns after
+  2 minutes idle. Shared links with a view/selection (`?cam=` / `?sel=`) skip it.
+- **Town context**: a coarse (~50 m) ACT LiDAR 2019 grid + geoportail.lu topographic map/aerial
+  over Walferdange and the valley (`scripts/bake-context.mjs`), shown around the modelled window,
+  with **3D buildings**: the ACT national 3D buildings 2023 (LOD 2.2 roofs, oblique-photo
+  façade textures; data.public.lu, CC0; `scripts/bake-buildings3d.py`) for Walferdange, and
+  OpenStreetMap footprints extruded to (mostly estimated) heights where ACT has none
+  (`scripts/bake-buildings.mjs`). Buildings between the camera and what it looks at dissolve
+  (dithered), so they never hide the kiosk marker or the view.
+  Note: the ACT2023v2 CityGML declares EPSG:2169 but lists **northing first** — the bake
+  swaps the axes (`--swap-xy`; checked against the correctly ordered 2020 edition).
+- **High-quality textures (big screen)** (Settings, off by default): swaps in 4096² building
+  atlases (768 px façades near the kiosk / car parks / visitor's gallery) and an 8192 px
+  context aerial (~0.4 m/px). Loaded on demand; needs ~1 GB of video memory.
+- **Site level of detail**: from far away (the town, the overview) the whole qanat is ONE
+  "Raschpëtzer" marker with the qanat shown in x-ray beneath it; the detailed POIs fade in
+  as you get closer (tap the marker to fly in). While a POI is active, the others shrink and fade.
+- **Title screen interaction**: touching or dragging the title screen hands the camera to
+  the visitor (the tour pauses; "Resume tour" / "Explore the model" appear; it resumes by
+  itself after 45 s). A "▶ Title screen" button sits on the 3D view.
+- **Camera path editor** (Tools → 🎥 Camera path): place keyframes and via points with the
+  normal camera controls, preview the route and the tour with a safe-area overlay; paths are
+  stored as lat / lon / metres above ground in `data/tour.json` (`paths.town`).
+- **Title tour extras**: the tour opens with one continuous flight from "You are here" past
+  the town hall and over the sports complex up toward the site, always looking at the
+  Raschpëtzer (the overview closes the loop); a building that covers a marker (or is right
+  in front of the camera) turns into a white outline, fading in and out; a station photo per stop (data/poi.json `tourPhoto`; stand-ins until real photos
+  arrive), the wide qanat shot **slices the whole landscape** along the qanat line (close-ups
+  still dig a trench; Settings → *Reveal the qanat by*), the town context **fades softly**
+  into the background at its border, and an optional plain **blur behind the title and
+  captions** (Settings, off by default).
+- **Arrow keys** ← / →: previous / next station — tour shot on the title screen (the tour
+  keeps running), or point of interest while exploring (selects it and flies there).
+- **Active POI**: the selected POI (or the tour's current stop) grows ~2.4× and swaps its icon
+  for its photo where one exists (P5, P-4 interior, parking sign, spring outflow).
 - **Annotations** (drop notes, localStorage, import/export), **measurement tool**,
   **animated water flow**, W↔E flip, reference-image overlay.
 - **Context-aware controls**: only the sliders/toggles that affect the current
@@ -62,6 +109,7 @@ data/                      # ── Single Source of Truth (edit here) ──
   geology.json             #   strata, dip, structure, groundwater
   hydrology.json           #   flows, springs, chemistry
   paradata.json            #   reasoning behind modeled/inferred choices
+  poi.json                 #   visitor points of interest (parking, P5, spring) — orientation aids
   model-config.json        #   visualization-only config (camera, colours, scene scale) — NOT facts
 scripts/
   validate.mjs             # SSOT validation (CI gate)
@@ -139,6 +187,9 @@ rebuild, since the whole scene rebuilds on most setting changes.
 | `bun run dev` | Bake, then serve with Vite at :5173 |
 | `bun run bake` | Validate → generate `assets/data.bundle.js` + `docs/RASCHPETZER_DATA.md` |
 | `bun run validate` | Validate the SSOT (CI gate) |
+| `node scripts/bake-buildings.mjs` | Re-fetch OSM building footprints for the 3D-buildings layer |
+| `node scripts/bake-context.mjs [--hq]` | Re-fetch the town-context map/aerial drapes (`--hq`: the 8192 px aerial; terrain grid: see the script header) |
+| `python3 scripts/bake-buildings3d.py <gml> <zip> --swap-xy` | Bake the ACT 2023 LOD2 textured buildings (geometry + std/HQ texture atlases) from the commune download |
 | `bun run build` | Validate + bake (static site; deploy by serving the repo root) |
 
 ## Deploy (static / GitHub Pages)

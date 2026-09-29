@@ -1,0 +1,37 @@
+{
+  "_doc": "Title-tour camera paths, authored with the camera path editor (Tools → 🎥 Camera path; its 'Copy JSON' output goes here). Keys are in geographic terms — lat / lon (EPSG:4326) and agl = metres above the ground — so a path survives changes of the map window, vertical exaggeration or the W↔E flip. lookAt: 'site' (always aim at the whole-site marker) or 'keys' (each key's own `look` target; via points borrow their neighbours'). style: 'smooth' (centripetal Catmull-Rom) or 'straight'. `via: true` marks a point that only bends the route. duration in seconds. Playback: constant speed along the path, eased start/stop, never below 20 m above the ground. paths.town = the opening flight from 'You are here' over the town hall and the sports complex up toward the plateau (if absent, the app's built-in flight is used).",
+  "paths": {
+    "town": {
+      "lookAt": "site",
+      "style": "smooth",
+      "duration": 28,
+      "keys": [
+        {
+          "lat": 49.658716,
+          "lon": 6.131327,
+          "agl": 27.3
+        },
+        {
+          "lat": 49.658191,
+          "lon": 6.129561,
+          "agl": 46.1
+        },
+        {
+          "lat": 49.660564,
+          "lon": 6.129489,
+          "agl": 47.6
+        },
+        {
+          "lat": 49.662554,
+          "lon": 6.136633,
+          "agl": 198.1
+        },
+        {
+          "lat": 49.664544,
+          "lon": 6.143777,
+          "agl": 343
+        }
+      ]
+    }
+  }
+}

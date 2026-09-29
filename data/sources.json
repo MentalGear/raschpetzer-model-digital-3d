@@ -165,5 +165,24 @@
     "authors": ["Werner, Henri"],
     "year": 2026,
     "note": "A separate, simpler 7-point coordinate table (P-7A, P-5A, P-4, P-1, P0, P1, P2) that Henri Werner re-measured from a 1997 contour-survey plan and shared by email to the Raschpëtzer research group, 21 July 2026 — distinct from werner-sit-survey (a richer table covering the main line P-1 through P9, sent 20 July 2026). For P-1, P0, P1, and P2 this table agrees with werner-sit-survey within 0.3 m, a useful cross-check already reflected in those shafts' _prov notes, and adds no new position data there. For P-4, P-5A, and P-7A — not covered by werner-sit-survey or any other survey table (see that source's own note) — it is the only non-OSM candidate position data available: converted to WGS84 (pyproj, EPSG:2169→EPSG:4326), it shifts P-4 by ~2.4 m, P-5A by ~8.2 m, and P-7A by ~28.5 m from their current OSM-derived positions. Reported here as a single hand-measured reading from a scanned plan, not a proper survey — a candidate worth checking, not an adopted correction; those three shafts remain sourced from osm-qanat-shafts (see pd-osm-georef, pd-werner-1997-remeasurement)."
+  },
+  "osm-poi": {
+    "type": "dataset", "crm": "E73_Information_Object",
+    "short": "OpenStreetMap (visitor POIs)",
+    "title": "Visitor points of interest around the Raschpëtzer (amenity=parking, natural=spring) in OpenStreetMap",
+    "url": "https://www.openstreetmap.org/",
+    "accessedVia": "Overpass API — nwr(49.660,6.135,49.672,6.158)[amenity=parking | natural=spring | tourism]",
+    "accessed": "2026-09-26",
+    "license": "ODbL 1.0",
+    "attribution": "© OpenStreetMap contributors",
+    "note": "Community-mapped positions used only to place visitor-orientation markers (data/poi.json); not survey-grade."
+  },
+  "leaflet2017": {
+    "type": "leaflet", "crm": "E73_Information_Object",
+    "short": "Leaflet 2017",
+    "title": "Raschpëtzer — An underground aqueduct (visitor leaflet, EN)",
+    "authors": ["Syndicat d'initiative et de tourisme de la Commune de Walferdange"],
+    "year": 2017,
+    "note": "sources/primary/20170501 Dépliant Rachpëtzer_en.pdf. Access map (p.1): walking route to the visitor's gallery starts at the car park by the bus stop on the CR 125 ('15-minute walk from the car park adjacent to the CR 125 road'); inset plan marks the 'Release of diverted water' SW of P-4."
   }
 }

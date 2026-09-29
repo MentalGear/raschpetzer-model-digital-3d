@@ -15,6 +15,8 @@
 //   node scripts/bake-lidar.mjs
 //   node scripts/bake-lidar.mjs --bbox W,S,E,N --cols N --rows M
 //   node scripts/bake-lidar.mjs --bbox W,S,E,N --cols N --rows M --out assets/geodata-foo.js --var BAKED_GEODATA_FOO
+//   Coarse grids: add --no-despike (at ~50 m spacing a 3 m jump between cells is real
+//   relief, not noise) and, for extents reaching the plateau tops, --sane-max 440.
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
 
 const ROOT = new URL('../', import.meta.url);
@@ -33,6 +35,8 @@ function parseArgs(argv) {
     else if (t === '--rows') a.rows = Number(argv[++i]);
     else if (t === '--out') a.out = argv[++i];
     else if (t === '--var') a.varName = argv[++i];
+    else if (t === '--no-despike') a.noDespike = true;
+    else if (t === '--sane-max') a.saneMax = Number(argv[++i]);
   }
   return a;
 }
@@ -161,7 +165,7 @@ function main() {
   // samples.ndjson cache, which stays exactly as fetched. Real terrain features (a
   // shaft collar, a slope break) span multiple cells and are far below this threshold
   // at this grid density, so this only catches true single-cell outliers.
-  const DESPIKE_M = 3.0;
+  const DESPIKE_M = args.noDespike ? Infinity : 3.0;
   const at2 = (i, j) => meters[j * cols + i];
   let despiked = 0;
   for (let j = 0; j < rows; j++) {
@@ -183,8 +187,9 @@ function main() {
   const minM = Math.round(Math.min(...meters) * 10) / 10;
   const maxM = Math.round(Math.max(...meters) * 10) / 10;
 
-  if (!(minM >= SANE_MIN && maxM <= SANE_MAX && minM < maxM)) {
-    console.error(`ABORT: new grid min/max ${minM}/${maxM} m outside sane range ${SANE_MIN}-${SANE_MAX} m. Not overwriting.`);
+  const saneMax = args.saneMax || SANE_MAX;
+  if (!(minM >= SANE_MIN && maxM <= saneMax && minM < maxM)) {
+    console.error(`ABORT: new grid min/max ${minM}/${maxM} m outside sane range ${SANE_MIN}-${saneMax} m. Not overwriting.`);
     process.exit(1);
   }
 

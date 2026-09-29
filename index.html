@@ -107,6 +107,12 @@
            (translateX) rather than occupying that space. */
         #label-east { right: calc(var(--panel-w, 340px) + 18px); }
         /* Compass widget: a rotating north arrow; click to face north. */
+        #btn-title-screen { position: absolute; left: 16px; bottom: 16px; z-index: 6; padding: 9px 14px;
+            border-radius: 999px; border: 1px solid rgba(255,255,255,0.22); background: rgba(15,20,30,0.72);
+            color: #f5efe4; font: 600 0.82rem/1 -apple-system, sans-serif; letter-spacing: 0.03em; cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+        #btn-title-screen:hover { background: rgba(184,65,46,0.92); }
+        body.attract #btn-title-screen { display: none; }
         #compass {
             position: absolute; left: 16px; top: 50px; width: 52px; height: 52px; z-index: 6;
             border-radius: 50%; background: rgba(15,20,30,0.55);
@@ -796,6 +802,151 @@
         }
         #measure-readout b { color: #ffd23f; }
 
+        /* Title screen / kiosk attract mode (see startAttract). A full-viewport overlay above
+           the 3D canvas: DVD-menu style title in the upper-right corner over a dark radial
+           gradient that fades out across the scene, a lower-left caption for the current
+           camera shot, and a pulsing "touch to explore" prompt. All chrome is hidden. */
+        #attract { position: fixed; inset: 0; z-index: 70; pointer-events: none; display: none; }
+        body.attract #attract { display: block; }
+        body.attract #ui-panel, body.attract #wip-banner, body.attract #legend-modal-backdrop,
+        body.attract #profile-modal-backdrop, body.attract #nav-pad, body.attract .compass-label,
+        body.attract #compass, body.attract .instructions, body.attract #drawer-toggle,
+        body.attract #selection-dismiss, body.attract #timeline-bar, body.attract #ortho-attrib,
+        body.attract #scale-bar { display: none !important; }
+
+        /* Title-card palette: Pompeian red (Roman wall-painting cinnabar / red ochre) with a
+           gold-ochre rule and cream capitals — change the three tokens to restyle it. */
+        #attract { --at-dark: 12, 14, 20; --at-gold: #e3b25c; --at-cream: #f7eddc;
+            --at-red-hi: #e8674a; --at-red-lo: #a3261a; }
+        #attract .at-scrim { position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 75% 85% at 100% 0%, rgba(var(--at-dark),0.92) 0%, rgba(var(--at-dark),0.66) 32%, rgba(var(--at-dark),0.20) 62%, rgba(var(--at-dark),0) 80%),
+                radial-gradient(ellipse 60% 45% at 0% 100%, rgba(var(--at-dark),0.74) 0%, rgba(var(--at-dark),0.36) 45%, rgba(var(--at-dark),0) 75%),
+                linear-gradient(to top, rgba(12,14,20,0.45) 0%, rgba(12,14,20,0) 22%); }
+        /* Faint fresco/plaster grain over the red corner only (SVG turbulence, masked). */
+        #attract .at-grain { position: absolute; inset: 0; opacity: 0.22; mix-blend-mode: overlay;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            -webkit-mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #000 0%, rgba(0,0,0,0.6) 40%, transparent 70%);
+            mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #000 0%, rgba(0,0,0,0.6) 40%, transparent 70%); }
+        /* Optional (Settings → "Blur behind title & captions", off by default): a plain
+           backdrop blur on a lightly tinted panel behind the title and the caption, for
+           legibility over busy shots. Off = the corner gradient + text shadows alone. */
+        #attract .at-title, #attract .at-caption { border-radius: 16px; transition: padding 0.3s; }
+        #attract.blur .at-title, #attract.blur .at-caption { background: rgba(18, 21, 28, 0.28);
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+        #attract.blur .at-title { padding: 14px 22px 18px 28px; }
+        #attract.blur .at-caption { padding: 16px 22px 18px; }
+        #attract .at-split { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; display: none;
+            background: var(--at-gold); box-shadow: 0 0 14px rgba(227,178,92,0.9); }
+        #attract .at-split.show { display: block; }
+        #attract .at-split span { position: absolute; top: 46%; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.28em;
+            text-transform: uppercase; color: var(--at-cream); text-shadow: 0 1px 4px rgba(0,0,0,0.9); white-space: nowrap; }
+        #attract .at-split .at-split-l { right: 14px; }
+        #attract .at-split .at-split-r { left: 14px; color: #9fd8ec; }
+        #attract .at-title { position: absolute; top: clamp(20px, 5vh, 56px); right: clamp(20px, 4vw, 64px);
+            text-align: right; color: #f5efe4; text-shadow: 0 2px 18px rgba(0,0,0,0.6);
+            animation: atTitleIn 1.6s ease both; }
+        #attract .at-kicker { font-size: clamp(0.72rem, 1.3vw, 0.95rem); letter-spacing: 0.32em;
+            text-transform: uppercase; color: var(--at-gold); margin-bottom: 0.4em; }
+        #attract .at-title h1 { font-family: "Trajan Pro", "Cinzel", "Optima", Georgia, "Times New Roman", serif;
+            font-weight: 400; font-size: clamp(2.4rem, 7vw, 6rem); line-height: 1; letter-spacing: 0.08em;
+            margin: 0; color: var(--at-red-hi);
+            /* Pompeian-red capitals: a cinnabar → deep red-ochre fill, lit from above. */
+            background: linear-gradient(180deg, var(--at-red-hi) 0%, #c8402c 48%, var(--at-red-lo) 100%);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: none;
+            filter: drop-shadow(0 2px 10px rgba(0,0,0,0.65)); }
+        #attract .at-sub { font-family: Georgia, "Times New Roman", serif; font-style: italic;
+            font-size: clamp(0.95rem, 2vw, 1.5rem); color: #d9d1c3; margin-top: 0.35em; }
+        /* Third line: short facts that take turns (initAttract), fading between them. */
+        #attract .at-subsub { font-size: clamp(0.78rem, 1.25vw, 1rem); letter-spacing: 0.04em; color: #e3b25c;
+            margin-top: 0.45em; min-height: 1.3em; transition: opacity 0.8s ease; }
+        #attract .at-subsub.fade { opacity: 0; }
+        #attract .at-rule { height: 2px; width: clamp(80px, 14vw, 220px); margin: 0.9em 0 0 auto;
+            background: linear-gradient(to left, var(--at-gold), rgba(227,178,92,0)); }
+        #attract .at-caption { position: absolute; left: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
+            max-width: min(560px, 80vw); color: #f5efe4; text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+            transition: opacity 0.6s ease, transform 0.6s ease; }
+        #attract .at-caption.hidden { opacity: 0; transform: translateY(8px); }
+        #attract .at-cap-kicker { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
+            color: var(--at-gold); text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 14px rgba(0,0,0,0.6); }
+        #attract .at-cap-title { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.3rem, 2.6vw, 2.1rem); margin: 0.15em 0 0.25em; }
+        #attract .at-cap-text { font-size: clamp(0.9rem, 1.4vw, 1.1rem); line-height: 1.45; color: #e7e1d6; }
+        /* Station photo (data/poi.json tourPhoto): lower right, clear of the caption (lower left)
+           and of the POI, which the shots frame left of centre. */
+        #attract .at-photo { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
+            width: min(380px, 30vw); transition: opacity 0.6s ease, transform 0.6s ease; }
+        #attract .at-photo.hidden { opacity: 0; transform: translateY(8px); }
+        #attract .at-cap-img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18); }
+        #attract .at-cap-img[hidden] { display: none; }
+        #attract .at-cap-img.placeholder { opacity: 0.7; }
+        #attract .at-cap-credit { font-size: 0.6rem; color: rgba(255,255,255,0.6); margin-top: 5px; text-align: right;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+        #attract .at-cap-credit:empty { display: none; }
+        #attract .at-prompt { position: absolute; left: 50%; bottom: clamp(16px, 3vh, 34px); transform: translateX(-50%);
+            font-size: clamp(0.8rem, 1.3vw, 1rem); letter-spacing: 0.28em; text-transform: uppercase; color: #fbf6ec;
+            text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap; }
+        #attract .at-dots { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(20px, 3.5vh, 38px); display: flex; gap: 6px; }
+        #attract .at-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: background 0.4s, transform 0.4s; }
+        #attract .at-dots span.on { background: var(--at-gold); transform: scale(1.35); }
+        #attract .at-attrib { position: absolute; right: clamp(20px, 4vw, 64px); bottom: 6px; font-size: 0.62rem;
+            color: rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        .poi-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+        .poi-nav span { font-size: 0.8rem; opacity: 0.75; }
+        .poi-nav button { flex: none; padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(127,127,127,0.35);
+            background: rgba(127,127,127,0.12); color: inherit; font: inherit; font-size: 0.82rem; cursor: pointer; }
+        .poi-nav button:hover { background: rgba(127,127,127,0.25); }
+        /* Camera path editor (floats over the paused title screen). */
+        #path-editor { display: none; position: fixed; left: 16px; top: 16px; z-index: 80; width: min(400px, calc(100vw - 32px));
+            max-height: calc(100vh - 32px); overflow: auto; padding: 12px 14px; border-radius: 14px;
+            background: rgba(18, 21, 28, 0.94); color: #e8e3da; border: 1px solid rgba(255,255,255,0.16);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); font: 13px/1.35 -apple-system, sans-serif; }
+        body.path-editing #path-editor { display: block; }
+        body.path-editing #attract #at-controls { left: auto; right: 24px; transform: none; }
+        #path-editor .pe-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 14px; }
+        #path-editor button { background: #2c323d; color: #eee; border: 1px solid rgba(255,255,255,0.15); border-radius: 7px;
+            padding: 5px 9px; cursor: pointer; font: inherit; }
+        #path-editor button:hover { background: #3a4150; }
+        #path-editor #pe-add-key { background: #b8412e; }
+        #path-editor #pe-add-via { background: #2f6f94; }
+        #path-editor .pe-hint { color: #a8a39a; font-size: 12px; margin: 4px 0 8px; }
+        #path-editor .pe-btns, #path-editor .pe-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+        #path-editor .pe-check { display: flex; gap: 6px; align-items: center; margin: 6px 0; }
+        #path-editor select, #path-editor input[type=number], #path-editor textarea { background: #0f1218; color: #eee;
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 6px; padding: 3px 5px; font: inherit; }
+        #path-editor textarea { width: 100%; box-sizing: border-box; font: 11px/1.3 ui-monospace, monospace; }
+        #path-editor #pe-keys { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+        #path-editor .pe-row { display: flex; gap: 4px; align-items: center; padding: 4px 6px; border-radius: 8px; background: rgba(255,255,255,0.04); cursor: pointer; }
+        #path-editor .pe-row.sel { background: rgba(227,178,92,0.18); outline: 1px solid rgba(227,178,92,0.5); }
+        #path-editor .pe-row button { padding: 2px 6px; font-size: 11px; }
+        #path-editor .pe-name { flex: 1; }
+        #path-editor .pe-dot { width: 10px; height: 10px; border-radius: 50%; background: #d62828; flex: none; }
+        #path-editor .pe-dot.via { background: #4fb6e8; }
+        #path-editor .pe-empty { color: #a8a39a; font-style: italic; padding: 6px 0; }
+        #path-editor summary { cursor: pointer; margin-top: 6px; color: #e3b25c; }
+        #safe-area { display: none; position: fixed; inset: 0; z-index: 75; pointer-events: none; }
+        body.path-editing.safe-area #safe-area { display: block; }
+        #safe-area .sa { position: absolute; border: 1.5px dashed rgba(227,178,92,0.85); background: rgba(227,178,92,0.06);
+            color: rgba(227,178,92,0.95); font: 600 11px/1 -apple-system, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px; box-sizing: border-box; }
+        #safe-area .sa-title { top: 2%; right: 2%; width: 50%; height: 25%; text-align: right; }
+        #safe-area .sa-cap { left: 3%; bottom: 7%; width: 42%; height: 24%; }
+        #safe-area .sa-photo { right: 3%; bottom: 7%; width: 28%; height: 27%; text-align: right; }
+        #safe-area .sa-prompt { left: 33%; bottom: 1%; width: 34%; height: 6%; text-align: center; }
+        /* Visitor in control on the title screen: Resume / Explore instead of the prompt. */
+        #attract #at-controls { position: absolute; left: 50%; bottom: clamp(14px, 3vh, 30px); transform: translateX(-50%);
+            display: none; gap: 12px; pointer-events: auto; }
+        body.attract-manual #attract #at-controls { display: flex; }
+        body.attract-manual #attract .at-prompt { display: none; }
+        #attract #at-controls button { font: 600 clamp(0.85rem, 1.3vw, 1rem)/1 -apple-system, sans-serif; letter-spacing: 0.06em;
+            padding: 13px 22px; border-radius: 999px; cursor: pointer; color: #fbf6ec;
+            background: rgba(18, 21, 28, 0.78); border: 1px solid rgba(255,255,255,0.28); box-shadow: 0 6px 20px rgba(0,0,0,0.45); }
+        #attract #at-controls #at-resume { background: #b8412e; border-color: rgba(255,255,255,0.35); }
+        #attract #at-controls button:hover { filter: brightness(1.15); }
+        body.attract #canvas-container { cursor: grab; }
+        @keyframes atPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+        @keyframes atTitleIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: reduce) { #attract .at-prompt { animation: none; } #attract .at-title { animation: none; } }
+
         #tour-bar {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             z-index: 12; display: none; align-items: center; gap: 6px;
@@ -863,6 +1014,9 @@
     <script src="vendor/OrbitControls.js"></script>
     <script src="assets/geodata-walferdange.js"></script>
     <script src="assets/geodata-inset-raschpetzer.js"></script>
+    <script src="assets/geodata-context-walferdange.js"></script>
+    <script src="assets/buildings-context.js"></script>
+    <script src="assets/buildings3d-context.js"></script>
     <script src="assets/data.bundle.js"></script>
     <script src="assets/vectors-walferdange.js"></script>
     <script src="assets/paths-walferdange.js"></script>
@@ -965,6 +1119,15 @@
                 <option value="none">Plain</option>
             </select>
             <label class="check-row"><input type="checkbox" id="param-paths"> Forest&nbsp;paths&nbsp;(OSM)</label>
+            <label class="check-row"><input type="checkbox" id="param-pois" checked> Points&nbsp;of&nbsp;interest</label>
+            <div id="grp-poi-opts" style="margin-left:22px">
+                <label>POI size <span class="val" id="lbl-poi-size">1.00×</span></label>
+                <input type="range" id="param-poi-size" min="0.4" max="2.5" step="0.05" value="1" aria-label="Point-of-interest marker size">
+                <label class="check-row"><input type="checkbox" id="param-poi-screen" checked> Constant&nbsp;screen&nbsp;size</label>
+                <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 4px;line-height:1.35;">On: markers stay the same size on screen at any zoom. Off: they scale with the model, like the terrain.</div>
+                <label class="check-row"><input type="checkbox" id="param-poi-declutter" checked> Hide&nbsp;overlapping&nbsp;markers</label>
+                <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 4px;line-height:1.35;">Markers that would overlap a more important one are hidden until you zoom in.</div>
+            </div>
         </div>
 
         <!-- Settings pane (⚙): everything from the old collapsible "Advanced configuration",
@@ -1033,7 +1196,11 @@
             <div class="control-group">
                 <div id="geo-status" style="font-size:0.72rem;color:var(--panel-text-dim);margin-top:2px;min-height:1em;"></div>
                 <label class="check-row"><input type="checkbox" id="param-sides" checked> Terrain&nbsp;sides</label>
-                <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Valley&nbsp;context&nbsp;(ghost,&nbsp;toward&nbsp;villa)</label>
+                <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Surrounding&nbsp;context&nbsp;(town,&nbsp;valley,&nbsp;villa)</label>
+                <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-buildings" checked> 3D&nbsp;buildings&nbsp;(ACT&nbsp;2023,&nbsp;textured)</label>
+                <label class="check-row" style="margin-left:44px"><input type="checkbox" id="param-buildings-see" checked> See&nbsp;through&nbsp;buildings&nbsp;in&nbsp;the&nbsp;way</label>
+                <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-edge-fade" checked> Soft&nbsp;edge&nbsp;(fade&nbsp;into&nbsp;background)</label>
+                <label class="check-row" style="margin-left:22px" title="Loads ~40 MB more: 4096² building-texture atlases (768 px façades near the key spots) and a finer aerial photo of the town context. Meant for a big display with a capable GPU (~1 GB of video memory)."><input type="checkbox" id="param-hq-assets"> High&#8209;quality&nbsp;textures&nbsp;(big&nbsp;screen)</label>
                 <div class="opt-group" id="grp-hires-inset">
                     <label class="check-row"><input type="checkbox" id="param-hires-inset"> Hi&#8209;res&nbsp;LiDAR&nbsp;inset&nbsp;(qanat&nbsp;area)</label>
                     <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 8px;line-height:1.35;">Denser LiDAR patch (~3.6&nbsp;m cells vs. the main terrain's ~7.5&nbsp;m) over just the shaft area. Subtle at normal zoom &mdash; mainly useful up close, or as a base for future higher-res sampling.</div>
@@ -1106,6 +1273,19 @@
             <button id="btn-export-svg" type="button" class="dev-toggle" title="Export the current view's vectorizable elements (shafts, tunnel, strata, contours, dimensions — no text/imagery) as SVG">⬇ Export SVG</button>
         </div>
         <div class="control-group">
+            <label>Title screen</label>
+            <label class="check-row"><input type="checkbox" id="param-attract" checked> Title&nbsp;screen&nbsp;&amp;&nbsp;tour&nbsp;(kiosk)</label>
+            <label for="param-attract-reveal" style="margin-top:6px">Reveal the qanat by</label>
+            <select id="param-attract-reveal">
+                <option value="mixed">Slice (wide) + trench (close-ups)</option>
+                <option value="cut">Trench cut into the terrain</option>
+                <option value="slice">Slicing the whole landscape</option>
+                <option value="split">Split screen (surface | beneath)</option>
+            </select>
+            <label class="check-row" style="margin-top:6px"><input type="checkbox" id="param-attract-blur"> Blur&nbsp;behind&nbsp;title&nbsp;&amp;&nbsp;captions</label>
+            <div style="font-size:0.72rem;color:var(--panel-text-dim);margin:2px 0 8px;line-height:1.35;">Opens on a title screen with a ~90&nbsp;s camera tour (town → overview → points of interest), and returns to it after 2&nbsp;minutes without interaction. Shared links to a view or selection skip it.</div>
+        </div>
+        <div class="control-group">
             <label class="check-row dev-opt" id="row-presets-compact"><input type="checkbox" id="param-presets-compact"> Compact&nbsp;quick-view&nbsp;cards</label>
             <button id="btn-dev-mode" type="button" class="dev-toggle">🛠 Developer mode</button>
         </div>
@@ -1115,6 +1295,8 @@
         <div class="control-group">
             <label>Tools</label>
             <div class="btn-tools">
+                <button id="btn-attract" type="button">🎬 Title screen</button>
+                <button id="btn-path-editor" type="button">🎥 Camera path</button>
                 <button id="btn-share" type="button">🔗 Share</button>
                 <button id="btn-timeline" type="button">⏳ Timeline</button>
                 <button id="btn-legend" type="button">▤ Legend</button>
@@ -1204,6 +1386,61 @@
 
     <div id="dev-border" aria-hidden="true"></div>
 
+    <!-- Title screen / kiosk attract mode (see startAttract): title top-right over a corner
+         gradient, per-shot caption bottom-left, "touch to explore" prompt. -->
+    <div id="attract" aria-live="polite">
+        <div class="at-scrim"></div>
+        <div class="at-title">
+            <div class="at-kicker">Walferdange · Luxembourg</div>
+            <h1>RASCHPËTZER</h1>
+            <div class="at-sub">Ancient Roman waterway</div>
+            <div class="at-subsub" id="at-subsub">Still carrying water after nearly 1,900 years</div>
+            <div class="at-rule"></div>
+        </div>
+        <div class="at-photo hidden" id="at-photo">
+            <img id="at-cap-img" class="at-cap-img" alt="" hidden>
+            <div class="at-cap-credit" id="at-cap-credit"></div>
+        </div>
+        <div class="at-caption hidden">
+            <div class="at-cap-kicker" id="at-cap-kicker"></div>
+            <div class="at-cap-title" id="at-cap-title"></div>
+            <div class="at-cap-text" id="at-cap-text"></div>
+        </div>
+        <div class="at-split" id="at-split"><span class="at-split-l">Surface</span><span class="at-split-r">Beneath</span></div>
+        <div class="at-dots" id="at-dots"></div>
+        <div class="at-prompt">Touch to look around</div>
+        <div id="at-controls">
+            <button id="at-resume" type="button">▶&nbsp; Resume tour</button>
+            <button id="at-exit" type="button">✕&nbsp; Explore the model</button>
+        </div>
+        <div class="at-attrib">Topographic map, aerial &amp; LiDAR terrain © ACT · geoportail.lu · Luxembourg open data</div>
+    </div>
+
+    <!-- Camera path editor (title screen, paused): keyframes from the normal camera controls. -->
+    <div id="path-editor" role="dialog" aria-label="Camera path editor">
+        <div class="pe-head"><b>🎥 Camera path — town flight</b><button id="pe-close" type="button" aria-label="Close">✕</button></div>
+        <div class="pe-hint">Drag / scroll to place the camera, then add a keyframe. Via points only bend the route.</div>
+        <div class="pe-btns"><button id="pe-add-key" type="button">+ Keyframe</button><button id="pe-add-via" type="button">+ Via point</button></div>
+        <div id="pe-keys"></div>
+        <label class="pe-check"><input type="checkbox" id="pe-look-site" checked> Always look at the Raschpëtzer</label>
+        <div class="pe-line"><label>Route <select id="pe-style"><option value="smooth">Smooth curve</option><option value="straight">Straight lines</option></select></label>
+            <label>Duration <input id="pe-dur" type="number" min="4" max="180" step="1" style="width:4.5em"> s</label></div>
+        <div class="pe-line"><input id="pe-scrub" type="range" min="0" max="1000" value="0" style="flex:1"><button id="pe-play" type="button">▶ Play tour</button></div>
+        <div class="pe-line"><label class="pe-check"><input type="checkbox" id="pe-route" checked> Show route</label>
+            <label class="pe-check"><input type="checkbox" id="pe-safe" checked> Safe-area overlay</label></div>
+        <details><summary>Save / load</summary>
+            <div class="pe-src" id="pe-src"></div>
+            <div class="pe-btns"><button id="pe-load-auto" type="button">Load the built-in flight</button><button id="pe-reset" type="button">Discard draft</button></div>
+            <textarea id="pe-json" rows="6" spellcheck="false"></textarea>
+            <div class="pe-btns"><button id="pe-copy" type="button">Copy JSON</button><button id="pe-apply" type="button">Apply pasted JSON</button></div>
+            <div class="pe-hint">Edits are saved in this browser. To make a path the kiosk's default, paste the JSON into <code>data/tour.json</code> → <code>paths.town</code>.</div>
+        </details>
+    </div>
+    <!-- Safe areas for framing tour shots: where the title, caption, photo and prompt sit. -->
+    <div id="safe-area" aria-hidden="true">
+        <div class="sa sa-title">Title</div><div class="sa sa-cap">Caption</div><div class="sa sa-photo">Photo</div><div class="sa sa-prompt">Buttons</div>
+    </div>
+
     <!-- Full-screen image lightbox (scale in/out). Opened by clicking any img.lb-img. -->
     <div id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
         <button id="lightbox-close" type="button" aria-label="Close">×</button>
@@ -1220,6 +1457,7 @@
         <button id="selection-dismiss" type="button" title="Clear selection" aria-label="Clear selection">✕</button>
         <span class="compass-label" id="label-west"><em>West</em></span>
         <span class="compass-label" id="label-east"><em>East</em></span>
+        <button id="btn-title-screen" type="button" title="Title screen & tour (kiosk)">▶&nbsp;Title&nbsp;screen</button>
         <div id="compass" title="Face north">
             <div class="rose" id="compass-rose">
                 <div class="arrow"></div><span class="lbl">N</span><div class="tail"></div>
@@ -1328,6 +1566,17 @@
             xrayUnderground: true,        // subsurface structures always atop terrain (x-ray); off = occluded by terrain
             showSides: true,              // terrain block side walls
             showPaths: false,             // forest/hiking paths (OpenStreetMap)
+            showPois: true,               // floating visitor points of interest (data/poi.json)
+            attractMode: true,            // title screen + ~90 s camera tour on load and after 2 min idle (kiosk)
+            showBuildings: true,          // 3D buildings (ACT 2023 LOD2 textured; OSM fallback) on the surrounding-context terrain
+            buildingsSeeThrough: true,    // buildings between the camera and its target dissolve (dithered)
+            hqAssets: false,              // high-quality textures (big screen): HQ building atlases + finer context aerial
+            attractReveal: 'mixed',       // how the tour reveals the qanat: 'mixed' (slice for the wide shot, trench for close-ups) | 'cut' (terrain trench) | 'slice' (whole landscape cut along the qanat) | 'split' (split screen)
+            attractBlur: false,           // blur the scene behind the tour's title and caption text
+            contextEdgeFade: true,        // the town context fades into the background at its border
+            poiScale: 1.0,                // POI marker size multiplier ("POI size" slider)
+            poiScreenSize: true,          // POI markers keep a constant on-screen size (off = scale with the model)
+            poiDeclutter: true,           // hide POI markers that would overlap a higher-priority one on screen
             showAux: false,               // auxiliary dry channel (P-7A/P-5A), detached from main
             showSounding: false,          // exploratory sounding gallery at P1 (documented, no channel, schematic extent)
             showSteps: false,             // gallery floor-drop step markers (P4/P6) — off by default
@@ -1633,11 +1882,55 @@
             selectionMarker.raycast = () => {};   // never itself pickable
             scene.add(selectionMarker);
         }
-        function selectAt(point) {
+        // opts.poiId: the selection IS a POI circle — its own rim turns gold (setPoiHighlight)
+        // instead of drawing the ring; the (hidden) marker still tracks the circle's centre and
+        // opts.worldRadius so the ✕ chip sits just above the circle's top edge.
+        function selectAt(point, opts = {}) {
             if (!selectionMarker || !point) return;
             selectionMarker.position.copy(point);
-            selectionMarker.quaternion.copy(camera.quaternion);   // billboards toward the camera
             selectionMarker.visible = true;
+            selectionMarker.material.visible = !opts.poiId;
+            selectionMarker.userData.worldRadius = opts.worldRadius || 0;
+            selectionMarker.userData.poiDisc = opts.poiDisc || null;
+            setPoiHighlight(opts.poiId || null);
+            updateSelectionMarker();
+        }
+        // Select a clicked/restored spot: a POI highlights its whole circle, anything else gets
+        // the ring at the hit point.
+        function selectSpotAt(d, point) {
+            if (d && d.kind === 'poi' && d.disc) selectAt(d.disc.getWorldPosition(new THREE.Vector3()), { poiId: d.id, poiDisc: d.disc });
+            else selectAt(point);
+        }
+        // Keep the ring a CONSTANT on-screen size (outer radius SELECTION_RING_PX css px) and
+        // facing the camera, whatever the zoom: rescale it each frame by the world size of one
+        // screen pixel at the marker's depth — otherwise it shrinks to a dot when zoomed out
+        // and balloons over the target when zoomed in. (The ✕ chip is already pixel-offset.)
+        const SELECTION_RING_PX = 20;
+        const _selTmp = new THREE.Vector3();
+        function updateSelectionMarker() {
+            if (!selectionMarker || !selectionMarker.visible) return;
+            selectionMarker.quaternion.copy(camera.quaternion);   // billboards toward the camera
+            // A selected POI: follow its (live-scaled) circle — centre and radius change as
+            // the POI size / screen-size mode rescales it every frame.
+            const disc = selectionMarker.userData.poiDisc;
+            let wr = selectionMarker.userData.worldRadius;
+            if (disc) {
+                disc.getWorldPosition(selectionMarker.position);
+                wr = disc.getWorldScale(_selTmp).x / 2;
+            }
+            const worldPerPx = worldPerPxAt(selectionMarker.position);
+            selectionMarker.scale.setScalar(Math.max(1e-6, worldPerPx * SELECTION_RING_PX / 0.78));   // 0.78 = ring geometry outer radius
+            // On-screen radius of what's highlighted (the ring, or a POI circle) — for the ✕ chip.
+            selectionMarker.userData.radiusPx = wr ? wr / worldPerPx : SELECTION_RING_PX;
+        }
+        // World-space size of one css pixel at `pos`. View-space depth (not straight-line
+        // distance), so the size stays uniform off-centre too: that's what the perspective
+        // divide uses.
+        const _wppTmp = new THREE.Vector3();
+        function worldPerPxAt(pos) {
+            const depth = _wppTmp.copy(pos).applyMatrix4(camera.matrixWorldInverse).z;
+            const h = renderer.domElement.clientHeight || 1;
+            return 2 * Math.abs(depth) * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom / h;
         }
         let toastTimer = null;
         function showToast(msg) {
@@ -1650,6 +1943,7 @@
         }
         function clearSelectionMarker() {
             if (selectionMarker) selectionMarker.visible = false;
+            setPoiHighlight(null);
             clearSelectionURL();
         }
         // Full "nothing is selected" reset — clears the 3D marker AND the Inspector's stale
@@ -1676,8 +1970,15 @@
             if (!selectionMarker || !selectionMarker.visible) { chip.classList.remove('show'); return; }
             const p = projectToScreen(selectionMarker.position);
             if (!p) { chip.classList.remove('show'); return; }
-            chip.style.left = p.x + 'px';
-            chip.style.top = (p.y - 26) + 'px';   // sits just above the marker, not on top of it
+            const r = selectionMarker.userData.radiusPx || SELECTION_RING_PX;
+            if (selectionMarker.userData.poiDisc) {
+                // POI circle: pin to its top-right rim, clear of the name label above it.
+                chip.style.left = (p.x + r * 0.72) + 'px';
+                chip.style.top = (p.y - r * 0.72) + 'px';
+            } else {
+                chip.style.left = p.x + 'px';
+                chip.style.top = (p.y - r - 6) + 'px';   // just above the ring, not on top of it
+            }
             chip.classList.add('show');
         }
 
@@ -1741,8 +2042,8 @@
                 const m = xsecMeshes[parseInt(id, 10)];
                 if (m) { selectAt(m.position); renderXsecPanel(m.userData); }
             } else if (type === 'spot') {
-                const m = spotMeshes.find(mm => mm.userData.kind === id);
-                if (m) { selectAt(m.position); renderSpotPanel(m.userData); }
+                const m = spotMeshes.find(mm => spotSelId(mm.userData) === id);
+                if (m) { selectSpotAt(m.userData, m.position); renderSpotPanel(m.userData); }
             } else if (type === 'strata') {
                 const m = strataMeshes.find(mm => mm.userData.code === id);
                 if (m) {
@@ -1803,6 +2104,8 @@
         let initialViewSet = false; // snap camera to the computed 0°-horizon default on first build
         const shaftMeshes = [];   // shaft cylinders, for hover/click raycasting
         const spotMeshes = [];    // springs / boreholes / resurgence pins, for click raycasting
+        // Selection id for a spot: its kind, or 'poi-<id>' so each POI selects/deselects on its own.
+        const spotSelId = d => d.kind === 'poi' ? 'poi-' + d.id : d.kind;
         const xsecMeshes = [];    // gallery cross-section hotspots (click → lightbox image)
         const strataMeshes = [];  // geology cross-section strata bands, for click → inspector info
         const qanatMeshes = [];   // gallery/tunnel tube meshes (main + aux + overflow), for click → inspector info
@@ -2121,8 +2424,47 @@
         }
         // Bilinear sample of the inset grid at a real (lon,lat), returning raw metres (masl).
         // Clamps to the inset's own small bbox — this patch is never used outside it.
-        function sampleGeoInsetMasl(lon, lat) {
-            const g = geodataInset, C = g.cols, R = g.rows, d = g.meters;
+        function sampleGeoInsetMasl(lon, lat) { return sampleGridMasl(geodataInset, lon, lat); }
+
+        // --- Coarse "town context" grid (~50 m ACT LiDAR 2019 samples over CONTEXT_BBOX, see
+        //     scripts/bake-context.mjs): Walferdange centre, the Alzette valley and the plateau.
+        //     Only consulted OUTSIDE the main LiDAR grid (GEO_BBOX) — see sampleGeo — so the
+        //     modelled qanat window is untouched; it gives the surrounding-context apron, the
+        //     title-screen tour and the "You are here" kiosk marker real ground to stand on. ---
+        const CONTEXT_BBOX = { west: 6.118, east: 6.162, south: 49.652, north: 49.6708 };
+        const geodataContext = { ready: false, cols: 0, rows: 0, west: 0, east: 0, south: 0, north: 0, meters: null };
+        function loadContextGeoData() {
+            const g = window.BAKED_GEODATA_CONTEXT;
+            if (!g || !g.meters) return;
+            Object.assign(geodataContext, { cols: g.cols, rows: g.rows, west: g.west, east: g.east,
+                south: g.south, north: g.north, meters: g.meters, ready: true });
+        }
+        const contextTextures = {};   // 'topo' | 'ortho' -> { tex, ready }
+        // (Re)called when "High-quality textures" toggles: the 2019 aerial swaps between its
+        // 2048 px and 8192 px (~0.4 m/px, mipmapped) versions; the old texture is freed once
+        // the new one has arrived.
+        function loadContextTextures() {
+            const hq = !!params.hqAssets;
+            [['topo', 'assets/topomap-context.jpg', false],
+             ['ortho', hq ? 'assets/ortho-context-hq.jpg' : 'assets/ortho-context.jpg', hq]].forEach(([key, file, mip]) => {
+                const cur = contextTextures[key];
+                if (cur && cur.file === file) return;
+                if (!cur) contextTextures[key] = { tex: null, ready: false };
+                contextTextures[key].file = file;
+                new THREE.TextureLoader().load(file, tex => {
+                    if (contextTextures[key].file !== file) { tex.dispose(); return; }   // toggled again meanwhile
+                    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+                    if (mip) { tex.anisotropy = renderer.capabilities.getMaxAnisotropy(); }
+                    else { tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; }
+                    const old = contextTextures[key].tex;
+                    contextTextures[key].tex = tex; contextTextures[key].ready = true;
+                    if (params.showGhostApron && modelGroup) buildParametricModel();
+                    if (old) old.dispose();
+                }, undefined, () => console.warn('context texture failed: ' + file));
+            });
+        }
+        function sampleGridMasl(g, lon, lat) {
+            const C = g.cols, R = g.rows, d = g.meters;
             const gu = (lon - g.west) / (g.east - g.west);
             const gv = (g.north - lat) / (g.north - g.south);
             const ix = Math.min(Math.max(gu, 0), 1) * (C - 1);
@@ -2185,6 +2527,10 @@
             const C = geodata.cols, R = geodata.rows, d = geodata.data;
             const lon = geoView.west + u * (geoView.east - geoView.west);
             const lat = geoView.north - v * (geoView.north - geoView.south);
+            // Beyond the main LiDAR grid: the coarse town-context grid (same metres → same
+            // normalisation, so heights stay continuous across the seam).
+            if (geodataContext.ready && (lon < GEO_BBOX.west || lon > GEO_BBOX.east || lat < GEO_BBOX.south || lat > GEO_BBOX.north))
+                return (sampleGridMasl(geodataContext, lon, lat) - geodata.minM) / ((geodata.maxM - geodata.minM) || 1);
             const gu = (lon - GEO_BBOX.west) / (GEO_BBOX.east - GEO_BBOX.west);
             const gv = (GEO_BBOX.north - lat) / (GEO_BBOX.north - GEO_BBOX.south);
             const ix = Math.min(Math.max(gu, 0), 1) * (C - 1);
@@ -2580,6 +2926,10 @@
             const span = (geodata.maxM - geodata.minM) || 1;
             return (masl - geodata.minM) / span * geoVMul();
         }
+        function sceneZToLat(z) {
+            const v = (z + params.depth / 2) / params.depth;
+            return geoView.north - v * (geoView.north - geoView.south);
+        }
         function sceneXToLon(x) {
             let u = (x + params.width / 2) / params.width;
             if (params.flipWE) u = 1 - u;
@@ -2729,10 +3079,20 @@
             initSourcesModal();
             initLightbox();
             initTour();
+            initAttract();
             openLegendModal();
             // Load the baked LiDAR terrain (synchronous), then build.
             loadInsetGeoData();   // optional hi-res inset patch, if the asset shipped
-            loadGeoData(() => { buildParametricModel(); restoreSelectionFromURL(); });
+            loadContextGeoData(); // coarse town-context grid (surroundings / title tour / kiosk marker)
+            loadContextTextures();
+            // A shared link to a specific view/selection skips the title screen.
+            const linkTarget = !!(urlCam || pendingSelection);
+            loadGeoData(() => {
+                buildParametricModel(); restoreSelectionFromURL();
+                // Next frame: setupUI() (which syncs the controls from params) must run first,
+                // or the controls would pick up the tour's temporary settings.
+                if (params.attractMode && !linkTarget) requestAnimationFrame(() => startAttract());
+            });
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
             loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
             setupUI();
@@ -2752,6 +3112,8 @@
             });
             while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
             spotMeshes.length = 0;   // rebuilt fresh each model build (springs/boreholes/resurgence)
+            surfaceOnly.length = 0; blueprintOnly.length = 0;   // title-tour split-view passes (renderAttractFrame)
+            { tourCut.mats.forEach(m => { m.__alive = false; }); tourCut.walls = null; }
             xsecMeshes.length = 0;   // gallery cross-section hotspots
             strataMeshes.length = 0;   // geology cross-section strata bands
             qanatMeshes.length = 0;   // gallery/tunnel tube meshes
@@ -2824,6 +3186,17 @@
                 fillMat.needsUpdate = true;
             }
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
+            surfMesh.userData.tourClip = true;   // title-tour terrain cut (updateTourCut)
+            if (attract.on) {
+                // Title tour: the real (aerial) ground is the SURFACE pass; its "blueprint" twin —
+                // a dark, abstract sheet that the contour lines and the x-ray qanat read against —
+                // is the BENEATH pass of the split view.
+                surfaceOnly.push(surfMesh);
+                const bp = new THREE.Mesh(surfGeo, new THREE.MeshBasicMaterial({ color: BLUEPRINT.ground,
+                    polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0 }));
+                bp.raycast = () => {}; bp.userData.tourClip = true;
+                modelGroup.add(bp); blueprintOnly.push(bp);
+            }
             surfMesh.userData.isMapLayer = true;   // vector export's raster-map capture isolates this
             modelGroup.add(surfMesh);
             // Cull-back-face is a VISUAL choice (hide the coloured/textured underside), not a
@@ -2843,6 +3216,7 @@
                 const depthMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true, side: THREE.DoubleSide,
                     polygonOffset: true, polygonOffsetFactor: 1.0, polygonOffsetUnits: 1.0 });
                 const depthMesh = new THREE.Mesh(surfGeo, depthMat);
+                depthMesh.userData.tourClip = true;
                 depthMesh.renderOrder = surfMesh.renderOrder - 1;   // write depth before the fill draws
                 modelGroup.add(depthMesh);
                 xsecClipMats.push(depthMat);   // must clip in lockstep with fillMat (same reasoning as above)
@@ -2910,23 +3284,24 @@
             if (params.showContourLines) {
             const regGeo = new THREE.BufferGeometry();
             regGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
-            const regMat = new THREE.LineBasicMaterial({ color: COL.contour, transparent: true, opacity: tOp });
+            const regMat = new THREE.LineBasicMaterial({ color: attract.on ? BLUEPRINT.contour : COL.contour, transparent: true, opacity: tOp });
             const regLS = new THREE.LineSegments(regGeo, regMat);
             regLS.userData.vecMode = 'line'; regLS.userData.vecLayer = 'contour'; regLS.userData.vecChain = true;
             modelGroup.add(regLS);
             const idxGeo = new THREE.BufferGeometry();
             idxGeo.setAttribute('position', new THREE.Float32BufferAttribute(idxPos, 3));
-            const idxMat = new THREE.LineBasicMaterial({ color: COL.contourIndex, transparent: true, opacity: tOp });
+            const idxMat = new THREE.LineBasicMaterial({ color: attract.on ? BLUEPRINT.contourIndex : COL.contourIndex, transparent: true, opacity: tOp });
             const idxLS = new THREE.LineSegments(idxGeo, idxMat);
             idxLS.userData.vecMode = 'line'; idxLS.userData.vecLayer = 'contour'; idxLS.userData.vecChain = true;
             modelGroup.add(idxLS);
+            if (attract.on) blueprintOnly.push(regLS, idxLS);
             regMat.userData.baseOpacity = 1.0;
             idxMat.userData.baseOpacity = 1.0;
             terrainFadeMats.push(regMat, idxMat);
             xsecClipMats.push(regMat, idxMat);   // qanat cross-section cutaway must clip these too, or they float over the exposed strata
 
-            // Elevation labels on index contours (real metres, GeoData only)
-            if (isGeo) {
+            // Elevation labels on index contours (real metres, GeoData only; not in the title tour)
+            if (isGeo && !attract.on) {
                 Object.keys(idxLabel).forEach(L => {
                     const p = idxLabel[L];
                     const metres = Math.round(geodata.minM + p.y * mpu);
@@ -3365,7 +3740,7 @@
             const inService = params.year >= 140 && params.year <= 350;
             // The qanat is always drawn blue — water still runs in the gallery today, so its
             // colour does not change with the timeline (only its existence does).
-            const galleryColor = COL.qanat;
+            const galleryColor = attract.on ? BLUEPRINT.gallery : COL.qanat;   // brighter on the tour's dark blueprint
             if (galleryBuilt) {
                 const n = basePts.length;
                 const exC = Math.max(2, Math.round(n * QANAT.exploredFrac));
@@ -3608,7 +3983,10 @@
             // --- "Ghost" valley context: a faded, low-res terrain apron extending WEST from the
             // window toward the inferred villa, so the recipient site sits on ground rather than
             // floating. Uses real (in-bbox) LiDAR via getTerrainHeight; on by default, toggleable.
-            if (params.showGhostApron && isGeo && SSOT.site.villa && SSOT.site.villa.geo && SSOT.site.villa.geo.lat != null) {
+            updateBuildings(halfW, halfD);   // 3D buildings (OSM) on the context terrain
+            if (params.showGhostApron && isGeo && geodataContext.ready) {
+                addContextApron(halfD);
+            } else if (params.showGhostApron && isGeo && SSOT.site.villa && SSOT.site.villa.geo && SSOT.site.villa.geo.lat != null) {
                 const vsc = geoToScene(SSOT.site.villa.geo.lat, SSOT.site.villa.geo.lon);
                 const westEnd = params.flipWE ? halfW : -halfW;               // window's west edge (scene x)
                 const beyond = params.flipWE ? (vsc.x > westEnd) : (vsc.x < westEnd);
@@ -3744,6 +4122,7 @@
             // removed from the visualization — the WFS spring positions were not reliable enough
             // to show as fact, and the boreholes carried no usable data. See docs/BACKLOG.md.)
             addPaths(halfW, halfD);   // forest/hiking paths (OSM), draped on the terrain
+            addPois(halfW, halfD);    // floating visitor points of interest (data/poi.json)
 
             // --- 7. Geological cross-section (strata + groundwater) ---
             addGeology(halfW, halfD);
@@ -3775,6 +4154,433 @@
             rebuildFlow();               // rebuild animated-flow particles for the new paths
             rebuildProfilePanel();       // refresh the profile chart if it's open
             updateDensityReadout();      // refresh the dev density readout (segX/segZ just recomputed)
+        }
+
+        // Surrounding-context apron: the whole CONTEXT_BBOX (town, valley, plateau) as a coarse
+        // terrain sheet draped with the context topographic map (or the 2019 aerial when a
+        // satellite base layer is active). Sits just below the modelled window, which draws
+        // over it. Normally a translucent backdrop (depthWrite off, so the geology cut face
+        // and everything else still read through it); fully opaque in the title-screen tour.
+        function addContextApron(halfD) {
+            const C = CONTEXT_BBOX;
+            const nw = geoToScene(C.north, C.west), se = geoToScene(C.south, C.east);
+            const x0 = Math.min(nw.x, se.x), x1 = Math.max(nw.x, se.x), z0 = nw.z, z1 = se.z;
+            const geo = new THREE.PlaneGeometry(x1 - x0, z1 - z0, 176, 116);
+            geo.rotateX(-Math.PI / 2);
+            const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+            const pos = geo.attributes.position, uv = geo.attributes.uv;
+            for (let k = 0; k < pos.count; k++) {
+                const x = pos.getX(k) + cx, z = pos.getZ(k) + cz;
+                pos.setY(k, getTerrainHeight(x, z) - 0.12);
+                const lon = sceneXToLon(x);
+                const lat = geoView.north - ((z + halfD) / params.depth) * (geoView.north - geoView.south);
+                uv.setXY(k, (lon - C.west) / (C.east - C.west), (lat - C.south) / (C.north - C.south));
+            }
+            geo.computeVertexNormals();
+            // Explore view: leave out the modelled window AND the ground in front of its cut
+            // face, so the translucent context never veils the terrain or the geology section
+            // (the town and valley around it stay). The tour shows the full, opaque sheet.
+            if (!attract.on) {
+                const idx = geo.index.array, keep = [];
+                const W2 = params.width / 2;
+                for (let t = 0; t < idx.length; t += 3) {
+                    let mx = 0, mz = 0;
+                    for (let q = 0; q < 3; q++) { mx += pos.getX(idx[t + q]); mz += pos.getZ(idx[t + q]); }
+                    mx = mx / 3 + cx; mz = mz / 3 + cz;
+                    if (Math.abs(mx) <= W2 && mz >= -halfD) continue;
+                    keep.push(idx[t], idx[t + 1], idx[t + 2]);
+                }
+                geo.setIndex(keep);
+            }
+            const aerial = ['satellite', 'winter', 'ortho1967'].includes(params.baseLayer);
+            const t = contextTextures[aerial ? 'ortho' : 'topo'];
+            const full = attract.on;
+            const mat = edgeFadeMaterial(new THREE.MeshBasicMaterial({
+                color: (t && t.ready) ? 0xffffff : 0xe4dccb, map: (t && t.ready) ? t.tex : null,
+                transparent: !full, opacity: full ? 1 : 0.5, side: THREE.DoubleSide, depthWrite: full }));
+            const apron = new THREE.Mesh(geo, mat);
+            apron.position.set(cx, 0, cz); apron.renderOrder = -1;
+            apron.raycast = () => {};   // backdrop only: never a pick / zoom target
+            apron.userData.tourClip = true;
+            modelGroup.add(apron);
+            if (full) {
+                surfaceOnly.push(apron);
+                const bp = new THREE.Mesh(geo, edgeFadeMaterial(new THREE.MeshBasicMaterial({ color: BLUEPRINT.ground, side: THREE.DoubleSide })));
+                bp.position.copy(apron.position); bp.renderOrder = -1; bp.raycast = () => {}; bp.userData.tourClip = true;
+                modelGroup.add(bp); blueprintOnly.push(bp);
+            }
+        }
+        // --- 3D buildings on the context terrain ------------------------------------------
+        // Primary: the ACT national 3D buildings 2023 (LOD 2.2 roofs + oblique-photo textures,
+        // CC0; assets/buildings3d-context.js, see scripts/bake-buildings3d.py) for the commune
+        // of Walferdange. Fallback: OpenStreetMap footprints extruded to (mostly estimated)
+        // heights (assets/buildings-context.js) where ACT has no building — the neighbouring
+        // communes inside the context window. Textures: the standard set (256 px near the
+        // camera's key spots, 64 px elsewhere) or, with "High-quality textures" on, the HQ set
+        // (768 / 160 px on 4096² atlases, loaded on demand). One mesh per atlas + one
+        // vertex-coloured mesh, in their own scene group, rebuilt only when the placement
+        // (window / vertical scale / flip / tour-vs-explore / texture set) changes.
+        // Buildings between the camera and what it looks at dissolve (dithered) so they never
+        // hide the view — see bldFade / updateBuildingFade().
+        let buildingsGroup = null, buildingsKey = '', buildingsBuild = 0;   // buildingsBuild: bumps on every rebuild
+        let B3 = null;   // decoded ACT buildings
+        const b64buf = str => { const bin = atob(str), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
+        function act3dSet(S) {
+            const t = new Uint8Array(b64buf(S.t)), uv = new Uint16Array(b64buf(S.uv));
+            // Per-ring start into the uv stream (only textured rings have uvs).
+            const start = new Int32Array(t.length);
+            for (let i = 0, acc = 0; i < t.length; i++) { start[i] = t[i] ? acc : -1; if (t[i]) acc += B3.r[i] & 0x3fff; }
+            return { atlases: S.atlases, t, uv, start, tex: [] };
+        }
+        function act3d() {
+            if (B3 || !window.RASCH_BUILDINGS3D) return B3;
+            const D = window.RASCH_BUILDINGS3D;
+            B3 = { D, v: new Int16Array(b64buf(D.v)), r: new Uint16Array(b64buf(D.r)), b: new Uint16Array(b64buf(D.b)),
+                   c: new Uint8Array(b64buf(D.c)), sets: {} };
+            B3.sets.std = act3dSet(D.std);
+            return B3;
+        }
+        function act3dTextures(set) {
+            if (!set.tex.length) {
+                const L = new THREE.TextureLoader(), aniso = renderer.capabilities.getMaxAnisotropy();
+                set.tex = set.atlases.map(f => {
+                    const tx = L.load(f);
+                    tx.anisotropy = aniso;
+                    return tx;
+                });
+            }
+            return set.tex;
+        }
+        // HQ set: its uv/atlas index script is loaded only when first asked for.
+        let hqLoading = false;
+        function ensureHqBuildings() {
+            if (window.RASCH_BUILDINGS3D_HQ || hqLoading) return;
+            hqLoading = true;
+            const sc = document.createElement('script');
+            sc.src = 'assets/buildings3d-hq.js';
+            sc.onload = () => { hqLoading = false; buildingsKey = ''; buildParametricModel(); };
+            sc.onerror = () => { hqLoading = false; showToast('High-quality building textures could not be loaded'); };
+            document.head.appendChild(sc);
+        }
+        // See-through buildings — ONE rule, evaluated per building on the CPU every frame:
+        //   a building turns to OUTLINE when, on screen, it covers a visible marker (a POI orb
+        //   or the foot of its stalk) and stands in front of it, or when it is so close to the
+        //   camera that it would fill the view (< ~40 m).
+        // Hysteresis (it must clear the marker by a wider margin to turn solid again) and a
+        // ~0.35 s crossfade per building stop the popping. The per-building fade (0..1) lives
+        // in a small texture indexed by the vertex attribute `bid`.
+        const BLD_TEX_W = 1024;
+        const bldFade = { uBldTex: { value: null }, uBldTexH: { value: 1 } };
+        let bldRecs = [];                       // per building: { x, y, z, r } bounding sphere (scene units)
+        let bldFadeVal = new Float32Array(0), bldIn = new Uint8Array(0), bldTexData = null;
+        // Shared shader plumbing: a world-position varying (vWPos) for the effects below.
+        function withWorldPos(sh) {
+            if (sh.vertexShader.includes('vWPos')) return;
+            sh.vertexShader = 'varying vec3 vWPos;\n' + sh.vertexShader.replace('#include <project_vertex>',
+                '#include <project_vertex>\n vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+            sh.fragmentShader = 'varying vec3 vWPos;\n' + sh.fragmentShader;
+        }
+        // Soft edge of the town context: within uEdgeW of the context block's border the surface
+        // blends into the background colour, so the landscape never ends in a hard line.
+        const edgeFadeU = { uEdgeBox: { value: new THREE.Vector4() }, uEdgeW: { value: 0 }, uEdgeBg: { value: new THREE.Color() } };
+        function edgeFadeShader(sh) {
+            withWorldPos(sh);
+            Object.assign(sh.uniforms, edgeFadeU);
+            sh.fragmentShader = 'uniform vec4 uEdgeBox;\nuniform float uEdgeW;\nuniform vec3 uEdgeBg;\n' +
+                sh.fragmentShader.replace('#include <fog_fragment>', `#include <fog_fragment>
+                if (uEdgeW > 0.0) {
+                    float e = min(min(vWPos.x - uEdgeBox.x, uEdgeBox.y - vWPos.x), min(vWPos.z - uEdgeBox.z, uEdgeBox.w - vWPos.z));
+                    gl_FragColor.rgb = mix(uEdgeBg, gl_FragColor.rgb, smoothstep(0.0, uEdgeW, e));
+                }`);
+        }
+        function edgeFadeMaterial(m) {
+            m.onBeforeCompile = edgeFadeShader;
+            m.customProgramCacheKey = () => 'edgefade';
+            return m;
+        }
+        // Per frame: the context box (scene coords), fade width and the CURRENT background (by
+        // reference: the tour's blueprint pass recolours scene.background in place).
+        function updateEdgeFade() {
+            const B = CONTEXT_BBOX, a = geoToScene(B.north, B.west), b = geoToScene(B.south, B.east);
+            edgeFadeU.uEdgeBox.value.set(Math.min(a.x, b.x), Math.max(a.x, b.x), Math.min(a.z, b.z), Math.max(a.z, b.z));
+            edgeFadeU.uEdgeW.value = params.contextEdgeFade ? 260 / metersPerUnitH() : 0;
+            if (scene.background && scene.background.isColor) edgeFadeU.uEdgeBg.value = scene.background;
+        }
+        // Three passes share each building mesh: 'solid' (draws a building in proportion to
+        // 1 - fade, dissolving through an ordered dither only while it crossfades, and writes no
+        // depth where it's gone, so markers behind show), 'ghost' (a very faint fill) and 'line'
+        // (the roof / wall edges, a LineSegments of the ring outlines), both scaled by fade.
+        function fadeMaterial(m, mode) {
+            if (mode !== 'solid') { m.transparent = true; m.depthWrite = false; }
+            m.onBeforeCompile = sh => {
+                Object.assign(sh.uniforms, bldFade);
+                sh.vertexShader = 'attribute float bid;\nvarying float vBid;\n' +
+                    sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n vBid = bid;');
+                sh.fragmentShader = 'varying float vBid;\nuniform sampler2D uBldTex;\nuniform float uBldTexH;\n' +
+                    'float bldB2(vec2 a) { a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }\n' +
+                    sh.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+                    float bi = floor(vBid + 0.5);
+                    float bldA = texture2D(uBldTex, vec2((mod(bi, ${BLD_TEX_W}.0) + 0.5) / ${BLD_TEX_W}.0, (floor(bi / ${BLD_TEX_W}.0) + 0.5) / uBldTexH)).r;
+                    ${mode === 'solid'
+                        ? 'if (bldA > 0.99 || (bldA > 0.01 && bldA > bldB2(gl_FragCoord.xy * 0.5) * 0.25 + bldB2(gl_FragCoord.xy) + 0.03)) discard;'
+                        : 'if (bldA < 0.01) discard;'}`)
+                    .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' +
+                        (mode === 'ghost' ? 'gl_FragColor.a *= 0.1 * bldA;' : mode === 'line' ? 'gl_FragColor.a *= 0.9 * bldA;' : ''));
+                edgeFadeShader(sh);   // last: it prepends the vWPos varying the edge fade uses
+            };
+            m.customProgramCacheKey = () => 'bldfade-' + mode;
+            return m;
+        }
+        function resetBuildingFade(n) {
+            const H = Math.max(1, Math.ceil(n / BLD_TEX_W));
+            bldFadeVal = new Float32Array(n); bldIn = new Uint8Array(n);
+            bldTexData = new Uint8Array(BLD_TEX_W * H * 4);
+            const t = new THREE.DataTexture(bldTexData, BLD_TEX_W, H, THREE.RGBAFormat);
+            t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+            if (bldFade.uBldTex.value) bldFade.uBldTex.value.dispose();
+            bldFade.uBldTex.value = t; bldFade.uBldTexH.value = H;
+        }
+        // Per frame: apply the rule to every building, ease each fade, upload if anything moved.
+        const _bv = new THREE.Vector3(), _bw = new THREE.Vector3();
+        function updateBuildingFade() {
+            if (!buildingsGroup || !buildingsGroup.visible || !bldRecs.length || !bldTexData) return;
+            const now = performance.now(), dt = Math.min(0.1, (now - (updateBuildingFade.last || now)) / 1000);
+            updateBuildingFade.last = now;
+            const el = renderer.domElement, W = el.clientWidth, H = el.clientHeight;
+            const on = params.buildingsSeeThrough;
+            // Markers to keep visible, as screen segments (orb ↔ stalk foot) with their depth.
+            const marks = [];
+            if (on) for (const pg of poiGroups) {
+                if (!pg.group.visible || (pg.fade != null && pg.fade < 0.3)) continue;
+                const a = pg.disc.getWorldPosition(_bv).project(camera), ad = pg.disc.getWorldPosition(_bw).distanceTo(camera.position);
+                const g = pg.group.getWorldPosition(_bw).project(camera);
+                if (a.z > 1 && g.z > 1) continue;
+                const orbPx = pg.disc.getWorldScale(_bv).x / 2 / worldPerPxAt(pg.disc.getWorldPosition(_bv));
+                // two points to keep clear: the orb (its radius) and the foot of the stalk
+                marks.push({ x: (a.x + 1) / 2 * W, y: (1 - a.y) / 2 * H, depth: ad, pad: orbPx });
+                if (g.z < 1) marks.push({ x: (g.x + 1) / 2 * W, y: (1 - g.y) / 2 * H, depth: pg.group.getWorldPosition(_bw).distanceTo(camera.position), pad: 6 });
+            }
+            const nearM = 25 / metersPerUnitH(), camPos = camera.position;
+            const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom;
+            let dirty = false;
+            const k = 1 - Math.exp(-dt / 0.12);   // ~0.35 s to settle
+            for (let i = 0; i < bldRecs.length; i++) {
+                const b = bldRecs[i];
+                let inWay = false;
+                if (on) {
+                    const dCam = Math.hypot(b.x - camPos.x, b.y - camPos.y, b.z - camPos.z);
+                    if (dCam - b.r < nearM * (bldIn[i] ? 1.25 : 1)) inWay = true;
+                    else if (marks.length) {
+                        const p = _bv.set(b.x, b.y, b.z).project(camera);
+                        if (p.z < 1) {
+                            const sx = (p.x + 1) / 2 * W, sy = (1 - p.y) / 2 * H;
+                            const rPx = b.r / (2 * dCam * tanH / H);   // sphere radius in px (approx.)
+                            for (const m of marks) {
+                                if (dCam > m.depth) continue;   // the building is behind the marker
+                                // the marker lies inside the building's (tight) screen disc
+                                const d = Math.hypot(sx - m.x, sy - m.y);
+                                if (d < rPx * 0.55 + m.pad * 0.5 + (bldIn[i] ? 16 : 0)) { inWay = true; break; }
+                            }
+                        }
+                    }
+                }
+                bldIn[i] = inWay ? 1 : 0;
+                const goal = inWay ? 1 : 0, f = bldFadeVal[i];
+                if (f !== goal) {
+                    let nf = f + (goal - f) * k;
+                    if (Math.abs(nf - goal) < 0.01) nf = goal;
+                    bldFadeVal[i] = nf;
+                    const byte = Math.round(nf * 255);
+                    if (bldTexData[4 * i] !== byte) { bldTexData[4 * i] = byte; dirty = true; }
+                }
+            }
+            if (dirty) bldFade.uBldTex.value.needsUpdate = true;
+        }
+        function updateBuildings(halfW, halfD) {
+            const OSM = window.RASCH_BUILDINGS, A = act3d();
+            if (!buildingsGroup) { buildingsGroup = new THREE.Group(); scene.add(buildingsGroup); }
+            const show = params.showBuildings && params.showGhostApron && (A || OSM) && geodataContext.ready &&
+                params.terrainSource === 'geodata' && geodata.ready;
+            buildingsGroup.visible = !!show;
+            if (!show) return;
+            if (params.hqAssets) ensureHqBuildings();
+            if (A && params.hqAssets && window.RASCH_BUILDINGS3D_HQ && !A.sets.hq) A.sets.hq = act3dSet(window.RASCH_BUILDINGS3D_HQ);
+            const set = A ? ((params.hqAssets && A.sets.hq) || A.sets.std) : null;
+            const key = [geoView.west, geoView.east, geoView.south, geoView.north, params.width, params.depth,
+                params.vExag, params.flipWE, attract.on, set === (A && A.sets.hq)].join('|');
+            if (key === buildingsKey) return;
+            buildingsKey = key;
+            buildingsGroup.children.forEach(c => { c.geometry.dispose(); c.material.dispose(); });
+            buildingsGroup.clear();
+            buildingsBuild++;
+            // Drop the other texture set from the GPU (the HQ atlases are big).
+            if (A) for (const k in A.sets) if (A.sets[k] !== set && A.sets[k].tex.length) { A.sets[k].tex.forEach(t => t.dispose()); A.sets[k].tex = []; }
+            const W2 = params.width / 2;
+            const hidden = (cx, cz) => !attract.on && Math.abs(cx) <= W2 && cz >= -halfD;   // explore: keep the modelled window clear
+            const SIZE = { uv: 2, bid: 1 };
+            const addMesh = (pos, attrs, mat) => {
+                if (!pos.length) return;
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                for (const k in attrs) g.setAttribute(k, new THREE.Float32BufferAttribute(attrs[k], SIZE[k] || 3));
+                g.computeVertexNormals();
+                const mesh = new THREE.Mesh(g, fadeMaterial(mat, 'solid'));
+                mesh.raycast = () => {};
+                const ghost = new THREE.Mesh(g, fadeMaterial(mat.clone(), 'ghost'));   // shares the geometry
+                ghost.raycast = () => {};
+                buildingsGroup.add(mesh, ghost);
+            };
+            const lines = { pos: [], bid: [] };   // outline edges of every building (drawn only when see-through)
+            bldRecs = [];
+            const addLines = () => {
+                if (!lines.pos.length) return;
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(lines.pos, 3));
+                g.setAttribute('bid', new THREE.Float32BufferAttribute(lines.bid, 1));
+                const l = new THREE.LineSegments(g, fadeMaterial(new THREE.LineBasicMaterial({ color: 0xf4efe6 }), 'line'));
+                l.raycast = () => {}; l.renderOrder = 3;
+                buildingsGroup.add(l);
+            };
+            // Linear lon/lat → scene mapping (geoToScene is affine) and vertical metres → Y.
+            const D = A ? A.D : null;
+            const lon0 = D ? D.lon0 : 6.14, lat0 = D ? D.lat0 : 49.66;
+            const s0 = geoToScene(lat0, lon0), s1 = geoToScene(lat0 + 0.01, lon0 + 0.01);
+            const ax = (s1.x - s0.x) / 0.01, az = (s1.z - s0.z) / 0.01, ym = metersToYDepth(1);
+            const occupied = new Set();   // ~20 m cells covered by ACT buildings (OSM fallback skips them)
+            const cellOf = (lon, lat) => Math.floor((lon - 6) / 0.00025) + ':' + Math.floor((lat - 49) / 0.00018);
+            if (A) {
+                const { v, r, b, c } = A;
+                const tex = act3dTextures(set);
+                const tb = tex.map(() => ({ pos: [], uv: [], bid: [] }));
+                const cb = { pos: [], color: [], bid: [] };
+                const kx = 111320 * Math.cos(lat0 * Math.PI / 180) * 1e-6, ky = 111320 * 1e-6;
+                let ri = 0, vi = 0;
+                for (let bi = 0; bi < b.length; bi++) {
+                    const nR = b[bi], r0 = ri, v0 = vi;
+                    let nv = 0;
+                    for (let k = 0; k < nR; k++) nv += r[r0 + k] & 0x3fff;
+                    ri += nR; vi += nv;
+                    // Footprint extent, lowest point, centroid.
+                    let zmin = Infinity, zmax = -Infinity, lo0 = Infinity, lo1 = -Infinity, la0 = Infinity, la1 = -Infinity;
+                    for (let q = v0; q < v0 + nv; q++) {
+                        const lo = v[3 * q], la = v[3 * q + 1];
+                        zmin = Math.min(zmin, v[3 * q + 2]); zmax = Math.max(zmax, v[3 * q + 2]);
+                        lo0 = Math.min(lo0, lo); lo1 = Math.max(lo1, lo); la0 = Math.min(la0, la); la1 = Math.max(la1, la);
+                    }
+                    for (let x = Math.floor((lon0 + lo0 * 1e-6 - 6) / 0.00025); x <= Math.floor((lon0 + lo1 * 1e-6 - 6) / 0.00025); x++)
+                        for (let y = Math.floor((lat0 + la0 * 1e-6 - 49) / 0.00018); y <= Math.floor((lat0 + la1 * 1e-6 - 49) / 0.00018); y++)
+                            occupied.add(x + ':' + y);
+                    const cx = s0.x + ax * (lo0 + lo1) / 2e6, cz = s0.z + az * (la0 + la1) / 2e6;
+                    if (hidden(cx, cz)) continue;
+                    // Seat the building on the (coarse) context terrain: its lowest ground-level
+                    // corner at the terrain height there; heights keep the terrain's vertical scale.
+                    let base = Infinity;
+                    for (let q = v0; q < v0 + nv; q++) if (v[3 * q + 2] <= zmin + 15)
+                        base = Math.min(base, getTerrainHeight(s0.x + ax * v[3 * q] * 1e-6, s0.z + az * v[3 * q + 1] * 1e-6));
+                    base -= 0.05;
+                    // Bounding sphere (scene units) for the per-building see-through test.
+                    const hy = (zmax - zmin) * 0.05 * ym;
+                    const bid = bldRecs.push({ x: cx, y: base + hy, z: cz, r: Math.hypot(Math.abs(ax) * (lo1 - lo0) * 5e-7, Math.abs(az) * (la1 - la0) * 5e-7, hy) }) - 1;
+                    const P3 = q => [s0.x + ax * v[3 * q] * 1e-6, base + (v[3 * q + 2] - zmin) * 0.1 * ym, s0.z + az * v[3 * q + 1] * 1e-6];
+                    // Outline: every ring's edges.
+                    for (let k = 0, q = v0; k < nR; k++) {
+                        const n = r[r0 + k] & 0x3fff;
+                        for (let i = 0; i < n; i++) { lines.pos.push(...P3(q + i), ...P3(q + (i + 1) % n)); lines.bid.push(bid, bid); }
+                        q += n;
+                    }
+                    // Polygons: an exterior ring followed by its holes.
+                    let q0 = v0;
+                    for (let k = 0; k < nR;) {
+                        const ext = r0 + k, rings = [ext];
+                        let n = r[ext] & 0x3fff;
+                        const starts = [q0];
+                        let qn = q0 + n;
+                        k++;
+                        while (k < nR && (r[r0 + k] & 0x8000)) { rings.push(r0 + k); starts.push(qn); qn += r[r0 + k] & 0x3fff; k++; }
+                        q0 = qn;
+                        // Newell normal (metres) → drop its dominant axis → 2D triangulation.
+                        let nx = 0, ny = 0, nz = 0;
+                        for (let i = 0; i < n; i++) {
+                            const a = starts[0] + i, bq = starts[0] + (i + 1) % n;
+                            const ax1 = v[3 * a] * kx, ay1 = v[3 * a + 1] * ky, az1 = v[3 * a + 2] * 0.1;
+                            const bx1 = v[3 * bq] * kx, by1 = v[3 * bq + 1] * ky, bz1 = v[3 * bq + 2] * 0.1;
+                            nx += (ay1 - by1) * (az1 + bz1); ny += (az1 - bz1) * (ax1 + bx1); nz += (ax1 - bx1) * (ay1 + by1);
+                        }
+                        const anx = Math.abs(nx), any = Math.abs(ny), anz = Math.abs(nz);
+                        if (anx + any + anz < 1e-9) continue;
+                        const p2 = q => anz >= anx && anz >= any ? new THREE.Vector2(v[3 * q] * kx, v[3 * q + 1] * ky)
+                            : anx >= any ? new THREE.Vector2(v[3 * q + 1] * ky, v[3 * q + 2] * 0.1)
+                            : new THREE.Vector2(v[3 * q] * kx, v[3 * q + 2] * 0.1);
+                        const loops = rings.map((rr, j) => { const L = []; for (let i = 0; i < (r[rr] & 0x3fff); i++) L.push(starts[j] + i); return L; });
+                        let tris;
+                        try { tris = THREE.ShapeUtils.triangulateShape(loops[0].map(p2), loops.slice(1).map(L => L.map(p2))); }
+                        catch (e) { continue; }
+                        const flat = loops.flat();
+                        const ti = set.t[ext];
+                        const uvOf = [];
+                        if (ti) loops.forEach((L, j) => {
+                            const st = set.start[rings[j]] >= 0 ? set.start[rings[j]] : set.start[ext];
+                            const own = set.start[rings[j]] >= 0;
+                            L.forEach((_, i) => { const u = st + (own ? i : 0); uvOf.push(set.uv[2 * u] / 65535, set.uv[2 * u + 1] / 65535); });
+                        });
+                        const out = ti ? tb[ti - 1] : cb;
+                        if (!out) continue;
+                        const col = [c[3 * ext] / 255, c[3 * ext + 1] / 255, c[3 * ext + 2] / 255];
+                        for (const tr of tris) for (const idx of tr) {
+                            const q = flat[idx];
+                            out.pos.push(s0.x + ax * v[3 * q] * 1e-6, base + (v[3 * q + 2] - zmin) * 0.1 * ym, s0.z + az * v[3 * q + 1] * 1e-6);
+                            out.bid.push(bid);
+                            if (ti) out.uv.push(uvOf[2 * idx], uvOf[2 * idx + 1]);
+                            else out.color.push(col[0], col[1], col[2]);
+                        }
+                    }
+                }
+                tb.forEach((o, i) => addMesh(o.pos, { uv: o.uv, bid: o.bid }, new THREE.MeshLambertMaterial({ map: tex[i], side: THREE.DoubleSide })));
+                addMesh(cb.pos, { color: cb.color, bid: cb.bid }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+            }
+            if (OSM) {
+                const pos = [], col = [], obid = [];
+                const wall = new THREE.Color(0xe9e2d6), wallEst = new THREE.Color(0xdcd6cc), roof = new THREE.Color(0x6e6763);   // slate grey: most roofs here are slate
+                for (const bd of OSM.buildings) {
+                    const rr = bd.r, n = rr.length / 2;
+                    let lo = 0, la = 0;
+                    for (let i = 0; i < n; i++) { lo += rr[2 * i]; la += rr[2 * i + 1]; }
+                    lo /= n; la /= n;
+                    if (occupied.has(cellOf(lo, la))) continue;   // ACT has this one (textured, real roof)
+                    const pts = [];
+                    for (let i = 0; i < n; i++) { const sc = geoToScene(rr[2 * i + 1], rr[2 * i]); pts.push(new THREE.Vector2(sc.x, sc.z)); }
+                    const cc = geoToScene(la, lo);
+                    if (hidden(cc.x, cc.z)) continue;
+                    let base = Infinity;
+                    for (const pt of pts) base = Math.min(base, getTerrainHeight(pt.x, pt.y));
+                    base -= 0.05;
+                    const top = base + metersToYDepth(bd.h);
+                    const wc = bd.est ? wallEst : wall;
+                    let rad = 0;
+                    for (const pt of pts) rad = Math.max(rad, Math.hypot(pt.x - cc.x, pt.y - cc.z));
+                    const bid = bldRecs.push({ x: cc.x, y: (base + top) / 2, z: cc.z, r: Math.hypot(rad, (top - base) / 2) }) - 1;
+                    const nb = pos.length;
+                    for (let i = 0; i < n; i++) {
+                        const a = pts[i], e = pts[(i + 1) % n];
+                        pos.push(a.x, base, a.y, e.x, base, e.y, e.x, top, e.y,  a.x, base, a.y, e.x, top, e.y, a.x, top, a.y);
+                        for (let q = 0; q < 6; q++) col.push(wc.r, wc.g, wc.b);
+                        // outline: base edge, top edge, corner
+                        lines.pos.push(a.x, base, a.y, e.x, base, e.y,  a.x, top, a.y, e.x, top, e.y,  a.x, base, a.y, a.x, top, a.y);
+                        for (let q = 0; q < 6; q++) lines.bid.push(bid);
+                    }
+                    const tris = THREE.ShapeUtils.triangulateShape(pts, []);
+                    for (const t of tris) for (const k of t) { pos.push(pts[k].x, top, pts[k].y); col.push(roof.r, roof.g, roof.b); }
+                    for (let q = nb; q < pos.length; q += 3) obid.push(bid);
+                }
+                addMesh(pos, { color: col, bid: obid }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+            }
+            addLines();
+            resetBuildingFade(bldRecs.length);
+        }
+        // Is a scene point covered by the context apron (so "off-map" markers still stand on ground)?
+        function inContextApron(lat, lon) {
+            return params.showGhostApron && geodataContext.ready &&
+                lon >= CONTEXT_BBOX.west && lon <= CONTEXT_BBOX.east && lat >= CONTEXT_BBOX.south && lat <= CONTEXT_BBOX.north;
         }
 
         // Dev density readout: shows the terrain tessellation the last build actually used
@@ -4102,6 +4908,432 @@
         // Forest/hiking paths (OpenStreetMap, baked into window.RASCH_PATHS). Each path is a
         // draped polyline that follows the terrain; segments are split as they cross the
         // visible window so nothing shoots off to an out-of-frame vertex.
+        // --- Points of interest (data/poi.json): a floating circle — photo or drawn icon —
+        // with a connector line + arrowhead down to the POI's ground position. Visitor
+        // orientation aids, not qanat facts. The circle textures are cached per POI across
+        // rebuilds (Material.dispose() in buildParametricModel leaves .map textures alone),
+        // so a photo loads once and later rebuilds reuse it.
+        const POI_TEX = {};
+        const POI_TEX_SIZE = 256;
+        function drawPoiIcon(ctx, icon, S) {
+            ctx.save();
+            ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#ffffff';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            if (icon === 'parking') {
+                ctx.font = `800 ${Math.round(S * 0.5)}px -apple-system, sans-serif`;
+                ctx.fillText('P', S / 2, S / 2 + S * 0.02);
+            } else if (icon === 'spring') {
+                // Water drop.
+                const cx = S / 2, top = S * 0.24, r = S * 0.17, cy = S * 0.58;
+                ctx.beginPath();
+                ctx.moveTo(cx, top);
+                ctx.bezierCurveTo(cx + r * 0.4, top + r * 0.9, cx + r, cy - r * 0.6, cx + r, cy);
+                ctx.arc(cx, cy, r, 0, Math.PI);
+                ctx.bezierCurveTo(cx - r, cy - r * 0.6, cx - r * 0.4, top + r * 0.9, cx, top);
+                ctx.fill();
+            } else if (icon === 'shaft') {
+                // Shaft seen from above: a ring (the masonry lining) around a dark opening.
+                ctx.lineWidth = S * 0.07;
+                ctx.beginPath(); ctx.arc(S / 2, S / 2, S * 0.22, 0, Math.PI * 2); ctx.stroke();
+                ctx.lineWidth = S * 0.03;
+                ctx.beginPath(); ctx.arc(S / 2, S / 2, S * 0.11, 0, Math.PI * 2); ctx.stroke();
+            } else if (icon === 'gallery') {
+                // Tunnel portal: an arched doorway.
+                const w = S * 0.36, h = S * 0.40, x0 = S / 2 - w / 2, yb = S * 0.70;
+                ctx.beginPath();
+                ctx.moveTo(x0, yb); ctx.lineTo(x0, yb - h + w / 2);
+                ctx.arc(S / 2, yb - h + w / 2, w / 2, Math.PI, 0);
+                ctx.lineTo(x0 + w, yb); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = 'rgba(0,0,0,0.55)';   // dark opening
+                const iw = w * 0.55, ix = S / 2 - iw / 2, ih = h * 0.72;
+                ctx.beginPath();
+                ctx.moveTo(ix, yb); ctx.lineTo(ix, yb - ih + iw / 2);
+                ctx.arc(S / 2, yb - ih + iw / 2, iw / 2, Math.PI, 0);
+                ctx.lineTo(ix + iw, yb); ctx.closePath(); ctx.fill();
+            } else if (icon === 'here') {
+                // Map pin with a hollow centre.
+                const cx = S / 2, cy = S * 0.42, r = S * 0.19;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, Math.PI * 0.82, Math.PI * 0.18);
+                ctx.lineTo(cx, S * 0.78); ctx.closePath(); ctx.fill();
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath(); ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2); ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            } else if (icon === 'site') {
+                // The whole qanat in section, like the title art: a hill rising to the east,
+                // shafts of growing depth dropping from it, the near-level gallery at their feet.
+                const x0 = S * 0.2, x1 = S * 0.8, g = S * 0.68;
+                const hill = x => { const f = (x - x0) / (x1 - x0); return S * (0.52 - 0.24 * Math.sin(f * Math.PI * 0.62)); };
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.lineWidth = S * 0.04;
+                ctx.beginPath();
+                for (let i = 0; i <= 24; i++) { const x = x0 - S * 0.03 + (x1 - x0 + S * 0.06) * i / 24; i ? ctx.lineTo(x, hill(x)) : ctx.moveTo(x, hill(x)); }
+                ctx.stroke();
+                ctx.lineWidth = S * 0.026;
+                for (const f of [0.14, 0.38, 0.62, 0.86]) {
+                    const x = x0 + (x1 - x0) * f;
+                    ctx.beginPath(); ctx.moveTo(x, hill(x) + S * 0.02); ctx.lineTo(x, g); ctx.stroke();
+                }
+                ctx.strokeStyle = '#bfe9f5';   // the water-carrying gallery
+                ctx.lineWidth = S * 0.055;
+                ctx.beginPath(); ctx.moveTo(x0 - S * 0.04, g + S * 0.012); ctx.lineTo(x1 + S * 0.02, g - S * 0.012); ctx.stroke();
+            } else if (icon === 'landmark') {
+                // A public building: pediment, columns, steps.
+                const x0 = S * 0.27, x1 = S * 0.73, top = S * 0.26, eave = S * 0.40, base = S * 0.70;
+                ctx.beginPath(); ctx.moveTo(S / 2, top); ctx.lineTo(x1 + S * 0.03, eave); ctx.lineTo(x0 - S * 0.03, eave); ctx.closePath(); ctx.fill();
+                for (const f of [0.08, 0.36, 0.64, 0.92]) ctx.fillRect(x0 + (x1 - x0) * f - S * 0.025, eave + S * 0.03, S * 0.05, base - eave - S * 0.06);
+                ctx.fillRect(x0 - S * 0.03, base - S * 0.03, x1 - x0 + S * 0.06, S * 0.05);
+            } else if (icon === 'bus') {
+                // Bus front: body, windscreen, wheels.
+                const w = S * 0.40, h = S * 0.40, x0 = S / 2 - w / 2, y0 = S * 0.28, r = S * 0.05;
+                ctx.beginPath();
+                ctx.moveTo(x0 + r, y0); ctx.arcTo(x0 + w, y0, x0 + w, y0 + h, r);
+                ctx.arcTo(x0 + w, y0 + h, x0, y0 + h, r); ctx.arcTo(x0, y0 + h, x0, y0, r);
+                ctx.arcTo(x0, y0, x0 + w, y0, r); ctx.closePath(); ctx.fill();
+                ctx.fillRect(x0 + w * 0.08, y0 + h, w * 0.18, S * 0.06);
+                ctx.fillRect(x0 + w * 0.74, y0 + h, w * 0.18, S * 0.06);
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillRect(x0 + w * 0.12, y0 + h * 0.14, w * 0.76, h * 0.42);   // windscreen
+                ctx.beginPath(); ctx.arc(x0 + w * 0.22, y0 + h * 0.78, S * 0.028, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x0 + w * 0.78, y0 + h * 0.78, S * 0.028, 0, Math.PI * 2); ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            } else {
+                ctx.font = `700 italic ${Math.round(S * 0.46)}px Georgia, serif`;
+                ctx.fillText('i', S / 2, S / 2 + S * 0.02);
+            }
+            ctx.restore();
+        }
+        function paintPoiCircle(ctx, poi, img, selected) {
+            const S = POI_TEX_SIZE, R = S / 2, ring = S * (selected ? 0.09 : 0.055);
+            ctx.clearRect(0, 0, S, S);
+            // White outer ring (gold + thicker when selected — the circle itself is the
+            // selection highlight), then a thin coloured rim, then the photo / icon disc.
+            ctx.beginPath(); ctx.arc(R, R, R - 2, 0, Math.PI * 2);
+            ctx.fillStyle = selected ? '#' + new THREE.Color(COL.annotationSel || 0xffd23f).getHexString() : '#ffffff';
+            ctx.fill();
+            ctx.beginPath(); ctx.arc(R, R, R - ring, 0, Math.PI * 2);
+            ctx.fillStyle = poi.color || '#444'; ctx.fill();
+            const inner = R - ring - S * 0.02;
+            if (img) {
+                ctx.save();
+                ctx.beginPath(); ctx.arc(R, R, inner, 0, Math.PI * 2); ctx.clip();
+                // Cover-fit: fill the disc, crop the longer side.
+                const k = Math.max((2 * inner) / img.width, (2 * inner) / img.height);
+                const w = img.width * k, h = img.height * k;
+                ctx.drawImage(img, R - w / 2, R - h / 2, w, h);
+                ctx.restore();
+            } else {
+                drawPoiIcon(ctx, poi.icon, S);
+            }
+        }
+        function poiTexture(poi) {
+            const key = poi.id + '|' + (poi.photo || '') + '|' + (poi.icon || '') + '|' + (poi.color || '');
+            if (POI_TEX[key]) return POI_TEX[key].tex;
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = POI_TEX_SIZE;
+            const ctx = canvas.getContext('2d');
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+            const st = { poi, ctx, tex, img: null, selected: poi.id === poiSelectedId, active: poi.id === poiActiveId };
+            // Icon on the small at-rest marker (legible at 64 px); the photo fills the circle
+            // only while the POI is ACTIVE and enlarged (see updatePoiScales).
+            st.repaint = () => { paintPoiCircle(ctx, poi, st.active ? st.img : null, st.selected); tex.needsUpdate = true; };
+            st.repaint();   // icon first; swapped for the photo once it loads
+            if (poi.photo) {
+                const img = new Image();
+                img.onload = () => { st.img = img; st.repaint(); };
+                img.src = poi.photo;   // on error the drawn icon simply stays
+            }
+            POI_TEX[key] = st;
+            return tex;
+        }
+        // Highlight one POI's circle (or none). Textures are cached across rebuilds, so the
+        // highlight survives them too.
+        let poiSelectedId = null;
+        let poiActiveId = null;          // the enlarged POI: the selection, or the tour's current stop
+        const POI_ACTIVE_SCALE = 2.4;    // how much the active POI's circle (and label) grows
+        function setPoiActive(id) {
+            if (id === poiActiveId) return;
+            poiActiveId = id;
+            Object.values(POI_TEX).forEach(st => {
+                const a = st.poi.id === id;
+                if (a !== st.active) { st.active = a; st.repaint(); }
+            });
+        }
+        function setPoiHighlight(id) {
+            if (id === poiSelectedId) return;
+            poiSelectedId = id;
+            Object.values(POI_TEX).forEach(st => {
+                const sel = st.poi.id === id;
+                if (sel !== st.selected) { st.selected = sel; st.repaint(); }
+            });
+        }
+        // Each POI is ONE group anchored at its ground point (circle, stalk, arrowhead, ground
+        // ring and label all in local coords), so it can be scaled uniformly every frame by
+        // updatePoiScales(): either a constant on-screen size (params.poiScreenSize) or a fixed
+        // model-space size — both times the "POI size" slider (params.poiScale).
+        const POI_DIAM = 3.4;        // circle diameter at scale 1 (scene units)
+        const POI_LIFT = 9.0;        // circle centre above the ground point at scale 1
+        const POI_SCREEN_PX = 64;    // circle diameter (css px) in screen-size mode, at POI size 1×
+        let poiGroups = [];          // [{ group, disc }] for the current build
+        function addPois(halfW, halfD) {
+            poiGroups = [];
+            const list = (SSOT.poi && SSOT.poi.pois) || [];
+            if (!params.showPois || !list.length) return;
+            const isGeo = params.terrainSource === 'geodata' && geodata.ready;
+            list.forEach(poi => {
+                const DIAM = POI_DIAM * (poi.site ? 1.35 : 1);   // the whole-site marker is a little larger
+                const LIFT = POI_LIFT * (poi.lift || 1);   // optional per-POI stagger (data/poi.json `lift`)
+                let x, z;
+                if (poi.anchorShaft) {
+                    const pd = pillarDefs.find(d => d.id === poi.anchorShaft);
+                    if (!pd) return;
+                    x = pd.x; z = pd.z;
+                } else if (poi.geo && isGeo) {
+                    const sc = geoToScene(poi.geo.lat, poi.geo.lon);
+                    x = sc.x; z = sc.z;
+                } else return;
+                const inside = (Math.abs(x) <= halfW && Math.abs(z) <= halfD) ||
+                    (poi.geo && inContextApron(poi.geo.lat, poi.geo.lon));
+                // A shaft-anchored POI points at the top of the shaft's own label, not through it.
+                const gy = getTerrainHeight(x, z) + (poi.anchorShaft ? 1.6 : 0);
+                const col = new THREE.Color(poi.color || '#444');
+                const noPick = o => { o.raycast = () => {}; return o; };
+                const group = new THREE.Group();
+                group.position.set(x, gy, z);
+
+                // Connector: thin stalk from under the circle to just above the arrowhead.
+                const tipH = 0.9, stalkTop = LIFT - DIAM / 2;
+                const stalk = noPick(new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.06, 0.06, stalkTop - tipH, 6),
+                    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 })));
+                stalk.position.y = (stalkTop + tipH) / 2;
+                stalk.renderOrder = 29; group.add(stalk);
+                // Arrowhead pointing down at the ground position.
+                const arrow = noPick(new THREE.Mesh(new THREE.ConeGeometry(0.32, tipH, 12),
+                    new THREE.MeshBasicMaterial({ color: col, transparent: true })));
+                arrow.rotation.x = Math.PI;
+                arrow.position.y = tipH / 2;
+                arrow.renderOrder = 29; group.add(arrow);
+                // Flat ground ring marking the spot itself.
+                const ring = noPick(new THREE.Mesh(new THREE.RingGeometry(0.45, 0.7, 28),
+                    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8,
+                        side: THREE.DoubleSide, depthWrite: false })));
+                ring.rotation.x = -Math.PI / 2;
+                ring.position.y = 0.08;
+                ring.renderOrder = 29; group.add(ring);
+
+                // The floating circle (clickable → inspector).
+                const disc = new THREE.Sprite(new THREE.SpriteMaterial({
+                    map: poiTexture(poi), transparent: true, depthTest: true, depthWrite: false }));
+                disc.scale.set(DIAM, DIAM, 1);
+                disc.position.y = LIFT;
+                disc.renderOrder = 31;
+                disc.userData = Object.assign({}, poi, { kind: 'poi', poiKind: poi.kind, inside, disc });
+                group.add(disc); spotMeshes.push(disc);
+
+                const lbl = createTextSprite(poi.name + (inside ? '' : ' (off‑map)'), poi.color || '#333', 22,
+                    disc.userData);   // the name is as clickable as the circle
+                const li = lbl.material.map.image;
+                const LBL_H = 2.6;   // label sprite height: ~14 px text in screen mode at 1×
+                lbl.scale.set(LBL_H * li.width / li.height, LBL_H, 1);   // keep the text's aspect
+                lbl.position.y = LIFT + DIAM / 2 + LBL_H * 0.4;   // re-aimed per frame (updatePoiScales)
+                group.add(lbl); spotMeshes.push(lbl);
+
+                modelGroup.add(group);
+                lbl.material.transparent = true;
+                const pg = { group, disc, lbl, ring, stalk, stalkTop, tipH, conn: null, kiosk: !!poi.kiosk, site: !!poi.site, landmark: !!poi.landmark,
+                    lblOffset: DIAM / 2 + LBL_H * 0.4, baseDiam: DIAM, lift: LIFT,
+                    lblW: lbl.scale.x, lblH: lbl.scale.y, grow: poi.id === poiActiveId ? POI_ACTIVE_SCALE : 1,
+                    fade: null,   // 0..1 visibility (site level of detail × dimming), eased per frame
+                    // every material with its full opacity, so the group can fade as a whole
+                    mats: [stalk, arrow, ring, disc, lbl].map(o => [o.material, o.material.opacity]) };
+                poiGroups.push(pg);
+
+                // Off-map (e.g. south of the qanat's front cut): a dashed ground connector from
+                // the nearest window edge out to the marker, the same cue the villa uses.
+                if (!inside) {
+                    const ex = Math.max(-halfW, Math.min(halfW, x)), ez = Math.max(-halfD, Math.min(halfD, z));
+                    const conn = noPick(new THREE.Line(new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(ex, getTerrainHeight(ex, ez) + 0.1, ez),
+                        new THREE.Vector3(x, gy + 0.1, z)]),
+                        new THREE.LineDashedMaterial({ color: col, dashSize: 1.2, gapSize: 0.9,
+                            transparent: true, opacity: 0.7, depthTest: false })));
+                    conn.computeLineDistances(); conn.renderOrder = 9; modelGroup.add(conn);
+                    pg.conn = conn; pg.mats.push([conn.material, conn.material.opacity]);
+                }
+            });
+            // A selected POI survives the rebuild: re-point the selection at its new circle.
+            if (poiSelectedId && selectionMarker && selectionMarker.visible && selectionMarker.userData.poiDisc) {
+                const g = poiGroups.find(pg => pg.disc.userData.id === poiSelectedId);
+                if (g) selectionMarker.userData.poiDisc = g.disc;
+            }
+            updatePoiScales();
+        }
+        // Per frame: size every POI group. Screen mode keeps the circle POI_SCREEN_PX × size
+        // on screen at any zoom (world size of one pixel at the POI's ground point); model mode
+        // keeps a fixed scene size (scale 1 = the original model-space marker) × size.
+        const _poiTmp = new THREE.Vector3(), _poiTmp2 = new THREE.Vector3();
+        const POI_DIM_SCALE = 0.72, POI_DIM_OPACITY = 0.5;
+        const POI_MIN_LIFT_M = 24;   // an orb never floats lower than this above its ground (roofs are ~10–20 m)   // the other markers while one is active
+        // Site LOD thresholds: view height (m) at the site centre above which the whole-site
+        // marker replaces the details (far) / below which the details return (near).
+        const SITE_LOD = { near: 620, far: 860 };
+        let siteFar = 0, siteLodGoal = 0;   // 0 = detailed POIs, 1 = one whole-site marker
+        // Horizontal metres per scene unit (GeoData; ~10 m/unit otherwise).
+        function metersPerUnitH() {
+            if (!(params.terrainSource === 'geodata' && geodata.ready)) return 10;
+            const lat = (geoView.north + geoView.south) / 2;
+            return (geoView.east - geoView.west) * 111320 * Math.cos(lat * Math.PI / 180) / params.width;
+        }
+        // Fly the camera to a POI so the view height at it is `spanM` metres, keeping the
+        // current viewing direction (but at least 22° above the horizon).
+        function flyToPoi(id, spanM) {
+            const pg = poiGroups.find(p => p.disc.userData.id === id);
+            if (!pg || !camera) return;
+            const target = pg.group.getWorldPosition(new THREE.Vector3());
+            const dir = camera.position.clone().sub(controls.target);
+            if (dir.lengthSq() < 1e-6) dir.set(0, 1, 1);
+            dir.normalize();
+            const minEl = Math.sin(THREE.MathUtils.degToRad(22));
+            if (dir.y < minEl) { const hz = Math.sqrt(1 - minEl * minEl), l = Math.hypot(dir.x, dir.z) || 1; dir.set(dir.x / l * hz, minEl, dir.z / l * hz); }
+            const dist = spanM / metersPerUnitH() / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom);
+            flyTo(target.clone().addScaledVector(dir, dist), target, 1100);
+        }
+        function siteViewSpanM(pg) {
+            const h = renderer.domElement.clientHeight || 1;
+            return worldPerPxAt(pg.group.getWorldPosition(_poiTmp)) * h * metersPerUnitH();
+        }
+        function updatePoiScales() {
+            if (!poiGroups.length || !camera || !renderer) return;
+            const now = performance.now(), dt = Math.min(0.1, (now - (updatePoiScales.last || now)) / 1000);
+            updatePoiScales.last = now;
+            setPoiActive(attract.on ? attract.activePoi : poiSelectedId);
+            const ease = 1 - Math.exp(-dt * 7), fadeEase = 1 - Math.exp(-dt * 4);
+            // Site level of detail: far away (e.g. from the town) the whole site is ONE marker;
+            // the detailed POIs take over once you're close enough to tell them apart. Measured
+            // as the view height (m) at the site — fov-independent, with hysteresis so it
+            // doesn't flicker at the threshold; siteFar eases the crossfade.
+            const siteG = poiGroups.find(p => p.site);
+            if (siteG) {
+                const span = siteViewSpanM(siteG);
+                if (span > SITE_LOD.far) siteLodGoal = 1; else if (span < SITE_LOD.near) siteLodGoal = 0;
+            } else siteLodGoal = 0;
+            siteFar = updatePoiScales.first ? siteFar + (siteLodGoal - siteFar) * fadeEase : siteLodGoal;
+            updatePoiScales.first = true;
+            const activeShown = poiActiveId != null && poiGroups.some(p => p.disc.userData.id === poiActiveId);
+            for (const pg of poiGroups) {
+                const { group } = pg;
+                const id = pg.disc.userData.id, isActive = id === poiActiveId, isSel = id === poiSelectedId;
+                // Visibility: kiosk always; the site marker when far; the details when near;
+                // whatever is active/selected stays. Others dim + shrink while one is active.
+                let vis = pg.kiosk ? 1 : (pg.site || pg.landmark) ? siteFar : 1 - siteFar;
+                if (isActive || isSel) vis = 1;
+                const dimmed = activeShown && !isActive;
+                const opGoal = vis * (dimmed ? POI_DIM_OPACITY : 1);
+                pg.fade = pg.fade == null ? opGoal : pg.fade + (opGoal - pg.fade) * fadeEase;
+                for (const [m, o] of pg.mats) m.opacity = o * pg.fade;
+                pg.faded = pg.fade < 0.03;
+                const goal = isActive ? POI_ACTIVE_SCALE : dimmed ? POI_DIM_SCALE : 1;
+                pg.grow = pg.grow == null ? goal : pg.grow + (goal - pg.grow) * ease;
+                // Grow the circle + label only (not the stalk): keep the circle's bottom where the
+                // stalk ends, so the enlarged marker doesn't float away from its spot.
+                const d = pg.baseDiam * pg.grow;
+                let s = params.poiScale;
+                if (params.poiScreenSize) s *= worldPerPxAt(group.getWorldPosition(_poiTmp)) * POI_SCREEN_PX / POI_DIAM;
+                s = Math.max(1e-6, s);
+                group.scale.setScalar(s);
+                // Up close, screen-size markers get small AND low — the orb would sink into the
+                // houses. Keep the orb at least POI_MIN_LIFT_M above its ground (above roof level)
+                // by stretching the stalk, without enlarging the orb.
+                const extra = Math.max(0, POI_MIN_LIFT_M / metersPerUnitH() / s - pg.lift);
+                pg.disc.scale.set(d, d, 1);
+                pg.disc.position.y = pg.lift + extra - pg.baseDiam / 2 + d / 2;
+                const top = pg.stalkTop + extra;
+                pg.stalk.scale.y = (top - pg.tipH) / (pg.stalkTop - pg.tipH);
+                pg.stalk.position.y = (top + pg.tipH) / 2;
+                pg.lbl.scale.set(pg.lblW * pg.grow, pg.lblH * pg.grow, 1);
+                pg.lblOffset = d / 2 + pg.lblH * pg.grow * 0.4;
+            }
+            // Labels sit above their circle along the SCREEN's up direction (not world +Y), so
+            // they don't slide behind the circle when looking down from above.
+            _poiTmp2.set(0, 1, 0).applyQuaternion(camera.quaternion);
+            for (const pg of poiGroups) pg.lbl.position.copy(pg.disc.position).addScaledVector(_poiTmp2, pg.lblOffset);
+            // Kiosk marker: a slow pulsing ground ring, so "You are here" catches the eye.
+            const pulse = 1 + 0.6 * (0.5 + 0.5 * Math.sin(performance.now() / 420));
+            for (const pg of poiGroups) if (pg.kiosk) pg.ring.scale.setScalar(pulse);
+            declutterPois();
+            updateFarView();
+        }
+        // Far site view (siteFar → 1): the model's small text labels (shaft ids, depths, …) are
+        // unreadable specks from the town, so they hide; the qanat gallery gets a bold glowing
+        // x-ray line (fixed ~6 m radius ≈ a few px at that distance) that says "it's here".
+        let farLabelsHidden = false, farLabelsSig = '', farLine = null, farLineSig = '';
+        function updateFarView() {
+            if (!modelGroup) return;
+            const hide = siteFar > 0.5;
+            const sig = modelGroup.children.length + ':' + (modelGroup.children[0] ? modelGroup.children[0].uuid : '');
+            if (hide !== farLabelsHidden || sig !== farLabelsSig) {
+                farLabelsHidden = hide; farLabelsSig = sig;
+                modelGroup.traverse(o => {
+                    if (o.__textLabel && !(o.userData && o.userData.kind === 'poi')) o.material.visible = !hide;
+                });
+            }
+            const pts = lastBasePts;
+            const lsig = pts.length ? pts.length + ':' + pts[0].x.toFixed(2) + ':' + pts[0].y.toFixed(2) : '';
+            if (lsig !== farLineSig || (farLine && farLine.parent !== modelGroup)) {
+                farLineSig = lsig;
+                if (farLine) { farLine.parent && farLine.parent.remove(farLine); farLine.geometry.dispose(); farLine = null; }
+                if (pts.length >= 2) {
+                    const sorted = pts.slice().sort((a, b) => a.x - b.x).map(p => new THREE.Vector3(p.x, p.y, p.z));
+                    const r = 6 / metersPerUnitH();
+                    farLine = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(sorted), sorted.length * 2, r, 8, false),
+                        new THREE.MeshBasicMaterial({ color: 0x6fdcf5, transparent: true, opacity: 0, depthTest: false, depthWrite: false }));
+                    farLine.renderOrder = 28; farLine.raycast = () => {};
+                    modelGroup.add(farLine);
+                }
+            }
+            if (farLine) {
+                farLine.material.opacity = 0.9 * Math.max(0, (siteFar - 0.15) / 0.85);
+                farLine.visible = farLine.material.opacity > 0.01;
+            }
+        }
+        // Screen-space decluttering (params.poiDeclutter): place markers in priority order —
+        // the selected POI first, then data/poi.json order — and hide any whose circle or label
+        // would overlap one already placed. Zooming in separates them again, like map labels.
+        function declutterPois() {
+            const R = renderer.domElement.getBoundingClientRect(), W = R.width, H = R.height;
+            const rectOf = (obj, halfWpx, halfHpx) => {
+                const v = obj.getWorldPosition(_poiTmp).project(camera);
+                if (v.z > 1) return null;   // behind the camera
+                const x = (v.x + 1) / 2 * W, y = (1 - v.y) / 2 * H;
+                return [x - halfWpx, y - halfHpx, x + halfWpx, y + halfHpx];
+            };
+            const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+            // Kiosk ("You are here") first, then the selection, then data order.
+            const rank = pg => (pg.disc.userData.id === poiActiveId ? 4 : 0) + (pg.kiosk ? 2 : 0) + (pg.disc.userData.id === poiSelectedId ? 1 : 0);
+            const order = poiGroups.slice().sort((a, b) => rank(b) - rank(a));
+            const placed = [];
+            for (const pg of order) {
+                let show = true;
+                if (params.poiDeclutter && !pg.faded && pg.fade > 0.35) {   // near-invisible markers don't block others
+                    pg.group.updateMatrixWorld(true);
+                    const wpp = worldPerPxAt(pg.disc.getWorldPosition(_poiTmp2));
+                    const dr = pg.disc.getWorldScale(_poiTmp2).x / 2 / wpp;
+                    const ls = pg.lbl.getWorldScale(_poiTmp2);
+                    // Label canvases carry side padding: count ~85% of the width as text.
+                    const rects = [rectOf(pg.disc, dr, dr), rectOf(pg.lbl, ls.x / 2 / wpp * 0.85, ls.y / 2 / wpp * 0.6)]
+                        .filter(Boolean);
+                    const sel = pg.disc.userData.id === poiSelectedId || pg.disc.userData.id === poiActiveId || pg.kiosk;
+                    if (!sel && rects.some(r => placed.some(q => hit(r, q)))) show = false;
+                    else placed.push(...rects);
+                }
+                if (pg.faded) show = false;
+                pg.group.visible = show;
+                if (pg.conn) pg.conn.visible = show;
+            }
+        }
+
         function addPaths(halfW, halfD) {
             const P = window.RASCH_PATHS;
             if (!params.showPaths || !P || !(params.terrainSource === 'geodata' && geodata.ready)) return;
@@ -4216,6 +5448,7 @@
             if (pickTarget) sprite.userData = pickTarget;
             else sprite.raycast = () => {};   // no natural click target: not pickable (no zoom-target / rotation-centre either)
             sprite.scale.set(6, 1.35 * lines.length, 1);
+            sprite.__textLabel = true;   // hidden in the far site view (updateFarView), except POI labels
             return sprite;
         }
 
@@ -4603,6 +5836,26 @@
                 buildParametricModel();
             });
 
+            const grpPoiOpts = document.getElementById('grp-poi-opts');
+            grpPoiOpts.style.display = params.showPois ? '' : 'none';
+            document.getElementById('param-pois').addEventListener('change', e => {
+                params.showPois = e.target.checked;
+                grpPoiOpts.style.display = params.showPois ? '' : 'none';
+                buildParametricModel();
+            });
+            // POI size / screen-size mode: applied live every frame (updatePoiScales) — no rebuild.
+            const poiSizeSl = document.getElementById('param-poi-size'), poiSizeLb = document.getElementById('lbl-poi-size');
+            poiSizeSl.value = params.poiScale; poiSizeLb.innerText = params.poiScale.toFixed(2) + '×';
+            poiSizeSl.addEventListener('input', e => {
+                params.poiScale = parseFloat(e.target.value);
+                poiSizeLb.innerText = params.poiScale.toFixed(2) + '×';
+            });
+            document.getElementById('param-poi-screen').addEventListener('change', e => {
+                params.poiScreenSize = e.target.checked;
+            });
+            document.getElementById('param-poi-declutter').addEventListener('change', e => {
+                params.poiDeclutter = e.target.checked;
+            });
             document.getElementById('param-paths').addEventListener('change', e => {
                 params.showPaths = e.target.checked;
                 buildParametricModel();
@@ -4718,6 +5971,18 @@
                 buildParametricModel();
             });
 
+            document.getElementById('param-buildings').addEventListener('change', e => {
+                params.showBuildings = e.target.checked;
+                buildParametricModel();
+            });
+            document.getElementById('param-buildings-see').addEventListener('change', e => {
+                params.buildingsSeeThrough = e.target.checked;
+            });
+            document.getElementById('param-hq-assets').addEventListener('change', e => {
+                params.hqAssets = e.target.checked;
+                loadContextTextures();
+                buildParametricModel();
+            });
             // Valley context ghost apron (toward the inferred villa)
             document.getElementById('param-ghost-apron').addEventListener('change', e => {
                 params.showGhostApron = e.target.checked;
@@ -4843,7 +6108,7 @@
                 'param-underground': true, 'param-realistic-diameters': 1.25,
                 'param-underground-opacity': 1.0, 'param-villa': true, 'param-xsec': true,
                 'param-aux': false, 'param-sounding': false, 'param-overflow': false,
-                'param-steps': false, 'param-research-status': false, 'param-perched': false, 'param-paths': false,
+                'param-steps': false, 'param-research-status': false, 'param-perched': false, 'param-paths': false, 'param-pois': true,
                 'ov-aquifer': false, 'ov-contours': false, 'ov-spot': false, 'ov-break': false,
                 'param-sides': true, 'param-ghost-apron': true, 'param-terrain-cullback': true,
                 'param-hires-inset': false, 'param-hires-inset-tint': false,
@@ -4868,6 +6133,7 @@
                 'param-research-status': v => { params.showResearchStatus = v; },
                 'param-perched': v => { params.showPerched = v; },
                 'param-paths': v => { params.showPaths = v; },
+                'param-pois': v => { params.showPois = v; },
                 'ov-aquifer': v => { params.overlay.aquifer = v; },
                 'ov-contours': v => { params.overlay.contours = v; },
                 'ov-spot': v => { params.overlay.spot = v; },
@@ -4889,7 +6155,8 @@
                 'param-underground-opacity': v => ['lbl-underground-opacity', v.toFixed(2)],
                 'param-terrain-opacity': v => ['lbl-terrain-opacity', v.toFixed(2)],
                 'param-surround': v => ['lbl-surround', v.toFixed(1) + '×'],
-                'param-front-margin': v => ['lbl-front-margin', v + ' m']
+                'param-front-margin': v => ['lbl-front-margin', v + ' m'],
+                'param-poi-size': v => ['lbl-poi-size', v.toFixed(2) + '×']
             };
             // Mirrors PRESET_SETTERS' targets (plus the controls no preset ever touches) but
             // reads the CURRENT value instead of setting one. Used once at startup to reflect
@@ -4915,6 +6182,17 @@
                 'param-research-status': () => params.showResearchStatus,
                 'param-perched': () => params.showPerched,
                 'param-paths': () => params.showPaths,
+                'param-pois': () => params.showPois,
+                'param-attract': () => params.attractMode,
+                'param-buildings': () => params.showBuildings,
+                'param-buildings-see': () => params.buildingsSeeThrough,
+                'param-hq-assets': () => params.hqAssets,
+                'param-attract-reveal': () => params.attractReveal,
+                'param-attract-blur': () => params.attractBlur,
+                'param-edge-fade': () => params.contextEdgeFade,
+                'param-poi-size': () => params.poiScale,
+                'param-poi-screen': () => params.poiScreenSize,
+                'param-poi-declutter': () => params.poiDeclutter,
                 'ov-aquifer': () => params.overlay.aquifer,
                 'ov-contours': () => params.overlay.contours,
                 'ov-spot': () => params.overlay.spot,
@@ -5543,7 +6821,9 @@
                 return pickInMeshes(dom, ev, shaftMeshes, h => !clipHidesHit(h));
             }
             function pickSpot(ev) {
-                return pickInMeshes(dom, ev, spotMeshes);
+                // Raycasting ignores .visible, so skip POI markers hidden by the declutter pass.
+                const shown = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+                return pickInMeshes(dom, ev, spotMeshes, h => shown(h.object));
             }
             function pickXsec(ev) {
                 return pickInMeshes(dom, ev, xsecMeshes);
@@ -5629,6 +6909,7 @@
                 const dt = performance.now() - tapStart.t;
                 tapStart = null;
                 if (moved > 8 || dt > 600) return;   // a drag/orbit or long-press, not a tap
+                if (attract.on) return;   // title screen: taps only hand over the camera (no inspector there)
                 if (measureMode) {
                     const p = pickSurface(ev);
                     if (p) addMeasurePoint(p);
@@ -5669,10 +6950,12 @@
                 }
                 const shit = pickSpot(ev);   // springs / boreholes / resurgence
                 if (shit) {
-                    const kind = shit.object.userData.kind;
+                    const kind = spotSelId(shit.object.userData);
                     if (isReselect('spot', kind)) { resetInspectorToEmpty(); setPanelMode('views'); return; }
-                    selectAt(shit.point); renderSpotPanel(shit.object.userData);
+                    selectSpotAt(shit.object.userData, shit.point); renderSpotPanel(shit.object.userData);
                     setSelectionURL('spot', kind);
+                    // The whole-site marker (far view): fly in until the detailed POIs appear.
+                    if (shit.object.userData.site) flyToPoi(shit.object.userData.id, SITE_LOD.near * 0.7);
                     return;
                 }
                 const qhit = pickQanat(ev);   // qanat gallery tube → inspector
@@ -5936,10 +7219,39 @@
             body.innerHTML = h;
             showInspector();
         }
+        // Info panel for a visitor point of interest (data/poi.json).
+        function renderPoiPanel(p) {
+            const body = document.getElementById('info-body');
+            const kindLabel = { parking: 'Parking', shaft: 'Shaft', spring: 'Spring', gallery: 'Visitor gallery',
+                bus: 'Public transport', here: 'Your location' }[p.poiKind] || 'Point of interest';
+            let h = `<h3>${p.name}</h3><div class="ip-sub">Point of interest · ${kindLabel}${statusBadge(p.status)}` +
+                `${p.inside === false ? ' · outside the shown area' : ''}</div>`;
+            if (p.photo) h += `<img src="${p.photo}" alt="${p.name}" style="display:block;width:100%;border-radius:8px;margin:8px 0 4px">` +
+                (p.photoCredit ? `<div class="ip-note" style="margin-top:0">Photo: ${p.photoUrl
+                    ? `<a href="${p.photoUrl}" target="_blank" rel="noopener" style="color:#58a6ff">${p.photoCredit}</a>` : p.photoCredit}</div>` : '');
+            if (p.description) h += `<p style="margin:8px 0;line-height:1.45">${p.description}</p>`;
+            const g = p.geo || (p.anchorShaft && shaftById[p.anchorShaft] && shaftById[p.anchorShaft].geo);
+            if (g && g.lat != null) {
+                const osm = `https://www.openstreetmap.org/?mlat=${g.lat}&mlon=${g.lon}#map=18/${g.lat}/${g.lon}`;
+                h += `<div class="ip-row"><span class="ip-k">GPS (WGS84)</span>` +
+                     `<span class="ip-v"><a href="${osm}" target="_blank" rel="noopener" style="color:#58a6ff">${g.lat.toFixed(6)}, ${g.lon.toFixed(6)}</a></span></div>`;
+            }
+            if (p.source) h += `<div class="ip-row"><span class="ip-k">Source</span><span class="ip-v">${citeChip({ source: p.source })}` +
+                (p.osm ? ` <a href="https://www.openstreetmap.org/${p.osm}" target="_blank" rel="noopener" style="color:#58a6ff">${p.osm}</a>` : '') + `</span></div>`;
+            if (p.note) h += `<div class="ip-note">${p.note}</div>`;
+            // Station navigation (also ← / → on the keyboard).
+            const st = poiStations(), si = st.findIndex(pg => pg.disc.userData.id === p.id);
+            if (si >= 0) h = `<div class="poi-nav"><button type="button" data-step="-1">◀ Previous</button>` +
+                `<span>${si + 1} / ${st.length}</span><button type="button" data-step="1">Next ▶</button></div>` + h;
+            body.innerHTML = h;
+            body.querySelectorAll('.poi-nav [data-step]').forEach(b => b.addEventListener('click', () => stepPoi(+b.dataset.step)));
+            showInspector();
+        }
         // Info panel for a surveyed "spot" (spring / borehole / overflow resurgence).
         function renderSpotPanel(spot) {
             if (!spot) return;
             if (spot.kind === 'villa') return renderVillaPanel(spot);
+            if (spot.kind === 'poi') return renderPoiPanel(spot);
             const body = document.getElementById('info-body');
             const kindLabel = { spring: 'Spring (surveyed)',
                 borehole: 'Borehole / piezometer (surveyed)',
@@ -6965,6 +8277,786 @@
             }
         }
 
+        // --- Title screen / kiosk attract mode -----------------------------------------
+        // A DVD-menu-style title card over a looping ~90 s camera tour: from the town (the
+        // "You are here" kiosk) → overview from above → the qanat → a fly-by of each point of
+        // interest, with a caption per shot. Any touch / click / key ends it; after
+        // ATTRACT_IDLE_MS without interaction it starts again (params.attractMode). Shared
+        // links that carry a view or a selection (?cam= / ?sel=) skip it on load.
+        const ATTRACT_IDLE_MS = 120000;
+        const ATTRACT_FOV = 35;
+        // Split-view "reveal" (title tour): the frame is drawn twice with a scissor — the left
+        // part as the real SURFACE (2019 aerial, qanat hidden), the right part as an abstract
+        // BENEATH view (dark blueprint ground, luminous contour lines, the x-ray shafts and
+        // gallery). Objects tagged at build time go in only one of the two passes.
+        const surfaceOnly = [], blueprintOnly = [];
+        const BLUEPRINT = { bg: 0x0b1622, ground: 0x10202e, contour: 0x2d6f86, contourIndex: 0x69b7d1, gallery: 0x4cc3ff };
+        const ATTRACT_BG = 0x1c2129;   // dark slate behind the tour; the fog fades the terrain into it
+        const attract = { on: false, shots: [], idx: -1, shotStart: 0, from: null, saved: null, pose: null };
+        let lastInteraction = performance.now();
+        // Camera pose on a sphere around `target`: az 0° = from the south (+Z), el = elevation.
+        function orbitPose(target, dist, elDeg, azDeg) {
+            const el = THREE.MathUtils.degToRad(elDeg), az = THREE.MathUtils.degToRad(azDeg);
+            return new THREE.Vector3(target.x + dist * Math.cos(el) * Math.sin(az),
+                target.y + dist * Math.sin(el), target.z + dist * Math.cos(el) * Math.cos(az));
+        }
+        function buildAttractShots() {
+            const shots = [];
+            const byId = id => poiGroups.find(pg => pg.disc.userData.id === id);
+            const qanat = DEFAULT_CAM.target.clone();
+            const site = (SSOT.site && SSOT.site.site) || {};
+            const here = poiGroups.find(pg => pg.kiosk);
+            // 1. From the town to the site, in ONE continuous flight. The camera always looks at
+            // the Raschpëtzer (the whole-site marker) up the hill while it glides back from the
+            // kiosk and then low over the town hall and the sports complex (data/poi.json
+            // landmarks with `tour: true`) — just high enough that each landmark's orb and its
+            // roof pass by at the bottom of the frame, no stop, no extra caption — and then
+            // climbs away toward the plateau.
+            const sitePg = poiGroups.find(p => p.site);
+            const sitePos = sitePg ? sitePg.group.position.clone() : qanat.clone();
+            const ground = (x, z) => getTerrainHeight(x, z);
+            if (here) {
+                const u = 1 / metersPerUnitH();   // scene units per metre
+                const behind = (p, backM, upM) => {   // a point on the far side of p from the site
+                    const dir = new THREE.Vector3(sitePos.x - p.x, 0, sitePos.z - p.z).normalize();
+                    const q = p.clone().addScaledVector(dir, -backM * u);
+                    q.y = Math.max(ground(q.x, q.z), p.y) + upM * u;
+                    return q;
+                };
+                const h = here.group.position.clone(), hd = here.disc.userData;
+                const pts = [behind(h, 70, 26)];   // start: the kiosk low in frame, the hill ahead
+                const caps = [{ at: 0, kicker: 'You are here', title: 'Walferdange town centre', text: hd.caption || '',
+                    image: hd.tourPhoto, imageCredit: hd.tourPhotoCredit, imagePlaceholder: hd.tourPhotoPlaceholder }];
+                const lms = poiGroups.filter(pg => pg.landmark && pg.disc.userData.tour);
+                // Then drifting BACK (still facing the hill) over the town hall and sideways over the
+                // sports complex: each waypoint is ~80 m short of the landmark and ~45 m up
+                // (roofs ~10–20 m, orbs ≥ 24 m), so its roof and orb come into view from below
+                // and sit in the lower part of the frame while the camera passes.
+                lms.forEach(pg => pts.push(behind(pg.group.position, 80, 45)));
+                // Take-off: up and out toward the plateau, ending where the qanat shot picks up.
+                const last = pts[pts.length - 1];
+                const toSite = sitePos.clone().sub(last); toSite.y = 0;
+                const lift = last.clone().addScaledVector(toSite, 0.35); lift.y = Math.max(last.y, ground(lift.x, lift.z)) + 160 * u;
+                const near = last.clone().addScaledVector(toSite, 0.7); near.y = Math.max(ground(near.x, near.z), sitePos.y) + 230 * u;
+                pts.push(lift, near);
+                const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+                const n = pts.length - 1;
+                caps.forEach(c => { if (c.idx != null) c.at = Math.max(0, (c.idx - 0.6) / n); });
+                const dur = 8 + 5 * n;
+                const aim = sitePos.clone().add(new THREE.Vector3(0, 20 * u, 0));
+                const auto = { path: curve, target: aim, dur, caps, ...caps[0],
+                    sample: e => { const pos = curve.getPoint(e), target = aim.clone(); target.y -= pos.distanceTo(target) * 0.1; return { pos, target }; } };
+                const user = tourPathShot('town', sitePos);
+                shots.push(user ? Object.assign(user, { caps, ...caps[0] }) : auto);
+                autoTownPoints = pts;   // for the editor's "Load the built-in flight"
+            }
+            // 3. The qanat itself (x-ray: shafts and gallery under the plateau).
+            // Split-view reveal: the "beneath" side sweeps in from the right, holds, sweeps out.
+            shots.push({ target: qanat, dist: 64, el: 24, az: 352, spin: 1.2, dur: 14, wide: true,
+                reveal: [[0, 0], [3, 0], [6.5, 1], [11.5, 1], [14, 0]], splitTo: 0.42,
+                kicker: 'The qanat', title: 'A Roman underground aqueduct',
+                ...(() => { const sp = SSOT.poi.pois.find(p => p.site) || {};
+                    return { image: sp.tourPhoto, imageCredit: sp.tourPhotoCredit, imagePlaceholder: sp.tourPhotoPlaceholder }; })(),
+                text: `Shafts up to ${QANAT.maxDepthM} m deep over a near-level gallery` +
+                    (site.channelExploredM ? ` — ${site.channelExploredM} m explored` : '') +
+                    (site.servicePeriod ? `, in use c. AD ${site.servicePeriod.fromAD}–${site.servicePeriod.toAD}.` : '.') });
+            // 4. Fly-by of the points of interest.
+            const tourIds = TOUR_POI_ORDER;
+            const stops = tourIds.map(byId).filter(Boolean);
+            stops.forEach((pg, i) => {
+                const d = pg.disc.userData;
+                // Shafts (P5, P-4): reveal the shaft and gallery beneath the ground too.
+                const reveal = d.poiKind === 'shaft';
+                // Aim between the ground spot and the floating (enlarged) circle, so both sit
+                // mid-frame below the title: the circle's height at this distance in screen-size
+                // mode is POI_LIFT × lift × (world size of its 64 px diameter / POI_DIAM).
+                const wpp = 2 * 27 * Math.tan(THREE.MathUtils.degToRad(ATTRACT_FOV) / 2) / (renderer.domElement.clientHeight || 900);
+                const liftW = POI_LIFT * (d.lift || 1) * (params.poiScreenSize ? wpp * POI_SCREEN_PX * params.poiScale / POI_DIAM : params.poiScale);
+                // …and a little to the camera's right, so the POI sits left of centre, clear
+                // of the title card in the upper-right corner.
+                const az = [340, 20, 330, 15, 350, 25][i % 6], azR = THREE.MathUtils.degToRad(az);
+                const right = new THREE.Vector3(Math.cos(azR), 0, -Math.sin(azR));
+                shots.push({ target: pg.group.position.clone().add(new THREE.Vector3(0, liftW * 0.85, 0)).addScaledVector(right, 4.5),
+                    dist: 27, el: 30, az, spin: 2.2, dur: 8.5,
+                    reveal: reveal ? [[0, 0], [2.6, 0], [4.6, 1], [7, 1], [8.5, 0]] : null, splitTo: 0.5,
+                    kicker: `Point of interest · ${i + 1}/${stops.length}`, title: d.name, text: d.caption || '', poiId: d.id,
+                    image: d.tourPhoto, imageCredit: d.tourPhotoCredit, imagePlaceholder: d.tourPhotoPlaceholder });
+            });
+            // 5. Finale: overview from above, town and plateau together (then the loop restarts in town).
+            // North-up (az ≈ 0) so the town map reads the way locals know it; the aim point sits
+            // a little north of the town–qanat midpoint so both land below the title card.
+            const mid = (here ? here.group.position.clone().lerp(qanat, 0.6) : qanat.clone()).add(new THREE.Vector3(0, 0, -16));
+            shots.push({ target: mid, dist: 200, el: 60, az: 8, spin: 1.2, dur: 11,
+                kicker: 'Overview', title: 'Town, valley and plateau',
+                text: 'Walferdange lies in the Alzette valley; the Raschpëtzer runs under the wooded Pëtschend plateau to the north-east.' });
+            return shots;
+        }
+        // Great-circle-ish distance (m) and 8-point compass word from geo a to geo b.
+        function geoDistM(a, b) {
+            const k = 111320, c = Math.cos((a.lat + b.lat) / 2 * Math.PI / 180);
+            return Math.hypot((b.lon - a.lon) * k * c, (b.lat - a.lat) * k);
+        }
+        function compassWord(a, b) {
+            const c = Math.cos((a.lat + b.lat) / 2 * Math.PI / 180);
+            const deg = (Math.atan2((b.lon - a.lon) * c, b.lat - a.lat) * 180 / Math.PI + 360) % 360;
+            return ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(deg / 45) % 8];
+        }
+        function attractPose(shot, secs) {
+            if (shot.sample) {   // a user-authored path (camera path editor)
+                const k = Math.min(1, secs / shot.dur);
+                return shot.sample(0.5 - 0.5 * Math.cos(Math.PI * k));
+            }
+            if (shot.path) {   // a flight along a camera path, always looking at shot.target
+                const k = Math.min(1, secs / shot.dur);
+                const e = 0.5 - 0.5 * Math.cos(Math.PI * k);   // gentle start and end
+                const pos = shot.path.getPoint(e), target = shot.target.clone();
+                target.y -= pos.distanceTo(target) * 0.1;   // aim ~6° below the site: it rides high, the town below
+                return { pos, target };
+            }
+            let { target, dist, el, az } = shot;
+            if (shot.end) {   // a moving shot: ease from the start framing to shot.end
+                const f = shot.end.from || 0;
+                const k = easeInOut(Math.min(1, Math.max(0, (secs / shot.dur - f) / (1 - f))));
+                target = shot.target.clone().lerp(shot.end.target, k);
+                dist = dist + (shot.end.dist - dist) * k;
+                el = el + (shot.end.el - el) * k;
+                az = az + (shot.end.az - az) * k;
+            }
+            return { pos: orbitPose(target, dist, el, az + shot.spin * secs), target };
+        }
+        function setAttractCaption(shot) {
+            const cap = document.querySelector('#attract .at-caption');
+            if (!cap) return;
+            const ph = document.getElementById('at-photo');
+            cap.classList.add('hidden'); ph.classList.add('hidden');
+            setTimeout(() => {
+                if (!attract.on) return;
+                document.getElementById('at-cap-kicker').textContent = shot.kicker || '';
+                document.getElementById('at-cap-title').textContent = shot.title || '';
+                document.getElementById('at-cap-text').textContent = shot.text || '';
+                const im = document.getElementById('at-cap-img'), cr = document.getElementById('at-cap-credit');
+                if (shot.image) {
+                    im.src = shot.image; im.hidden = false;
+                    im.classList.toggle('placeholder', !!shot.imagePlaceholder);
+                    cr.textContent = shot.imageCredit ? 'Photo: ' + shot.imageCredit : '';
+                } else { im.hidden = true; im.removeAttribute('src'); cr.textContent = ''; }
+                cap.classList.remove('hidden');
+                if (shot.image) ph.classList.remove('hidden');
+            }, 650);
+            const dots = document.getElementById('at-dots');
+            if (dots) [...dots.children].forEach((d, i) => d.classList.toggle('on', i === attract.idx));
+        }
+        function startAttract() {
+            if (attract.on || !camera) return;
+            if (tour.active) stopTour();
+            if (measureMode) setMeasureMode(false);
+            attract.on = true;
+            updatePoiScales.first = false;   // snap the site level of detail to the first shot (no fade-in from the old view)
+            attract.saved = { baseLayer: params.baseLayer, showGhostApron: params.showGhostApron,
+                showPois: params.showPois, showContourLines: params.showContourLines, showSides: params.showSides,
+                showGeology: params.showGeology, xrayUnderground: params.xrayUnderground, xrayOpacity: params.xrayOpacity,
+                far: camera.far, fov: camera.fov, background: scene.background };
+            params.baseLayer = 'satellite'; params.showGhostApron = true; params.showPois = true;
+            params.showContourLines = true;    // drawn only in the split view's blueprint pass
+            params.showSides = false;          // no block walls: the tour shows continuous ground
+            params.showGeology = false;        // the cut-face section would float over the lower hillside
+            params.xrayUnderground = true; params.xrayOpacity = 1.0;   // crisp qanat in the blueprint pass
+            scene.background = new THREE.Color(ATTRACT_BG);
+            scene.fog = new THREE.Fog(ATTRACT_BG, 200, 900);
+            _camURLPending = false;   // never write the tour's camera into the shareable URL
+            resetInspectorToEmpty(); setPanelMode('views'); closeAllModals();
+            document.body.classList.remove('drawer-open');
+            document.body.classList.add('attract');
+            controls.enabled = false; camAnim = null;
+            // A wider, cinematic lens for the tour (the explore view's 14° telephoto can't hold
+            // the town and the plateau 1.4 km behind it in one frame).
+            camera.fov = ATTRACT_FOV; camera.far = 5000; camera.updateProjectionMatrix();
+            buildParametricModel();
+            onResize();
+            attract.shots = buildAttractShots();
+            const dots = document.getElementById('at-dots');
+            if (dots) dots.innerHTML = attract.shots.map(() => '<span></span>').join('');
+            attract.idx = -1;
+            attract.from = { pos: camera.position.clone(), target: controls.target.clone() };
+        }
+        function stopAttract() {
+            if (!attract.on) return;
+            if (pathEd.open) pathEdClose();
+            attract.on = false; attract.activePoi = null; attract.manual = false;
+            document.body.classList.remove('attract', 'attract-manual');
+            const sv = attract.saved || {};
+            params.baseLayer = sv.baseLayer; params.showGhostApron = sv.showGhostApron; params.showPois = sv.showPois;
+            params.showContourLines = sv.showContourLines; params.showSides = sv.showSides;
+            params.showGeology = sv.showGeology; params.xrayUnderground = sv.xrayUnderground; params.xrayOpacity = sv.xrayOpacity;
+            scene.background = sv.background || new THREE.Color(sceneBackgroundColor());
+            scene.fog = null;
+            updateTourCut(0);
+            if (subsurfaceGroup) subsurfaceGroup.visible = true;
+            const div = document.getElementById('at-split'); if (div) div.classList.remove('show');
+            camera.far = sv.far || 1000; camera.fov = sv.fov || camera.fov; camera.updateProjectionMatrix();
+            controls.enabled = true;
+            buildParametricModel();
+            onResize();
+            flyTo(DEFAULT_CAM.pos.clone(), DEFAULT_CAM.target.clone(), 1400);
+            document.querySelector('#attract .at-caption').classList.add('hidden');
+            lastInteraction = performance.now();
+        }
+        const easeInOut = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        const ATTRACT_TRANSITION_S = 3.0;
+        // Per frame (from animate): drive the camera while the title screen runs, or start it
+        // after the idle timeout. Returns true when it owns the camera this frame.
+        function updateAttract(now) {
+            if (!attract.on) {
+                if (params.attractMode && now - lastInteraction > ATTRACT_IDLE_MS && !annotateMode) startAttract();
+                if (!attract.on) return false;
+            }
+            if (attract.manual) {   // the visitor is looking around; resume after a quiet spell
+                if (now - lastInteraction > ATTRACT_MANUAL_IDLE_MS && !attract.editing) attractResume();
+                else return false;
+            }
+            const shots = attract.shots;
+            if (!shots.length) return true;
+            let shot = shots[attract.idx];
+            if (attract.idx < 0 || (now - attract.shotStart) / 1000 > shot.dur) {
+                if (attract.idx >= 0 && attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
+                attract.idx = (attract.idx + 1) % shots.length;
+                attract.shotStart = now; attract.blendStart = now;
+                shot = shots[attract.idx];
+                attract.activePoi = shot.poiId || null;   // enlarge the POI we're flying past
+                attract.capIdx = 0;
+                setAttractCaption(shot);
+            }
+            const secs = (now - attract.shotStart) / 1000;
+            if (shot.caps) {   // captions that change during the shot (the town flight)
+                const k = 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, secs / shot.dur));
+                let ci = 0;
+                shot.caps.forEach((c, i) => { if (k >= c.at) ci = i; });
+                if (ci !== attract.capIdx) { attract.capIdx = ci; setAttractCaption(Object.assign({}, shot, shot.caps[ci])); }
+            }
+            const p = attractPose(shot, secs);
+            const k = Math.min(1, (now - (attract.blendStart || attract.shotStart)) / 1000 / ATTRACT_TRANSITION_S);
+            if (k < 1 && attract.from) {
+                const e = easeInOut(k);
+                const pos = attract.from.pos.clone().lerp(p.pos, e);
+                const target = attract.from.target.clone().lerp(p.target, e);
+                // Arc over the terrain between distant shots instead of cutting through it.
+                pos.y += Math.sin(Math.PI * e) * 0.25 * attract.from.pos.distanceTo(p.pos);
+                attract.pose = { pos, target };
+            } else {
+                attract.pose = p;
+            }
+            camera.position.copy(attract.pose.pos);
+            controls.target.copy(attract.pose.target);
+            camera.lookAt(attract.pose.target);
+            if (scene.fog) {
+                const d = attract.pose.pos.distanceTo(attract.pose.target);
+                scene.fog.near = d * 1.5; scene.fog.far = d * 4.5;
+            }
+            return true;
+        }
+        // How far the current shot's reveal is open (0 = closed, 1 = fully revealed).
+        function attractRevealAt(now) {
+            const shot = attract.shots[attract.idx];
+            if (!shot || !shot.reveal) return 0;
+            const t = ((attract.manual ? attract.pausedAt : now) - attract.shotStart) / 1000, k = shot.reveal;
+            if (t <= k[0][0]) return k[0][1];
+            for (let i = 0; i < k.length - 1; i++) {
+                const [t0, v0] = k[i], [t1, v1] = k[i + 1];
+                if (t <= t1) return v0 + (v1 - v0) * easeInOut((t - t0) / (t1 - t0));
+            }
+            return k[k.length - 1][1];
+        }
+        function setAttractPass(pass) {
+            const bp = pass === 'blueprint';
+            surfaceOnly.forEach(o => { o.visible = !bp; });
+            blueprintOnly.forEach(o => { o.visible = bp; });
+            if (subsurfaceGroup) subsurfaceGroup.visible = bp;   // the qanat is only revealed beneath
+            scene.background.set(bp ? BLUEPRINT.bg : ATTRACT_BG);
+            if (scene.fog) scene.fog.color.set(bp ? BLUEPRINT.bg : ATTRACT_BG);
+        }
+        function renderAttractFrame(now) {
+            const r = attractRevealAt(now);
+            const div = document.getElementById('at-split');
+            const el = renderer.domElement, w = el.clientWidth, h = el.clientHeight;
+            if (params.attractReveal !== 'split') {
+                // Terrain cut: one normal render; the trench / slice + exposed qanat do the reveal.
+                // 'mixed': the wide qanat shot slices the whole landscape, close-ups dig a trench.
+                if (div) div.classList.remove('show');
+                const shot = attract.shots[attract.idx] || {};
+                const mode = params.attractReveal === 'mixed' ? (shot.wide ? 'slice' : 'cut') : params.attractReveal;
+                updateTourCut(r, mode);
+                setAttractPass('surface');
+                // …and from far away (site LOD) the whole qanat shows in x-ray under the one marker.
+                if (subsurfaceGroup) subsurfaceGroup.visible = r > 0.02 || siteFar > 0.5;
+                renderer.render(scene, camera);
+                return;
+            }
+            updateTourCut(0);
+            const shot = attract.shots[attract.idx] || {};
+            const f = 1 - r * (1 - (shot.splitTo || 0.42));
+            if (f >= 0.999) {
+                setAttractPass('surface');
+                renderer.render(scene, camera);
+                if (div) div.classList.remove('show');
+                return;
+            }
+            const sx = Math.round(w * Math.max(0, f));
+            renderer.setScissorTest(true);
+            setAttractPass('surface');
+            renderer.setScissor(0, 0, sx, h); renderer.render(scene, camera);
+            setAttractPass('blueprint');
+            renderer.setScissor(sx, 0, w - sx, h); renderer.render(scene, camera);
+            renderer.setScissorTest(false);
+            setAttractPass('surface');   // leave the scene in its normal state between frames
+            if (div) { div.style.left = sx + 'px'; div.classList.add('show'); }
+        }
+        // --- Title-tour terrain cut: a trench opened in front of the qanat ---------------
+        // Four clipping planes (clipIntersection) remove the ground inside a box that spans
+        // the qanat's length, from the qanat line (cutZ) to zFront; strata-coloured walls —
+        // same layer maths as the geology section — close the trench, and the x-ray shafts
+        // and gallery read against the back wall. `r` (0..1) slides the back wall from the
+        // front edge to the qanat line, so the ground is "cut away" towards it.
+        const tourCut = { planes: null, on: false, mats: [], walls: null, lastKey: '' };
+        function strataColumn(x, z, bottom) {
+            const base = bottom != null ? bottom : params.baseY;
+            const sT = getTerrainHeight(x, z);
+            const w = sT - metersToYDepth(COVER_M);
+            const g = Math.min(maslToY(interfaceMasl(x)), w - 0.02);
+            const m = Math.max(g - metersToYDepth(MARL_M), base + 0.6);
+            const k = Math.max(m - metersToYDepth(KO_M), base + 0.3);
+            return [sT, w, g, m, k, base].map(v => Math.max(v, base));
+        }
+        function buildTrenchWalls(xmin, xmax, cutZ, zFront, bottom, slice) {
+            const C = strataColors(), cols = [C.weath, C.sand, C.marl, C.ko, C.km];
+            const pos = [], col = [];
+            const wall = pts => {   // pts: [{x,z}, ...] along the wall
+                const colsAt = pts.map(p => strataColumn(p.x, p.z, bottom));
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const a = pts[i], b = pts[i + 1], A = colsAt[i], B = colsAt[i + 1];
+                    for (let band = 0; band < 5; band++) {
+                        const a0 = A[band], a1 = A[band + 1], b0 = B[band], b1 = B[band + 1];
+                        if (a0 - a1 < 0.005 && b0 - b1 < 0.005) continue;
+                        pos.push(a.x, a0, a.z, a.x, a1, a.z, b.x, b0, b.z, b.x, b0, b.z, a.x, a1, a.z, b.x, b1, b.z);
+                        for (let q = 0; q < 6; q++) col.push(...cols[band]);
+                    }
+                }
+            };
+            const line = (x0, z0, x1, z1, n) => Array.from({ length: n + 1 }, (_, i) => ({ x: x0 + (x1 - x0) * i / n, z: z0 + (z1 - z0) * i / n }));
+            if (slice) {
+                // Slice: only the section face, across the whole landscape (one column / ~12 m).
+                wall(line(xmin, cutZ, xmax, cutZ, Math.min(400, Math.ceil((xmax - xmin) * metersPerUnitH() / 12))));
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+                return g;
+            }
+            wall(line(xmin, cutZ, xmax, cutZ, 90));       // back wall: the section along the qanat
+            wall(line(xmin, cutZ, xmin, zFront, 24));     // side walls
+            wall(line(xmax, cutZ, xmax, zFront, 24));
+            wall(line(xmin, zFront, xmax, zFront, 60));   // front wall (seen when orbiting round)
+            // Trench floor, in the colour of whichever stratum it cuts (marl at this depth).
+            const fc = C.marl;
+            pos.push(xmin, bottom, cutZ, xmax, bottom, cutZ, xmin, bottom, zFront,
+                     xmax, bottom, cutZ, xmax, bottom, zFront, xmin, bottom, zFront);
+            for (let q = 0; q < 6; q++) col.push(fc[0] * 0.8, fc[1] * 0.8, fc[2] * 0.8);
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+            return g;
+        }
+        // mode 'cut': a trench in front of the qanat (x-range of the qanat, ~90 m deep toward the
+        // camera). mode 'slice': ONE section across the WHOLE landscape — everything south of
+        // the qanat line (terrain, context, buildings) is removed and the strata face runs the
+        // full width; the cut sweeps in from the landscape's southern edge.
+        function updateTourCut(r, mode) {
+            const slice = mode === 'slice';
+            const on = r > 0.01 && lastBasePts.length >= 2;
+            // (Re)collect the clip targets after each model / buildings rebuild.
+            if (!tourCut.mats.length || !tourCut.mats[0].__alive || tourCut.bBuild !== buildingsBuild) {
+                if (tourCut.on) tourCut.mats.forEach(m => { m.clippingPlanes = null; m.needsUpdate = true; });
+                tourCut.mats = [];
+                modelGroup.traverse(o => { if (o.userData && o.userData.tourClip && o.material) tourCut.mats.push(o.material); });
+                if (buildingsGroup) buildingsGroup.children.forEach(o => tourCut.mats.push(o.material));
+                tourCut.mats.forEach(m => { m.__alive = true; });
+                tourCut.bBuild = buildingsBuild;
+                tourCut.on = false; tourCut.lastKey = '';
+                if (tourCut.walls) { tourCut.walls.parent && tourCut.walls.parent.remove(tourCut.walls); tourCut.walls.geometry.dispose(); tourCut.walls = null; }
+            }
+            if (!tourCut.planes) tourCut.planes = [new THREE.Plane(), new THREE.Plane(), new THREE.Plane(), new THREE.Plane()];
+            if (on !== tourCut.on) {
+                tourCut.on = on;
+                tourCut.mats.forEach(m => { m.clippingPlanes = on ? tourCut.planes : null; m.clipIntersection = true; m.needsUpdate = true; });
+                if (tourCut.walls) tourCut.walls.visible = on;
+            }
+            if (!on) return;
+            const xs = lastBasePts.map(p => p.x), zs = lastBasePts.map(p => p.z);
+            let xmin = Math.min(...xs) - 3, xmax = Math.max(...xs) + 3, zFront = Math.max(...zs) + 9;
+            if (slice) {   // the whole context block
+                const B = CONTEXT_BBOX, a = geoToScene(B.north, B.west), b = geoToScene(B.south, B.east);
+                xmin = Math.min(a.x, b.x) - 1; xmax = Math.max(a.x, b.x) + 1; zFront = Math.max(a.z, b.z) + 1;
+            }
+            const cutZFinal = xsecRouteZ + 0.4;
+            // Dig only ~12 m below the lowest gallery floor, not down to the scene base.
+            let bottom = Math.min(...lastBasePts.map(p => p.y)) - metersToYDepth(12);
+            const cutZ = zFront - easeInOut(Math.min(1, r)) * (zFront - cutZFinal);
+            if (slice) {   // the section crosses the valley too: reach below its lowest ground
+                let lo = Infinity;
+                for (let i = 0; i <= 60; i++) lo = Math.min(lo, getTerrainHeight(xmin + (xmax - xmin) * i / 60, cutZFinal));
+                bottom = Math.min(bottom, lo - metersToYDepth(15));
+            }
+            const P = tourCut.planes;
+            P[0].set(new THREE.Vector3(0, 0, -1), cutZ);     // clipped where z > cutZ …
+            P[1].set(new THREE.Vector3(0, 0, 1), -zFront);   // … and z < zFront …
+            P[2].set(new THREE.Vector3(-1, 0, 0), xmin);     // … and x > xmin …
+            P[3].set(new THREE.Vector3(1, 0, 0), -xmax);     // … and x < xmax (clipIntersection)
+            const key = mode + cutZ.toFixed(2);
+            if (key !== tourCut.lastKey) {
+                tourCut.lastKey = key;
+                const g = buildTrenchWalls(xmin, xmax, cutZ, zFront, bottom, slice);
+                if (!tourCut.walls) {
+                    tourCut.walls = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+                    tourCut.walls.renderOrder = 2; tourCut.walls.raycast = () => {};
+                    modelGroup.add(tourCut.walls);
+                } else { tourCut.walls.geometry.dispose(); tourCut.walls.geometry = g; }
+                tourCut.walls.visible = true;
+            }
+        }
+        // Title screen, visitor in control: the automatic camera pauses (the shot's clock
+        // freezes, so reveals and captions hold) and OrbitControls take over.
+        const ATTRACT_MANUAL_IDLE_MS = 45000;
+        function attractTakeControl() {
+            attract.manual = true;
+            attract.pausedAt = performance.now();
+            controls.enabled = true;
+            document.body.classList.add('attract-manual');
+        }
+        function attractResume() {
+            if (!attract.manual) return;
+            const now = performance.now();
+            attract.shotStart += now - attract.pausedAt;   // continue the shot where it paused …
+            attract.from = { pos: camera.position.clone(), target: controls.target.clone() };
+            attract.blendStart = now;                       // … gliding back onto its path
+            attract.manual = false;
+            controls.enabled = false;
+            document.body.classList.remove('attract-manual');
+        }
+        // --- Camera paths set by hand (camera path editor) ---------------------------------
+        // A path = keyframes captured from the normal camera controls. Stored as data in
+        // geographic terms — lat / lon / metres above ground — so it survives changes to the
+        // map window, vertical exaggeration or the W↔E flip:
+        //   { lookAt: 'site' | 'keys', style: 'smooth' | 'straight', duration: s,
+        //     keys: [{ lat, lon, agl, via?, look?: { lat, lon, agl } }] }
+        // Source: the editor's draft in this browser (localStorage) if any, else data/tour.json.
+        // Playback guards: constant speed along the path (arc length), eased start/stop,
+        // never lower than TOUR_MIN_AGL_M above the ground, no roll.
+        const TOUR_MIN_AGL_M = 20;
+        const TOUR_DRAFT_KEY = 'rasch-tour-path-';
+        let autoTownPoints = null;
+        function tourPathData(name) {
+            try { const d = localStorage.getItem(TOUR_DRAFT_KEY + name); if (d) return JSON.parse(d); } catch (e) {}
+            const t = SSOT.tour && SSOT.tour.paths && SSOT.tour.paths[name];
+            return t ? JSON.parse(JSON.stringify(t)) : null;
+        }
+        function geoKeyToScene(k) {
+            const sc = geoToScene(k.lat, k.lon);
+            return new THREE.Vector3(sc.x, getTerrainHeight(sc.x, sc.z) + (k.agl || 0) * metersToYDepth(1), sc.z);
+        }
+        function sceneToGeoKey(v) {
+            const r6 = x => Math.round(x * 1e6) / 1e6;
+            return { lat: r6(sceneZToLat(v.z)), lon: r6(sceneXToLon(v.x)),
+                     agl: Math.round((v.y - getTerrainHeight(v.x, v.z)) / metersToYDepth(1) * 10) / 10 };
+        }
+        function buildPathCurve(pts, style) {
+            if (style === 'straight') {
+                const cp = new THREE.CurvePath();
+                for (let i = 0; i < pts.length - 1; i++) cp.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
+                return cp;
+            }
+            return new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+        }
+        // Build a tour shot from a stored path (null if there is none / it's too short).
+        function tourPathShot(name, sitePos) {
+            const P = tourPathData(name);
+            if (!P || !P.keys || P.keys.length < 2 || !(params.terrainSource === 'geodata' && geodata.ready)) return null;
+            const pts = P.keys.map(geoKeyToScene);
+            const curve = buildPathCurve(pts, P.style);
+            // Look targets: the site, or per key (via points borrow their neighbours').
+            let looks = null;
+            if (P.lookAt === 'keys') {
+                const lk = P.keys.map(k => k.look && !k.via ? geoKeyToScene(k.look) : null);
+                for (let i = 0; i < lk.length; i++) if (!lk[i]) {
+                    let a = i - 1; while (a >= 0 && !lk[a]) a--;
+                    let b = i + 1; while (b < lk.length && !lk[b]) b++;
+                    const A = a >= 0 ? lk[a] : null, B = b < lk.length ? lk[b] : null;
+                    lk[i] = A && B ? A.clone().lerp(B, (i - a) / (b - a)) : (A || B || sitePos).clone();
+                }
+                looks = new THREE.CatmullRomCurve3(lk, false, 'centripetal');
+            }
+            const ym = metersToYDepth(1), u = 1 / metersPerUnitH();
+            const siteAim = sitePos.clone().add(new THREE.Vector3(0, 20 * u, 0));
+            const sample = e => {
+                const pos = curve.getPointAt(Math.min(1, Math.max(0, e)));   // arc length: constant speed
+                pos.y = Math.max(pos.y, getTerrainHeight(pos.x, pos.z) + TOUR_MIN_AGL_M * ym);
+                let target;
+                if (looks) target = looks.getPoint(curve.getUtoTmapping ? curve.getUtoTmapping(e) : e);
+                else { target = siteAim.clone(); target.y -= pos.distanceTo(target) * 0.1; }
+                return { pos, target };
+            };
+            return { sample, curve, dur: Math.max(4, +P.duration || 30), userPath: name };
+        }
+
+        // Editor UI: opens the title screen paused, visitor in control, with the panel on top.
+        const pathEd = { open: false, name: 'town', sel: -1, preview: null, data: null };
+        function pathEdLoad() {
+            pathEd.data = tourPathData(pathEd.name) || { lookAt: 'site', style: 'smooth', duration: 30, keys: [] };
+            if (!pathEd.data.keys) pathEd.data.keys = [];
+        }
+        function pathEdSave() {
+            try { localStorage.setItem(TOUR_DRAFT_KEY + pathEd.name, JSON.stringify(pathEd.data)); } catch (e) {}
+            // Rebuild the tour with the edited path, staying on the current shot.
+            if (attract.on) { const i = attract.idx; attract.shots = buildAttractShots(); attract.idx = Math.min(i, attract.shots.length - 1); }
+            pathEdRender(); pathEdPreview();
+        }
+        function pathEdOpen() {
+            if (!attract.on) startAttract();
+            requestAnimationFrame(() => {
+                attract.idx = 0; attract.shotStart = attract.blendStart = performance.now();
+                setAttractCaption(attract.shots[0] || {});
+                attractTakeControl();
+                pathEd.open = true; attract.editing = true;
+                document.body.classList.toggle('safe-area', document.getElementById('pe-safe').checked);
+                pathEdLoad();
+                document.body.classList.add('path-editing');
+                pathEdRender(); pathEdPreview();
+            });
+        }
+        function pathEdClose() {
+            pathEd.open = false; attract.editing = false;
+            document.body.classList.remove('path-editing');
+            if (pathEd.preview) { scene.remove(pathEd.preview); pathEd.preview.traverse(o => { if (o.geometry) o.geometry.dispose(); }); pathEd.preview = null; }
+        }
+        // Route preview in the scene: the path (gold), keyframes (red) and via points (blue).
+        function pathEdPreview() {
+            if (pathEd.preview) { scene.remove(pathEd.preview); pathEd.preview.traverse(o => { if (o.geometry) o.geometry.dispose(); }); pathEd.preview = null; }
+            if (!pathEd.open || !document.getElementById('pe-route').checked) return;
+            const g = new THREE.Group();
+            const keys = pathEd.data.keys;
+            if (keys.length >= 2) {
+                const shot = tourPathShot(pathEd.name, (poiGroups.find(p => p.site) || { group: { position: DEFAULT_CAM.target } }).group.position.clone());
+                if (shot) {
+                    const line = [];
+                    for (let i = 0; i <= 300; i++) line.push(shot.sample(i / 300).pos);
+                    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(line),
+                        new THREE.LineBasicMaterial({ color: 0xe3b25c, depthTest: false, transparent: true }));
+                    l.renderOrder = 40; g.add(l);
+                }
+            }
+            const r = 0.35;
+            keys.forEach((k, i) => {
+                const m = new THREE.Mesh(new THREE.SphereGeometry(i === pathEd.sel ? r * 1.6 : r, 12, 8),
+                    new THREE.MeshBasicMaterial({ color: k.via ? 0x4fb6e8 : 0xd62828, depthTest: false, transparent: true }));
+                m.position.copy(geoKeyToScene(k)); m.renderOrder = 41; m.raycast = () => {};
+                g.add(m);
+            });
+            pathEd.preview = g; scene.add(g);
+        }
+        function pathEdRender() {
+            const D = pathEd.data, list = document.getElementById('pe-keys');
+            document.getElementById('pe-look-site').checked = D.lookAt !== 'keys';
+            document.getElementById('pe-style').value = D.style || 'smooth';
+            document.getElementById('pe-dur').value = D.duration || 30;
+            list.innerHTML = D.keys.length ? '' : '<div class="pe-empty">No keyframes yet — fly the camera to a spot and press “+ Keyframe”.</div>';
+            D.keys.forEach((k, i) => {
+                const row = document.createElement('div');
+                row.className = 'pe-row' + (i === pathEd.sel ? ' sel' : '');
+                row.innerHTML = `<span class="pe-dot ${k.via ? 'via' : ''}"></span>` +
+                    `<span class="pe-name">${i + 1}. ${k.via ? 'via point' : 'keyframe'} · ${Math.round(k.agl)} m up</span>` +
+                    `<button data-a="go" title="Fly the camera here">Go</button><button data-a="set" title="Move this key to the current camera">Set here</button>` +
+                    `<button data-a="via" title="Toggle keyframe / via point">${k.via ? 'Key' : 'Via'}</button>` +
+                    `<button data-a="up" title="Move up">↑</button><button data-a="dn" title="Move down">↓</button><button data-a="del" title="Delete">✕</button>`;
+                row.addEventListener('click', ev => {
+                    const a = ev.target.dataset && ev.target.dataset.a;
+                    pathEd.sel = i;
+                    if (a === 'go' || !a) { pathEdGo(k); }
+                    else if (a === 'set') Object.assign(D.keys[i], pathEdCapture(k.via));
+                    else if (a === 'via') { k.via = !k.via; }
+                    else if (a === 'up' && i > 0) { [D.keys[i - 1], D.keys[i]] = [D.keys[i], D.keys[i - 1]]; pathEd.sel = i - 1; }
+                    else if (a === 'dn' && i < D.keys.length - 1) { [D.keys[i + 1], D.keys[i]] = [D.keys[i], D.keys[i + 1]]; pathEd.sel = i + 1; }
+                    else if (a === 'del') { D.keys.splice(i, 1); pathEd.sel = Math.min(i, D.keys.length - 1); }
+                    if (a === 'go' || !a) { pathEdRender(); pathEdPreview(); } else pathEdSave();
+                });
+                list.appendChild(row);
+            });
+            document.getElementById('pe-json').value = JSON.stringify(D, null, 1);
+            document.getElementById('pe-src').textContent = (() => {
+                try { if (localStorage.getItem(TOUR_DRAFT_KEY + pathEd.name)) return 'Draft saved in this browser.'; } catch (e) {}
+                return SSOT.tour && SSOT.tour.paths && SSOT.tour.paths[pathEd.name] ? 'From data/tour.json.' : 'Built-in flight (no stored path).';
+            })();
+        }
+        function pathEdCapture(via) {
+            const k = sceneToGeoKey(camera.position);
+            k.look = sceneToGeoKey(controls.target);
+            if (via) k.via = true;
+            return k;
+        }
+        function pathEdGo(k) {
+            const pos = geoKeyToScene(k);
+            const tgt = k.look && pathEd.data.lookAt === 'keys' ? geoKeyToScene(k.look)
+                : (poiGroups.find(p => p.site) || { group: { position: DEFAULT_CAM.target } }).group.position.clone();
+            camera.position.copy(pos); controls.target.copy(tgt); camera.lookAt(tgt); controls.update();
+            lastInteraction = performance.now();
+        }
+        function pathEdScrub(e) {
+            const shot = attract.shots && attract.shots[0];
+            if (!shot || !shot.sample) return;
+            const p = shot.sample(e);
+            camera.position.copy(p.pos); controls.target.copy(p.target); camera.lookAt(p.target); controls.update();
+            lastInteraction = performance.now();
+        }
+        function initPathEditor() {
+            const $ = id => document.getElementById(id);
+            $('btn-path-editor').addEventListener('click', () => setTimeout(pathEdOpen, 0));
+            $('pe-close').addEventListener('click', pathEdClose);
+            const add = via => {
+                const k = pathEdCapture(via), D = pathEd.data;
+                const at = pathEd.sel >= 0 ? pathEd.sel + 1 : D.keys.length;
+                D.keys.splice(at, 0, k); pathEd.sel = at; pathEdSave();
+            };
+            $('pe-add-key').addEventListener('click', () => add(false));
+            $('pe-add-via').addEventListener('click', () => add(true));
+            $('pe-look-site').addEventListener('change', e => { pathEd.data.lookAt = e.target.checked ? 'site' : 'keys'; pathEdSave(); });
+            $('pe-style').addEventListener('change', e => { pathEd.data.style = e.target.value; pathEdSave(); });
+            $('pe-dur').addEventListener('change', e => { pathEd.data.duration = Math.max(4, +e.target.value || 30); pathEdSave(); });
+            $('pe-route').addEventListener('change', pathEdPreview);
+            $('pe-safe').addEventListener('change', e => document.body.classList.toggle('safe-area', e.target.checked));
+            $('pe-scrub').addEventListener('input', e => pathEdScrub(+e.target.value / 1000));
+            $('pe-play').addEventListener('click', () => {   // play the whole tour from the start of this path
+                attract.idx = 0; attract.shotStart = performance.now() + 0; attract.pausedAt = performance.now();
+                attract.from = { pos: camera.position.clone(), target: controls.target.clone() };
+                setAttractCaption(attract.shots[0] || {});
+                attractResume();
+            });
+            $('pe-load-auto').addEventListener('click', () => {
+                if (!autoTownPoints) return;
+                pathEd.data = { lookAt: 'site', style: 'smooth', duration: 30, keys: autoTownPoints.map(v => sceneToGeoKey(v)) };
+                pathEd.sel = -1; pathEdSave();
+            });
+            $('pe-reset').addEventListener('click', () => {
+                try { localStorage.removeItem(TOUR_DRAFT_KEY + pathEd.name); } catch (e) {}
+                pathEd.sel = -1; pathEdLoad(); pathEdSave();
+                try { localStorage.removeItem(TOUR_DRAFT_KEY + pathEd.name); } catch (e) {}
+                pathEdRender();
+            });
+            $('pe-copy').addEventListener('click', () => {
+                const t = $('pe-json'); t.select();
+                (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).then(
+                    () => showToast('Path copied — paste it into data/tour.json → paths.' + pathEd.name),
+                    () => { document.execCommand && document.execCommand('copy'); showToast('Path selected — copy it (Ctrl/⌘+C)'); });
+            });
+            $('pe-apply').addEventListener('click', () => {
+                try { const d = JSON.parse($('pe-json').value); if (!Array.isArray(d.keys)) throw 0; pathEd.data = d; pathEd.sel = -1; pathEdSave(); }
+                catch (e) { showToast('That isn’t a valid path (needs a "keys" list)'); }
+            });
+        }
+        function isTypingTarget(t) {
+            return !!(t && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)));
+        }
+        // Tour: jump to the previous/next shot (the tour keeps running from there).
+        function attractJump(step) {
+            const n = attract.shots.length;
+            if (!n) return;
+            if (attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
+            attract.idx = ((Math.max(0, attract.idx) + step) % n + n) % n;
+            attract.shotStart = attract.blendStart = performance.now();
+            const shot = attract.shots[attract.idx];
+            attract.activePoi = shot.poiId || null;
+            attract.capIdx = 0;
+            setAttractCaption(shot);
+        }
+        // Explore: select the previous/next point of interest (data/poi.json order, without
+        // the whole-site marker) and fly to it.
+        // Stations in tour order: the car park last ("how to get there"), then the rest.
+        const TOUR_POI_ORDER = ['p5', 'visitor-gallery', 'spring', 'p-4', 'dauvebur', 'parking'];
+        function poiStations() {
+            const rank = pg => { const id = pg.disc.userData.id, i = TOUR_POI_ORDER.indexOf(id);
+                return pg.kiosk ? -1 : i >= 0 ? i : 100 + poiGroups.indexOf(pg); };
+            return poiGroups.filter(p => !p.site).sort((a, b) => rank(a) - rank(b));
+        }
+        function stepPoi(step) {
+            const list = poiStations();
+            if (!list.length) return;
+            const cur = list.findIndex(p => p.disc.userData.id === poiSelectedId);
+            const pg = list[cur < 0 ? (step > 0 ? 0 : list.length - 1) : ((cur + step) % list.length + list.length) % list.length];
+            const d = pg.disc.userData;
+            selectSpotAt(d, pg.group.position); renderSpotPanel(d);
+            setSelectionURL('spot', spotSelId(d));
+            // The kiosk is out in the town: frame it wider than the on-site stops.
+            flyToPoi(d.id, pg.kiosk ? 700 : 380);
+        }
+        function initAttract() {
+            // Any deliberate interaction ends the title screen (and is swallowed, so the same
+            // touch doesn't also select or drag); every interaction resets the idle timer.
+            const onInteract = ev => {
+                lastInteraction = performance.now();
+                if (ev.type === 'keydown' && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') &&
+                    !ev.metaKey && !ev.ctrlKey && !ev.altKey && !ev.shiftKey && !isTypingTarget(ev.target) && !pathEd.open) {
+                    // ← / → : previous / next station — tour shot, or (exploring) point of interest.
+                    ev.preventDefault(); ev.stopPropagation();
+                    const step = ev.key === 'ArrowRight' ? 1 : -1;
+                    if (attract.on) { attractResume(); attractJump(step); } else stepPoi(step);
+                    return;
+                }
+                if (!attract.on) return;
+                if (ev.type === 'pointermove') return;
+                if (ev.target && ev.target.closest && ev.target.closest('#at-controls, #path-editor')) return;   // its own buttons
+                if (ev.type === 'keydown') {
+                    if (ev.key === 'Escape') { ev.preventDefault(); stopAttract(); }
+                    return;
+                }
+                // Touch / drag / wheel: the visitor takes the camera. The title screen stays;
+                // the tour pauses (Resume / Explore buttons appear) and resumes by itself after
+                // ATTRACT_MANUAL_IDLE_MS without input. The event is NOT swallowed, so this same
+                // gesture already orbits / zooms.
+                if (!attract.manual) attractTakeControl();
+            };
+            ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(t =>
+                window.addEventListener(t, onInteract, { capture: true, passive: false }));
+            window.addEventListener('pointermove', onInteract, { capture: true, passive: true });
+            const cb = document.getElementById('param-attract');
+            if (cb) cb.addEventListener('change', e => {
+                params.attractMode = e.target.checked;
+                lastInteraction = performance.now();
+            });
+            const rv = document.getElementById('param-attract-reveal');
+            if (rv) rv.addEventListener('change', e => { params.attractReveal = e.target.value; });
+            const bl = document.getElementById('param-attract-blur');
+            const applyBlur = () => document.getElementById('attract').classList.toggle('blur', !!params.attractBlur);
+            if (bl) bl.addEventListener('change', e => { params.attractBlur = e.target.checked; applyBlur(); });
+            applyBlur();
+            const ef = document.getElementById('param-edge-fade');
+            if (ef) ef.addEventListener('change', e => { params.contextEdgeFade = e.target.checked; });
+            const btn = document.getElementById('btn-attract');
+            if (btn) btn.addEventListener('click', () => setTimeout(startAttract, 0));
+            initPathEditor();
+            // Title facts, taking turns under the subtitle. Each one is in the SSOT:
+            // service AD 140–350 and water still running out at the spring (site.json, poi.json),
+            // the deepest shaft (QANAT.maxDepthM), the 1986 rediscovery (poi.json P5).
+            const facts = ['Still carrying water after nearly 1,900 years',
+                `Shafts dug by hand up to ${QANAT.maxDepthM} m into the hill`,
+                'Rediscovered in 1986 — open to visitors'];
+            let fi = 0;
+            setInterval(() => {
+                const el = document.getElementById('at-subsub');
+                if (!el || !attract.on) return;
+                el.classList.add('fade');
+                setTimeout(() => { fi = (fi + 1) % facts.length; el.textContent = facts[fi]; el.classList.remove('fade'); }, 800);
+            }, 9000);
+            const btn2 = document.getElementById('btn-title-screen');
+            if (btn2) btn2.addEventListener('click', () => setTimeout(startAttract, 0));
+            document.getElementById('at-resume').addEventListener('click', () => attractResume());
+            document.getElementById('at-exit').addEventListener('click', () => stopAttract());
+        }
+
         function onResize() {
             const c = document.getElementById('canvas-container');
             camera.aspect = c.clientWidth / c.clientHeight;
@@ -6992,10 +9084,14 @@
             updateHitboxOverlay();
             updateCutawayPlane();   // keep the look-inside cut facing the camera
             updateXsecCutawayPlane();   // keep the qanat cross-section cut on the correct side (and following, if enabled)
-            if (selectionMarker && selectionMarker.visible) selectionMarker.quaternion.copy(camera.quaternion);
             updateSelectionDismiss();
-            controls.update();
-            renderer.render(scene, camera);
+            if (!updateAttract(now)) controls.update();   // the title-screen tour owns the camera while it runs
+            camera.updateMatrixWorld();
+            updatePoiScales();         // POI markers: constant screen size or model size × slider
+            updateSelectionMarker();   // billboard + constant screen size, from this frame's camera
+            updateBuildingFade();      // buildings between the camera and its target dissolve
+            updateEdgeFade();          // the town context fades into the background at its border
+            if (attract.on) renderAttractFrame(now); else renderer.render(scene, camera);
             // Camera readout: throttled repaint (~10 Hz) driven by OrbitControls 'change'
             // events and the fly-to animation above.
             if (_readoutDirty && now - _readoutLastPaint > 100) {
@@ -7011,7 +9107,7 @@
             // negligible 'change' events for many seconds — each one re-arming the first-clause
             // 3s timer, so on its own that clause could starve forever and never write. The hard
             // 5s cap guarantees a write happens soon after the interaction, even mid-coast.
-            if (_camURLPending && (now - _camURLLastChange > 3000 || now - _camURLPendingSince > 5000)) {
+            if (_camURLPending && !attract.on && (now - _camURLLastChange > 3000 || now - _camURLPendingSince > 5000)) {
                 setCameraURL();
                 _camURLPending = false;
             }

@@ -3,7 +3,7 @@
   "endpoint": "https://map.geoportail.lu/raster",
   "crs": "EPSG:2169",
   "sourceVersion": "20200121-082330",
-  "totalPoints": 44194,
+  "totalPoints": 46946,
   "runs": [
     {
       "run": "seed-grid",
@@ -104,6 +104,32 @@
       "nRequested": 8100,
       "nNew": 8098,
       "nSkipped": 2
+    },
+    {
+      "run": "probe-dufaing",
+      "date": "2026-09-26T19:59:51.958Z",
+      "bbox": null,
+      "cols": null,
+      "rows": null,
+      "nRequested": 1,
+      "nNew": 1,
+      "nSkipped": 0
+    },
+    {
+      "run": "context-town-50m",
+      "date": "2026-09-26T20:10:07.000Z",
+      "bbox": [
+        6.118,
+        49.652,
+        6.162,
+        49.6708
+      ],
+      "cols": 64,
+      "rows": 43,
+      "nRequested": 2752,
+      "nNew": 2751,
+      "nSkipped": 1,
+      "note": "Coarse (~50 m) town-context grid (Walferdange centre \u2192 P\u00ebtschend plateau) for the surroundings apron, title-screen tour and 'You are here' kiosk marker. Fetched partly by sample-lidar.mjs, the remainder by an equivalent 6-way parallel fetch (same endpoint, key format and cache file)."
     }
   ]
 }
