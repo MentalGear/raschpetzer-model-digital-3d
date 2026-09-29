@@ -233,7 +233,13 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     and wall edges (over a faint fill) when, on screen, it covers a visible marker's orb or
     the foot of its stalk and stands in front of it, or when it is within ~25 m of the
     camera; hysteresis + a ~0.35 s crossfade per building stop the popping (the earlier
-    circular fade looked wrong) · marker orbs never float lower than 24 m above their ground,
+    circular fade looked wrong) · ghost town (2026-09-29, Settings, on): every town
+    building is a faint outline except the landmarks — buildings within `buildingRadius` of
+    the town hall, sports complex, castle and station (data/poi.json) stay solid and
+    textured; the church and other significant buildings can be added the same way (a
+    landmark entry with its position and radius) · the town-flight keys moved ~120 m
+    further back from the site and 20 m higher; path timing "same time per stretch" so the
+    long climb doesn't rush the town part · marker orbs never float lower than 24 m above their ground,
     so they stay above the roofs up close · the tour opens with ONE continuous flight that
     always looks at the Raschpëtzer up the hill: from "You are here" it drifts back over the
     town hall and sideways over the sports complex Prince Henri — low enough that each one's
