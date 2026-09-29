@@ -237,7 +237,9 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     building is a faint outline except the landmarks — buildings within `buildingRadius` of
     the town hall, sports complex, castle and station (data/poi.json) stay solid and
     textured; the church and other significant buildings can be added the same way (a
-    landmark entry with its position and radius) · the town-flight keys moved ~120 m
+    landmark entry with its position and radius) · 2026-09-29: church added (OSM 'Trinité'),
+    the castle landmark now covers the whole IFEN campus (buildings B01–B12, `buildingBox`),
+    ghosts are GREY (white outlines stay for buildings in front of a marker) · the town-flight keys moved ~120 m
     further back from the site and 20 m higher; path timing "same time per stretch" so the
     long climb doesn't rush the town part · marker orbs never float lower than 24 m above their ground,
     so they stay above the roofs up close · the tour opens with ONE continuous flight that
@@ -388,6 +390,19 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     lazy-loaded so it doesn't cost anything outside that sequence.
   - Fallback / first step: a still of the cover and a still down the shaft with a
     zoom-and-crossfade gives ~80 % of the effect without a capture session.
+- **Stylised landmark buildings (idea, 2026-09-29).** Replace the photo-textured ACT
+  meshes of the landmarks (town hall, sports complex, IFEN / castle, station, church) with
+  hand-made stylised models — clean shapes, a shared palette, recognisable signature
+  details (the church tower, the castle front, the sports hall roof) — so they read as
+  icons against the grey ghost town, like a museum model.
+  - How: model in Blender from the ACT LOD2 geometry (already correct in size and
+    position) + photos; export glTF (`.glb`, Draco-compressed, ~100–500 KB each) into
+    `assets/landmarks/`; the app swaps the ACT mesh of a building for the model when a
+    landmark entry names one (`model: "assets/landmarks/church.glb"`), positioned by its
+    lat / lon / heading. Needs three.js GLTFLoader (+ DRACOLoader) vendored.
+  - Cheaper intermediate: the ACT geometry with flat colours per surface (walls / roofs)
+    and soft ambient occlusion instead of the photo textures — "stylised" without new
+    modelling.
 
 ## Done
 - **Georeferenced LiDAR model**: ACT LiDAR 2019 (0.5 m) terrain; shafts placed by OSM
