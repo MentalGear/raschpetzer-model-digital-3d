@@ -1199,7 +1199,7 @@
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Surrounding&nbsp;context&nbsp;(town,&nbsp;valley,&nbsp;villa)</label>
                 <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-buildings" checked> 3D&nbsp;buildings&nbsp;(ACT&nbsp;2023,&nbsp;textured)</label>
                 <label class="check-row" style="margin-left:44px"><input type="checkbox" id="param-buildings-see" checked> See&nbsp;through&nbsp;buildings&nbsp;in&nbsp;the&nbsp;way</label>
-                <label class="check-row" style="margin-left:44px" title="Town hall, sports complex, castle, station stay solid; every other building is a faint outline"><input type="checkbox" id="param-buildings-ghost" checked> Only&nbsp;landmarks&nbsp;solid&nbsp;(others&nbsp;ghosted)</label>
+                <label class="check-row" style="margin-left:44px" title="Town hall, sports complex, castle / IFEN, station and church stay solid; every other building is a faint grey outline"><input type="checkbox" id="param-buildings-ghost" checked> Only&nbsp;landmarks&nbsp;solid&nbsp;(others&nbsp;ghosted)</label>
                 <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-edge-fade" checked> Soft&nbsp;edge&nbsp;(fade&nbsp;into&nbsp;background)</label>
                 <label class="check-row" style="margin-left:22px" title="Loads ~40 MB more: 4096² building-texture atlases (768 px façades near the key spots) and a finer aerial photo of the town context. Meant for a big display with a capable GPU (~1 GB of video memory)."><input type="checkbox" id="param-hq-assets"> High&#8209;quality&nbsp;textures&nbsp;(big&nbsp;screen)</label>
                 <div class="opt-group" id="grp-hires-inset">
@@ -4323,12 +4323,14 @@
                     'float bldB2(vec2 a) { a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }\n' +
                     sh.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
                     float bi = floor(vBid + 0.5);
-                    float bldA = texture2D(uBldTex, vec2((mod(bi, ${BLD_TEX_W}.0) + 0.5) / ${BLD_TEX_W}.0, (floor(bi / ${BLD_TEX_W}.0) + 0.5) / uBldTexH)).r;
+                    vec4 bldT = texture2D(uBldTex, vec2((mod(bi, ${BLD_TEX_W}.0) + 0.5) / ${BLD_TEX_W}.0, (floor(bi / ${BLD_TEX_W}.0) + 0.5) / uBldTexH));
+                    float bldA = bldT.r, bldHi = bldT.g;
                     ${mode === 'solid'
                         ? 'if (bldA > 0.99 || (bldA > 0.01 && bldA > bldB2(gl_FragCoord.xy * 0.5) * 0.25 + bldB2(gl_FragCoord.xy) + 0.03)) discard;'
                         : 'if (bldA < 0.01) discard;'}`)
                     .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' +
-                        (mode === 'ghost' ? 'gl_FragColor.a *= 0.16 * bldA;' : mode === 'line' ? 'gl_FragColor.a *= 0.5 * bldA;' : ''));
+                        (mode === 'ghost' ? 'gl_FragColor.rgb = mix(vec3(0.55, 0.57, 0.6), gl_FragColor.rgb, bldHi); gl_FragColor.a *= mix(0.13, 0.16, bldHi) * bldA;'
+                         : mode === 'line' ? 'gl_FragColor.rgb = mix(vec3(0.62, 0.64, 0.68), gl_FragColor.rgb, bldHi); gl_FragColor.a *= mix(0.35, 0.85, bldHi) * bldA;' : ''));
                 edgeFadeShader(sh);   // last: it prepends the vWPos varying the edge fade uses
             };
             m.customProgramCacheKey = () => 'bldfade-' + mode;
@@ -4389,6 +4391,9 @@
                     }
                 }
                 bldIn[i] = inWay ? 1 : 0;
+                // G channel: white outline (in the way of a marker) vs grey ghost (ghost town).
+                const hi = inWay ? 255 : 0;
+                if (bldTexData[4 * i + 1] !== hi) { bldTexData[4 * i + 1] = hi; dirty = true; }
                 // Ghost town: every building that isn't a landmark is a faint outline too.
                 const goal = inWay || (ghostTown && !b.sig) ? 1 : 0, f = bldFadeVal[i];
                 if (f !== goal) {
@@ -4440,10 +4445,16 @@
             // Landmark buildings (stay solid when the town is ghosted): within data/poi.json
             // `buildingRadius` metres of a landmark POI.
             const mU = metersPerUnitH();
-            const sigAt = (((SSOT.poi && SSOT.poi.pois) || []).filter(p => p.buildingRadius && p.geo)).map(p => {
+            const lmk = ((SSOT.poi && SSOT.poi.pois) || []).filter(p => p.landmark && p.geo);
+            const sigAt = lmk.filter(p => p.buildingRadius).map(p => {
                 const sc = geoToScene(p.geo.lat, p.geo.lon); return { x: sc.x, z: sc.z, r: p.buildingRadius / mU };
             });
-            const isSig = (x, z) => sigAt.some(q => Math.hypot(x - q.x, z - q.z) < q.r);
+            const sigBox = lmk.filter(p => Array.isArray(p.buildingBox)).map(p => {
+                const [s, w, n, e] = p.buildingBox, a = geoToScene(n, w), b = geoToScene(s, e);
+                return { x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), z0: Math.min(a.z, b.z), z1: Math.max(a.z, b.z) };
+            });
+            const isSig = (x, z) => sigAt.some(q => Math.hypot(x - q.x, z - q.z) < q.r) ||
+                sigBox.some(q => x >= q.x0 && x <= q.x1 && z >= q.z0 && z <= q.z1);
             const addLines = () => {
                 if (!lines.pos.length) return;
                 const g = new THREE.BufferGeometry();
@@ -4989,6 +5000,15 @@
                 ctx.strokeStyle = '#bfe9f5';   // the water-carrying gallery
                 ctx.lineWidth = S * 0.055;
                 ctx.beginPath(); ctx.moveTo(x0 - S * 0.04, g + S * 0.012); ctx.lineTo(x1 + S * 0.02, g - S * 0.012); ctx.stroke();
+            } else if (icon === 'church') {
+                // Nave with a pitched roof and a tower with a cross.
+                const b = S * 0.72;
+                ctx.fillRect(S * 0.30, S * 0.50, S * 0.30, b - S * 0.50);                       // nave
+                ctx.beginPath(); ctx.moveTo(S * 0.28, S * 0.52); ctx.lineTo(S * 0.45, S * 0.40); ctx.lineTo(S * 0.62, S * 0.52); ctx.closePath(); ctx.fill();
+                ctx.fillRect(S * 0.60, S * 0.36, S * 0.12, b - S * 0.36);                       // tower
+                ctx.beginPath(); ctx.moveTo(S * 0.58, S * 0.37); ctx.lineTo(S * 0.66, S * 0.27); ctx.lineTo(S * 0.74, S * 0.37); ctx.closePath(); ctx.fill();
+                ctx.fillRect(S * 0.655, S * 0.16, S * 0.012 * 2, S * 0.10);                      // cross
+                ctx.fillRect(S * 0.635, S * 0.19, S * 0.065, S * 0.022);
             } else if (icon === 'landmark') {
                 // A public building: pediment, columns, steps.
                 const x0 = S * 0.27, x1 = S * 0.73, top = S * 0.26, eave = S * 0.40, base = S * 0.70;

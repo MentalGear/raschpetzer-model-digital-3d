@@ -1,5 +1,5 @@
 {
-  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `site: true` marks the single whole-site marker shown INSTEAD of the detailed POIs when the camera is far away (e.g. from the town / kiosk) — the details fade in as you get closer (index.html SITE_LOD). `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`. `tourPhoto` (+ `tourPhotoCredit`) is the picture shown in the title tour's caption card at that stop (`tourPhotoPlaceholder: true` marks a stand-in until a real photo is supplied). `buildingRadius` (m, landmarks): the town's 3D buildings are drawn as faint ghosts EXCEPT those within this radius of a landmark, which stay solid and textured (index.html buildingsGhostTown). `landmark: true` marks a well-known town place (town hall, sports hall, …) used for orientation: shown in the far/town view with the whole-site marker, hidden among the on-site details; with `tour: true` it is a stop of the title tour, flown past between the town and the overview.",
+  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `site: true` marks the single whole-site marker shown INSTEAD of the detailed POIs when the camera is far away (e.g. from the town / kiosk) — the details fade in as you get closer (index.html SITE_LOD). `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`. `tourPhoto` (+ `tourPhotoCredit`) is the picture shown in the title tour's caption card at that stop (`tourPhotoPlaceholder: true` marks a stand-in until a real photo is supplied). `buildingRadius` (m) or `buildingBox` ([south, west, north, east], EPSG:4326) on landmarks: the town's 3D buildings are drawn as faint ghosts EXCEPT those within this radius of a landmark, which stay solid and textured (index.html buildingsGhostTown). `landmark: true` marks a well-known town place (town hall, sports hall, …) used for orientation: shown in the far/town view with the whole-site marker, hidden among the on-site details; with `tour: true` it is a stop of the title tour, flown past between the town and the overview.",
   "pois": [
     {
       "id": "you-are-here",
@@ -94,7 +94,7 @@
     },
     {
       "id": "castle",
-      "name": "Château de Walferdange",
+      "name": "Château de Walferdange (IFEN)",
       "kind": "landmark",
       "icon": "landmark",
       "color": "#5b6475",
@@ -105,12 +105,17 @@
         "lon": 6.133814,
         "status": "documented"
       },
-      "buildingRadius": 85,
+      "buildingBox": [
+        49.65911,
+        6.13281,
+        49.6614,
+        6.13545
+      ],
       "source": "osm-poi",
       "status": "documented",
-      "description": "Château de Walferdange (Route de Diekirch), the former grand-ducal residence.",
-      "note": "Position: OpenStreetMap historic=castle (via Nominatim). Landmark for orientation only.",
-      "caption": "Château de Walferdange."
+      "description": "Château de Walferdange (Route de Diekirch), the former grand-ducal residence, and the campus around it — today the site of IFEN (Institut de formation de l'Éducation nationale), formerly a University of Luxembourg campus.",
+      "note": "Position: OpenStreetMap historic=castle node 1737371233. The solid 'landmark' area (buildingBox) spans the campus buildings B01–B12 (OSM building ways, public) around the castle. Landmark for orientation only.",
+      "caption": "Château de Walferdange — today IFEN."
     },
     {
       "id": "station",
@@ -132,6 +137,27 @@
       "description": "Walferdange railway station (CFL line 10, Luxembourg – Ettelbruck).",
       "note": "Position: OpenStreetMap railway=station node 3730496871. Landmark for orientation only.",
       "caption": "Walferdange railway station."
+    },
+    {
+      "id": "church",
+      "name": "Walferdange church",
+      "kind": "landmark",
+      "icon": "church",
+      "color": "#5b6475",
+      "landmark": true,
+      "geo": {
+        "crs": "EPSG:4326",
+        "lat": 49.658808,
+        "lon": 6.13275,
+        "status": "documented"
+      },
+      "buildingRadius": 32,
+      "source": "osm-poi",
+      "osm": "way/109406139",
+      "status": "documented",
+      "description": "The parish church (OpenStreetMap: place of worship 'Trinité') on the Rond-Point des Roses, next to the kiosk square.",
+      "note": "Position: centre of OpenStreetMap way 109406139 (amenity=place_of_worship, name 'Trinité'). Landmark for orientation only.",
+      "caption": "Walferdange church."
     },
     {
       "id": "parking",
