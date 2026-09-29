@@ -1,5 +1,5 @@
 {
-  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `site: true` marks the single whole-site marker shown INSTEAD of the detailed POIs when the camera is far away (e.g. from the town / kiosk) — the details fade in as you get closer (index.html SITE_LOD). `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`. `tourPhoto` (+ `tourPhotoCredit`) is the picture shown in the title tour's caption card at that stop (`tourPhotoPlaceholder: true` marks a stand-in until a real photo is supplied). `landmark: true` marks a well-known town place (town hall, sports hall, …) used for orientation: shown in the far/town view with the whole-site marker, hidden among the on-site details; with `tour: true` it is a stop of the title tour, flown past between the town and the overview.",
+  "_doc": "Visitor points of interest: floating circle markers (photo or icon) with a connector line down to their ground position. Orientation aids, NOT qanat facts. Place a POI by `geo` (EPSG:4326) or anchor it to a shaft (`anchorShaft`, follows that shaft's rendered position). `icon` is drawn on the small (at-rest) marker; a POI's `photo` fills the enlarged circle while it is ACTIVE (selected, or the current stop of the title tour), falling back to the icon if there is none or it fails to load: parking | shaft | spring | gallery | bus | here | info. `caption` is the one-line text shown when the title-screen tour flies past the POI. `site: true` marks the single whole-site marker shown INSTEAD of the detailed POIs when the camera is far away (e.g. from the town / kiosk) — the details fade in as you get closer (index.html SITE_LOD). `kiosk: true` marks the 'You are here' marker (always shown, never decluttered away). List ORDER is display priority: when markers overlap on screen, later ones are hidden first (until zoomed in). Optional `lift` (default 1) raises the circle higher above its ground point — used to stagger markers that sit close together. `photo` is a path under assets/poi/ with its `photoCredit`. `tourPhoto` (+ `tourPhotoCredit`) is the picture shown in the title tour's caption card at that stop (`tourPhotoPlaceholder: true` marks a stand-in until a real photo is supplied). `buildingRadius` (m, landmarks): the town's 3D buildings are drawn as faint ghosts EXCEPT those within this radius of a landmark, which stay solid and textured (index.html buildingsGhostTown). `landmark: true` marks a well-known town place (town hall, sports hall, …) used for orientation: shown in the far/town view with the whole-site marker, hidden among the on-site details; with `tour: true` it is a stop of the title tour, flown past between the town and the overview.",
   "pois": [
     {
       "id": "you-are-here",
@@ -58,6 +58,7 @@
         "lon": 6.130508,
         "status": "documented"
       },
+      "buildingRadius": 30,
       "source": "osm-poi",
       "osm": "Mairie de Walferdange, 1 Place de la Mairie",
       "status": "documented",
@@ -81,6 +82,7 @@
         "lon": 6.130509,
         "status": "documented"
       },
+      "buildingRadius": 75,
       "source": "osm-poi",
       "osm": "way/34837772",
       "status": "documented",
@@ -103,6 +105,7 @@
         "lon": 6.133814,
         "status": "documented"
       },
+      "buildingRadius": 85,
       "source": "osm-poi",
       "status": "documented",
       "description": "Château de Walferdange (Route de Diekirch), the former grand-ducal residence.",
@@ -122,6 +125,7 @@
         "lon": 6.136385,
         "status": "documented"
       },
+      "buildingRadius": 35,
       "source": "osm-poi",
       "osm": "node/3730496871",
       "status": "documented",

@@ -1199,6 +1199,7 @@
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Surrounding&nbsp;context&nbsp;(town,&nbsp;valley,&nbsp;villa)</label>
                 <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-buildings" checked> 3D&nbsp;buildings&nbsp;(ACT&nbsp;2023,&nbsp;textured)</label>
                 <label class="check-row" style="margin-left:44px"><input type="checkbox" id="param-buildings-see" checked> See&nbsp;through&nbsp;buildings&nbsp;in&nbsp;the&nbsp;way</label>
+                <label class="check-row" style="margin-left:44px" title="Town hall, sports complex, castle, station stay solid; every other building is a faint outline"><input type="checkbox" id="param-buildings-ghost" checked> Only&nbsp;landmarks&nbsp;solid&nbsp;(others&nbsp;ghosted)</label>
                 <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-edge-fade" checked> Soft&nbsp;edge&nbsp;(fade&nbsp;into&nbsp;background)</label>
                 <label class="check-row" style="margin-left:22px" title="Loads ~40 MB more: 4096² building-texture atlases (768 px façades near the key spots) and a finer aerial photo of the town context. Meant for a big display with a capable GPU (~1 GB of video memory)."><input type="checkbox" id="param-hq-assets"> High&#8209;quality&nbsp;textures&nbsp;(big&nbsp;screen)</label>
                 <div class="opt-group" id="grp-hires-inset">
@@ -1425,6 +1426,7 @@
         <label class="pe-check"><input type="checkbox" id="pe-look-site" checked> Always look at the Raschpëtzer</label>
         <div class="pe-line"><label>Route <select id="pe-style"><option value="smooth">Smooth curve</option><option value="straight">Straight lines</option></select></label>
             <label>Duration <input id="pe-dur" type="number" min="4" max="180" step="1" style="width:4.5em"> s</label></div>
+        <div class="pe-line"><label>Timing <select id="pe-timing"><option value="segments">Same time per stretch</option><option value="speed">Constant speed</option></select></label></div>
         <div class="pe-line"><input id="pe-scrub" type="range" min="0" max="1000" value="0" style="flex:1"><button id="pe-play" type="button">▶ Play tour</button></div>
         <div class="pe-line"><label class="pe-check"><input type="checkbox" id="pe-route" checked> Show route</label>
             <label class="pe-check"><input type="checkbox" id="pe-safe" checked> Safe-area overlay</label></div>
@@ -1570,6 +1572,7 @@
             attractMode: true,            // title screen + ~90 s camera tour on load and after 2 min idle (kiosk)
             showBuildings: true,          // 3D buildings (ACT 2023 LOD2 textured; OSM fallback) on the surrounding-context terrain
             buildingsSeeThrough: true,    // buildings between the camera and its target dissolve (dithered)
+            buildingsGhostTown: true,     // only landmark buildings (data/poi.json buildingRadius) solid; the rest faint ghosts
             hqAssets: false,              // high-quality textures (big screen): HQ building atlases + finer context aerial
             attractReveal: 'mixed',       // how the tour reveals the qanat: 'mixed' (slice for the wide shot, trench for close-ups) | 'cut' (terrain trench) | 'slice' (whole landscape cut along the qanat) | 'split' (split screen)
             attractBlur: false,           // blur the scene behind the tour's title and caption text
@@ -4325,7 +4328,7 @@
                         ? 'if (bldA > 0.99 || (bldA > 0.01 && bldA > bldB2(gl_FragCoord.xy * 0.5) * 0.25 + bldB2(gl_FragCoord.xy) + 0.03)) discard;'
                         : 'if (bldA < 0.01) discard;'}`)
                     .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' +
-                        (mode === 'ghost' ? 'gl_FragColor.a *= 0.1 * bldA;' : mode === 'line' ? 'gl_FragColor.a *= 0.9 * bldA;' : ''));
+                        (mode === 'ghost' ? 'gl_FragColor.a *= 0.16 * bldA;' : mode === 'line' ? 'gl_FragColor.a *= 0.5 * bldA;' : ''));
                 edgeFadeShader(sh);   // last: it prepends the vWPos varying the edge fade uses
             };
             m.customProgramCacheKey = () => 'bldfade-' + mode;
@@ -4361,6 +4364,7 @@
                 if (g.z < 1) marks.push({ x: (g.x + 1) / 2 * W, y: (1 - g.y) / 2 * H, depth: pg.group.getWorldPosition(_bw).distanceTo(camera.position), pad: 6 });
             }
             const nearM = 25 / metersPerUnitH(), camPos = camera.position;
+            const ghostTown = params.buildingsGhostTown;
             const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom;
             let dirty = false;
             const k = 1 - Math.exp(-dt / 0.12);   // ~0.35 s to settle
@@ -4385,7 +4389,8 @@
                     }
                 }
                 bldIn[i] = inWay ? 1 : 0;
-                const goal = inWay ? 1 : 0, f = bldFadeVal[i];
+                // Ghost town: every building that isn't a landmark is a faint outline too.
+                const goal = inWay || (ghostTown && !b.sig) ? 1 : 0, f = bldFadeVal[i];
                 if (f !== goal) {
                     let nf = f + (goal - f) * k;
                     if (Math.abs(nf - goal) < 0.01) nf = goal;
@@ -4432,6 +4437,13 @@
             };
             const lines = { pos: [], bid: [] };   // outline edges of every building (drawn only when see-through)
             bldRecs = [];
+            // Landmark buildings (stay solid when the town is ghosted): within data/poi.json
+            // `buildingRadius` metres of a landmark POI.
+            const mU = metersPerUnitH();
+            const sigAt = (((SSOT.poi && SSOT.poi.pois) || []).filter(p => p.buildingRadius && p.geo)).map(p => {
+                const sc = geoToScene(p.geo.lat, p.geo.lon); return { x: sc.x, z: sc.z, r: p.buildingRadius / mU };
+            });
+            const isSig = (x, z) => sigAt.some(q => Math.hypot(x - q.x, z - q.z) < q.r);
             const addLines = () => {
                 if (!lines.pos.length) return;
                 const g = new THREE.BufferGeometry();
@@ -4480,7 +4492,7 @@
                     base -= 0.05;
                     // Bounding sphere (scene units) for the per-building see-through test.
                     const hy = (zmax - zmin) * 0.05 * ym;
-                    const bid = bldRecs.push({ x: cx, y: base + hy, z: cz, r: Math.hypot(Math.abs(ax) * (lo1 - lo0) * 5e-7, Math.abs(az) * (la1 - la0) * 5e-7, hy) }) - 1;
+                    const bid = bldRecs.push({ x: cx, y: base + hy, z: cz, r: Math.hypot(Math.abs(ax) * (lo1 - lo0) * 5e-7, Math.abs(az) * (la1 - la0) * 5e-7, hy), sig: isSig(cx, cz) }) - 1;
                     const P3 = q => [s0.x + ax * v[3 * q] * 1e-6, base + (v[3 * q + 2] - zmin) * 0.1 * ym, s0.z + az * v[3 * q + 1] * 1e-6];
                     // Outline: every ring's edges.
                     for (let k = 0, q = v0; k < nR; k++) {
@@ -4558,7 +4570,7 @@
                     const wc = bd.est ? wallEst : wall;
                     let rad = 0;
                     for (const pt of pts) rad = Math.max(rad, Math.hypot(pt.x - cc.x, pt.y - cc.z));
-                    const bid = bldRecs.push({ x: cc.x, y: (base + top) / 2, z: cc.z, r: Math.hypot(rad, (top - base) / 2) }) - 1;
+                    const bid = bldRecs.push({ x: cc.x, y: (base + top) / 2, z: cc.z, r: Math.hypot(rad, (top - base) / 2), sig: isSig(cc.x, cc.z) }) - 1;
                     const nb = pos.length;
                     for (let i = 0; i < n; i++) {
                         const a = pts[i], e = pts[(i + 1) % n];
@@ -5978,6 +5990,9 @@
             document.getElementById('param-buildings-see').addEventListener('change', e => {
                 params.buildingsSeeThrough = e.target.checked;
             });
+            document.getElementById('param-buildings-ghost').addEventListener('change', e => {
+                params.buildingsGhostTown = e.target.checked;
+            });
             document.getElementById('param-hq-assets').addEventListener('change', e => {
                 params.hqAssets = e.target.checked;
                 loadContextTextures();
@@ -6186,6 +6201,7 @@
                 'param-attract': () => params.attractMode,
                 'param-buildings': () => params.showBuildings,
                 'param-buildings-see': () => params.buildingsSeeThrough,
+                'param-buildings-ghost': () => params.buildingsGhostTown,
                 'param-hq-assets': () => params.hqAssets,
                 'param-attract-reveal': () => params.attractReveal,
                 'param-attract-blur': () => params.attractBlur,
@@ -8795,10 +8811,13 @@
             const ym = metersToYDepth(1), u = 1 / metersPerUnitH();
             const siteAim = sitePos.clone().add(new THREE.Vector3(0, 20 * u, 0));
             const sample = e => {
-                const pos = curve.getPointAt(Math.min(1, Math.max(0, e)));   // arc length: constant speed
+                const ee = Math.min(1, Math.max(0, e));
+                // timing 'segments': every keyframe-to-keyframe stretch takes the same time (a long
+                // climb doesn't rush the town); otherwise constant speed along the whole path.
+                const pos = P.timing === 'segments' ? curve.getPoint(ee) : curve.getPointAt(ee);
                 pos.y = Math.max(pos.y, getTerrainHeight(pos.x, pos.z) + TOUR_MIN_AGL_M * ym);
                 let target;
-                if (looks) target = looks.getPoint(curve.getUtoTmapping ? curve.getUtoTmapping(e) : e);
+                if (looks) target = looks.getPoint(P.timing === 'segments' ? e : (curve.getUtoTmapping ? curve.getUtoTmapping(e) : e));
                 else { target = siteAim.clone(); target.y -= pos.distanceTo(target) * 0.1; }
                 return { pos, target };
             };
@@ -8865,6 +8884,7 @@
             document.getElementById('pe-look-site').checked = D.lookAt !== 'keys';
             document.getElementById('pe-style').value = D.style || 'smooth';
             document.getElementById('pe-dur').value = D.duration || 30;
+            document.getElementById('pe-timing').value = D.timing === 'segments' ? 'segments' : 'speed';
             list.innerHTML = D.keys.length ? '' : '<div class="pe-empty">No keyframes yet — fly the camera to a spot and press “+ Keyframe”.</div>';
             D.keys.forEach((k, i) => {
                 const row = document.createElement('div');
@@ -8926,6 +8946,7 @@
             $('pe-add-via').addEventListener('click', () => add(true));
             $('pe-look-site').addEventListener('change', e => { pathEd.data.lookAt = e.target.checked ? 'site' : 'keys'; pathEdSave(); });
             $('pe-style').addEventListener('change', e => { pathEd.data.style = e.target.value; pathEdSave(); });
+            $('pe-timing').addEventListener('change', e => { pathEd.data.timing = e.target.value; pathEdSave(); });
             $('pe-dur').addEventListener('change', e => { pathEd.data.duration = Math.max(4, +e.target.value || 30); pathEdSave(); });
             $('pe-route').addEventListener('change', pathEdPreview);
             $('pe-safe').addEventListener('change', e => document.body.classList.toggle('safe-area', e.target.checked));
