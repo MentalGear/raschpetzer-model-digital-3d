@@ -347,6 +347,10 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     + layer preset), so it doubles as the content tool for the A–E lenses.
   - Off-the-shelf alternative: Theatre.js (timeline/keyframe studio for three.js) in
     developer mode only — faster to get a polished timeline, but a sizeable dependency.
+- **Sixth round (2026-11-24).** The ground cut-through (trench / slice) now plays only once per visit
+  — the first reveal shot; later loops and the other reveal shots skip it (`attract.revealDone`).
+  The descent toward the station starts at the sports complex (46 m there, 34 m after it).
+  Idea: make it a setting (once / every loop).
 - **Loading screen, lower station fly-over, clearer dots — done 2026-11-24 (fifth round).**
   - `#loading` overlay covers the page until terrain, aerial photos and building atlases (HQ set
     too, when wanted) are in; the tour is built and frozen at t = 0 behind it, then starts when it

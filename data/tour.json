@@ -25,7 +25,7 @@
         {
           "lat": 49.660138,
           "lon": 6.127959,
-          "agl": 67.6,
+          "agl": 46.0,
           "hold": 5,
           "station": "Sports complex",
           "poiId": "sports-hall"
@@ -33,7 +33,7 @@
         {
           "lat": 49.6612,
           "lon": 6.1352,
-          "agl": 38.0
+          "agl": 34.0
         },
         {
           "lat": 49.6632,
