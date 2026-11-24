@@ -229,17 +229,18 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     the town context into the background at its border (Settings, on) · blur behind the
     title & captions (plain backdrop blur, Settings, **off** by default) · far view: small
     model labels hide and the gallery shows as a bold glowing x-ray line · see-through
-    buildings with ONE rule, per building: a building turns into a white OUTLINE of its roof
-    and wall edges (over a faint fill) when, on screen, it covers a visible marker's orb or
-    the foot of its stalk and stands in front of it, or when it is within ~25 m of the
-    camera; hysteresis + a ~0.35 s crossfade per building stop the popping (the earlier
-    circular fade looked wrong) · ghost town (2026-09-29, Settings, on): every town
+    buildings with ONE rule, per building: a building turns into a translucent GHOST (since
+    2026-11-24 an x-ray-glass silhouette, no wireframe lines) when, on screen, it covers a
+    visible marker's orb or the foot of its stalk and stands in front of it, or when it is
+    within ~25 m of the camera; hysteresis + a ~0.35 s crossfade per building stop the
+    popping (the earlier circular fade looked wrong) · ghost town (2026-09-29, Settings, on): every town
     building is a faint outline except the landmarks — buildings within `buildingRadius` of
     the town hall, sports complex, castle and station (data/poi.json) stay solid and
     textured; the church and other significant buildings can be added the same way (a
     landmark entry with its position and radius) · 2026-09-29: church added (OSM 'Trinité'),
     the castle landmark now covers the whole IFEN campus (buildings B01–B12, `buildingBox`),
-    ghosts are GREY (white outlines stay for buildings in front of a marker) · the town-flight keys moved ~120 m
+    ghosts are GREY translucent silhouettes (2026-11-24: no wireframes; a building that is only
+    ghosted because it is in front of a marker is lighter and fainter) · the town-flight keys moved ~120 m
     further back from the site and 20 m higher; path timing "same time per stretch" so the
     long climb doesn't rush the town part · marker orbs never float lower than 24 m above their ground,
     so they stay above the roofs up close · the tour opens with ONE continuous flight that
@@ -340,6 +341,18 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     + layer preset), so it doubles as the content tool for the A–E lenses.
   - Off-the-shelf alternative: Theatre.js (timeline/keyframe studio for three.js) in
     developer mode only — faster to get a polished timeline, but a sizeable dependency.
+- **Tour sky, start view and station dots — done 2026-11-24.**
+  - Sky dome in tour mode (deep blue overhead, pale haze at the horizon; the fog and the
+    context terrain's soft edge fade into the horizon colour; hidden in the split view's
+    blueprint pass). Ideas: a day / dusk / night variant that follows the clock (the kiosk
+    runs all day; a dusk sky in the evening, the burn-in "night" mode at night), a few
+    slow clouds, a sun glow.
+  - The town flight now starts LOW and CLOSE (55 m behind the kiosk, 12 m up) and rises
+    and pulls back; keys live in `data/tour.json` (edit with Tools → Camera path).
+  - Clickable station dots (one per shot, progress shown inside the current dot, tooltip
+    with the station name). Ideas: show a short label under the dots on touch screens
+    (no hover), group the six POI stops visually, tie the dots to the A–E lens
+    chapters (see "chapters inside a lens").
 - **Burn-in safeguard for an always-on screen.** The title card, the button row and the
   chapter bar are static and would stay on screen all day.
   - Alternate the title's corner (upper right ↔ upper left) per loop or per shot. The shot

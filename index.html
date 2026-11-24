@@ -886,9 +886,19 @@
         #attract .at-prompt { position: absolute; left: 50%; bottom: clamp(16px, 3vh, 34px); transform: translateX(-50%);
             font-size: clamp(0.8rem, 1.3vw, 1rem); letter-spacing: 0.28em; text-transform: uppercase; color: #fbf6ec;
             text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap; }
-        #attract .at-dots { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(20px, 3.5vh, 38px); display: flex; gap: 6px; }
-        #attract .at-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.35); transition: background 0.4s, transform 0.4s; }
-        #attract .at-dots span.on { background: var(--at-gold); transform: scale(1.35); }
+        #attract .at-dots { position: absolute; right: clamp(12px, 3.4vw, 56px); bottom: clamp(14px, 2.6vh, 30px); display: flex; align-items: center; pointer-events: auto; }
+        #attract .at-dot { position: relative; width: 24px; height: 32px; padding: 0; border: 0; background: none; cursor: pointer; transition: width 0.3s; }
+        #attract .at-dot::after { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
+            border-radius: 5px; background: rgba(255,255,255,0.42); box-shadow: 0 0 0 1px rgba(0,0,0,0.25); transition: width 0.3s, margin 0.3s, background 0.3s; }
+        #attract .at-dot:hover::after, #attract .at-dot:focus-visible::after { background: rgba(255,255,255,0.9); }
+        #attract .at-dot.on { width: 40px; }
+        #attract .at-dot.on::after { width: 30px; margin-left: -15px;
+            background: linear-gradient(90deg, var(--at-gold) calc(var(--p, 0) * 100%), rgba(255,255,255,0.4) calc(var(--p, 0) * 100%)); }
+        /* tooltip: the station's name, right-aligned above the dots */
+        #attract .at-dot::before { content: attr(data-label); position: absolute; right: 0; bottom: 100%; margin-bottom: 4px; padding: 5px 10px;
+            border-radius: 8px; background: rgba(14,17,24,0.88); color: #f5efe4; font: 600 0.78rem/1.2 -apple-system, sans-serif;
+            white-space: nowrap; opacity: 0; pointer-events: none; transform: translateY(4px); transition: opacity 0.2s, transform 0.2s; }
+        #attract .at-dot:hover::before, #attract .at-dot:focus-visible::before { opacity: 1; transform: none; }
         #attract .at-attrib { position: absolute; right: clamp(20px, 4vw, 64px); bottom: 6px; font-size: 0.62rem;
             color: rgba(255,255,255,0.55); text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
         .poi-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
@@ -1199,7 +1209,7 @@
                 <label class="check-row"><input type="checkbox" id="param-ghost-apron" checked> Surrounding&nbsp;context&nbsp;(town,&nbsp;valley,&nbsp;villa)</label>
                 <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-buildings" checked> 3D&nbsp;buildings&nbsp;(ACT&nbsp;2023,&nbsp;textured)</label>
                 <label class="check-row" style="margin-left:44px"><input type="checkbox" id="param-buildings-see" checked> See&nbsp;through&nbsp;buildings&nbsp;in&nbsp;the&nbsp;way</label>
-                <label class="check-row" style="margin-left:44px" title="Town hall, sports complex, castle / IFEN, station and church stay solid; every other building is a faint grey outline"><input type="checkbox" id="param-buildings-ghost" checked> Only&nbsp;landmarks&nbsp;solid&nbsp;(others&nbsp;ghosted)</label>
+                <label class="check-row" style="margin-left:44px" title="Town hall, sports complex, castle / IFEN, station and church stay solid; every other building is a translucent grey ghost"><input type="checkbox" id="param-buildings-ghost" checked> Only&nbsp;landmarks&nbsp;solid&nbsp;(others&nbsp;ghosted)</label>
                 <label class="check-row" style="margin-left:22px"><input type="checkbox" id="param-edge-fade" checked> Soft&nbsp;edge&nbsp;(fade&nbsp;into&nbsp;background)</label>
                 <label class="check-row" style="margin-left:22px" title="Loads ~40 MB more: 4096² building-texture atlases (768 px façades near the key spots) and a finer aerial photo of the town context. Meant for a big display with a capable GPU (~1 GB of video memory)."><input type="checkbox" id="param-hq-assets"> High&#8209;quality&nbsp;textures&nbsp;(big&nbsp;screen)</label>
                 <div class="opt-group" id="grp-hires-inset">
@@ -4309,12 +4319,15 @@
             edgeFadeU.uEdgeW.value = params.contextEdgeFade ? 260 / metersPerUnitH() : 0;
             if (scene.background && scene.background.isColor) edgeFadeU.uEdgeBg.value = scene.background;
         }
-        // Three passes share each building mesh: 'solid' (draws a building in proportion to
+        // Two passes share each building mesh: 'solid' (draws a building in proportion to
         // 1 - fade, dissolving through an ordered dither only while it crossfades, and writes no
-        // depth where it's gone, so markers behind show), 'ghost' (a very faint fill) and 'line'
-        // (the roof / wall edges, a LineSegments of the ring outlines), both scaled by fade.
+        // depth where it's gone, so markers behind show) and 'ghost' (the building as a
+        // translucent silhouette, scaled by fade). The ghost look is "x-ray glass": a faint
+        // grey fill whose opacity rises toward grazing angles, so the edges and the outline of
+        // the building read without any wireframe lines. Ghost-town buildings are grey; a
+        // building that is only ghosted because it's in front of a marker is lighter and fainter.
         function fadeMaterial(m, mode) {
-            if (mode !== 'solid') { m.transparent = true; m.depthWrite = false; }
+            if (mode !== 'solid') { m.transparent = true; m.depthWrite = false; m.extensions = { derivatives: true }; }
             m.onBeforeCompile = sh => {
                 Object.assign(sh.uniforms, bldFade);
                 sh.vertexShader = 'attribute float bid;\nvarying float vBid;\n' +
@@ -4328,10 +4341,18 @@
                     ${mode === 'solid'
                         ? 'if (bldA > 0.99 || (bldA > 0.01 && bldA > bldB2(gl_FragCoord.xy * 0.5) * 0.25 + bldB2(gl_FragCoord.xy) + 0.03)) discard;'
                         : 'if (bldA < 0.01) discard;'}`)
-                    .replace('#include <dithering_fragment>', '#include <dithering_fragment>\n' +
-                        (mode === 'ghost' ? 'gl_FragColor.rgb = mix(vec3(0.55, 0.57, 0.6), gl_FragColor.rgb, bldHi); gl_FragColor.a *= mix(0.13, 0.16, bldHi) * bldA;'
-                         : mode === 'line' ? 'gl_FragColor.rgb = mix(vec3(0.62, 0.64, 0.68), gl_FragColor.rgb, bldHi); gl_FragColor.a *= mix(0.35, 0.85, bldHi) * bldA;' : ''));
-                edgeFadeShader(sh);   // last: it prepends the vWPos varying the edge fade uses
+                    .replace('#include <fog_fragment>', mode !== 'ghost' ? '#include <fog_fragment>' : `
+                    {
+                        float gLum = dot(gl_FragColor.rgb, vec3(0.3333));
+                        vec3 gFn = normalize(cross(dFdx(vWPos), dFdy(vWPos)));
+                        float gRim = 1.0 - abs(dot(gFn, normalize(cameraPosition - vWPos)));
+                        vec3 gGrey = vec3(0.34 + 0.60 * gLum);
+                        vec3 gLite = mix(gl_FragColor.rgb, vec3(0.93, 0.95, 0.99), 0.55);
+                        gl_FragColor.rgb = mix(gGrey, gLite, bldHi);
+                        gl_FragColor.a *= bldA * mix(0.15 + 0.55 * gRim * gRim, 0.07 + 0.45 * gRim * gRim, bldHi);
+                    }
+                    #include <fog_fragment>`);
+                edgeFadeShader(sh);   // last: it prepends the vWPos varying the code above uses
             };
             m.customProgramCacheKey = () => 'bldfade-' + mode;
             return m;
@@ -4440,7 +4461,6 @@
                 ghost.raycast = () => {};
                 buildingsGroup.add(mesh, ghost);
             };
-            const lines = { pos: [], bid: [] };   // outline edges of every building (drawn only when see-through)
             bldRecs = [];
             // Landmark buildings (stay solid when the town is ghosted): within data/poi.json
             // `buildingRadius` metres of a landmark POI.
@@ -4455,15 +4475,6 @@
             });
             const isSig = (x, z) => sigAt.some(q => Math.hypot(x - q.x, z - q.z) < q.r) ||
                 sigBox.some(q => x >= q.x0 && x <= q.x1 && z >= q.z0 && z <= q.z1);
-            const addLines = () => {
-                if (!lines.pos.length) return;
-                const g = new THREE.BufferGeometry();
-                g.setAttribute('position', new THREE.Float32BufferAttribute(lines.pos, 3));
-                g.setAttribute('bid', new THREE.Float32BufferAttribute(lines.bid, 1));
-                const l = new THREE.LineSegments(g, fadeMaterial(new THREE.LineBasicMaterial({ color: 0xf4efe6 }), 'line'));
-                l.raycast = () => {}; l.renderOrder = 3;
-                buildingsGroup.add(l);
-            };
             // Linear lon/lat → scene mapping (geoToScene is affine) and vertical metres → Y.
             const D = A ? A.D : null;
             const lon0 = D ? D.lon0 : 6.14, lat0 = D ? D.lat0 : 49.66;
@@ -4504,13 +4515,6 @@
                     // Bounding sphere (scene units) for the per-building see-through test.
                     const hy = (zmax - zmin) * 0.05 * ym;
                     const bid = bldRecs.push({ x: cx, y: base + hy, z: cz, r: Math.hypot(Math.abs(ax) * (lo1 - lo0) * 5e-7, Math.abs(az) * (la1 - la0) * 5e-7, hy), sig: isSig(cx, cz) }) - 1;
-                    const P3 = q => [s0.x + ax * v[3 * q] * 1e-6, base + (v[3 * q + 2] - zmin) * 0.1 * ym, s0.z + az * v[3 * q + 1] * 1e-6];
-                    // Outline: every ring's edges.
-                    for (let k = 0, q = v0; k < nR; k++) {
-                        const n = r[r0 + k] & 0x3fff;
-                        for (let i = 0; i < n; i++) { lines.pos.push(...P3(q + i), ...P3(q + (i + 1) % n)); lines.bid.push(bid, bid); }
-                        q += n;
-                    }
                     // Polygons: an exterior ring followed by its holes.
                     let q0 = v0;
                     for (let k = 0; k < nR;) {
@@ -4587,9 +4591,6 @@
                         const a = pts[i], e = pts[(i + 1) % n];
                         pos.push(a.x, base, a.y, e.x, base, e.y, e.x, top, e.y,  a.x, base, a.y, e.x, top, e.y, a.x, top, a.y);
                         for (let q = 0; q < 6; q++) col.push(wc.r, wc.g, wc.b);
-                        // outline: base edge, top edge, corner
-                        lines.pos.push(a.x, base, a.y, e.x, base, e.y,  a.x, top, a.y, e.x, top, e.y,  a.x, base, a.y, a.x, top, a.y);
-                        for (let q = 0; q < 6; q++) lines.bid.push(bid);
                     }
                     const tris = THREE.ShapeUtils.triangulateShape(pts, []);
                     for (const t of tris) for (const k of t) { pos.push(pts[k].x, top, pts[k].y); col.push(roof.r, roof.g, roof.b); }
@@ -4597,7 +4598,6 @@
                 }
                 addMesh(pos, { color: col, bid: obid }, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
             }
-            addLines();
             resetBuildingFade(bldRecs.length);
         }
         // Is a scene point covered by the context apron (so "off-map" markers still stand on ground)?
@@ -8327,7 +8327,26 @@
         // gallery). Objects tagged at build time go in only one of the two passes.
         const surfaceOnly = [], blueprintOnly = [];
         const BLUEPRINT = { bg: 0x0b1622, ground: 0x10202e, contour: 0x2d6f86, contourIndex: 0x69b7d1, gallery: 0x4cc3ff };
-        const ATTRACT_BG = 0x1c2129;   // dark slate behind the tour; the fog fades the terrain into it
+        const ATTRACT_BG = 0x8fa2b6;   // the sky's horizon haze: the fog and the context terrain's soft edge fade into it
+        // Sky dome for the tour: deep blue overhead, pale haze at the horizon (flat below it).
+        // Follows the camera, drawn first, ignores depth and fog; hidden in the split view's
+        // blueprint pass and outside the tour.
+        let skyDome = null;
+        function ensureSky() {
+            if (skyDome) return skyDome;
+            skyDome = new THREE.Mesh(new THREE.SphereGeometry(4200, 24, 12), new THREE.ShaderMaterial({
+                side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+                uniforms: { cTop: { value: new THREE.Color(0x0d1730) }, cMid: { value: new THREE.Color(0x35557f) }, cHor: { value: new THREE.Color(ATTRACT_BG) } },
+                vertexShader: 'varying vec3 vD; void main() { vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+                fragmentShader: `uniform vec3 cTop, cMid, cHor; varying vec3 vD;
+                    void main() { float h = normalize(vD).y;
+                        vec3 c = mix(cHor, cMid, smoothstep(0.0, 0.22, h));
+                        c = mix(c, cTop, smoothstep(0.18, 0.78, h));
+                        gl_FragColor = vec4(c, 1.0); }` }));
+            skyDome.renderOrder = -1000; skyDome.frustumCulled = false; skyDome.raycast = () => {};
+            scene.add(skyDome);
+            return skyDome;
+        }
         const attract = { on: false, shots: [], idx: -1, shotStart: 0, from: null, saved: null, pose: null };
         let lastInteraction = performance.now();
         // Camera pose on a sphere around `target`: az 0° = from the south (+Z), el = elevation.
@@ -8360,7 +8379,9 @@
                     return q;
                 };
                 const h = here.group.position.clone(), hd = here.disc.userData;
-                const pts = [behind(h, 70, 26)];   // start: the kiosk low in frame, the hill ahead
+                // Start LOW and CLOSE (55 m behind the kiosk, 12 m up: the square, the façades and the
+                // kiosk marker ahead, the hill beyond), then rise and pull back as the flight goes on.
+                const pts = [behind(h, 55, 12), behind(h, 190, 47)];
                 const caps = [{ at: 0, kicker: 'You are here', title: 'Walferdange town centre', text: hd.caption || '',
                     image: hd.tourPhoto, imageCredit: hd.tourPhotoCredit, imagePlaceholder: hd.tourPhotoPlaceholder }];
                 const lms = poiGroups.filter(pg => pg.landmark && pg.disc.userData.tour);
@@ -8368,7 +8389,7 @@
                 // sports complex: each waypoint is ~80 m short of the landmark and ~45 m up
                 // (roofs ~10–20 m, orbs ≥ 24 m), so its roof and orb come into view from below
                 // and sit in the lower part of the frame while the camera passes.
-                lms.forEach(pg => pts.push(behind(pg.group.position, 80, 45)));
+                lms.forEach(pg => pts.push(behind(pg.group.position, 200, 66)));
                 // Take-off: up and out toward the plateau, ending where the qanat shot picks up.
                 const last = pts[pts.length - 1];
                 const toSite = sitePos.clone().sub(last); toSite.y = 0;
@@ -8510,8 +8531,7 @@
             buildParametricModel();
             onResize();
             attract.shots = buildAttractShots();
-            const dots = document.getElementById('at-dots');
-            if (dots) dots.innerHTML = attract.shots.map(() => '<span></span>').join('');
+            buildAttractDots();
             attract.idx = -1;
             attract.from = { pos: camera.position.clone(), target: controls.target.clone() };
         }
@@ -8526,6 +8546,7 @@
             params.showGeology = sv.showGeology; params.xrayUnderground = sv.xrayUnderground; params.xrayOpacity = sv.xrayOpacity;
             scene.background = sv.background || new THREE.Color(sceneBackgroundColor());
             scene.fog = null;
+            if (skyDome) skyDome.visible = false;
             updateTourCut(0);
             if (subsurfaceGroup) subsurfaceGroup.visible = true;
             const div = document.getElementById('at-split'); if (div) div.classList.remove('show');
@@ -8569,6 +8590,8 @@
                 shot.caps.forEach((c, i) => { if (k >= c.at) ci = i; });
                 if (ci !== attract.capIdx) { attract.capIdx = ci; setAttractCaption(Object.assign({}, shot, shot.caps[ci])); }
             }
+            const dotEl = document.getElementById('at-dots').children[attract.idx];
+            if (dotEl) dotEl.style.setProperty('--p', Math.min(1, secs / shot.dur).toFixed(3));   // progress inside the current dot
             const p = attractPose(shot, secs);
             const k = Math.min(1, (now - (attract.blendStart || attract.shotStart)) / 1000 / ATTRACT_TRANSITION_S);
             if (k < 1 && attract.from) {
@@ -8609,8 +8632,10 @@
             if (subsurfaceGroup) subsurfaceGroup.visible = bp;   // the qanat is only revealed beneath
             scene.background.set(bp ? BLUEPRINT.bg : ATTRACT_BG);
             if (scene.fog) scene.fog.color.set(bp ? BLUEPRINT.bg : ATTRACT_BG);
+            if (skyDome) skyDome.visible = !bp;
         }
         function renderAttractFrame(now) {
+            ensureSky().position.copy(camera.position);
             const r = attractRevealAt(now);
             const div = document.getElementById('at-split');
             const el = renderer.domElement, w = el.clientWidth, h = el.clientHeight;
@@ -9003,16 +9028,29 @@
             return !!(t && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)));
         }
         // Tour: jump to the previous/next shot (the tour keeps running from there).
-        function attractJump(step) {
+        function attractGoto(i) {
             const n = attract.shots.length;
             if (!n) return;
-            if (attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
-            attract.idx = ((Math.max(0, attract.idx) + step) % n + n) % n;
+            const wasManual = attract.manual;
+            attractResume();   // (sets attract.from to the visitor's camera when they had the controls)
+            if (!wasManual && attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
+            attract.idx = ((i % n) + n) % n;
             attract.shotStart = attract.blendStart = performance.now();
             const shot = attract.shots[attract.idx];
             attract.activePoi = shot.poiId || null;
             attract.capIdx = 0;
             setAttractCaption(shot);
+            lastInteraction = performance.now();
+        }
+        function attractJump(step) { attractGoto(Math.max(0, attract.idx) + step); }
+        // Station dots (one per tour shot): the current one shows its progress; tap / click any to
+        // jump there (a tooltip names it). Rebuilt whenever the shots are.
+        function buildAttractDots() {
+            const dots = document.getElementById('at-dots');
+            if (!dots) return;
+            dots.innerHTML = attract.shots.map((sh, i) =>
+                `<button type="button" class="at-dot" data-i="${i}" data-label="${(sh.title || sh.kicker || '').replace(/"/g, '&quot;')}" aria-label="Station ${i + 1}: ${(sh.title || '').replace(/"/g, '&quot;')}"></button>`).join('');
+            [...dots.children].forEach((d, i) => d.classList.toggle('on', i === attract.idx));
         }
         // Explore: select the previous/next point of interest (data/poi.json order, without
         // the whole-site marker) and fly to it.
@@ -9049,7 +9087,7 @@
                 }
                 if (!attract.on) return;
                 if (ev.type === 'pointermove') return;
-                if (ev.target && ev.target.closest && ev.target.closest('#at-controls, #path-editor')) return;   // its own buttons
+                if (ev.target && ev.target.closest && ev.target.closest('#at-controls, #path-editor, #at-dots')) return;   // its own buttons
                 if (ev.type === 'keydown') {
                     if (ev.key === 'Escape') { ev.preventDefault(); stopAttract(); }
                     return;
@@ -9076,6 +9114,10 @@
             applyBlur();
             const ef = document.getElementById('param-edge-fade');
             if (ef) ef.addEventListener('change', e => { params.contextEdgeFade = e.target.checked; });
+            document.getElementById('at-dots').addEventListener('click', ev => {
+                const b = ev.target.closest && ev.target.closest('.at-dot');
+                if (b && attract.on) attractGoto(+b.dataset.i);
+            });
             const btn = document.getElementById('btn-attract');
             if (btn) btn.addEventListener('click', () => setTimeout(startAttract, 0));
             initPathEditor();

@@ -4,9 +4,14 @@
     "town": {
       "lookAt": "site",
       "style": "smooth",
-      "duration": 28,
+      "duration": 36,
       "timing": "segments",
       "keys": [
+        {
+          "lat": 49.658908,
+          "lon": 6.131326,
+          "agl": 12.0
+        },
         {
           "lat": 49.658144,
           "lon": 6.129916,
