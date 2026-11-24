@@ -3205,6 +3205,12 @@
             const surfMesh = new THREE.Mesh(surfGeo, fillMat);
             surfMesh.userData.tourClip = true;   // title-tour terrain cut (updateTourCut)
             if (attract.on) {
+                // The window's north edge coincides with the context's: give the window terrain the
+                // same dissolving edge as the apron (otherwise it ends in a hard line there).
+                fillMat.onBeforeCompile = sh => edgeFadeShader(sh, true);
+                fillMat.extensions = { derivatives: true };
+                fillMat.customProgramCacheKey = () => 'edgefade';
+                fillMat.needsUpdate = true;
                 // Title tour: the real (aerial) ground is the SURFACE pass; its "blueprint" twin —
                 // a dark, abstract sheet that the contour lines and the x-ray qanat read against —
                 // is the BENEATH pass of the split view.
@@ -4290,6 +4296,7 @@
         const bldFade = { uBldTex: { value: null }, uBldTexH: { value: 1 } };
         let bldRecs = [];                       // per building: { x, y, z, r } bounding sphere (scene units)
         let bldFadeVal = new Float32Array(0), bldIn = new Uint8Array(0), bldTexData = null;
+        let bldHiVal = new Float32Array(0), bldHideVal = new Float32Array(0), bldNear = new Uint8Array(0);
         // Shared shader plumbing: a world-position varying (vWPos) for the effects below.
         function withWorldPos(sh) {
             if (sh.vertexShader.includes('vWPos')) return;
@@ -4297,21 +4304,44 @@
                 '#include <project_vertex>\n vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
             sh.fragmentShader = 'varying vec3 vWPos;\n' + sh.fragmentShader;
         }
-        // Soft edge of the town context: within uEdgeW of the context block's border the surface
-        // blends into the background colour, so the landscape never ends in a hard line.
-        const edgeFadeU = { uEdgeBox: { value: new THREE.Vector4() }, uEdgeW: { value: 0 }, uEdgeBg: { value: new THREE.Color() } };
-        function edgeFadeShader(sh) {
+        // Edge of the town context (where the data ends). Within uEdgeW of the context block's
+        // border the picture stops being a photograph and turns into a MAP that dissolves:
+        //   1. the aerial drains of colour and cools (data -> only a drawing of the ground),
+        //   2. it melts into the horizon colour,
+        //   3. (terrain only) elevation contour lines — every 5 m, every 25 m heavier — appear on the
+        //      haze and fade out toward the very edge, so the ground reads as "more terrain, no data".
+        // Applied to the context apron AND, in the title tour, to the main terrain window (whose
+        // north edge coincides with the context's), and — without the contours — to the buildings.
+        const edgeFadeU = { uEdgeBox: { value: new THREE.Vector4() }, uEdgeW: { value: 0 }, uEdgeBg: { value: new THREE.Color() },
+                            uEdgeH: { value: new THREE.Vector2(0, 1) } };
+        function edgeFadeShader(sh, contours) {
             withWorldPos(sh);
             Object.assign(sh.uniforms, edgeFadeU);
-            sh.fragmentShader = 'uniform vec4 uEdgeBox;\nuniform float uEdgeW;\nuniform vec3 uEdgeBg;\n' +
+            sh.fragmentShader = 'uniform vec4 uEdgeBox;\nuniform float uEdgeW;\nuniform vec3 uEdgeBg;\nuniform vec2 uEdgeH;\n' +
                 sh.fragmentShader.replace('#include <fog_fragment>', `#include <fog_fragment>
                 if (uEdgeW > 0.0) {
-                    float e = min(min(vWPos.x - uEdgeBox.x, uEdgeBox.y - vWPos.x), min(vWPos.z - uEdgeBox.z, uEdgeBox.w - vWPos.z));
-                    gl_FragColor.rgb = mix(uEdgeBg, gl_FragColor.rgb, smoothstep(0.0, uEdgeW, e));
+                    float eD = min(min(vWPos.x - uEdgeBox.x, uEdgeBox.y - vWPos.x), min(vWPos.z - uEdgeBox.z, uEdgeBox.w - vWPos.z));
+                    float eT = 1.0 - smoothstep(0.0, uEdgeW, eD);   // 0 inside .. 1 at the edge
+                    if (eT > 0.0) {
+                        vec3 eC = gl_FragColor.rgb;
+                        float eL = dot(eC, vec3(0.30, 0.59, 0.11));
+                        eC = mix(eC, vec3(eL) * vec3(0.93, 1.0, 1.08) + 0.04, smoothstep(0.0, 0.55, eT));
+                        eC = mix(eC, uEdgeBg, smoothstep(0.30, 0.97, eT));
+                        ${contours ? `
+                        float eH = uEdgeH.x + vWPos.y / uEdgeH.y;                       // metres above sea level
+                        float eMin = abs(fract(eH / 5.0 - 0.5) - 0.5) / max(fwidth(eH / 5.0), 1e-4);
+                        float eMaj = abs(fract(eH / 25.0 - 0.5) - 0.5) / max(fwidth(eH / 25.0), 1e-4);
+                        float eLine = clamp(1.0 - eMin, 0.0, 1.0) * 0.55 + clamp(1.0 - eMaj * 0.8, 0.0, 1.0) * 0.45;
+                        float eVis = smoothstep(0.12, 0.45, eT) * (1.0 - smoothstep(0.80, 1.0, eT));
+                        vec3 eLc = mix(uEdgeBg, vec3(0.97, 0.98, 1.0), 0.6);   // pale, glowing map lines
+                        eC = mix(eC, eLc, eLine * eVis);` : ''}
+                        gl_FragColor.rgb = eC;
+                    }
                 }`);
         }
         function edgeFadeMaterial(m) {
-            m.onBeforeCompile = edgeFadeShader;
+            m.onBeforeCompile = sh => edgeFadeShader(sh, true);
+            m.extensions = { derivatives: true };
             m.customProgramCacheKey = () => 'edgefade';
             return m;
         }
@@ -4320,7 +4350,8 @@
         function updateEdgeFade() {
             const B = CONTEXT_BBOX, a = geoToScene(B.north, B.west), b = geoToScene(B.south, B.east);
             edgeFadeU.uEdgeBox.value.set(Math.min(a.x, b.x), Math.max(a.x, b.x), Math.min(a.z, b.z), Math.max(a.z, b.z));
-            edgeFadeU.uEdgeW.value = params.contextEdgeFade ? 260 / metersPerUnitH() : 0;
+            edgeFadeU.uEdgeW.value = params.contextEdgeFade ? 300 / metersPerUnitH() : 0;
+            if (geodata.ready) edgeFadeU.uEdgeH.value.set(geodata.minM, metersToYDepth(1));
             if (scene.background && scene.background.isColor) edgeFadeU.uEdgeBg.value = scene.background;
         }
         // Two passes share each building mesh: 'solid' (draws a building in proportion to
@@ -4341,10 +4372,10 @@
                     sh.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
                     float bi = floor(vBid + 0.5);
                     vec4 bldT = texture2D(uBldTex, vec2((mod(bi, ${BLD_TEX_W}.0) + 0.5) / ${BLD_TEX_W}.0, (floor(bi / ${BLD_TEX_W}.0) + 0.5) / uBldTexH));
-                    float bldA = bldT.r, bldHi = bldT.g;
+                    float bldA = bldT.r, bldHi = bldT.g, bldHide = bldT.b;
                     ${mode === 'solid'
                         ? 'if (bldA > 0.99 || (bldA > 0.01 && bldA > bldB2(gl_FragCoord.xy * 0.5) * 0.25 + bldB2(gl_FragCoord.xy) + 0.03)) discard;'
-                        : 'if (bldA < 0.01) discard;'}`)
+                        : 'if (bldA < 0.01 || bldHide > 0.99) discard;'}`)
                     .replace('#include <fog_fragment>', mode !== 'ghost' ? '#include <fog_fragment>' : `
                     {
                         float gLum = dot(gl_FragColor.rgb, vec3(0.3333));
@@ -4353,7 +4384,7 @@
                         vec3 gGrey = vec3(0.34 + 0.60 * gLum);
                         vec3 gLite = mix(gl_FragColor.rgb, vec3(0.93, 0.95, 0.99), 0.55);
                         gl_FragColor.rgb = mix(gGrey, gLite, bldHi);
-                        gl_FragColor.a *= bldA * mix(0.15 + 0.55 * gRim * gRim, 0.07 + 0.45 * gRim * gRim, bldHi);
+                        gl_FragColor.a *= bldA * (1.0 - bldHide) * mix(0.15 + 0.55 * gRim * gRim, 0.07 + 0.45 * gRim * gRim, bldHi);
                     }
                     #include <fog_fragment>`);
                 edgeFadeShader(sh);   // last: it prepends the vWPos varying the code above uses
@@ -4364,6 +4395,7 @@
         function resetBuildingFade(n) {
             const H = Math.max(1, Math.ceil(n / BLD_TEX_W));
             bldFadeVal = new Float32Array(n); bldIn = new Uint8Array(n);
+            bldHiVal = new Float32Array(n); bldHideVal = new Float32Array(n); bldNear = new Uint8Array(n);
             bldTexData = new Uint8Array(BLD_TEX_W * H * 4);
             const t = new THREE.DataTexture(bldTexData, BLD_TEX_W, H, THREE.RGBAFormat);
             t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
@@ -4394,14 +4426,31 @@
             const ghostTown = params.buildingsGhostTown;
             const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) / camera.zoom;
             let dirty = false;
-            const k = 1 - Math.exp(-dt / 0.12);   // ~0.35 s to settle
+            const k = 1 - Math.exp(-dt / 0.2);   // ~0.6 s to settle: nothing pops
+            // Per building, three smoothly eased values (texture channels R, G, B):
+            //   R  ghosted: the solid building dissolves, the translucent ghost takes over
+            //   G  "in the way": the ghost is the lighter, fainter kind
+            //   B  hidden: within 25 m of the camera NOTHING is drawn (neither solid nor ghost)
+            // Rules: within 25 m (hysteresis to 31 m) -> hidden. Otherwise, with ghost town on, every
+            // non-landmark building is a ghost, while LANDMARK buildings stay solid and are exempt from
+            // the marker rule, so they never flicker. Otherwise (ghost town off, or any non-landmark)
+            // a building that covers a visible marker on screen (and stands in front of it) is ghosted.
+            const ease = (arr, i, goal, ch) => {
+                const f = arr[i];
+                if (f === goal) return;
+                let nf = f + (goal - f) * k;
+                if (Math.abs(nf - goal) < 0.01) nf = goal;
+                arr[i] = nf;
+                const byte = Math.round(nf * 255);
+                if (bldTexData[4 * i + ch] !== byte) { bldTexData[4 * i + ch] = byte; dirty = true; }
+            };
             for (let i = 0; i < bldRecs.length; i++) {
                 const b = bldRecs[i];
-                let inWay = false;
+                let near = false, inWay = false;
                 if (on) {
                     const dCam = Math.hypot(b.x - camPos.x, b.y - camPos.y, b.z - camPos.z);
-                    if (dCam - b.r < nearM * (bldIn[i] ? 1.25 : 1)) inWay = true;
-                    else if (marks.length) {
+                    near = dCam - b.r < nearM * (bldNear[i] ? 1.25 : 1);
+                    if (!near && marks.length && !(ghostTown && b.sig)) {
                         const p = _bv.set(b.x, b.y, b.z).project(camera);
                         if (p.z < 1) {
                             const sx = (p.x + 1) / 2 * W, sy = (1 - p.y) / 2 * H;
@@ -4415,19 +4464,10 @@
                         }
                     }
                 }
-                bldIn[i] = inWay ? 1 : 0;
-                // G channel: white outline (in the way of a marker) vs grey ghost (ghost town).
-                const hi = inWay ? 255 : 0;
-                if (bldTexData[4 * i + 1] !== hi) { bldTexData[4 * i + 1] = hi; dirty = true; }
-                // Ghost town: every building that isn't a landmark is a faint outline too.
-                const goal = inWay || (ghostTown && !b.sig) ? 1 : 0, f = bldFadeVal[i];
-                if (f !== goal) {
-                    let nf = f + (goal - f) * k;
-                    if (Math.abs(nf - goal) < 0.01) nf = goal;
-                    bldFadeVal[i] = nf;
-                    const byte = Math.round(nf * 255);
-                    if (bldTexData[4 * i] !== byte) { bldTexData[4 * i] = byte; dirty = true; }
-                }
+                bldNear[i] = near ? 1 : 0; bldIn[i] = inWay ? 1 : 0;
+                ease(bldFadeVal, i, near || inWay || (ghostTown && !b.sig) ? 1 : 0, 0);
+                ease(bldHiVal, i, inWay ? 1 : 0, 1);
+                ease(bldHideVal, i, near ? 1 : 0, 2);
             }
             if (dirty) bldFade.uBldTex.value.needsUpdate = true;
         }
@@ -5322,16 +5362,29 @@
                 if (farLine) { farLine.parent && farLine.parent.remove(farLine); farLine.geometry.dispose(); farLine = null; }
                 if (pts.length >= 2) {
                     const sorted = pts.slice().sort((a, b) => a.x - b.x).map(p => new THREE.Vector3(p.x, p.y, p.z));
-                    const r = 6 / metersPerUnitH();
-                    farLine = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(sorted), sorted.length * 2, r, 8, false),
+                    const curve = new THREE.CatmullRomCurve3(sorted), r = 3 / metersPerUnitH();
+                    farLine = new THREE.Mesh(new THREE.TubeGeometry(curve, sorted.length * 2, r, 8, false),
                         new THREE.MeshBasicMaterial({ color: 0x6fdcf5, transparent: true, opacity: 0, depthTest: false, depthWrite: false }));
                     farLine.renderOrder = 28; farLine.raycast = () => {};
+                    farLine.userData.far = { curve, segs: sorted.length * 2, r, centre: sorted[Math.floor(sorted.length / 2)].clone() };
                     modelGroup.add(farLine);
                 }
             }
             if (farLine) {
                 farLine.material.opacity = 0.9 * Math.max(0, (siteFar - 0.15) / 0.85);
                 farLine.visible = farLine.material.opacity > 0.01;
+                // Constant ~3.5 px thickness on screen (between 0.5 m and 6 m real): a fixed world
+                // radius turned the line into a fat bar when the camera started low and close.
+                const F = farLine.userData.far;
+                if (farLine.visible && F && camera) {
+                    const mpu = metersPerUnitH();
+                    const want = Math.min(6 / mpu, Math.max(0.5 / mpu, worldPerPxAt(F.centre) * 3.5));
+                    if (Math.abs(want - F.r) / F.r > 0.2) {
+                        F.r = want;
+                        farLine.geometry.dispose();
+                        farLine.geometry = new THREE.TubeGeometry(F.curve, F.segs, want, 8, false);
+                    }
+                }
             }
         }
         // Screen-space decluttering (params.poiDeclutter): place markers in priority order —
