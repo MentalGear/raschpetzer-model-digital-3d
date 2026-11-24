@@ -1,5 +1,5 @@
 {
-  "_doc": "Title-tour camera paths, authored with the camera path editor (Tools → 🎥 Camera path; its 'Copy JSON' output goes here). Keys are in geographic terms — lat / lon (EPSG:4326) and agl = metres above the ground — so a path survives changes of the map window, vertical exaggeration or the W↔E flip. lookAt: 'site' (always aim at the whole-site marker) or 'keys' (each key's own `look` target; via points borrow their neighbours'). style: 'smooth' (centripetal Catmull-Rom) or 'straight'. `via: true` marks a point that only bends the route. duration in seconds. timing: 'segments' (every stretch between two keys takes the same time) or 'speed' (constant speed along the whole path). Playback: constant speed along the path, eased start/stop, never below 20 m above the ground. paths.town = the opening flight from 'You are here' over the town hall and the sports complex up toward the plateau (if absent, the app's built-in flight is used).",
+  "_doc": "Title-tour camera paths, authored with the camera path editor (Tools → 🎥 Camera path; its 'Copy JSON' output goes here). Keys are in geographic terms — lat / lon (EPSG:4326) and agl = metres above the ground — so a path survives changes of the map window, vertical exaggeration or the W↔E flip. lookAt: 'site' (always aim at the whole-site marker) or 'keys' (each key's own `look` target; via points borrow their neighbours'). style: 'smooth' (centripetal Catmull-Rom) or 'straight'. `via: true` marks a point that only bends the route. `hold` (seconds): the camera eases to a stop at that key, lingers, and moves on (holds come on top of `duration`); `station` gives that stop its own dot on the title screen; `poiId` makes that POI's orb the active one during the hold. duration in seconds. timing: 'segments' (every stretch between two keys takes the same time) or 'speed' (constant speed along the whole path). Playback: constant speed along the path, eased start/stop, never below 20 m above the ground. paths.town = the opening flight from 'You are here' over the town hall and the sports complex up toward the plateau (if absent, the app's built-in flight is used).",
   "paths": {
     "town": {
       "lookAt": "site",
@@ -25,7 +25,10 @@
         {
           "lat": 49.660138,
           "lon": 6.127959,
-          "agl": 67.6
+          "agl": 67.6,
+          "hold": 5,
+          "station": "Sports complex",
+          "poiId": "sports-hall"
         },
         {
           "lat": 49.662554,

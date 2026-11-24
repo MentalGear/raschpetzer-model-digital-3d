@@ -930,6 +930,10 @@
         #path-editor .pe-row.sel { background: rgba(227,178,92,0.18); outline: 1px solid rgba(227,178,92,0.5); }
         #path-editor .pe-row button { padding: 2px 6px; font-size: 11px; }
         #path-editor .pe-name { flex: 1; }
+        #path-editor .pe-sub { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 4px 18px; padding: 4px 8px;
+            border-radius: 8px; background: rgba(227,178,92,0.08); font-size: 12px; }
+        #path-editor .pe-sub input[type=number] { width: 3.8em; }
+        #path-editor .pe-sub input[type=text] { width: 9em; }
         #path-editor .pe-dot { width: 10px; height: 10px; border-radius: 50%; background: #d62828; flex: none; }
         #path-editor .pe-dot.via { background: #4fb6e8; }
         #path-editor .pe-empty { color: #a8a39a; font-style: italic; padding: 6px 0; }
@@ -1435,7 +1439,7 @@
         <div id="pe-keys"></div>
         <label class="pe-check"><input type="checkbox" id="pe-look-site" checked> Always look at the Raschpëtzer</label>
         <div class="pe-line"><label>Route <select id="pe-style"><option value="smooth">Smooth curve</option><option value="straight">Straight lines</option></select></label>
-            <label>Duration <input id="pe-dur" type="number" min="4" max="180" step="1" style="width:4.5em"> s</label></div>
+            <label>Duration <input id="pe-dur" type="number" min="4" max="180" step="1" style="width:4.5em"> s</label><span id="pe-total" class="pe-hint" style="margin:0"></span></div>
         <div class="pe-line"><label>Timing <select id="pe-timing"><option value="segments">Same time per stretch</option><option value="speed">Constant speed</option></select></label></div>
         <div class="pe-line"><input id="pe-scrub" type="range" min="0" max="1000" value="0" style="flex:1"><button id="pe-play" type="button">▶ Play tour</button></div>
         <div class="pe-line"><label class="pe-check"><input type="checkbox" id="pe-route" checked> Show route</label>
@@ -8459,7 +8463,8 @@
             return ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(deg / 45) % 8];
         }
         function attractPose(shot, secs) {
-            if (shot.sample) {   // a user-authored path (camera path editor)
+            if (shot.sampleT) return shot.sampleT(secs);   // a user-authored path (camera path editor), with holds
+            if (shot.sample) {   // the built-in flight
                 const k = Math.min(1, secs / shot.dur);
                 return shot.sample(0.5 - 0.5 * Math.cos(Math.PI * k));
             }
@@ -8500,8 +8505,6 @@
                 cap.classList.remove('hidden');
                 if (shot.image) ph.classList.remove('hidden');
             }, 650);
-            const dots = document.getElementById('at-dots');
-            if (dots) [...dots.children].forEach((d, i) => d.classList.toggle('on', i === attract.idx));
         }
         function startAttract() {
             if (attract.on || !camera) return;
@@ -8590,8 +8593,11 @@
                 shot.caps.forEach((c, i) => { if (k >= c.at) ci = i; });
                 if (ci !== attract.capIdx) { attract.capIdx = ci; setAttractCaption(Object.assign({}, shot, shot.caps[ci])); }
             }
-            const dotEl = document.getElementById('at-dots').children[attract.idx];
-            if (dotEl) dotEl.style.setProperty('--p', Math.min(1, secs / shot.dur).toFixed(3));   // progress inside the current dot
+            updateAttractDots(secs);   // current dot + its progress
+            if (shot.stations) {   // a named station inside the shot: its POI becomes the active one for the hold
+                const st = shot.stations.find(x => secs >= x.at && secs < x.until);
+                attract.activePoi = st && st.poiId ? st.poiId : (shot.poiId || null);
+            }
             const p = attractPose(shot, secs);
             const k = Math.min(1, (now - (attract.blendStart || attract.shotStart)) / 1000 / ATTRACT_TRANSITION_S);
             if (k < 1 && attract.from) {
@@ -8855,18 +8861,55 @@
             }
             const ym = metersToYDepth(1), u = 1 / metersPerUnitH();
             const siteAim = sitePos.clone().add(new THREE.Vector3(0, 20 * u, 0));
-            const sample = e => {
-                const ee = Math.min(1, Math.max(0, e));
-                // timing 'segments': every keyframe-to-keyframe stretch takes the same time (a long
-                // climb doesn't rush the town); otherwise constant speed along the whole path.
-                const pos = P.timing === 'segments' ? curve.getPoint(ee) : curve.getPointAt(ee);
+            // --- timeline: legs (eased travel between stops) and holds ---------------------------
+            // A key with `hold` seconds makes the camera ease to a stop there, linger, and ease away
+            // (an optional `station` name gives it its own dot on the title screen, `poiId` makes
+            // that POI's orb the active one during the hold). Legs are timed per stretch
+            // ('segments': every key-to-key stretch takes duration / stretches seconds) or by arc
+            // length ('speed'); the path's `duration` is the TRAVEL time, holds come on top.
+            const n = P.keys.length - 1, T = Math.max(4, +P.duration || 30), segMode = P.timing === 'segments';
+            const smooth = P.style !== 'straight';
+            let knot;   // each key's position in the parameter space posAt() takes
+            if (segMode && smooth) knot = P.keys.map((_, i) => i);
+            else if (smooth) { const L = curve.getLengths(n * 50), tot = L[L.length - 1] || 1; knot = P.keys.map((_, i) => L[i * 50] / tot); }
+            else { const L = curve.getCurveLengths(), tot = L[L.length - 1] || 1; knot = [0, ...L.map(x => x / tot)]; }
+            const posAt = p => !smooth ? curve.getPoint(Math.min(1, Math.max(0, p)))
+                : segMode ? curve.getPoint(Math.min(1, Math.max(0, p / n))) : curve.getPointAt(Math.min(1, Math.max(0, p)));
+            const keySpace = p => {   // parameter -> position in key units (for the per-key look targets)
+                for (let i = 0; i < n; i++) if (p <= knot[i + 1] + 1e-9) return i + (knot[i + 1] > knot[i] ? (p - knot[i]) / (knot[i + 1] - knot[i]) : 0);
+                return n;
+            };
+            const holdOf = i => Math.max(0, +P.keys[i].hold || 0);
+            const breaks = [0]; for (let i = 1; i < n; i++) if (holdOf(i) > 0) breaks.push(i); breaks.push(n);
+            const tl = []; let tcur = 0;
+            if (holdOf(0) > 0) { tl.push({ hold: true, t0: 0, t1: holdOf(0), a: 0 }); tcur = holdOf(0); }
+            for (let j = 0; j < breaks.length - 1; j++) {
+                const a = breaks[j], b = breaks[j + 1];
+                const d = segMode ? (b - a) * T / n : (knot[b] - knot[a]) * T;
+                tl.push({ t0: tcur, t1: tcur + d, a, b }); tcur += d;
+                if (holdOf(b) > 0) { tl.push({ hold: true, t0: tcur, t1: tcur + holdOf(b), a: b }); tcur += holdOf(b); }
+            }
+            const total = Math.max(4, tcur);
+            const stations = [];
+            P.keys.forEach((k, i) => {
+                const h = tl.find(e => e.hold && e.a === i);
+                if (k.station && h && h.t0 > 0.01) stations.push({ label: k.station, at: h.t0, until: h.t1, poiId: k.poiId || null });
+            });
+            const sampleT = secs => {
+                const sec = Math.min(total, Math.max(0, secs));
+                const e = tl.find(x => sec <= x.t1) || tl[tl.length - 1];
+                let p;
+                if (e.hold) p = knot[e.a];
+                else { const x = e.t1 > e.t0 ? (sec - e.t0) / (e.t1 - e.t0) : 1; p = knot[e.a] + (knot[e.b] - knot[e.a]) * (0.5 - 0.5 * Math.cos(Math.PI * x)); }
+                const pos = posAt(p);
                 pos.y = Math.max(pos.y, getTerrainHeight(pos.x, pos.z) + TOUR_MIN_AGL_M * ym);
                 let target;
-                if (looks) target = looks.getPoint(P.timing === 'segments' ? e : (curve.getUtoTmapping ? curve.getUtoTmapping(e) : e));
+                if (looks) target = looks.getPoint(Math.min(1, keySpace(p) / n));
                 else { target = siteAim.clone(); target.y -= pos.distanceTo(target) * 0.1; }
                 return { pos, target };
             };
-            return { sample, curve, dur: Math.max(4, +P.duration || 30), userPath: name };
+            // sample(e): e = 0..1 of the whole timeline (editor scrubber / route preview)
+            return { sample: e => sampleT(e * total), sampleT, curve, dur: total, userPath: name, stations };
         }
 
         // Editor UI: opens the title screen paused, visitor in control, with the panel on top.
@@ -8878,7 +8921,7 @@
         function pathEdSave() {
             try { localStorage.setItem(TOUR_DRAFT_KEY + pathEd.name, JSON.stringify(pathEd.data)); } catch (e) {}
             // Rebuild the tour with the edited path, staying on the current shot.
-            if (attract.on) { const i = attract.idx; attract.shots = buildAttractShots(); attract.idx = Math.min(i, attract.shots.length - 1); }
+            if (attract.on) { const i = attract.idx; attract.shots = buildAttractShots(); attract.idx = Math.min(i, attract.shots.length - 1); buildAttractDots(); }
             pathEdRender(); pathEdPreview();
         }
         function pathEdOpen() {
@@ -8951,7 +8994,23 @@
                     if (a === 'go' || !a) { pathEdRender(); pathEdPreview(); } else pathEdSave();
                 });
                 list.appendChild(row);
+                if (i === pathEd.sel && !k.via) {   // hold / station for the selected key
+                    const sub = document.createElement('div');
+                    sub.className = 'pe-sub';
+                    sub.innerHTML = `<label title="Linger here: the camera eases to a stop, waits, and moves on">Hold <input type="number" min="0" max="60" step="0.5" value="${k.hold || 0}" data-f="hold"> s</label>` +
+                        `<label title="Gives this stop its own dot on the title screen">Station <input type="text" value="${(k.station || '').replace(/"/g, '&quot;')}" placeholder="name" data-f="station"></label>` +
+                        `<label title="The point of interest (data/poi.json id) whose orb grows during the hold">POI <input type="text" value="${(k.poiId || '').replace(/"/g, '&quot;')}" placeholder="id" data-f="poiId" style="width:6.5em"></label>`;
+                    sub.querySelectorAll('input').forEach(inp => inp.addEventListener('change', () => {
+                        const f = inp.dataset.f, v = inp.value.trim();
+                        if (f === 'hold') { if (+v > 0) k.hold = +v; else delete k.hold; }
+                        else if (v) k[f] = v; else delete k[f];
+                        pathEdSave();
+                    }));
+                    list.appendChild(sub);
+                }
             });
+            const holds = D.keys.reduce((a, k) => a + (+k.hold || 0), 0);
+            document.getElementById('pe-total').textContent = holds > 0 ? ` (+${holds} s of holds → ${(+D.duration || 30) + holds} s)` : '';
             document.getElementById('pe-json').value = JSON.stringify(D, null, 1);
             document.getElementById('pe-src').textContent = (() => {
                 try { if (localStorage.getItem(TOUR_DRAFT_KEY + pathEd.name)) return 'Draft saved in this browser.'; } catch (e) {}
@@ -9028,14 +9087,14 @@
             return !!(t && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)));
         }
         // Tour: jump to the previous/next shot (the tour keeps running from there).
-        function attractGoto(i) {
+        function attractGoto(i, secs = 0) {
             const n = attract.shots.length;
             if (!n) return;
             const wasManual = attract.manual;
             attractResume();   // (sets attract.from to the visitor's camera when they had the controls)
             if (!wasManual && attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };
             attract.idx = ((i % n) + n) % n;
-            attract.shotStart = attract.blendStart = performance.now();
+            attract.shotStart = performance.now() - secs * 1000; attract.blendStart = performance.now();
             const shot = attract.shots[attract.idx];
             attract.activePoi = shot.poiId || null;
             attract.capIdx = 0;
@@ -9043,14 +9102,36 @@
             lastInteraction = performance.now();
         }
         function attractJump(step) { attractGoto(Math.max(0, attract.idx) + step); }
-        // Station dots (one per tour shot): the current one shows its progress; tap / click any to
-        // jump there (a tooltip names it). Rebuilt whenever the shots are.
+        // Station dots: one per tour shot, plus one per named station INSIDE a shot (a key with
+        // `station` in the camera path, e.g. the sports complex in the town flight). The current
+        // one shows its progress; tap / click any to jump there (a tooltip names it).
         function buildAttractDots() {
             const dots = document.getElementById('at-dots');
             if (!dots) return;
-            dots.innerHTML = attract.shots.map((sh, i) =>
-                `<button type="button" class="at-dot" data-i="${i}" data-label="${(sh.title || sh.kicker || '').replace(/"/g, '&quot;')}" aria-label="Station ${i + 1}: ${(sh.title || '').replace(/"/g, '&quot;')}"></button>`).join('');
-            [...dots.children].forEach((d, i) => d.classList.toggle('on', i === attract.idx));
+            attract.dotMap = [];
+            attract.shots.forEach((sh, i) => {
+                attract.dotMap.push({ shot: i, secs: 0, label: sh.title || sh.kicker || '' });
+                (sh.stations || []).forEach(st => attract.dotMap.push({ shot: i, secs: st.at, label: st.label }));
+            });
+            const q = t => String(t).replace(/"/g, '&quot;');
+            dots.innerHTML = attract.dotMap.map((m, j) =>
+                `<button type="button" class="at-dot" data-i="${j}" data-label="${q(m.label)}" aria-label="Station ${j + 1}: ${q(m.label)}"></button>`).join('');
+            attract.dotCur = -1;
+        }
+        function updateAttractDots(secs) {
+            const map = attract.dotMap, dots = document.getElementById('at-dots');
+            if (!map || !dots) return;
+            let cur = -1;
+            for (let j = 0; j < map.length; j++) if (map[j].shot === attract.idx && secs >= map[j].secs - 1e-6) cur = j;
+            if (cur !== attract.dotCur) {
+                attract.dotCur = cur;
+                [...dots.children].forEach((d, j) => d.classList.toggle('on', j === cur));
+            }
+            const el = dots.children[cur];
+            if (el && cur >= 0) {
+                const sh = attract.shots[attract.idx], nx = map[cur + 1] && map[cur + 1].shot === attract.idx ? map[cur + 1].secs : sh.dur;
+                el.style.setProperty('--p', Math.max(0, Math.min(1, (secs - map[cur].secs) / Math.max(0.01, nx - map[cur].secs))).toFixed(3));
+            }
         }
         // Explore: select the previous/next point of interest (data/poi.json order, without
         // the whole-site marker) and fly to it.
@@ -9116,7 +9197,8 @@
             if (ef) ef.addEventListener('change', e => { params.contextEdgeFade = e.target.checked; });
             document.getElementById('at-dots').addEventListener('click', ev => {
                 const b = ev.target.closest && ev.target.closest('.at-dot');
-                if (b && attract.on) attractGoto(+b.dataset.i);
+                const m = b && attract.dotMap && attract.dotMap[+b.dataset.i];
+                if (m && attract.on) attractGoto(m.shot, m.secs);
             });
             const btn = document.getElementById('btn-attract');
             if (btn) btn.addEventListener('click', () => setTimeout(startAttract, 0));

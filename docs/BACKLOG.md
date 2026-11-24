@@ -310,9 +310,15 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
   saved in the browser, JSON export/import for `data/tour.json` (the kiosk reads
   `paths.town` from there; the built-in flight is the fallback). Playback runs at constant
   speed along the path, eased, never below 20 m above the ground.
-  Still open from the plan below: per-segment tension, captions per keyframe, holds
-  (pauses) at keyframes, more paths than the town flight (all tour shots, lens chapters),
-  draggable handles.
+  Holds + stations (2026-11-24): a key can `hold` N seconds (the camera eases to a stop,
+  lingers, eases away; the path's `duration` is the travel time, holds come on top), and
+  `station` / `poiId` give that stop its own dot on the title screen and make that POI's
+  orb the active one meanwhile — used for the sports complex (5 s) in the town flight; the
+  caption keeps the previous text. Set in the editor on the selected key.
+  Still open from the plan below: per-segment tension, captions per keyframe (a station
+  could carry its own text), more paths than the town flight (all tour shots, lens
+  chapters), draggable handles, arrow keys stepping through stations (today ← / → jump
+  between shots, the dots reach the in-shot stations).
   - Title screen, also 2026-09-28: touching / dragging no longer exits — the visitor takes
     the camera, the tour pauses and "▶ Resume tour" / "✕ Explore the model" appear (it
     resumes by itself after 45 s without input; Esc exits). A "▶ Title screen" button now
