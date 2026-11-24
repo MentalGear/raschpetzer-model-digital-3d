@@ -68,7 +68,9 @@ source; documented facts are visually distinguished from inferred/schematic ones
   the town is ghosted too (grey, x-ray-glass look — no wireframes) except the landmark
   buildings; the tour has a **sky** (deep blue to haze at the horizon) and opens low and close
   to the kiosk before rising and pulling back; **station dots** (bottom right) show where you
-  are in the tour (progress inside the current one) and any dot can be tapped to jump there;
+  are in the tour (progress inside the current one) and any dot can be tapped to jump there
+  (the sports complex in the town flight is a station of its own: the camera lingers there
+  for 5 s — `hold` / `station` keys in `data/tour.json`);
   a station photo per stop (data/poi.json `tourPhoto`; stand-ins until real photos
   arrive), the wide qanat shot **slices the whole landscape** along the qanat line (close-ups
   still dig a trench; Settings → *Reveal the qanat by*), the town context **fades softly**
