@@ -347,6 +347,15 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     + layer preset), so it doubles as the content tool for the A–E lenses.
   - Off-the-shelf alternative: Theatre.js (timeline/keyframe studio for three.js) in
     developer mode only — faster to get a polished timeline, but a sizeable dependency.
+- **Loading screen, lower station fly-over, clearer dots — done 2026-11-24 (fifth round).**
+  - `#loading` overlay covers the page until terrain, aerial photos and building atlases (HQ set
+    too, when wanted) are in; the tour is built and frozen at t = 0 behind it, then starts when it
+    lifts (45 s cap for slow connections). Ideas: real byte-level progress, a retry on failure.
+  - Town flight: after the sports complex it now passes low (~38 m / 62 m above ground) across
+    the railway station, then climbs to the overview; duration 36 → 52 s (travel time).
+  - Station dots sit on a dark blurred pill with a corner wash, larger/brighter dots.
+  - POI markers hidden by the overlap rule now cross-fade (~0.25 s) with a 14 px hysteresis
+    instead of popping (the station marker flickered behind other markers).
 - **Tour polish — done 2026-11-24 (fourth round).**
   - Tour fog is no longer tied to the camera–target distance (it fogged the far station away at
     the low start and revealed it later: it "popped in"); it now starts no closer than 500 m.

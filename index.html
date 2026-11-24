@@ -886,14 +886,28 @@
         #attract .at-prompt { position: absolute; left: 50%; bottom: clamp(16px, 3vh, 34px); transform: translateX(-50%);
             font-size: clamp(0.8rem, 1.3vw, 1rem); letter-spacing: 0.28em; text-transform: uppercase; color: #fbf6ec;
             text-shadow: 0 1px 8px rgba(0,0,0,0.8); animation: atPulse 2.2s ease-in-out infinite; white-space: nowrap; }
-        #attract .at-dots { position: absolute; right: clamp(12px, 3.4vw, 56px); bottom: clamp(14px, 2.6vh, 30px); display: flex; align-items: center; pointer-events: auto; }
+        #loading { position: fixed; inset: 0; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+            background: radial-gradient(ellipse at 50% 40%, #1d2a3d 0%, #0b1018 70%); color: #f5efe4; transition: opacity 0.9s ease; font-family: -apple-system, 'Inter', sans-serif; }
+        #loading.done { opacity: 0; pointer-events: none; }
+        #loading .ld-kicker { font-size: 0.8rem; letter-spacing: 0.4em; text-transform: uppercase; color: #e3b25c; }
+        #loading h1 { margin: 0; font: 400 clamp(2rem, 7vw, 4.2rem)/1 'Cormorant Garamond', Georgia, 'Times New Roman', serif; letter-spacing: 0.14em; color: #c4452f; }
+        #loading .ld-bar { width: min(320px, 60vw); height: 3px; border-radius: 2px; background: rgba(255,255,255,0.14); overflow: hidden; margin-top: 10px; }
+        #loading .ld-bar i { display: block; height: 100%; width: 0; background: #e3b25c; transition: width 0.4s ease; }
+        #loading .ld-msg { font-size: 0.8rem; color: rgba(245,239,228,0.7); min-height: 1.2em; }
+        #attract .at-dots { position: absolute; right: clamp(12px, 3.4vw, 56px); bottom: clamp(14px, 2.6vh, 30px); display: flex; align-items: center; pointer-events: auto;
+            padding: 2px 10px; border-radius: 999px; background: rgba(10,14,22,0.62); border: 1px solid rgba(255,255,255,0.16);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: 0 4px 18px rgba(0,0,0,0.4); }
+        /* a soft dark wash from the screen corner behind the pill, so the dots read over any scene */
+        #attract .at-dots::before { content: ''; position: absolute; z-index: -1; right: calc(-1 * clamp(12px, 3.4vw, 56px)); bottom: calc(-1 * clamp(14px, 2.6vh, 30px));
+            width: calc(100% + 160px); height: calc(100% + 90px); pointer-events: none;
+            background: radial-gradient(ellipse at 100% 100%, rgba(6,9,15,0.78) 0%, rgba(6,9,15,0.45) 45%, rgba(6,9,15,0) 75%); }
         #attract .at-dot { position: relative; width: 24px; height: 32px; padding: 0; border: 0; background: none; cursor: pointer; transition: width 0.3s; }
-        #attract .at-dot::after { content: ''; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
-            border-radius: 5px; background: rgba(255,255,255,0.42); box-shadow: 0 0 0 1px rgba(0,0,0,0.25); transition: width 0.3s, margin 0.3s, background 0.3s; }
+        #attract .at-dot::after { content: ''; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px;
+            border-radius: 5px; background: rgba(255,255,255,0.7); box-shadow: 0 0 0 1px rgba(0,0,0,0.4); transition: width 0.3s, margin 0.3s, background 0.3s; }
         #attract .at-dot:hover::after, #attract .at-dot:focus-visible::after { background: rgba(255,255,255,0.9); }
         #attract .at-dot.on { width: 40px; }
         #attract .at-dot.on::after { width: 30px; margin-left: -15px;
-            background: linear-gradient(90deg, var(--at-gold) calc(var(--p, 0) * 100%), rgba(255,255,255,0.4) calc(var(--p, 0) * 100%)); }
+            background: linear-gradient(90deg, var(--at-gold) calc(var(--p, 0) * 100%), rgba(255,255,255,0.5) calc(var(--p, 0) * 100%)); }
         /* tooltip: the station's name, right-aligned above the dots */
         #attract .at-dot::before { content: attr(data-label); position: absolute; right: 0; bottom: 100%; margin-bottom: 4px; padding: 5px 10px;
             border-radius: 8px; background: rgba(14,17,24,0.88); color: #f5efe4; font: 600 0.78rem/1.2 -apple-system, sans-serif;
@@ -1403,6 +1417,12 @@
 
     <!-- Title screen / kiosk attract mode (see startAttract): title top-right over a corner
          gradient, per-shot caption bottom-left, "touch to explore" prompt. -->
+    <div id="loading" role="status" aria-live="polite">
+        <div class="ld-kicker">Walferdange · Luxembourg</div>
+        <h1>RASCHPËTZER</h1>
+        <div class="ld-bar"><i id="ld-fill"></i></div>
+        <div class="ld-msg" id="ld-msg">Loading the landscape…</div>
+    </div>
     <div id="attract" aria-live="polite">
         <div class="at-scrim"></div>
         <div class="at-title">
@@ -3109,8 +3129,9 @@
                 buildParametricModel(); restoreSelectionFromURL();
                 // Next frame: setupUI() (which syncs the controls from params) must run first,
                 // or the controls would pick up the tour's temporary settings.
-                if (params.attractMode && !linkTarget) requestAnimationFrame(() => startAttract());
+                if (params.attractMode && !linkTarget) requestAnimationFrame(() => { attract.loading = true; startAttract(); });
             });
+            watchLoading(params.attractMode && !linkTarget);
             loadBaseTextures();   // base-map drapes (async; rebuild if that layer is active)
             loadOverlayTextures();   // thematic overlays (aquifer / official contours / spot / break)
             setupUI();
@@ -4256,6 +4277,7 @@
             for (let i = 0, acc = 0; i < t.length; i++) { start[i] = t[i] ? acc : -1; if (t[i]) acc += B3.r[i] & 0x3fff; }
             return { atlases: S.atlases, t, uv, start, tex: [] };
         }
+        const wantHqBuildings = () => !!(params.hqAssets || params.hqBuildings);
         function act3d() {
             if (B3 || !window.RASCH_BUILDINGS3D) return B3;
             const D = window.RASCH_BUILDINGS3D;
@@ -4264,11 +4286,13 @@
             B3.sets.std = act3dSet(D.std);
             return B3;
         }
+        let bldTexPending = 0;   // building atlases still downloading (the loading screen waits for them)
         function act3dTextures(set) {
             if (!set.tex.length) {
                 const L = new THREE.TextureLoader(), aniso = renderer.capabilities.getMaxAnisotropy();
                 set.tex = set.atlases.map(f => {
-                    const tx = L.load(f);
+                    bldTexPending++;
+                    const tx = L.load(f, () => { bldTexPending--; }, undefined, () => { bldTexPending--; });
                     tx.anisotropy = aniso;
                     return tx;
                 });
@@ -4478,7 +4502,7 @@
                 params.terrainSource === 'geodata' && geodata.ready;
             buildingsGroup.visible = !!show;
             if (!show) return;
-            const wantHq = params.hqAssets || params.hqBuildings;
+            const wantHq = wantHqBuildings();
             if (wantHq) ensureHqBuildings();
             if (A && wantHq && window.RASCH_BUILDINGS3D_HQ && !A.sets.hq) A.sets.hq = act3dSet(window.RASCH_BUILDINGS3D_HQ);
             const set = A ? ((wantHq && A.sets.hq) || A.sets.std) : null;
@@ -5309,7 +5333,7 @@
                 const dimmed = activeShown && !isActive;
                 const opGoal = vis * (dimmed ? POI_DIM_OPACITY : 1);
                 pg.fade = pg.fade == null ? opGoal : pg.fade + (opGoal - pg.fade) * fadeEase;
-                for (const [m, o] of pg.mats) m.opacity = o * pg.fade;
+                for (const [m, o] of pg.mats) m.opacity = o * pg.fade * (pg.dc == null ? 1 : pg.dc);
                 pg.faded = pg.fade < 0.03;
                 const goal = isActive ? POI_ACTIVE_SCALE : dimmed ? POI_DIM_SCALE : 1;
                 pg.grow = pg.grow == null ? goal : pg.grow + (goal - pg.grow) * ease;
@@ -5415,12 +5439,20 @@
                     const rects = [rectOf(pg.disc, dr, dr), rectOf(pg.lbl, ls.x / 2 / wpp * 0.85, ls.y / 2 / wpp * 0.6)]
                         .filter(Boolean);
                     const sel = pg.disc.userData.id === poiSelectedId || pg.disc.userData.id === poiActiveId || pg.kiosk;
-                    if (!sel && rects.some(r => placed.some(q => hit(r, q)))) show = false;
+                    // A hidden marker needs a 14 px clearance to come back (hysteresis): no flicker at the edge of an overlap.
+                    const m = pg.hiddenByDeclutter ? 14 : 0;
+                    if (!sel && rects.some(r => placed.some(q => hit([r[0] - m, r[1] - m, r[2] + m, r[3] + m], q)))) show = false;
                     else placed.push(...rects);
                 }
                 if (pg.faded) show = false;
-                pg.group.visible = show;
-                if (pg.conn) pg.conn.visible = show;
+                pg.hiddenByDeclutter = !show && !pg.faded;
+                // Cross-fade (≈0.25 s) rather than popping in and out.
+                const dcGoal = show ? 1 : 0;
+                pg.dc = pg.dc == null ? dcGoal : (Math.abs(pg.dc - dcGoal) < 0.02 ? dcGoal : pg.dc + (dcGoal - pg.dc) * 0.14);
+                for (const [mm, o] of pg.mats) mm.opacity = o * pg.fade * pg.dc;
+                const vis = pg.dc > 0.01 && !pg.faded;
+                pg.group.visible = vis;
+                if (pg.conn) pg.conn.visible = vis;
             }
         }
 
@@ -8405,7 +8437,7 @@
             scene.add(skyDome);
             return skyDome;
         }
-        const attract = { on: false, shots: [], idx: -1, shotStart: 0, from: null, saved: null, pose: null };
+        const attract = { loading: false, on: false, shots: [], idx: -1, shotStart: 0, from: null, saved: null, pose: null };
         let lastInteraction = performance.now();
         // Camera pose on a sphere around `target`: az 0° = from the south (+Z), el = elevation.
         function orbitPose(target, dist, elDeg, azDeg) {
@@ -8560,6 +8592,46 @@
                 if (shot.image) ph.classList.remove('hidden');
             }, 650);
         }
+
+        // Loading screen (#loading): covers the page until the terrain, aerial photos and building
+        // textures are in (the tour is built and frozen at t = 0 behind it, so every texture is
+        // already on the GPU when it lifts); then the tour starts. A 45 s cap lets a slow
+        // connection through with whatever has arrived.
+        function loadingItems() {
+            const ctx = contextTextures, base = baseTextures.satellite;
+            const bOK = () => {
+                if (!window.RASCH_BUILDINGS3D) return true;
+                if (!B3 || !buildingsGroup || !buildingsGroup.children.length || bldTexPending > 0) return false;
+                return !wantHqBuildings() || !!(B3.sets.hq && B3.sets.hq.tex.length);
+            };
+            return [
+                ['Terrain', !!(geodata.ready && geodataContext.ready)],
+                ['aerial photos', !!(base && base.ready && ctx.ortho && ctx.ortho.ready && ctx.topo && ctx.topo.ready)],
+                ['buildings', bOK()],
+            ];
+        }
+        function watchLoading(expectTour) {
+            const t0 = performance.now(), el = document.getElementById('loading');
+            if (!el) { attract.loading = false; return; }
+            const fill = document.getElementById('ld-fill'), msg = document.getElementById('ld-msg');
+            let okFrames = 0;
+            const iv = setInterval(() => {
+                const items = loadingItems(), n = items.filter(i => i[1]).length;
+                const waited = performance.now() - t0, timeout = waited > 45000;
+                fill.style.width = Math.round(100 * (n + (expectTour && attract.on ? 0 : 0)) / (items.length + 1)) + '%';
+                const next = items.find(i => !i[1]);
+                msg.textContent = next ? 'Loading ' + next[0].toLowerCase() + '…' : 'Starting…';
+                const ready = items.every(i => i[1]) && (!expectTour || (attract.on && attract.shots.length));
+                okFrames = ready ? okFrames + 1 : 0;
+                if ((okFrames >= 8 && waited > 900) || timeout) {   // ready for ~1 s: textures uploaded behind the screen
+                    clearInterval(iv);
+                    fill.style.width = '100%';
+                    attract.loading = false;
+                    el.classList.add('done');
+                    setTimeout(() => el.remove(), 1200);
+                }
+            }, 120);
+        }
         function startAttract() {
             if (attract.on || !camera) return;
             if (tour.active) stopTour();
@@ -8630,6 +8702,7 @@
             }
             const shots = attract.shots;
             if (!shots.length) return true;
+            if (attract.loading) { attract.shotStart = now; attract.blendStart = now; }   // the loading screen is up: hold at t = 0
             let shot = shots[attract.idx];
             if (attract.idx < 0 || (now - attract.shotStart) / 1000 > shot.dur) {
                 if (attract.idx >= 0 && attract.pose) attract.from = { pos: attract.pose.pos.clone(), target: attract.pose.target.clone() };

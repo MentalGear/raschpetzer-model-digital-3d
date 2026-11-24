@@ -4,7 +4,7 @@
     "town": {
       "lookAt": "site",
       "style": "smooth",
-      "duration": 36,
+      "duration": 52,
       "timing": "segments",
       "keys": [
         {
@@ -31,9 +31,14 @@
           "poiId": "sports-hall"
         },
         {
-          "lat": 49.662554,
-          "lon": 6.136633,
-          "agl": 198.1
+          "lat": 49.6612,
+          "lon": 6.1352,
+          "agl": 38.0
+        },
+        {
+          "lat": 49.6632,
+          "lon": 6.1402,
+          "agl": 62.0
         },
         {
           "lat": 49.664544,
