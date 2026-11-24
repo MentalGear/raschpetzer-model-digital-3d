@@ -347,6 +347,21 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     + layer preset), so it doubles as the content tool for the A–E lenses.
   - Off-the-shelf alternative: Theatre.js (timeline/keyframe studio for three.js) in
     developer mode only — faster to get a polished timeline, but a sizeable dependency.
+- **Tour polish — done 2026-11-24 (second round).**
+  - Edge of the data (2026-11-24, third round): the main terrain window now gets the same
+    dissolving edge as the context apron (its north edge coincides with the context's and
+    ended in a hard line); the edge is no longer a flat fog blend — the aerial drains of
+    colour, melts into the horizon colour, and elevation contour lines (5 m, 25 m heavier)
+    fade in and out on the haze. Ideas: crossfade into the topographic map instead of grey,
+    let the terrain sink slightly toward the edge, a hatching / dithered dissolve.
+  - Nothing is drawn within 25 m of the camera (solid or ghost; hysteresis to 31 m).
+  - Landmark buildings (solid) are exempt from the "covers a marker" rule, so the station,
+    castle / IFEN etc. no longer flicker as the camera moves; every fade is eased over
+    ~0.6 s.
+  - The far-view glowing gallery line has a constant ~3.5 px thickness on screen (0.5–6 m
+    real) instead of a fixed 6 m radius, which looked huge from the low start.
+  - Open: the ghost-or-solid decision for landmark buildings that really do block a
+    marker (e.g. a castle wing in front of another POI's orb) — today they stay solid.
 - **Tour sky, start view and station dots — done 2026-11-24.**
   - Sky dome in tour mode (deep blue overhead, pale haze at the horizon; the fog and the
     context terrain's soft edge fade into the horizon colour; hidden in the split view's

@@ -73,7 +73,7 @@ source; documented facts are visually distinguished from inferred/schematic ones
   for 5 s — `hold` / `station` keys in `data/tour.json`);
   a station photo per stop (data/poi.json `tourPhoto`; stand-ins until real photos
   arrive), the wide qanat shot **slices the whole landscape** along the qanat line (close-ups
-  still dig a trench; Settings → *Reveal the qanat by*), the town context **fades softly**
+  still dig a trench; Settings → *Reveal the qanat by*), the town context **dissolves at the edge of the data** (the aerial drains of colour and melts into the horizon while pale elevation contour lines appear and fade out)
   into the background at its border, and an optional plain **blur behind the title and
   captions** (Settings, off by default).
 - **Arrow keys** ← / →: previous / next station — tour shot on the title screen (the tour
