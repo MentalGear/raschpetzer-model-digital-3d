@@ -64,7 +64,12 @@ source; documented facts are visually distinguished from inferred/schematic ones
 - **Title tour extras**: the tour opens with one continuous flight from "You are here" past
   the town hall and over the sports complex up toward the site, always looking at the
   Raschpëtzer (the overview closes the loop); a building that covers a marker (or is right
-  in front of the camera) turns into a white outline, fading in and out; a station photo per stop (data/poi.json `tourPhoto`; stand-ins until real photos
+  in front of the camera) turns into a translucent ghost, fading in and out, and the rest of
+  the town is ghosted too (grey, x-ray-glass look — no wireframes) except the landmark
+  buildings; the tour has a **sky** (deep blue to haze at the horizon) and opens low and close
+  to the kiosk before rising and pulling back; **station dots** (bottom right) show where you
+  are in the tour (progress inside the current one) and any dot can be tapped to jump there;
+  a station photo per stop (data/poi.json `tourPhoto`; stand-ins until real photos
   arrive), the wide qanat shot **slices the whole landscape** along the qanat line (close-ups
   still dig a trench; Settings → *Reveal the qanat by*), the town context **fades softly**
   into the background at its border, and an optional plain **blur behind the title and
