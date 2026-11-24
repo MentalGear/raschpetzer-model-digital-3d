@@ -876,7 +876,7 @@
         #attract .at-photo { position: absolute; right: clamp(20px, 4vw, 64px); bottom: clamp(56px, 9vh, 110px);
             width: min(380px, 30vw); transition: opacity 0.6s ease, transform 0.6s ease; }
         #attract .at-photo.hidden { opacity: 0; transform: translateY(8px); }
-        #attract .at-cap-img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
+        #attract .at-cap-img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: 50% 45%;
             border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18); }
         #attract .at-cap-img[hidden] { display: none; }
         #attract .at-cap-img.placeholder { opacity: 0.7; }
@@ -1587,6 +1587,7 @@
             showBuildings: true,          // 3D buildings (ACT 2023 LOD2 textured; OSM fallback) on the surrounding-context terrain
             buildingsSeeThrough: true,    // buildings between the camera and its target dissolve (dithered)
             buildingsGhostTown: true,     // only landmark buildings (data/poi.json buildingRadius) solid; the rest faint ghosts
+            hqBuildings: /[?&]hq=0\b/.test(location.search) ? false : (/[?&]hq=1\b/.test(location.search) || Math.max(innerWidth, innerHeight) * (window.devicePixelRatio || 1) >= 1900),   // HQ building atlases (big screens / ?hq=1)
             hqAssets: false,              // high-quality textures (big screen): HQ building atlases + finer context aerial
             attractReveal: 'mixed',       // how the tour reveals the qanat: 'mixed' (slice for the wide shot, trench for close-ups) | 'cut' (terrain trench) | 'slice' (whole landscape cut along the qanat) | 'split' (split screen)
             attractBlur: false,           // blur the scene behind the tour's title and caption text
@@ -4324,8 +4325,7 @@
                     float eT = 1.0 - smoothstep(0.0, uEdgeW, eD);   // 0 inside .. 1 at the edge
                     if (eT > 0.0) {
                         vec3 eC = gl_FragColor.rgb;
-                        float eL = dot(eC, vec3(0.30, 0.59, 0.11));
-                        eC = mix(eC, vec3(eL) * vec3(0.93, 1.0, 1.08) + 0.04, smoothstep(0.0, 0.55, eT));
+                        eC = mix(eC, eC * 0.92 + 0.03, smoothstep(0.0, 0.55, eT));   // keeps its colours (no grey)
                         eC = mix(eC, uEdgeBg, smoothstep(0.30, 0.97, eT));
                         ${contours ? `
                         float eH = uEdgeH.x + vWPos.y / uEdgeH.y;                       // metres above sea level
@@ -4478,9 +4478,10 @@
                 params.terrainSource === 'geodata' && geodata.ready;
             buildingsGroup.visible = !!show;
             if (!show) return;
-            if (params.hqAssets) ensureHqBuildings();
-            if (A && params.hqAssets && window.RASCH_BUILDINGS3D_HQ && !A.sets.hq) A.sets.hq = act3dSet(window.RASCH_BUILDINGS3D_HQ);
-            const set = A ? ((params.hqAssets && A.sets.hq) || A.sets.std) : null;
+            const wantHq = params.hqAssets || params.hqBuildings;
+            if (wantHq) ensureHqBuildings();
+            if (A && wantHq && window.RASCH_BUILDINGS3D_HQ && !A.sets.hq) A.sets.hq = act3dSet(window.RASCH_BUILDINGS3D_HQ);
+            const set = A ? ((wantHq && A.sets.hq) || A.sets.std) : null;
             const key = [geoView.west, geoView.east, geoView.south, geoView.north, params.width, params.depth,
                 params.vExag, params.flipWE, attract.on, set === (A && A.sets.hq)].join('|');
             if (key === buildingsKey) return;
@@ -8668,7 +8669,10 @@
             camera.lookAt(attract.pose.target);
             if (scene.fog) {
                 const d = attract.pose.pos.distanceTo(attract.pose.target);
-                scene.fog.near = d * 1.5; scene.fog.far = d * 4.5;
+                // Never closer than 500 m / 2.2 km: a low, close start used to fog the far landmarks (station) away,
+                // then reveal them as the camera pulled back (they "popped in").
+                const u = 1 / metersPerUnitH();
+                scene.fog.near = Math.max(d * 1.5, 500 * u); scene.fog.far = Math.max(d * 4.5, 2200 * u);
             }
             return true;
         }

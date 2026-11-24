@@ -347,6 +347,16 @@ For the physical display in front of Maison Dufaing (title-screen tour, `attract
     + layer preset), so it doubles as the content tool for the A–E lenses.
   - Off-the-shelf alternative: Theatre.js (timeline/keyframe studio for three.js) in
     developer mode only — faster to get a polished timeline, but a sizeable dependency.
+- **Tour polish — done 2026-11-24 (fourth round).**
+  - Tour fog is no longer tied to the camera–target distance (it fogged the far station away at
+    the low start and revealed it later: it "popped in"); it now starts no closer than 500 m.
+  - The edge of the data keeps the photo's colours (no grey/black-and-white step), melting only
+    into the haze + contour lines.
+  - HQ building textures (768/160 px on 4096² atlases, ~14 MB) load by default on big screens
+    (≥ 1900 device px) or with `?hq=1`; `?hq=0` forces the light set. Note: ~0.6 GB of GPU memory.
+  - Landmark buildings: the town hall (radius 45 m) is solid; the château is a 108 m radius
+    instead of the box that also caught neighbouring houses.
+  - Visitor's gallery tour photo: the project's own entrance photo (`assets/poi/gallery-entrance.webp`).
 - **Tour polish — done 2026-11-24 (second round).**
   - Edge of the data (2026-11-24, third round): the main terrain window now gets the same
     dissolving edge as the context apron (its north edge coincides with the context's and
